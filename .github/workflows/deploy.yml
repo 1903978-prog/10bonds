@@ -17,6 +17,7 @@ jobs:
       ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -62,6 +63,13 @@ jobs:
           else
             echo "Confirmation e-mails: off (no RESEND_API_KEY / EMAIL_FROM secret)."
           fi
+          # Paid plans switch on when the Stripe key exists; the app creates prices and the webhook itself.
+          if [ -n "$STRIPE_SECRET_KEY" ]; then
+            printf 'STRIPE_SECRET_KEY=%s\n' "$STRIPE_SECRET_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
+            echo "Paid plans: on."
+          else
+            echo "Paid plans: off (no STRIPE_SECRET_KEY secret)."
+          fi
       - name: Deploy
         if: env.ok == '1'
         run: flyctl deploy --remote-only -a 10bonds --ha=false
@@ -91,3 +99,8 @@ jobs:
           code=$(curl -sS -o /dev/null -w '%{http_code}' https://10bonds.fly.dev/api/auth/challenge)
           echo "challenge HTTP $code"
           [ "$code" = "200" ]
+      - name: "Payments: Stripe prices, portal and webhook"
+        if: env.ok == '1' && env.STRIPE_SECRET_KEY != ''
+        run: |
+          body=$(curl -sS -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/billing); echo "$body"
+          echo "$body" | grep -q '"webhook":true'

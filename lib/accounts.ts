@@ -39,6 +39,14 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists terms_accepted_at timestamptz`;
   await sql`alter table app.users add column if not exists email_verified_at timestamptz`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
+  // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
+  await sql`alter table app.users add column if not exists stripe_customer_id text`;
+  await sql`alter table app.users add column if not exists stripe_subscription_id text`;
+  await sql`alter table app.users add column if not exists subscription_status text`;
+  await sql`alter table app.users add column if not exists subscription_renews_at timestamptz`;
+  await sql`alter table app.users add column if not exists subscription_cancel_at_end boolean`;
+  // Small settings the app makes for itself (for example the Stripe webhook signing key).
+  await sql`create table if not exists app.settings (key text primary key, value text not null, updated_at timestamptz not null default now())`;
   // One-month Premium trial codes made by the admin. A code is used once.
   await sql`
     create table if not exists app.trial_codes (
@@ -79,6 +87,8 @@ export type User = {
   premiumUntil: string | null;
   emailVerified: boolean;
   isAdmin: boolean;
+  stripeCustomerId: string | null;
+  subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean } | null;
 };
 
 /** Days of free Premium every new account gets. */
@@ -89,8 +99,11 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-type UserRow = { id: string; email: string; username: string | null; plan: Plan; premium_until: Date | null; email_verified_at: Date | null };
-const USER_COLS = "id, email, username, plan, premium_until, email_verified_at";
+type UserRow = {
+  id: string; email: string; username: string | null; plan: Plan; premium_until: Date | null; email_verified_at: Date | null;
+  stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null;
+};
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end";
 
 export function toUser(r: UserRow, now = Date.now()): User {
   const trial = r.premium_until !== null && new Date(r.premium_until).getTime() > now;
@@ -106,6 +119,10 @@ export function toUser(r: UserRow, now = Date.now()): User {
     // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: ADMIN_EMAILS.includes(r.email) && (emailVerified || !emailConfigured()),
+    stripeCustomerId: r.stripe_customer_id ?? null,
+    subscription: r.subscription_status
+      ? { status: r.subscription_status, renewsAt: r.subscription_renews_at ? new Date(r.subscription_renews_at).toISOString() : null, cancelAtEnd: r.subscription_cancel_at_end === true }
+      : null,
   };
 }
 
@@ -301,4 +318,45 @@ export async function accountsSql() {
   const { sql, ready } = db();
   await ready;
   return sql;
+}
+
+export async function getSetting(key: string): Promise<string | null> {
+  const { sql, ready } = db();
+  await ready;
+  const r = await sql<{ value: string }[]>`select value from app.settings where key = ${key}`;
+  return r[0]?.value ?? null;
+}
+
+export async function setSetting(key: string, value: string) {
+  const { sql, ready } = db();
+  await ready;
+  await sql`insert into app.settings (key, value) values (${key}, ${value})
+    on conflict (key) do update set value = excluded.value, updated_at = now()`;
+}
+
+export async function setStripeCustomer(userId: number, customerId: string) {
+  const { sql, ready } = db();
+  await ready;
+  await sql`update app.users set stripe_customer_id = ${customerId} where id = ${userId} and stripe_customer_id is null`;
+}
+
+/** Apply a Stripe subscription to the account it belongs to. Returns the user id, or null when none matches. */
+export async function applySubscription(s: {
+  customerId: string; userId: number | null; subscriptionId: string; status: string; plan: Plan; renewsAt: Date | null; cancelAtEnd: boolean;
+}): Promise<number | null> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{ id: string }[]>`
+    update app.users set
+      stripe_customer_id = ${s.customerId},
+      stripe_subscription_id = ${s.subscriptionId},
+      subscription_status = ${s.status},
+      subscription_renews_at = ${s.renewsAt},
+      subscription_cancel_at_end = ${s.cancelAtEnd},
+      plan = ${s.plan}
+    where (stripe_customer_id = ${s.customerId} or (${s.userId}::bigint is not null and id = ${s.userId}::bigint and stripe_customer_id is null))
+      -- an old subscription ending must not cancel a newer one that is live (events can arrive out of order)
+      and (${s.plan} <> 'free' or stripe_subscription_id is null or stripe_subscription_id = ${s.subscriptionId})
+    returning id`;
+  return rows[0] ? Number(rows[0].id) : null;
 }
