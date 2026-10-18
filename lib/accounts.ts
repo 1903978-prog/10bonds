@@ -295,3 +295,10 @@ function urlShape(raw: string): Record<string, boolean | number> {
     angleOrBrackets: /[<>\[\]{}]/.test(raw),
   };
 }
+
+/** The accounts connection, tables ready, for modules that keep their own tables in schema "app". */
+export async function accountsSql() {
+  const { sql, ready } = db();
+  await ready;
+  return sql;
+}
