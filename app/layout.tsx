@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
+import ProNavLink from "@/components/ProNavLink";
 import UsageStats, { UsageStatsSetting } from "@/components/UsageStats";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight">10BONDS</Link>
             <div className="ml-3 flex items-center gap-3 text-sm text-mute sm:gap-5">
+              <ProNavLink />
               <Link href="/pricing" className="hover:text-ink">Pricing</Link>
               <Link href="/disclaimer" className="hidden hover:text-ink sm:inline">Disclaimer</Link>
               <AccountNav />
@@ -46,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Yields are indicative and can change. Past performance does not guarantee future results.
           </p>
           <p className="mt-2">
-            © {new Date().getFullYear()} 10BONDS · <Link href="/terms" className="underline hover:text-ink">Terms</Link> · <UsageStatsSetting />
+            © {new Date().getFullYear()} 10BONDS · <Link href="/terms" className="underline hover:text-ink">Terms</Link> · <Link href="/pro" className="underline hover:text-ink">For wealth managers</Link> · <UsageStatsSetting />
           </p>
         </footer>
         <UsageStats />
