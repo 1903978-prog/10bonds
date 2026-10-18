@@ -30,3 +30,24 @@ export function readSession(token: string | undefined | null, now = Date.now()):
   if (!/^\d+$/.test(id) || !/^\d+$/.test(exp) || Number(exp) < now) return null;
   return Number(id);
 }
+
+/** A signed, expiring token for one purpose (e-mail confirmation, bot check). Payload must not contain ".". */
+export function signToken(purpose: string, payload: string, ttlMs: number, now = Date.now()): string | null {
+  const key = secret();
+  if (!key) return null;
+  const body = `${payload}.${now + ttlMs}`;
+  return `${body}.${createHmac("sha256", key).update(`${purpose}:${body}`).digest("base64url")}`;
+}
+
+export function readToken(purpose: string, token: string | null | undefined, now = Date.now()): string | null {
+  const key = secret();
+  if (!key || !token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [payload, exp, sig] = parts;
+  const want = createHmac("sha256", key).update(`${purpose}:${payload}.${exp}`).digest();
+  const got = Buffer.from(sig, "base64url");
+  if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
+  if (!/^\d+$/.test(exp) || Number(exp) < now) return null;
+  return payload;
+}

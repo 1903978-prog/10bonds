@@ -1,5 +1,5 @@
 import postgres from "postgres";
-import { cleanPgUrl } from "./pgUrl";
+import { accountsUrl } from "./pgUrl";
 import type { Tier } from "./types";
 
 // Accounts live in schema "app" of the 10BONDS database, written with their own login
@@ -14,7 +14,7 @@ export function accountsConfigured(): boolean {
 function db() {
   const url = process.env.ACCOUNTS_DATABASE_URL;
   if (!url) throw new Error("Accounts are not connected yet.");
-  sql ??= postgres(cleanPgUrl(url), { ssl: url.includes("localhost") ? false : "require", max: 3, idle_timeout: 20, prepare: false, onnotice: () => {} });
+  sql ??= postgres(accountsUrl(url, process.env.DATABASE_URL), { ssl: url.includes("localhost") ? false : "require", max: 3, idle_timeout: 20, prepare: false, onnotice: () => {} });
   ready ??= setup(sql).catch((e) => {
     ready = null;
     throw e;
@@ -36,6 +36,19 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists username text`;
   await sql`alter table app.users add column if not exists terms_version text`;
   await sql`alter table app.users add column if not exists terms_accepted_at timestamptz`;
+  await sql`alter table app.users add column if not exists email_verified_at timestamptz`;
+  await sql`alter table app.users add column if not exists premium_until timestamptz`;
+  // One-month Premium trial codes made by the admin. A code is used once.
+  await sql`
+    create table if not exists app.trial_codes (
+      code text primary key,
+      days integer not null default 30,
+      note text,
+      created_at timestamptz not null default now(),
+      created_by bigint references app.users(id) on delete set null,
+      redeemed_by bigint references app.users(id) on delete set null,
+      redeemed_at timestamptz
+    )`;
   await sql`create unique index if not exists users_username_key on app.users (lower(username))`;
   // Usage events: only written for visitors who accepted usage stats. No IP address is stored.
   await sql`
@@ -54,7 +67,45 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`delete from app.events where at < now() - interval '13 months'`;
 }
 
-export type User = { id: number; email: string; username: string | null; plan: Exclude<Tier, "visitor"> };
+type Plan = Exclude<Tier, "visitor">;
+/** `plan` is what the user gets now: Premium while a trial runs, otherwise the plan they hold. */
+export type User = {
+  id: number;
+  email: string;
+  username: string | null;
+  plan: Plan;
+  storedPlan: Plan;
+  premiumUntil: string | null;
+  emailVerified: boolean;
+  isAdmin: boolean;
+};
+
+/** Days of free Premium every new account gets. */
+export const SIGNUP_TRIAL_DAYS = 7;
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+type UserRow = { id: string; email: string; username: string | null; plan: Plan; premium_until: Date | null; email_verified_at: Date | null };
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at";
+
+export function toUser(r: UserRow, now = Date.now()): User {
+  const trial = r.premium_until !== null && new Date(r.premium_until).getTime() > now;
+  const emailVerified = r.email_verified_at !== null;
+  return {
+    id: Number(r.id),
+    email: r.email,
+    username: r.username,
+    plan: trial ? "premium" : r.plan,
+    storedPlan: r.plan,
+    premiumUntil: r.premium_until ? new Date(r.premium_until).toISOString() : null,
+    emailVerified,
+    // Admin needs the address to be confirmed, so nobody can claim it by signing up with it first.
+    isAdmin: emailVerified && ADMIN_EMAILS.includes(r.email),
+  };
+}
 
 /** 3-24 characters: letters, digits, dot, dash, underscore. */
 export function normaliseUsername(raw: unknown): string | null {
@@ -77,11 +128,11 @@ export async function createUser(email: string, username: string, passwordHash: 
   if (taken.some((t) => t.email === email)) return "email-taken";
   if (taken.length) return "username-taken";
   try {
-    const rows = await sql<{ id: string; email: string; username: string; plan: User["plan"] }[]>`
-      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at)
-      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now())
-      returning id, email, username, plan`;
-    return { id: Number(rows[0].id), email: rows[0].email, username: rows[0].username, plan: rows[0].plan };
+    const rows = await sql<UserRow[]>`
+      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at, premium_until)
+      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now(), now() + make_interval(days => ${SIGNUP_TRIAL_DAYS}))
+      returning ${sql.unsafe(USER_COLS)}`;
+    return toUser(rows[0]);
   } catch (e) {
     if ((e as { code?: string }).code === "23505") return String((e as Error).message).includes("username") ? "username-taken" : "email-taken";
     throw e;
@@ -92,24 +143,102 @@ export async function createUser(email: string, username: string, passwordHash: 
 export async function findUserByLogin(login: string) {
   const { sql, ready } = db();
   await ready;
-  const rows = await sql<{ id: string; email: string; username: string | null; plan: User["plan"]; password_hash: string }[]>`
-    select id, email, username, plan, password_hash from app.users
+  const rows = await sql<(UserRow & { password_hash: string })[]>`
+    select ${sql.unsafe(USER_COLS)}, password_hash from app.users
     where email = ${login.toLowerCase()} or lower(username) = lower(${login}) limit 1`;
   const r = rows[0];
-  return r ? { id: Number(r.id), email: r.email, username: r.username, plan: r.plan, passwordHash: r.password_hash } : null;
+  return r ? { ...toUser(r), passwordHash: r.password_hash } : null;
 }
 
 export async function findUserById(id: number): Promise<User | null> {
   const { sql, ready } = db();
   await ready;
-  const rows = await sql<{ id: string; email: string; username: string | null; plan: User["plan"] }[]>`
-    select id, email, username, plan from app.users where id = ${id}`;
-  return rows[0] ? { id: Number(rows[0].id), email: rows[0].email, username: rows[0].username, plan: rows[0].plan } : null;
+  const rows = await sql<UserRow[]>`select ${sql.unsafe(USER_COLS)} from app.users where id = ${id}`;
+  return rows[0] ? toUser(rows[0]) : null;
 }
 
 export async function touchLogin(id: number) {
   const { sql } = db();
   await sql`update app.users set last_login_at = now() where id = ${id}`;
+}
+
+/** Confirm the e-mail address, only if it is still the address the link was made for. */
+export async function markEmailVerified(id: number, email: string): Promise<boolean> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql`
+    update app.users set email_verified_at = coalesce(email_verified_at, now())
+    where id = ${id} and email = ${email} returning id`;
+  return rows.length > 0;
+}
+
+export type TrialCode = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
+
+export async function createTrialCodes(createdBy: number, count: number, days: number, note: string | null, make: () => string): Promise<string[]> {
+  const { sql, ready } = db();
+  await ready;
+  const codes = Array.from({ length: count }, make);
+  await sql`insert into app.trial_codes ${sql(codes.map((code) => ({ code, days, note, created_by: createdBy })))}`;
+  return codes;
+}
+
+export async function listTrialCodes(limit = 200): Promise<TrialCode[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{ code: string; days: number; note: string | null; created_at: Date; redeemed_at: Date | null; email: string | null }[]>`
+    select c.code, c.days, c.note, c.created_at, c.redeemed_at, u.email
+    from app.trial_codes c left join app.users u on u.id = c.redeemed_by
+    order by c.created_at desc limit ${limit}`;
+  return rows.map((r) => ({
+    code: r.code,
+    days: r.days,
+    note: r.note,
+    createdAt: new Date(r.created_at).toISOString(),
+    redeemedBy: r.email,
+    redeemedAt: r.redeemed_at ? new Date(r.redeemed_at).toISOString() : null,
+  }));
+}
+
+/** Use a code once: Premium is extended by its days from today, or from the end of a running trial. */
+export async function redeemTrialCode(userId: number, code: string): Promise<{ premiumUntil: string } | "unknown" | "used"> {
+  const { sql, ready } = db();
+  await ready;
+  return sql.begin(async (tx) => {
+    const c = await tx<{ days: number; redeemed_by: string | null }[]>`
+      select days, redeemed_by from app.trial_codes where code = ${code} for update`;
+    if (!c[0]) return "unknown" as const;
+    if (c[0].redeemed_by !== null) return "used" as const;
+    await tx`update app.trial_codes set redeemed_by = ${userId}, redeemed_at = now() where code = ${code}`;
+    const u = await tx<{ premium_until: Date }[]>`
+      update app.users
+      set premium_until = greatest(coalesce(premium_until, now()), now()) + make_interval(days => ${c[0].days})
+      where id = ${userId} returning premium_until`;
+    return { premiumUntil: new Date(u[0].premium_until).toISOString() };
+  });
+}
+
+/** Counts for the admin page. */
+export async function adminStats() {
+  const { sql, ready } = db();
+  await ready;
+  const [u] = await sql<{ users: string; verified: string; trial: string; week: string }[]>`
+    select count(*) users, count(email_verified_at) verified,
+           count(*) filter (where premium_until > now()) trial,
+           count(*) filter (where created_at > now() - interval '7 days') week
+    from app.users`;
+  const events = await sql<{ kind: string; n: string }[]>`
+    select kind, count(*) n from app.events where at > now() - interval '30 days' group by kind order by n desc`;
+  const pages = await sql<{ path: string; n: string }[]>`
+    select path, count(*) n from app.events where kind = 'page_view' and at > now() - interval '30 days' and path is not null
+    group by path order by n desc limit 10`;
+  return {
+    users: Number(u.users),
+    verified: Number(u.verified),
+    onTrial: Number(u.trial),
+    newThisWeek: Number(u.week),
+    events30d: events.map((e) => ({ kind: e.kind, n: Number(e.n) })),
+    topPages30d: pages.map((p) => ({ path: p.path, n: Number(p.n) })),
+  };
 }
 
 export async function recordEvents(rows: { visitorId: string; userId: number | null; kind: string; path: string | null; detail: unknown }[]) {

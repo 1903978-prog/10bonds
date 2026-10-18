@@ -19,3 +19,21 @@ export function cleanPgUrl(raw: string): string {
     return text;
   }
 }
+
+/**
+ * The accounts login may be saved as only the password of the `tenbonds_app` role (Neon shows the
+ * password on its own). Then build the link from the bond-data link (same Neon project, host and
+ * database) with that role and password.
+ */
+export function accountsUrl(accounts: string, bondData: string | undefined, role = "tenbonds_app"): string {
+  const raw = accounts.trim().replace(/^['"]|['"]$/g, "");
+  if (/postgres(ql)?:\/\//.test(raw) || !bondData) return cleanPgUrl(raw);
+  try {
+    const u = new URL(cleanPgUrl(bondData));
+    u.username = role;
+    u.password = raw;
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
