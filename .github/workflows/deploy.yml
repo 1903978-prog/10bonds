@@ -13,6 +13,7 @@ jobs:
     timeout-minutes: 15
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -26,11 +27,17 @@ jobs:
       - name: Create the app if it does not exist
         if: env.ok == '1'
         run: flyctl status -a 10bonds >/dev/null 2>&1 || flyctl apps create 10bonds
-      - name: Allow sample data until the database is connected
+      - name: Database login (real data) or sample data
         if: env.ok == '1'
         run: |
-          flyctl secrets list -a 10bonds | grep -q DATABASE_URL || \
-            flyctl secrets set ALLOW_SAMPLE_DATA=1 -a 10bonds --stage
+          if [ -n "$DATABASE_URL" ]; then
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL" | flyctl secrets import -a 10bonds --stage >/dev/null
+            flyctl secrets unset ALLOW_SAMPLE_DATA -a 10bonds --stage >/dev/null 2>&1 || true
+            echo "Real data: DATABASE_URL set."
+          else
+            flyctl secrets set ALLOW_SAMPLE_DATA=1 -a 10bonds --stage >/dev/null
+            echo "No DATABASE_URL secret yet: sample data."
+          fi
       - name: Deploy
         if: env.ok == '1'
         run: flyctl deploy --remote-only -a 10bonds --ha=false
