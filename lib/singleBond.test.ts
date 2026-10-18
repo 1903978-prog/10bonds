@@ -14,7 +14,7 @@ describe("single bond curve", () => {
     expect(levelOf(bond("a", 1, 5, "BBB"))).toBe(9);
     expect(levelOf(bond("a", 1, 5, "BBB-"))).toBe(9);
     expect(levelOf(bond("a", 1, 5, "BB+"))).toBe(10);
-    expect(levelOf(bond("a", 1, 5, null))).toBe(10);
+    expect(levelOf(bond("a", 1, 5, null))).toBeNull();
     expect(levelOf(bond("a", 1, 5, "B"))).toBeNull();
   });
   it("orders each step by yield, one per issuer; Change walks down the list", () => {

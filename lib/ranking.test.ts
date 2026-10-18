@@ -95,7 +95,8 @@ describe("one bond per issuer", () => {
       dz("B", 4.40, "Issuer B"),
     ];
     const { results } = rankBonds(bonds, 7.7, 4.6, 3);
-    expect(results.map((r) => r.isin)).toEqual(["DZ2", "A", "B"]);
+    // 4.6 is above what 3 issuers can average (4.5), so the list is the 3 best issuers, DZ BANK once with its best bond.
+    expect(results.map((r) => r.isin).sort()).toEqual(["A", "B", "DZ3"]);
   });
   it("widens the duration band until there are enough different issuers", () => {
     const bonds = [dz("DZ1", 4.6, "DZ Bank AG"), dz("DZ2", 4.6, "DZ BANK AG"), { ...bond("FAR", 4.6, 9.4, "AA-"), issuer: "Other" }];
@@ -139,8 +140,8 @@ describe("risk slider", () => {
     expect(withinRisk(bonds, 6).map((b) => b.isin)).toEqual(["AAA1", "A1"]);
     expect(withinRisk(bonds, 9).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm"]);
   });
-  it("level 10 is BB and above plus unrated, never B", () => {
-    expect(withinRisk(bonds, 10).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm", "BB1", "NR"]);
+  it("level 10 is BB and above, never B, never unrated", () => {
+    expect(withinRisk(bonds, 10).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm", "BB1"]);
   });
   it("ranking respects the level", () => {
     expect(rankBonds(bonds, 5, 5, 10, 6).results.map((r) => r.isin).sort()).toEqual(["A1", "AAA1"]);
@@ -149,6 +150,29 @@ describe("risk slider", () => {
     const caps = ytmCapsByRisk(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
     expect(caps["1"]["5"]).toBe(3.0);
     expect(caps["9"]["5"]).toBe(3.5);
-    expect(caps["10"]["5"]).toBe(4.0);
+    expect(caps["10"]["5"]).toBe(3.7); // (3 + 3.5 + 4 + 4.6) / 4, unrated left out
+  });
+});
+
+describe("the list's average matches the target and the maximum", () => {
+  // 30 issuers at 5 years, yields 2.0 .. 7.8, ratings mixed.
+  const grades = ["AAA", "AA", "A", "BBB+", "BBB", "BB+"];
+  const many = Array.from({ length: 30 }, (_, i) => ({ ...bond(`I${i}`, 2 + i * 0.2, 4.5 + (i % 3) * 0.4, grades[i % 6]), issuer: `Issuer ${i}` }));
+  const mean = (rs: { grossYtm: number | null }[]) => rs.reduce((s, r) => s + r.grossYtm!, 0) / rs.length;
+  it("at the slider maximum the 10 shown are the 10 the maximum is computed from", () => {
+    const cap = ytmCaps(many, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 })["5"]!;
+    const { results } = rankBonds(many, 5, cap);
+    const top10 = [...many].sort((a, b) => b.grossYtm! - a.grossYtm!).slice(0, 10).map((b) => b.isin).sort();
+    expect(results.map((r) => r.isin).sort()).toEqual(top10);
+    expect(Math.abs(mean(results) - cap)).toBeLessThan(0.1);
+  });
+  it("for any lower target the average is within 0.05 of it", () => {
+    // Reachable targets: from the 10 lowest yields (avg 2.9) up to the maximum.
+    for (let t = 3.0; t <= 6.8; t += 0.1) {
+      const { results } = rankBonds(many, 5, t);
+      expect(results).toHaveLength(10);
+      expect(Math.abs(mean(results) - t)).toBeLessThan(0.05);
+      expect(new Set(results.map((r) => r.issuer)).size).toBe(10);
+    }
   });
 });

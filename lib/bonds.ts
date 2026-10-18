@@ -2,6 +2,7 @@ import postgres from "postgres";
 import { cleanPgUrl } from "./pgUrl";
 import type { PublicBond } from "./types";
 import { SAMPLE_BONDS } from "./sample-bonds";
+import { bondNotch } from "./ratings";
 
 // The public site only ever READS one table, with a read-only login.
 // It has no connection details for the main app and no way to write anywhere.
@@ -69,7 +70,8 @@ export async function loadBonds(): Promise<BondSource> {
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
   }));
-  const fresh = dropStale(bonds);
+  // Unrated bonds never appear on the site (Livio, 18/10/2026).
+  const fresh = dropStale(bonds).filter((b) => bondNotch(b) !== null);
   cache = { at: Date.now(), bonds: fresh, source: "live" };
   return withAsOf(fresh, "live");
 }

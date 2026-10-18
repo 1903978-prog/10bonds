@@ -7,10 +7,10 @@ import type { ResultRow } from "./tiers";
 /** How many bonds per rating step can be cycled with "Change". */
 export const PER_LEVEL = 10;
 
-/** The rating step (1..10) a bond belongs to, or null when it is weaker than BB. Unrated bonds sit at step 10. */
+/** The rating step (1..10) a bond belongs to, or null when it is weaker than BB or unrated (never shown). */
 export function levelOf(b: PublicBond): number | null {
   const n = bondNotch(b);
-  if (n === null) return RISK_LEVELS.length;
+  if (n === null) return null;
   const i = RISK_LEVELS.findIndex((l) => n <= l.maxNotch);
   return i < 0 ? null : i + 1;
 }

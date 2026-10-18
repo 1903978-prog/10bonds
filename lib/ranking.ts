@@ -17,34 +17,90 @@ const MAX_BAND = 3;
 
 /**
  * Top bonds for a target duration and yield.
- * 1. Keep bonds whose duration is within 1 year of the target (widen up to 3 years until 10 are found).
- * 2. Score = |yield - target yield| + 0.02 x rating notch. Lower is better.
- * 3. Best 10 scores win, at most one bond per issuer (each issuer's best-scored bond).
+ * 1. Same pool as the slider maximum: rated bonds within the risk level, duration within 1 year of the target
+ *    (widened up to 3 years until 10 issuers are in), one bond per issuer.
+ * 2. Choose the 10 bonds whose AVERAGE yield is closest to the target. Among sets that hit the target, prefer bonds
+ *    whose own yields sit close to it and better ratings.
+ * 3. At (or above) the slider maximum the answer is exactly the 10 highest-yielding issuers the maximum is computed from.
+ * Shown closest-to-target first.
  */
 export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm: number, count = RESULT_COUNT, risk: number = LIMITS.risk.max): { results: RankedBond[]; band: number } {
   const { pool, band } = durationPool(withinRisk(bonds, risk), targetDuration, count);
-
-  const scored = pool.map((b) => {
+  const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
-    const notch = ratingNotch ?? UNRATED_NOTCH;
-    const score = Math.abs(b.grossYtm! - targetYtm) + NOTCH_PENALTY * notch;
-    return { ...b, ratingNotch, score };
+    return { ...b, ratingNotch, notch: ratingNotch ?? UNRATED_NOTCH, key: issuerKey(b), score: 0 };
   });
+  const top = topIssuers(cands, count);
+  if (!top.length) return { results: [], band };
 
-  scored.sort((a, b) => a.score - b.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
+  let chosen: typeof cands;
+  if (targetYtm >= capOf(top.map((b) => b.grossYtm!)) - 1e-9) {
+    chosen = top;
+  } else {
+    // Start from the bonds individually closest to the target (one per issuer), then swap bonds in and out
+    // while that brings the average closer to the target (or, once within 0.005, makes the set tighter).
+    const indiv = (b: (typeof cands)[number]) => Math.abs(b.grossYtm! - targetYtm) + NOTCH_PENALTY * b.notch;
+    const byIndiv = [...cands].sort((a, b) => indiv(a) - indiv(b) || a.isin.localeCompare(b.isin));
+    chosen = topIssuersBy(byIndiv, count);
+    const n = chosen.length;
+    const costOf = (sum: number, spread: number) => Math.max(Math.abs(sum / n - targetYtm), 0.005) * 1000 + spread / n;
+    let sum = chosen.reduce((s, b) => s + b.grossYtm!, 0);
+    let spread = chosen.reduce((s, b) => s + indiv(b), 0);
+    let best = costOf(sum, spread);
+    const ind = new Map(cands.map((c) => [c.isin, indiv(c)]));
+    for (let iter = 0; iter < 200; iter++) {
+      let move: { i: number; j: (typeof cands)[number]; c: number } | null = null;
+      const used = new Set(chosen.map((b) => b.key));
+      for (let i = 0; i < n; i++) {
+        const out = chosen[i];
+        const baseSum = sum - out.grossYtm!;
+        const baseSpread = spread - ind.get(out.isin)!;
+        for (const j of cands) {
+          if (j.isin === out.isin) continue;
+          if (j.key !== out.key && used.has(j.key)) continue;
+          const c = costOf(baseSum + j.grossYtm!, baseSpread + ind.get(j.isin)!);
+          if (c < best - 1e-9 && (!move || c < move.c)) move = { i, j, c };
+        }
+      }
+      if (!move) break;
+      sum += move.j.grossYtm! - chosen[move.i].grossYtm!;
+      spread += ind.get(move.j.isin)! - ind.get(chosen[move.i].isin)!;
+      chosen[move.i] = move.j;
+      best = move.c;
+    }
+  }
 
-  const seen = new Set<string>();
-  const onePerIssuer = scored.filter((b) => {
-    const k = issuerKey(b);
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
-
+  const ordered = chosen
+    .map((b) => ({ ...b, score: Math.abs(b.grossYtm! - targetYtm) + NOTCH_PENALTY * b.notch }))
+    .sort((a, b) => a.score - b.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
   return {
-    results: onePerIssuer.slice(0, count).map((b, i) => ({ ...b, rank: i + 1 })),
+    results: ordered.map(({ notch: _n, key: _k, ...b }, i) => ({ ...b, rank: i + 1 })),
     band,
   };
+}
+
+/** The highest-yielding bond of each issuer, best issuers first, `count` of them. */
+function topIssuers<T extends PublicBond & { key: string }>(cands: T[], count: number): T[] {
+  const sorted = [...cands].sort((a, b) => b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
+  return topIssuersBy(sorted, count);
+}
+function topIssuersBy<T extends { key: string }>(sorted: T[], count: number): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const b of sorted) {
+    if (seen.has(b.key)) continue;
+    seen.add(b.key);
+    out.push(b);
+    if (out.length === count) break;
+  }
+  return out;
+}
+
+/** The slider maximum for a set of yields: their average, rounded down to the slider step. */
+export function capOf(yields: number[]): number {
+  const avg = yields.reduce((s, x) => s + x, 0) / yields.length;
+  const down = Math.floor(avg / LIMITS.ytm.step + 1e-9) * LIMITS.ytm.step;
+  return Math.round(Math.min(LIMITS.ytm.max, Math.max(LIMITS.ytm.min + LIMITS.ytm.step, down)) * 10) / 10;
 }
 
 /** Bonds rated equal to or better than the slider level. Unrated bonds only at the last level. */
@@ -101,15 +157,8 @@ export function ytmCaps(bonds: PublicBond[], limits: { min: number; max: number;
       caps[key] = null;
       continue;
     }
-    const bestPerIssuer = new Map<string, number>();
-    for (const b of pool) {
-      const k = issuerKey(b);
-      bestPerIssuer.set(k, Math.max(bestPerIssuer.get(k) ?? -Infinity, b.grossYtm!));
-    }
-    const top = [...bestPerIssuer.values()].sort((a, b) => b - a).slice(0, RESULT_COUNT);
-    const avg = top.reduce((s, x) => s + x, 0) / top.length;
-    const down = Math.floor(avg / ytmLimits.step + 1e-9) * ytmLimits.step;
-    caps[key] = Math.round(Math.min(ytmLimits.max, Math.max(ytmLimits.min + ytmLimits.step, down)) * 10) / 10;
+    const top = topIssuers(pool.map((b) => ({ ...b, key: issuerKey(b) })), RESULT_COUNT);
+    caps[key] = capOf(top.map((b) => b.grossYtm!));
   }
   return caps;
 }

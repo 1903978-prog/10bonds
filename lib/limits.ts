@@ -5,7 +5,7 @@ export const LIMITS = {
 } as const;
 
 // Worst rating accepted, slider level 1..10. maxNotch is the weakest notch allowed (AAA = 0, BBB- = 9, BB = 11).
-// Level 10 is "BB and above": up to BB, plus bonds with no rating.
+// Level 10 is "BB and above": up to BB. Unrated bonds never appear.
 export const RISK_LEVELS = [
   { label: "AAA", maxNotch: 0 },
   { label: "AA+", maxNotch: 1 },
@@ -21,5 +21,5 @@ export const RISK_LEVELS = [
 
 export function riskLevel(level: number) {
   const i = Math.min(RISK_LEVELS.length, Math.max(1, Math.round(level))) - 1;
-  return { ...RISK_LEVELS[i], allowUnrated: i === RISK_LEVELS.length - 1 };
+  return { ...RISK_LEVELS[i], allowUnrated: false };
 }

@@ -104,3 +104,8 @@ jobs:
         run: |
           body=$(curl -sS -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/billing); echo "$body"
           echo "$body" | grep -q '"webhook":true'
+      - name: "Bond list: average yield matches the target and the maximum; no unrated bonds"
+        if: env.ok == '1'
+        run: |
+          body=$(curl -sS -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/ranking); echo "$body"
+          echo "$body" | grep -q '"ok":true'
