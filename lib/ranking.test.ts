@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankBonds, averages, NOTCH_PENALTY } from "./ranking";
+import { rankBonds, averages, NOTCH_PENALTY, ytmCaps } from "./ranking";
 import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
@@ -81,5 +81,48 @@ describe("shapeForTier", () => {
     expect(p.rows).toHaveLength(10);
     expect(p.rows[0].isin).toBeTruthy();
     expect(p.summary?.avgYtm).toBeCloseTo(averages(ranked).ytm!, 10);
+  });
+});
+
+describe("one bond per issuer", () => {
+  const dz = (isin: string, ytm: number, issuer: string): PublicBond => ({ ...bond(isin, ytm, 7.7, "AA-"), issuer });
+  it("keeps each issuer's best bond and fills the list with other issuers", () => {
+    const bonds = [
+      dz("DZ1", 4.61, "DZ BANK AG Deutsche Zentral-Genossenschaftsbank"),
+      dz("DZ2", 4.60, "DZ BANK AG Deutsche Zentral-Genossenschaftsbank, Frankfurt am Main"),
+      dz("DZ3", 4.62, "DZ BANK AG Deutsche Zentral-Genossenschaftsbank 4,27% 26/36"),
+      dz("A", 4.50, "Issuer A"),
+      dz("B", 4.40, "Issuer B"),
+    ];
+    const { results } = rankBonds(bonds, 7.7, 4.6, 3);
+    expect(results.map((r) => r.isin)).toEqual(["DZ2", "A", "B"]);
+  });
+  it("widens the duration band until there are enough different issuers", () => {
+    const bonds = [dz("DZ1", 4.6, "DZ Bank AG"), dz("DZ2", 4.6, "DZ BANK AG"), { ...bond("FAR", 4.6, 9.4, "AA-"), issuer: "Other" }];
+    const { results } = rankBonds(bonds, 7.7, 4.6, 2);
+    expect(results.map((r) => r.isin).sort()).toEqual(["DZ1", "FAR"].sort());
+  });
+  it("bonds with no issuer name count as separate issuers", () => {
+    const bonds = [{ ...bond("N1", 4.6, 7.7, "A"), issuer: null }, { ...bond("N2", 4.6, 7.7, "A"), issuer: null }];
+    expect(rankBonds(bonds, 7.7, 4.6, 2).results).toHaveLength(2);
+  });
+});
+
+describe("ytmCaps", () => {
+  it("follows the best yield near each duration, rounded up to the slider step", () => {
+    const bonds = [bond("S", 3.04, 2, "A"), bond("L", 5.51, 10, "A")];
+    const caps = ytmCaps(bonds, { min: 2, max: 10, step: 4 }, { min: 1, max: 12, step: 0.1 });
+    expect(caps).toEqual({ "2": 3.1, "6": null, "10": 5.6 });
+  });
+  it("never goes above the slider's own maximum", () => {
+    const caps = ytmCaps([bond("J", 40, 5, null)], { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    expect(caps["5"]).toBe(12);
+  });
+});
+
+describe("closest yield first", () => {
+  it("a bond nearer the target beats a better-rated one further away (Livio's 15-year case)", () => {
+    const bonds = [{ ...bond("FR", 5.35, 15.5, "A+"), issuer: "France" }, { ...bond("BAY", 5.75, 14.1, "BBB"), issuer: "Bayer AG" }];
+    expect(rankBonds(bonds, 15, 9.7, 2).results.map((r) => r.isin)).toEqual(["BAY", "FR"]);
   });
 });

@@ -23,6 +23,28 @@ export default function Finder() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
+  const [caps, setCaps] = useState<Record<string, number | null> | null>(null);
+  // The highest yield available at each horizon, loaded once, so the yield slider follows the horizon at once.
+  const capFor = (d: number) => caps?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
+  const ytmMax = capFor(duration);
+
+  useEffect(() => {
+    fetch("/api/bonds/caps")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => {
+        if (!b?.caps) return;
+        setCaps(b.caps);
+        const cap = b.caps[String(LIMITS.duration.initial)];
+        if (typeof cap === "number") setYtm((y) => Math.min(y, cap));
+      })
+      .catch(() => {});
+  }, []);
+
+  const changeDuration = (d: number) => {
+    setDuration(d);
+    const cap = capFor(d);
+    setYtm((y) => (y > cap ? cap : y));
+  };
 
   useEffect(() => {
     preview.current = new URLSearchParams(window.location.search).get("preview");
@@ -80,7 +102,7 @@ export default function Finder() {
           step={LIMITS.duration.step}
           minLabel="1 year"
           maxLabel="15 years"
-          onChange={setDuration}
+          onChange={changeDuration}
         />
         <Slider
           label="Target annual yield"
@@ -88,10 +110,10 @@ export default function Finder() {
           value={ytm}
           display={`${ytm.toFixed(1)}%`}
           min={LIMITS.ytm.min}
-          max={LIMITS.ytm.max}
+          max={ytmMax}
           step={LIMITS.ytm.step}
           minLabel="1.0%"
-          maxLabel="12.0%"
+          maxLabel={`${ytmMax.toFixed(1)}% max`}
           onChange={setYtm}
         />
 
