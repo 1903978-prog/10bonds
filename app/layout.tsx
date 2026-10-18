@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import AccountNav from "@/components/AccountNav";
+import UsageStats, { UsageStatsSetting } from "@/components/UsageStats";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
@@ -40,8 +41,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             10BONDS is a bond discovery tool. Information only, not investment advice, not an offer to buy or sell.
             Yields are indicative and can change. Past performance does not guarantee future results.
           </p>
-          <p className="mt-2">© {new Date().getFullYear()} 10BONDS</p>
+          <p className="mt-2">
+            © {new Date().getFullYear()} 10BONDS · <Link href="/terms" className="underline hover:text-ink">Terms</Link> · <UsageStatsSetting />
+          </p>
         </footer>
+        <UsageStats />
       </body>
     </html>
   );

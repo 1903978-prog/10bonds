@@ -21,7 +21,7 @@ export default function Disclaimer() {
       </p>
       <h2 className="mt-6 font-semibold">No execution</h2>
       <p className="mt-2">10BONDS does not hold money, place orders or manage portfolios.</p>
-      <p className="mt-8 text-xs text-mute">Full Terms and Privacy policy will be published before paid plans open.</p>
+      <p className="mt-8 text-sm">Full text: <a href="/terms" className="text-accent">Terms of Use and Risk Disclosure</a>.</p>
     </article>
   );
 }

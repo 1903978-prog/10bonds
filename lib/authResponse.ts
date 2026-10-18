@@ -15,11 +15,11 @@ export function withSession(userId: number, body: unknown) {
   return res;
 }
 
-export async function readCredentials(req: Request): Promise<{ email: unknown; password: unknown }> {
+export async function readCredentials(req: Request): Promise<{ email: unknown; password: unknown; username: unknown; acceptTerms: unknown }> {
   try {
     const b = await req.json();
-    return { email: b?.email, password: b?.password };
+    return { email: b?.email, password: b?.password, username: b?.username, acceptTerms: b?.acceptTerms };
   } catch {
-    return { email: null, password: null };
+    return { email: null, password: null, username: null, acceptTerms: null };
   }
 }

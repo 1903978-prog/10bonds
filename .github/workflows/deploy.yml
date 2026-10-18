@@ -56,3 +56,23 @@ jobs:
       - name: Deploy
         if: env.ok == '1'
         run: flyctl deploy --remote-only -a 10bonds --ha=false
+      # Read-only checks after the deploy. Each step fails on its own, so the run's step list says where
+      # sign-up is broken without anyone opening the log. The answer holds a stage and a Postgres code only.
+      - name: Wait for the site to answer
+        if: env.ok == '1'
+        run: |
+          for i in $(seq 1 20); do
+            curl -fsS -o /dev/null https://10bonds.fly.dev/api/auth/me && exit 0
+            sleep 6
+          done
+          exit 1
+      - name: "Accounts database: connection"
+        if: env.ok == '1' && env.ACCOUNTS_DATABASE_URL != ''
+        run: |
+          body=$(curl -sS https://10bonds.fly.dev/api/health/accounts); echo "$body"
+          echo "$body" | grep -q '"stage":"connect"' && exit 1 || exit 0
+      - name: "Accounts database: tables and permissions"
+        if: env.ok == '1' && env.ACCOUNTS_DATABASE_URL != ''
+        run: |
+          body=$(curl -sS https://10bonds.fly.dev/api/health/accounts); echo "$body"
+          echo "$body" | grep -q '"stage":"ok"'

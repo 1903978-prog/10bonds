@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LIMITS } from "@/lib/limits";
 import type { ResultsPayload } from "@/lib/tiers";
+import { track } from "@/lib/track";
 
 type Response = ResultsPayload & {
   source: "live" | "sample";
@@ -39,12 +40,13 @@ export default function Finder() {
         if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
         setData(body);
         setError(null);
+        track("search", { duration, ytm, tier: body.tier, results: body.rows.length + body.lockedCount });
       } catch (e) {
         if ((e as Error).name !== "AbortError") setError((e as Error).message);
       } finally {
         setLoading(false);
       }
-    }, 200);
+    }, 600);
     return () => {
       clearTimeout(t);
       ctrl.abort();
