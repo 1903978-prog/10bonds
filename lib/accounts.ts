@@ -122,13 +122,13 @@ export async function recordEvents(rows: { visitorId: string; userId: number | n
 }
 
 /** Where the accounts database stands, as stage + Postgres error code only (no message, no secret). */
-export async function accountsHealth(): Promise<{ configured: boolean; stage: "ok" | "url" | "connect" | "tables"; code: string | null }> {
+export async function accountsHealth(): Promise<{ configured: boolean; stage: "ok" | "url" | "connect" | "tables"; code: string | null; shape?: Record<string, boolean | number> }> {
   if (!accountsConfigured()) return { configured: false, stage: "connect", code: null };
   let sql: ReturnType<typeof postgres>;
   try {
     sql = db().sql;
   } catch (e) {
-    return { configured: true, stage: "url", code: errCode(e) };
+    return { configured: true, stage: "url", code: errCode(e), shape: urlShape(process.env.ACCOUNTS_DATABASE_URL ?? "") };
   }
   try {
     await sql`select 1`;
@@ -147,4 +147,20 @@ export async function accountsHealth(): Promise<{ configured: boolean; stage: "o
 function errCode(e: unknown): string {
   const c = (e as { code?: unknown }).code;
   return typeof c === "string" ? c.slice(0, 40) : "unknown";
+}
+
+/** Features of a login link that could not be read, never its content (no host, user or password). */
+function urlShape(raw: string): Record<string, boolean | number> {
+  return {
+    length: raw.length,
+    lines: raw.split(/\r?\n/).length,
+    postgresScheme: /postgres(ql)?:\/\//.test(raw),
+    psqlWord: /\bpsql\b/.test(raw),
+    pgHostWord: /PGHOST|PGUSER|PGPASSWORD/.test(raw),
+    atSign: raw.includes("@"),
+    neonHost: raw.includes("neon.tech"),
+    spaces: /\s/.test(raw.trim()),
+    quotes: /['"]/.test(raw),
+    angleOrBrackets: /[<>\[\]{}]/.test(raw),
+  };
 }
