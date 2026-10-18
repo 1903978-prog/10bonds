@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { LIMITS, riskLevel } from "@/lib/limits";
 import type { ResultsPayload } from "@/lib/tiers";
 import { track } from "@/lib/track";
+import SingleBond from "./SingleBond";
 
 type Response = ResultsPayload & {
   source: "live" | "sample";
@@ -24,6 +25,7 @@ export default function Finder() {
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
+  const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
@@ -98,6 +100,20 @@ export default function Finder() {
           Choose how long you want to invest, the yield you are after and the lowest rating you accept. We show the 10 bonds that match best.
         </p>
 
+        <div role="tablist" aria-label="Mode" className="mt-6 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
+          {([["single", "1 bond"], ["portfolio", "Portfolio"]] as const).map(([m, label]) => (
+            <button
+              key={m}
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => setMode(m)}
+              className={`rounded-full px-4 py-2 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <Slider
           label="Investment horizon"
           hint="Target duration"
@@ -110,6 +126,7 @@ export default function Finder() {
           maxLabel="15 years"
           onChange={changeDuration}
         />
+        {mode === "portfolio" && (<>
         <Slider
           label="Target annual yield"
           hint="Yield to maturity"
@@ -119,7 +136,7 @@ export default function Finder() {
           max={ytmMax}
           step={LIMITS.ytm.step}
           minLabel="1.0%"
-          maxLabel={`${ytmMax.toFixed(1)}% max`}
+          maxLabel={`${ytmMax.toFixed(1)}% max (top-10 average)`}
           onChange={setYtm}
         />
         <Slider
@@ -134,13 +151,25 @@ export default function Finder() {
           maxLabel="BB (higher risk)"
           onChange={changeRisk}
         />
+        </>)}
 
         <p className="mt-8 text-xs leading-relaxed text-mute">
-          Bonds are ranked by how close their yield is to your target, with a small preference for stronger credit ratings.
+          {mode === "portfolio"
+            ? "Bonds are ranked by how close their yield is to your target, with a small preference for stronger credit ratings."
+            : "For each rating we show the highest-yield bond near your horizon. Change shows the next one at the same rating."}
         </p>
       </section>
 
       {/* Results */}
+      {mode === "single" ? (
+        <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+          <SingleBond duration={duration} preview={preview.current} />
+          <p className="mt-5 flex gap-2 rounded-2xl bg-canvas px-4 py-3 text-xs leading-relaxed text-mute">
+            <span aria-hidden>ⓘ</span>
+            <span>Results are for information only and are not investment advice. Yields are gross and indicative.</span>
+          </p>
+        </section>
+      ) : (
       <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
         {data?.source === "sample" && (
           <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -175,6 +204,7 @@ export default function Finder() {
           </span>
         </p>
       </section>
+      )}
     </div>
   );
 }

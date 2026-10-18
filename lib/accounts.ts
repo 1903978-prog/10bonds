@@ -71,6 +71,16 @@ async function setup(sql: ReturnType<typeof postgres>) {
       detail jsonb
     )`;
   await sql`create index if not exists events_at_idx on app.events (at)`;
+  // Best bonds by duration step and rating step, rebuilt from public_bonds each time a new copy arrives (lib/bestTable.ts).
+  await sql`
+    create table if not exists app.best_bonds (
+      duration numeric not null,
+      level integer not null,
+      rank integer not null,
+      isin text not null,
+      bond jsonb not null,
+      primary key (duration, level, rank)
+    )`;
   await sql`create index if not exists events_kind_at_idx on app.events (kind, at)`;
   // Keep 13 months of usage history.
   await sql`delete from app.events where at < now() - interval '13 months'`;

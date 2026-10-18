@@ -109,10 +109,15 @@ describe("one bond per issuer", () => {
 });
 
 describe("ytmCaps", () => {
-  it("follows the best yield near each duration, rounded up to the slider step", () => {
+  it("follows the yields near each duration, rounded down to the slider step", () => {
     const bonds = [bond("S", 3.04, 2, "A"), bond("L", 5.51, 10, "A")];
     const caps = ytmCaps(bonds, { min: 2, max: 10, step: 4 }, { min: 1, max: 12, step: 0.1 });
-    expect(caps).toEqual({ "2": 3.1, "6": null, "10": 5.6 });
+    expect(caps).toEqual({ "2": 3.0, "6": null, "10": 5.5 });
+  });
+  it("is the average of the 10 best issuers, not the single best bond (Livio's 5.8% vs 4.72% case)", () => {
+    const bonds = [{ ...bond("SA", 5.76, 5, "A-"), issuer: "Saudi" }, { ...bond("SA2", 5.9, 5.2, "A-"), issuer: "Saudi" }, ...Array.from({ length: 11 }, (_, i) => bond(`X${i}`, 4.6, 5, "A-"))];
+    const caps = ytmCaps(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    expect(caps["5"]).toBe(4.7); // (5.9 + 9 x 4.6) / 10 = 4.73, rounded down
   });
   it("never goes above the slider's own maximum", () => {
     const caps = ytmCaps([bond("J", 40, 5, null)], { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
@@ -143,7 +148,7 @@ describe("risk slider", () => {
   it("yield caps follow the level", () => {
     const caps = ytmCapsByRisk(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
     expect(caps["1"]["5"]).toBe(3.0);
-    expect(caps["9"]["5"]).toBe(4.0);
-    expect(caps["10"]["5"]).toBe(5.0);
+    expect(caps["9"]["5"]).toBe(3.5);
+    expect(caps["10"]["5"]).toBe(4.0);
   });
 });

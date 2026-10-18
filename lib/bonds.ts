@@ -30,6 +30,8 @@ export async function loadBonds(): Promise<BondSource> {
     return withAsOf(SAMPLE_BONDS, "sample");
   }
 
+  // Bonds whose cash flows the main app could not model (inflation-linked, step-up, floating) are left out.
+  // If the column cannot be read, fall back to the plain list rather than showing nothing.
   const rows = await client`
     select isin, name, issuer, country, currency, coupon, maturity,
            rating_sp, rating_moodys, rating_fitch, rating_resolved,
@@ -38,7 +40,19 @@ export async function loadBonds(): Promise<BondSource> {
     where gross_ytm is not null and modified_duration is not null
       and (maturity is null or maturity > current_date)
       and currency = 'EUR'
-  `;
+      and coalesce(structure_modelled, true)
+  `.catch((e) => {
+    console.error("[bonds] structure filter unavailable:", (e as Error).message);
+    return client`
+      select isin, name, issuer, country, currency, coupon, maturity,
+             rating_sp, rating_moodys, rating_fitch, rating_resolved,
+             gross_ytm, modified_duration, ytm_as_of
+      from public_bonds
+      where gross_ytm is not null and modified_duration is not null
+        and (maturity is null or maturity > current_date)
+        and currency = 'EUR'
+    `;
+  });
   const bonds: PublicBond[] = rows.map((r) => ({
     isin: r.isin,
     name: r.name,
@@ -55,8 +69,20 @@ export async function loadBonds(): Promise<BondSource> {
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
   }));
-  cache = { at: Date.now(), bonds, source: "live" };
-  return withAsOf(bonds, "live");
+  const fresh = dropStale(bonds);
+  cache = { at: Date.now(), bonds: fresh, source: "live" };
+  return withAsOf(fresh, "live");
+}
+
+// A yield whose quote is more than this many days older than the newest one in the copy is stale and left out.
+export const STALE_DAYS = 10;
+
+/** Leave out bonds whose yield date is well behind the rest of the copy (a price that stopped updating). */
+export function dropStale(bonds: PublicBond[]): PublicBond[] {
+  const times = bonds.map((b) => (b.ytmAsOf ? Date.parse(b.ytmAsOf) : NaN)).filter(Number.isFinite);
+  if (!times.length) return bonds;
+  const limit = Math.max(...times) - STALE_DAYS * 86_400_000;
+  return bonds.filter((b) => !b.ytmAsOf || Date.parse(b.ytmAsOf) >= limit);
 }
 
 function withAsOf(bonds: PublicBond[], source: "live" | "sample"): BondSource {

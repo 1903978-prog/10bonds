@@ -1,0 +1,34 @@
+import { NextResponse } from "next/server";
+import { loadBonds } from "@/lib/bonds";
+import { shapeCurve } from "@/lib/singleBond";
+import { bestTable, curveAt } from "@/lib/bestTable";
+import { RISK_LEVELS } from "@/lib/limits";
+import type { Tier } from "@/lib/types";
+import { LIMITS } from "@/lib/limits";
+import { currentUser } from "@/lib/currentUser";
+
+export const dynamic = "force-dynamic";
+
+/** Best yield per rating step for one duration, with the bonds behind each dot (cut to the caller's plan). */
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const raw = Number(url.searchParams.get("duration"));
+  const { min, max, initial } = LIMITS.duration;
+  const duration = Number.isFinite(raw) && url.searchParams.get("duration") !== null ? Math.min(max, Math.max(min, raw)) : initial;
+
+  let data, table;
+  try {
+    [data, table] = await Promise.all([loadBonds(), bestTable()]);
+  } catch {
+    return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
+  }
+  const user = await currentUser();
+  let tier: Tier = user ? user.plan : "visitor";
+  const preview = url.searchParams.get("preview");
+  if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
+
+  return NextResponse.json(
+    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier), source: data.source, asOf: data.asOf, inputs: { duration } },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}

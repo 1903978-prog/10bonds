@@ -88,8 +88,9 @@ export function durationPool(bonds: PublicBond[], targetDuration: number, count 
 }
 
 /**
- * The highest yield worth asking for at each duration step of the slider: the best yield among the bonds
- * the ranking would look at for that duration, rounded up to the slider step. Null when no bond is there.
+ * The highest target yield worth asking for at each duration step: the average yield of the best bond of each of the
+ * 10 highest-yielding issuers the ranking would look at for that duration (fewer when fewer issuers exist),
+ * rounded down to the slider step so the top 10 can really reach it. Null when no bond is there.
  */
 export function ytmCaps(bonds: PublicBond[], limits: { min: number; max: number; step: number }, ytmLimits: { min: number; max: number; step: number }): Record<string, number | null> {
   const caps: Record<string, number | null> = {};
@@ -100,9 +101,15 @@ export function ytmCaps(bonds: PublicBond[], limits: { min: number; max: number;
       caps[key] = null;
       continue;
     }
-    const best = Math.max(...pool.map((b) => b.grossYtm!));
-    const up = Math.ceil(best / ytmLimits.step - 1e-9) * ytmLimits.step;
-    caps[key] = Math.round(Math.min(ytmLimits.max, Math.max(ytmLimits.min + ytmLimits.step, up)) * 10) / 10;
+    const bestPerIssuer = new Map<string, number>();
+    for (const b of pool) {
+      const k = issuerKey(b);
+      bestPerIssuer.set(k, Math.max(bestPerIssuer.get(k) ?? -Infinity, b.grossYtm!));
+    }
+    const top = [...bestPerIssuer.values()].sort((a, b) => b - a).slice(0, RESULT_COUNT);
+    const avg = top.reduce((s, x) => s + x, 0) / top.length;
+    const down = Math.floor(avg / ytmLimits.step + 1e-9) * ytmLimits.step;
+    caps[key] = Math.round(Math.min(ytmLimits.max, Math.max(ytmLimits.min + ytmLimits.step, down)) * 10) / 10;
   }
   return caps;
 }
