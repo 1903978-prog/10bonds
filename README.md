@@ -11,6 +11,9 @@ Public website: pick a duration and a target yield, get the 10 best-matching eur
 - **Ranking** (`lib/ranking.ts`): bonds within 1 year of the target duration (widened up to 3),
   score = |yield - target| + 0.1 x rating notch, best 10.
 
+- **Brokers & Trading Fees** (`/it/broker-obbligazioni`, `/fr/courtiers-obligations`, `/de/anleihen-broker`): bond-purchase
+  cost comparison from official tariffs, managed at `/admin/brokers`. See `docs/BROKERS.md`.
+
 ## Run
     npm install
     npm run dev          # http://localhost:3000, sample data

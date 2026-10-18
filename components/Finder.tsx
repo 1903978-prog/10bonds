@@ -6,6 +6,7 @@ import { LIMITS, riskLevel } from "@/lib/limits";
 import type { ResultsPayload } from "@/lib/tiers";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
+import WhereToTrade from "./brokers/WhereToTrade";
 
 type Response = ResultsPayload & {
   source: "live" | "sample";
@@ -326,6 +327,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
       </ul>
 
       {locked > 0 && <LockedRows count={locked} />}
+      {rows.length > 0 && <WhereToTrade />}
       {signedIn && !paid && rows.length > 0 && (
         <Link
           href="/pricing"
