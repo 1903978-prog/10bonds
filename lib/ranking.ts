@@ -1,6 +1,7 @@
 import type { PublicBond, RankedBond } from "./types";
 import { cleanIssuer } from "./issuer";
 import { bondNotch } from "./ratings";
+import { riskLevel, LIMITS } from "./limits";
 
 export const RESULT_COUNT = 10;
 
@@ -20,8 +21,8 @@ const MAX_BAND = 3;
  * 2. Score = |yield - target yield| + 0.02 x rating notch. Lower is better.
  * 3. Best 10 scores win, at most one bond per issuer (each issuer's best-scored bond).
  */
-export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm: number, count = RESULT_COUNT): { results: RankedBond[]; band: number } {
-  const { pool, band } = durationPool(bonds, targetDuration, count);
+export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm: number, count = RESULT_COUNT, risk: number = LIMITS.risk.max): { results: RankedBond[]; band: number } {
+  const { pool, band } = durationPool(withinRisk(bonds, risk), targetDuration, count);
 
   const scored = pool.map((b) => {
     const ratingNotch = bondNotch(b);
@@ -44,6 +45,22 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
     results: onePerIssuer.slice(0, count).map((b, i) => ({ ...b, rank: i + 1 })),
     band,
   };
+}
+
+/** Bonds rated equal to or better than the slider level. Unrated bonds only at the last level. */
+export function withinRisk(bonds: PublicBond[], risk: number): PublicBond[] {
+  const { maxNotch, allowUnrated } = riskLevel(risk);
+  return bonds.filter((b) => {
+    const n = bondNotch(b);
+    return n === null ? allowUnrated : n <= maxNotch;
+  });
+}
+
+/** Yield caps per duration step for every risk level: { "1": {...}, ..., "10": {...} }. */
+export function ytmCapsByRisk(bonds: PublicBond[], durLimits: { min: number; max: number; step: number }, ytmLimits: { min: number; max: number; step: number }) {
+  const out: Record<string, Record<string, number | null>> = {};
+  for (let r = LIMITS.risk.min; r <= LIMITS.risk.max; r++) out[String(r)] = ytmCaps(withinRisk(bonds, r), durLimits, ytmLimits);
+  return out;
 }
 
 /** One key per issuer: bond terms, seat, legal form, case and punctuation do not make a different issuer. */

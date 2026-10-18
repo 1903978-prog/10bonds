@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankBonds, averages, NOTCH_PENALTY, ytmCaps } from "./ranking";
+import { rankBonds, averages, NOTCH_PENALTY, ytmCaps, withinRisk, ytmCapsByRisk } from "./ranking";
 import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
@@ -124,5 +124,26 @@ describe("closest yield first", () => {
   it("a bond nearer the target beats a better-rated one further away (Livio's 15-year case)", () => {
     const bonds = [{ ...bond("FR", 5.35, 15.5, "A+"), issuer: "France" }, { ...bond("BAY", 5.75, 14.1, "BBB"), issuer: "Bayer AG" }];
     expect(rankBonds(bonds, 15, 9.7, 2).results.map((r) => r.isin)).toEqual(["BAY", "FR"]);
+  });
+});
+
+describe("risk slider", () => {
+  const bonds = [bond("AAA1", 3.0, 5, "AAA"), bond("A1", 3.5, 5, "A"), bond("BBBm", 4.0, 5, "BBB-"), bond("BB1", 4.6, 5, "BB"), bond("B1", 6.0, 5, "B"), bond("NR", 5.0, 5, null)];
+  it("keeps only bonds rated equal or better than the level", () => {
+    expect(withinRisk(bonds, 1).map((b) => b.isin)).toEqual(["AAA1"]);
+    expect(withinRisk(bonds, 6).map((b) => b.isin)).toEqual(["AAA1", "A1"]);
+    expect(withinRisk(bonds, 9).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm"]);
+  });
+  it("level 10 is BB and above plus unrated, never B", () => {
+    expect(withinRisk(bonds, 10).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm", "BB1", "NR"]);
+  });
+  it("ranking respects the level", () => {
+    expect(rankBonds(bonds, 5, 5, 10, 6).results.map((r) => r.isin).sort()).toEqual(["A1", "AAA1"]);
+  });
+  it("yield caps follow the level", () => {
+    const caps = ytmCapsByRisk(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    expect(caps["1"]["5"]).toBe(3.0);
+    expect(caps["9"]["5"]).toBe(4.0);
+    expect(caps["10"]["5"]).toBe(5.0);
   });
 });

@@ -18,6 +18,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const ytm = clampParam(url.searchParams.get("ytm"), LIMITS.ytm);
+  const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
 
   let data;
   try {
@@ -32,9 +33,9 @@ export async function GET(req: Request) {
   const preview = url.searchParams.get("preview");
   if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
 
-  const { results, band } = rankBonds(data.bonds, duration, ytm);
+  const { results, band } = rankBonds(data.bonds, duration, ytm, undefined, risk);
   return NextResponse.json(
-    { ...shapeForTier(results, tier), source: data.source, asOf: data.asOf, durationBand: band, inputs: { duration, ytm } },
+    { ...shapeForTier(results, tier), source: data.source, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

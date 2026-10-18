@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LIMITS } from "@/lib/limits";
+import { LIMITS, riskLevel } from "@/lib/limits";
 import type { ResultsPayload } from "@/lib/tiers";
 import { track } from "@/lib/track";
 
@@ -10,7 +10,7 @@ type Response = ResultsPayload & {
   source: "live" | "sample";
   asOf: string | null;
   durationBand: number;
-  inputs: { duration: number; ytm: number };
+  inputs: { duration: number; ytm: number; risk: number };
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -23,10 +23,11 @@ export default function Finder() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
-  const [caps, setCaps] = useState<Record<string, number | null> | null>(null);
-  // The highest yield available at each horizon, loaded once, so the yield slider follows the horizon at once.
-  const capFor = (d: number) => caps?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
-  const ytmMax = capFor(duration);
+  const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
+  const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
+  // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
+  const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
+  const ytmMax = capFor(duration, risk);
 
   useEffect(() => {
     fetch("/api/bonds/caps")
@@ -34,7 +35,7 @@ export default function Finder() {
       .then((b) => {
         if (!b?.caps) return;
         setCaps(b.caps);
-        const cap = b.caps[String(LIMITS.duration.initial)];
+        const cap = b.caps[String(LIMITS.risk.initial)]?.[String(LIMITS.duration.initial)];
         if (typeof cap === "number") setYtm((y) => Math.min(y, cap));
       })
       .catch(() => {});
@@ -42,7 +43,12 @@ export default function Finder() {
 
   const changeDuration = (d: number) => {
     setDuration(d);
-    const cap = capFor(d);
+    const cap = capFor(d, risk);
+    setYtm((y) => (y > cap ? cap : y));
+  };
+  const changeRisk = (r: number) => {
+    setRisk(r);
+    const cap = capFor(duration, r);
     setYtm((y) => (y > cap ? cap : y));
   };
 
@@ -55,14 +61,14 @@ export default function Finder() {
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm) });
+        const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk) });
         if (preview.current) qs.set("preview", preview.current);
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
         setData(body);
         setError(null);
-        track("search", { duration, ytm, tier: body.tier, results: body.rows.length + body.lockedCount });
+        track("search", { duration, ytm, risk, tier: body.tier, results: body.rows.length + body.lockedCount });
       } catch (e) {
         if ((e as Error).name !== "AbortError") setError((e as Error).message);
       } finally {
@@ -73,7 +79,7 @@ export default function Finder() {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm]);
+  }, [duration, ytm, risk]);
 
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
@@ -89,7 +95,7 @@ export default function Finder() {
           Find the best bonds for your goals
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-mute sm:text-base">
-          Choose how long you want to invest and the yield you are after. We show the 10 bonds that match best.
+          Choose how long you want to invest, the yield you are after and the lowest rating you accept. We show the 10 bonds that match best.
         </p>
 
         <Slider
@@ -115,6 +121,18 @@ export default function Finder() {
           minLabel="1.0%"
           maxLabel={`${ytmMax.toFixed(1)}% max`}
           onChange={setYtm}
+        />
+        <Slider
+          label="Worst rating accepted"
+          hint="Credit risk"
+          value={risk}
+          display={riskLevel(risk).label}
+          min={LIMITS.risk.min}
+          max={LIMITS.risk.max}
+          step={LIMITS.risk.step}
+          minLabel="AAA (lowest risk)"
+          maxLabel="BB (higher risk)"
+          onChange={changeRisk}
         />
 
         <p className="mt-8 text-xs leading-relaxed text-mute">
@@ -142,7 +160,7 @@ export default function Finder() {
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>
           ) : data && data.rows.length === 0 ? (
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">
-              No bonds match this horizon. Try a different duration.
+              No bonds match this horizon and rating. Try a different duration or accept a lower rating.
             </p>
           ) : (
             <Results data={data} paid={paid} signedIn={signedIn} />
