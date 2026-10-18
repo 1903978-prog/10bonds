@@ -1,0 +1,36 @@
+# Deploys the public 10BONDS site to Fly.io on every push to main.
+# Needs one repo secret: FLY_API_TOKEN (a Fly token Livio creates himself).
+# The build runs on Fly's remote builder; the runner only waits.
+name: Deploy to Fly
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency: deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Stop if the Fly token is not set yet
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "FLY_API_TOKEN secret is not set: nothing deployed."
+            exit 0
+          fi
+          echo "ok=1" >> "$GITHUB_ENV"
+      - name: Create the app if it does not exist
+        if: env.ok == '1'
+        run: flyctl status -a 10bonds >/dev/null 2>&1 || flyctl apps create 10bonds
+      - name: Allow sample data until the database is connected
+        if: env.ok == '1'
+        run: |
+          flyctl secrets list -a 10bonds | grep -q DATABASE_URL || \
+            flyctl secrets set ALLOW_SAMPLE_DATA=1 -a 10bonds --stage
+      - name: Deploy
+        if: env.ok == '1'
+        run: flyctl deploy --remote-only -a 10bonds --ha=false
