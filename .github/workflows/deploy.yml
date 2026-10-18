@@ -69,10 +69,10 @@ jobs:
       - name: "Accounts database: connection"
         if: env.ok == '1' && env.ACCOUNTS_DATABASE_URL != ''
         run: |
-          body=$(curl -sS https://10bonds.fly.dev/api/health/accounts); echo "$body"
+          body=$(curl -sS -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/accounts); echo "$body"
           echo "$body" | grep -q '"stage":"connect"' && exit 1 || exit 0
       - name: "Accounts database: tables and permissions"
         if: env.ok == '1' && env.ACCOUNTS_DATABASE_URL != ''
         run: |
-          body=$(curl -sS https://10bonds.fly.dev/api/health/accounts); echo "$body"
+          body=$(curl -sS -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/accounts); echo "$body"
           echo "$body" | grep -q '"stage":"ok"'
