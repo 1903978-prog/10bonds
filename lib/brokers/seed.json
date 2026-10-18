@@ -1,0 +1,3831 @@
+{
+ "profiles": [
+  {
+   "id": "boursobank",
+   "name": "BoursoBank",
+   "website": "https://www.boursobank.com",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "fr": "https://www.boursobank.com"
+   }
+  },
+  {
+   "id": "comdirect",
+   "name": "comdirect",
+   "website": "https://www.comdirect.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.comdirect.de"
+   }
+  },
+  {
+   "id": "consorsbank",
+   "name": "Consorsbank",
+   "website": "https://www.consorsbank.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.consorsbank.de"
+   }
+  },
+  {
+   "id": "degiro",
+   "name": "DEGIRO",
+   "website": "https://www.degiro.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.degiro.de",
+    "fr": "https://www.degiro.fr",
+    "it": "https://www.degiro.it"
+   }
+  },
+  {
+   "id": "directa",
+   "name": "Directa SIM",
+   "website": "https://www.directa.it",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "it": "https://www.directa.it"
+   }
+  },
+  {
+   "id": "dkb",
+   "name": "DKB",
+   "website": "https://www.dkb.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.dkb.de"
+   }
+  },
+  {
+   "id": "finanzennetzero",
+   "name": "finanzen.net zero",
+   "website": "https://www.finanzen.net/zero",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.finanzen.net/zero"
+   }
+  },
+  {
+   "id": "fineco",
+   "name": "Fineco",
+   "website": "https://finecobank.com",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "it": "https://finecobank.com"
+   }
+  },
+  {
+   "id": "flatex",
+   "name": "flatex",
+   "website": "https://www.flatex.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.flatex.de"
+   }
+  },
+  {
+   "id": "fortuneo",
+   "name": "Fortuneo",
+   "website": "https://www.fortuneo.fr",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "fr": "https://www.fortuneo.fr"
+   }
+  },
+  {
+   "id": "hellobank",
+   "name": "Hello bank!",
+   "website": "https://www.hellobank.fr",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "fr": "https://www.hellobank.fr"
+   }
+  },
+  {
+   "id": "ibkr",
+   "name": "Interactive Brokers",
+   "website": "https://www.interactivebrokers.ie",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.interactivebrokers.ie",
+    "fr": "https://www.interactivebrokers.ie",
+    "it": "https://www.interactivebrokers.ie"
+   }
+  },
+  {
+   "id": "ingde",
+   "name": "ING Deutschland",
+   "website": "https://www.ing.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.ing.de"
+   }
+  },
+  {
+   "id": "intesa",
+   "name": "Intesa Sanpaolo",
+   "website": "https://www.intesasanpaolo.com",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "it": "https://www.intesasanpaolo.com"
+   }
+  },
+  {
+   "id": "maxblue",
+   "name": "maxblue",
+   "website": "https://www.maxblue.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.maxblue.de"
+   }
+  },
+  {
+   "id": "mediobanca",
+   "name": "Mediobanca Premier",
+   "website": "https://www.mediobancapremier.com",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "it": "https://www.mediobancapremier.com"
+   }
+  },
+  {
+   "id": "saxo",
+   "name": "Saxo",
+   "website": "https://www.home.saxo/it-it",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "it": "https://www.home.saxo/it-it"
+   }
+  },
+  {
+   "id": "smartbroker",
+   "name": "Smartbroker+",
+   "website": "https://www.smartbrokerplus.de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://www.smartbrokerplus.de"
+   }
+  },
+  {
+   "id": "societegenerale",
+   "name": "SG (Société Générale)",
+   "website": "https://particuliers.sg.fr",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "fr": "https://particuliers.sg.fr"
+   }
+  },
+  {
+   "id": "traderepublic",
+   "name": "Trade Republic",
+   "website": "https://traderepublic.com/de-de",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "de": "https://traderepublic.com/de-de",
+    "fr": "https://traderepublic.com/fr-fr",
+    "it": "https://traderepublic.com/it-it"
+   }
+  },
+  {
+   "id": "unicredit",
+   "name": "UniCredit",
+   "website": "https://www.unicredit.it",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "it": "https://www.unicredit.it"
+   }
+  },
+  {
+   "id": "webank",
+   "name": "Webank",
+   "website": "https://www.webank.it",
+   "regulator": null,
+   "affiliate": {
+    "program": "unverified",
+    "status": "none",
+    "url": null,
+    "model": null,
+    "trackingParams": null,
+    "contract": {
+     "start": null,
+     "end": null,
+     "notes": null
+    },
+    "sponsored": []
+   },
+   "websites": {
+    "it": "https://www.webank.it"
+   }
+  }
+ ],
+ "tariffs": [
+  {
+   "brokerId": "boursobank",
+   "country": "fr",
+   "data": {
+    "eligible": true,
+    "accountType": "Compte-titres ordinaire, forfaits Découverte et Classic",
+    "govBonds": {
+     "evidence": "Conditions table: \"Obligations 20€\" (minimum buy amount)",
+     "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+     "available": true,
+     "markets": "Euronext Paris, Amsterdam, Bruxelles"
+    },
+    "corpBonds": {
+     "evidence": "Brochure only lists \"Obligations 20€\" as minimum order; no bond-specific courtage row",
+     "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+     "available": true,
+     "markets": "Euronext (inferred)"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "No bond-specific foreign-market row; foreign courtage table is for 'Bourses Américaines' / 'Bourses Européennes'",
+     "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext (forfait Découverte, CTO)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 500,
+         "fee": 1.99
+        },
+        {
+         "upTo": null,
+         "pct": 0.6
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Grille de courtage Euronext générale : le courtier ne publie pas de tarif distinct pour les obligations.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "\"1,99€ jusqu'à 500 € puis 0,60% au-delà\"",
+      "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext (forfait Classic)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 1000,
+         "fee": 5.5
+        },
+        {
+         "upTo": null,
+         "pct": 0.48,
+         "min": 8.95
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Grille de courtage Euronext générale : le courtier ne publie pas de tarif distinct pour les obligations. Classic : 5,95 €/mois si aucun ordre dans le mois.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "\"5,50€ jusqu'à 1 000 € puis 0,48% au-delà (avec un min de 8,95€)\"",
+      "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "\"Droits de garde GRATUITS\"",
+     "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+     "text": "Gratuits",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "\"Frais de tenue de compte GRATUIT\"; \"Si aucun ordre n'est exécuté sur le mois : facturation de 5,95 € / mois par compte.\"",
+     "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+     "text": "Gratuit ; 5,95 €/mois sans ordre exécuté dans le mois (forfait Classic)",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "\"Taux de change J+1 (J étant le jour de négociation) + 0,0025 points\"",
+     "sourceUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+     "text": "Taux de change J+1 + 0,0025 point",
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": "Minimum order 20 EUR for obligations (brochure conditions table)",
+    "taxAgent": {
+     "value": true,
+     "evidence": "IFU provided: \"votre IFU (Imprimé Fiscal Unique) 2026 sur l'année fiscale 2025 est disponible\"; explicit statement on withholding of PFNL/prélèvements sociaux not found",
+     "sourceUrl": "https://www.boursobank.com/aide-en-ligne/fiscalite/ifu-imprime-fiscal-unique/qu-est-ce-qu-un-ifu-imprime-fiscal-unique/question/comment-telecharger-votre-imprime-fiscal-unique-ifu-2790948361"
+    },
+    "venues": [
+     "Euronext Paris",
+     "Euronext Amsterdam",
+     "Euronext Bruxelles"
+    ],
+    "tariffDocUrl": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+    "unverified": [
+     "commissions",
+     "fxFee"
+    ],
+    "notes": "La brochure ne mentionne les obligations que pour un ordre minimum de 20 €. Obligations en compte-titres ordinaire (non éligibles au PEA)."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "comdirect",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "comdirect Depot",
+    "govBonds": {
+     "evidence": "Issuers 'Bund und Länder'; bonds tradable 'zum Kurswert über die Börse und/oder den außerbörslichen Handel' (LiveTrading)",
+     "sourceUrl": "https://www.comdirect.de/wertpapierhandel/anleihen-informationen.html",
+     "available": true,
+     "markets": "German exchanges (Xetra, Frankfurt, Stuttgart, Tradegate, gettex, etc.), LiveTrading (OTC), foreign exchanges"
+    },
+    "corpBonds": {
+     "evidence": "Issuers include commercial banks and large companies; tradable 'über die Börse und/oder den außerbörslichen Handel'",
+     "sourceUrl": "https://www.comdirect.de/wertpapierhandel/anleihen-informationen.html",
+     "available": true,
+     "markets": "German exchanges, LiveTrading"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "'Laufzeiten und Währungen wählbar'",
+     "sourceUrl": "https://www.comdirect.de/wertpapierhandel/anleihen-informationen.html",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Xetra, Tradegate, gettex, Stuttgart",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.9,
+       "pct": 0.25,
+       "min": 9.9,
+       "max": 59.9
+      },
+      "venueFee": {
+       "type": "percent",
+       "pct": 0.0025,
+       "min": 2.5,
+       "max": null
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Allgemeines Wertpapier-Orderentgelt (kein eigener Anleihetarif), Online-Order.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Inland: '4,90 EUR + 0,25 % des Ordervolumens', min. 9,90 EUR (bis 2.000 EUR), max. 59,90 EUR",
+      "sourceUrl": "https://www.comdirect.de/formulare/preis-leistungsverzeichnis"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "LiveTrading (außerbörslich)",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.9,
+       "pct": 0.25,
+       "min": 9.9,
+       "max": 59.9
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Außerbörslich, ohne börsenplatzabhängiges Entgelt.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "LiveTrading – Orderentgelte im außerbörslichen Handel: 4,90 EUR + 0,25%, min 9,90, max 59,90 EUR",
+      "sourceUrl": "https://www.comdirect.de/wertpapierhandel/konditionen.html"
+     },
+     {
+      "appliesTo": [
+       "eu_gov",
+       "eu_corp",
+       "fx_bond"
+      ],
+      "venue": "Auslandsbörsen",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 7.9,
+       "pct": 0.25,
+       "min": 12.9,
+       "max": 62.9
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Fremde Spesen an Auslandsbörsen",
+      "conditions": "Zzgl. fremde Spesen.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Ausland: '7,90 EUR + 0,25 %', min. 12,90 EUR, max. 62,90 EUR",
+      "sourceUrl": "https://www.comdirect.de/formulare/preis-leistungsverzeichnis"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Depotentgelt '1,95 EUR im Monat (5,85 EUR im Quartal)'; entfällt ab 2 Trades/Quartal, Girokonto-Nutzung oder Sparplan",
+     "sourceUrl": "https://www.comdirect.de/formulare/preis-leistungsverzeichnis",
+     "text": "1,95 €/Monat, entfällt u. a. bei 2 Trades im Quartal oder aktivem Girokonto",
+     "annualEur": 23.4
+    },
+    "accountFee": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.comdirect.de/formulare/preis-leistungsverzeichnis",
+     "text": null,
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "Kundengeschäfte in fremder Währung: Referenzkurs; 0,35% Umrechnungsentgelt applies to card transactions only",
+     "sourceUrl": "https://www.comdirect.de/formulare/preis-leistungsverzeichnis",
+     "text": "Referenzkurs auf der comdirect-Website; kein Prozentsatz genannt",
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": true,
+     "evidence": "Freistellungsauftrag stellt Kapitalerträge 'vom automatischen Steuerabzug frei' (German bank, inländische Depotbank)",
+     "sourceUrl": "https://www.comdirect.de/faq/freistellungsauftrag-erklaerung"
+    },
+    "venues": [
+     "Xetra",
+     "Tradegate",
+     "gettex",
+     "Stuttgart",
+     "Frankfurt",
+     "LiveTrading",
+     "Auslandsbörsen"
+    ],
+    "tariffDocUrl": "https://www.comdirect.de/cms/docs/cori7105.pdf",
+    "unverified": [
+     "fxFee",
+     "accountFee"
+    ],
+    "notes": "Börsliche Anleiheorders können zusätzlich Maklercourtage enthalten."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "consorsbank",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "Wertpapierdepot, Status Silver (0–25 Orders/Jahr)",
+    "govBonds": {
+     "evidence": "Table lists Bundesanleihen/Bundesschatzanweisungen; 'Bundeswertpapiere können über alle Vertriebswege geordert werden'",
+     "sourceUrl": "https://www.consorsbank.de/web/Sparen-Anlegen/Anlegen/Anleihen",
+     "available": true,
+     "markets": "Tradegate, Frankfurt (bond trading hours listed), OTC; Bundeswertpapiere via all channels"
+    },
+    "corpBonds": {
+     "evidence": "'Unternehmens- und Staatsanleihen' at 'den großen Handelsplätzen, wie z. B. Tradegate'",
+     "sourceUrl": "https://www.consorsbank.de/web/Sparen-Anlegen/Anlegen/Anleihen",
+     "available": true,
+     "markets": "Tradegate, Frankfurt, other German exchanges"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Not stated on official bond page",
+     "sourceUrl": "https://www.consorsbank.de/web/Sparen-Anlegen/Anlegen/Anleihen",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Tradegate",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.95,
+       "pct": 0.25,
+       "min": 9.95,
+       "max": 69.0
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 0.95
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Allgemeines Orderentgelt (Silver), kein eigener Anleihetarif.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Silver: Grundpreis '4,95 Euro', Provisionssatz 0,25 %, mindestens 9,95 Euro, höchstens 69 Euro",
+      "sourceUrl": "https://www.consorsbank.de/web/Service/Preise-Zinsen/Preise-Zinsen-Wertpapiere"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "gettex, LS Exchange, Quotrix",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.95,
+       "pct": 0.25,
+       "min": 9.95,
+       "max": 69.0
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 1.95
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Allgemeines Orderentgelt (Silver).",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Silver: Grundpreis '4,95 Euro', Provisionssatz 0,25 %, mindestens 9,95 Euro, höchstens 69 Euro",
+      "sourceUrl": "https://www.consorsbank.de/web/Service/Preise-Zinsen/Preise-Zinsen-Wertpapiere"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Außerbörslich mit StarPartner",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.95,
+       "pct": 0.25,
+       "min": 9.95,
+       "max": 69.0
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 0
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Allgemeines Orderentgelt (Silver).",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Silver: Grundpreis '4,95 Euro', Provisionssatz 0,25 %, mindestens 9,95 Euro, höchstens 69 Euro",
+      "sourceUrl": "https://www.consorsbank.de/web/Service/Preise-Zinsen/Preise-Zinsen-Wertpapiere"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Xetra, Frankfurt, München, Stuttgart",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.95,
+       "pct": 0.25,
+       "min": 9.95,
+       "max": 69.0
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Handelsplatzentgelt plus Transaktionsentgelt",
+      "conditions": "Allgemeines Orderentgelt (Silver).",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Silver: Grundpreis '4,95 Euro', Provisionssatz 0,25 %, mindestens 9,95 Euro, höchstens 69 Euro",
+      "sourceUrl": "https://www.consorsbank.de/web/Service/Preise-Zinsen/Preise-Zinsen-Wertpapiere"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "'Die Depotführung ist bei Sammelverwahrung Ihrer Wertpapiere kostenlos.'",
+     "sourceUrl": "https://www.consorsbank.de/web/Service/Preise-Zinsen/Preise-Zinsen-Wertpapiere",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.consorsbank.de/web/Service/Preise-Zinsen/Preise-Zinsen-Wertpapiere",
+     "text": null,
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "Only UpTrade/EUREX margins described",
+     "sourceUrl": "https://www.consorsbank.de/web/Service/Preise-Zinsen/Preise-Zinsen-Wertpapiere",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": "Bunds from 1 EUR nominal; corporates from 1.000 (per bond page table)",
+    "taxAgent": {
+     "value": true,
+     "evidence": "'Sie verhindern nur die entsprechende Steuerabführung, wenn Sie uns rechtzeitig einen Freistellungsauftrag erteilt haben.'",
+     "sourceUrl": "https://www.consorsbank.de/web/Wissen/FinanzCoach/Steuern/Freistellung"
+    },
+    "venues": [
+     "Tradegate",
+     "gettex",
+     "Xetra",
+     "Frankfurt",
+     "Außerbörslich"
+    ],
+    "tariffDocUrl": "https://www.consorsbank.de/content/dam/de-cb/b2c/content/pdf/transversal/agb/CB.80.089_403-OL_PLV-Depot-Ver.K-TG.K-Girokonto-NK.pdf",
+    "unverified": [
+     "fxFee",
+     "accountFee"
+    ],
+    "notes": "Zeichnung von Neuemissionen kostenlos. Gold-Status (26–500 Orders/Jahr): 3,95 € + 0,25 %."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "degiro",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "Basic / Active / Trader",
+    "govBonds": {
+     "evidence": "Tariff lists bond venues but does not split government/corporate",
+     "sourceUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf",
+     "available": null,
+     "markets": "Boerse Frankfurt, Euronext"
+    },
+    "corpBonds": {
+     "evidence": "Anleihen: Börse Frankfurt, Euronext Amsterdam, Brussels, Lisbon, Paris - 3,90 €; 'fällt eine Bearbeitungsgebühr von 1,00 € für alle Produkte an' (exceptions do not include bonds)",
+     "sourceUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf",
+     "available": true,
+     "markets": "Boerse Frankfurt, Euronext Amsterdam, Euronext Brussels, Euronext Lisbon, Euronext Paris"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Tariff lists only the five exchanges above; currency of available bonds not stated. AutoFX 0.25% would apply to non-EUR instruments.",
+     "sourceUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Börse Frankfurt, Euronext",
+      "rule": {
+       "type": "fixed",
+       "fee": 4.9
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "3,90 € Provision + 1 € Bearbeitungsgebühr.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Anleihen: Börse Frankfurt, Euronext Amsterdam, Brussels, Lisbon, Paris - 3,90 €; 'fällt eine Bearbeitungsgebühr von 1,00 € für alle Produkte an' (exceptions do not include bonds)",
+      "sourceUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Price list has no general custody (Verwahrung) fee section; only Xetra-Gold ETC carries one",
+     "sourceUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf",
+     "text": "Keine",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "No account maintenance fee in the tariff",
+     "sourceUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf",
+     "text": null,
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "Alle Fremdwährungen - Auto FX Trader 0,25%",
+     "sourceUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf",
+     "text": "AutoFX 0,25 %",
+     "pct": 0.25
+    },
+    "otherFees": null,
+    "minInvestment": "No account minimum stated; bond minimum lot depends on the issue.",
+    "taxAgent": {
+     "value": false,
+     "evidence": "'Als niederländischer Broker zahlen wir keine Kapitalertragssteuer.' ... 'können wir auch keine jährliche Steuerbescheinigung nach deutschem Steuerrecht ausstellen.'",
+     "sourceUrl": "https://www.degiro.de/helpdesk/steuer/kann-degiro-eine-steuerbescheinigung-ausstellen"
+    },
+    "venues": [
+     "Börse Frankfurt",
+     "Euronext Paris",
+     "Euronext Amsterdam",
+     "Euronext Brussels",
+     "Euronext Lisbon"
+    ],
+    "tariffDocUrl": "https://www.degiro.de/data/pdf/de/Preisverzeichnis.pdf",
+    "unverified": [
+     "accountFee",
+     "govBonds"
+    ],
+    "notes": "Anleihen an Börse Frankfurt und Euronext (Amsterdam, Brüssel, Lissabon, Paris). Börsenanbindung bis 2,50 €/Jahr je Börse, Frankfurt kostenlos. Als niederländischer Broker führt DEGIRO keine Kapitalertragsteuer ab."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "degiro",
+   "country": "fr",
+   "data": {
+    "eligible": true,
+    "accountType": "Basic / Active / Trader",
+    "govBonds": {
+     "evidence": "'obligations d'État (bons du trésor)' and 'obligations d'entreprises' offered",
+     "sourceUrl": "https://www.degiro.fr/investir/acheter-des-obligations",
+     "available": true,
+     "markets": "Euronext Paris and other Euronext venues, Boerse Frankfurt"
+    },
+    "corpBonds": {
+     "evidence": "Obligations: Börse Frankfurt, Euronext Amsterdam, Brussels, Lisbon, Paris - 2,00€; 'des frais de gestion de 1,00 € s'appliquent à tous les produits' (exceptions do not include bonds)",
+     "sourceUrl": "https://www.degiro.fr/data/pdf/fr/Tarifs.pdf",
+     "available": true,
+     "markets": "Boerse Frankfurt, Euronext Amsterdam, Euronext Brussels, Euronext Lisbon, Euronext Paris"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Tariff lists only the five exchanges above; currency of available bonds not stated. AutoFX 0.25% would apply to non-EUR instruments.",
+     "sourceUrl": "https://www.degiro.fr/data/pdf/fr/Tarifs.pdf",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Börse Frankfurt, Euronext",
+      "rule": {
+       "type": "fixed",
+       "fee": 3.0
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "2 € de courtage + 1 € de frais de traitement.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Obligations: Börse Frankfurt, Euronext Amsterdam, Brussels, Lisbon, Paris - 2,00€; 'des frais de gestion de 1,00 € s'appliquent à tous les produits' (exceptions do not include bonds)",
+      "sourceUrl": "https://www.degiro.fr/data/pdf/fr/Tarifs.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Frais de garde: 0 €",
+     "sourceUrl": "https://www.degiro.fr/tarifs",
+     "text": "Aucun",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "No account maintenance fee in the tariff",
+     "sourceUrl": "https://www.degiro.fr/data/pdf/fr/Tarifs.pdf",
+     "text": null,
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "La conversion automatique (Auto FX) ... 0,25 %; Manual FX 10 € + 0,25 %",
+     "sourceUrl": "https://www.degiro.fr/data/pdf/fr/Tarifs.pdf",
+     "text": "AutoFX 0,25 %",
+     "pct": 0.25
+    },
+    "otherFees": null,
+    "minInvestment": "No account minimum stated; bond minimum lot depends on the issue.",
+    "taxAgent": {
+     "value": null,
+     "evidence": "'Actuellement, DEGIRO est dans l'incapacité de produire de tels documents' (tax attestations); no IFU / withholding statement found.",
+     "sourceUrl": "https://www.degiro.fr/helpdesk/fiscalite/degiro-emet-il-des-justificatifs-de-prelevement-dimposition"
+    },
+    "venues": [
+     "Börse Frankfurt",
+     "Euronext Paris",
+     "Euronext Amsterdam",
+     "Euronext Brussels",
+     "Euronext Lisbon"
+    ],
+    "tariffDocUrl": "https://www.degiro.fr/data/pdf/fr/Tarifs.pdf",
+    "unverified": [
+     "accountFee",
+     "taxAgent"
+    ],
+    "notes": "Obligations sur Euronext (Paris, Amsterdam, Bruxelles, Lisbonne) et Börse Frankfurt. Frais de connexion jusqu'à 2,50 €/an par place, offerts pour Euronext Paris et Bruxelles."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "degiro",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Basic / Active / Trader",
+    "govBonds": {
+     "evidence": "Tariff lists bond venues but does not split government/corporate; BTP availability not confirmed",
+     "sourceUrl": "https://www.degiro.it/data/pdf/it/NIB_Tariffario.pdf",
+     "available": null,
+     "markets": "Boerse Frankfurt, Euronext (no MOT)"
+    },
+    "corpBonds": {
+     "evidence": "Obbligazioni: Börse Frankfurt, Euronext Amsterdam, Euronext Brussels, Euronext Lisbon, Euronext Paris - € 2,00; 'si applica una commissione di gestione di 1,00 euro per tutti i prodotti'",
+     "sourceUrl": "https://www.degiro.it/data/pdf/it/NIB_Tariffario.pdf",
+     "available": true,
+     "markets": "Boerse Frankfurt, Euronext Amsterdam, Euronext Brussels, Euronext Lisbon, Euronext Paris"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Tariff lists only the five exchanges above; currency of available bonds not stated. AutoFX 0.25% would apply to non-EUR instruments.",
+     "sourceUrl": "https://www.degiro.it/data/pdf/it/NIB_Tariffario.pdf",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Börse Frankfurt, Euronext",
+      "rule": {
+       "type": "fixed",
+       "fee": 3.0
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "2 € di commissione + 1 € di costi di gestione.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Obbligazioni: Börse Frankfurt, Euronext Amsterdam, Euronext Brussels, Euronext Lisbon, Euronext Paris - € 2,00; 'si applica una commissione di gestione di 1,00 euro per tutti i prodotti'",
+      "sourceUrl": "https://www.degiro.it/data/pdf/it/NIB_Tariffario.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Commissione di custodia 0 €",
+     "sourceUrl": "https://www.degiro.it/prezzi",
+     "text": "Nessuna",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "No account maintenance fee in the tariff",
+     "sourceUrl": "https://www.degiro.it/data/pdf/it/NIB_Tariffario.pdf",
+     "text": null,
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "Tutte le valute tramite Auto FX trader 0,25%",
+     "sourceUrl": "https://www.degiro.it/data/pdf/it/NIB_Tariffario.pdf",
+     "text": "AutoFX 0,25 %",
+     "pct": 0.25
+    },
+    "otherFees": null,
+    "minInvestment": "No account minimum stated; bond minimum lot depends on the issue.",
+    "taxAgent": {
+     "value": null,
+     "evidence": "DEGIRO states 'Attualmente, DEGIRO non è in grado di emettere tali documenti fiscali' (cannot issue tax certificates); no statement found on sostituto d'imposta. Generally regime dichiarativo but not confirmed on an official page.",
+     "sourceUrl": "https://www.degiro.it/helpdesk/tassazione/trattati-fiscali/degiro-emette-certificazioni-fiscali"
+    },
+    "venues": [
+     "Börse Frankfurt",
+     "Euronext Paris",
+     "Euronext Amsterdam",
+     "Euronext Brussels",
+     "Euronext Lisbon"
+    ],
+    "tariffDocUrl": "https://www.degiro.it/data/pdf/it/NIB_Tariffario.pdf",
+    "unverified": [
+     "accountFee",
+     "govBonds",
+     "taxAgent"
+    ],
+    "notes": "Le obbligazioni si negoziano solo su Börse Frankfurt ed Euronext (Amsterdam, Bruxelles, Lisbona, Parigi): niente MOT né EuroTLX, quindi niente BTP sui mercati italiani. Costo di connessione fino a 2,50 € l'anno per ogni borsa usata."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "directa",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Conto Directa, profilo Semplice",
+    "govBonds": {
+     "evidence": "MOT / EuroTLX (depositario Montetitoli) ... EuroTLX / EuroMot / ExtraMot (depositario Clearstream) 8€ per ordine eseguito",
+     "sourceUrl": "https://www.directa.it/prodotti-strumenti-finanziari/obbligazioni",
+     "available": true,
+     "markets": "MOT, EuroTLX, EuroMOT, ExtraMOT"
+    },
+    "corpBonds": {
+     "evidence": "EuroTLX / EuroMot / ExtraMot (depositario Clearstream): 8€ per ordine eseguito",
+     "sourceUrl": "https://www.directa.it/prodotti-strumenti-finanziari/obbligazioni",
+     "available": true,
+     "markets": "MOT, EuroTLX, EuroMOT, ExtraMOT"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Tariff section titled 'OBBLIGAZIONI (EUR-USD)'; 'conversione valutaria automatica e senza costi e spread'",
+     "sourceUrl": "https://www.directa.it/commissioni/commissioni-directa.pdf",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "MOT / EuroTLX (Monte Titoli)",
+      "rule": {
+       "type": "fixed",
+       "fee": 5
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Profilo Semplice. La pagina obbligazioni indica 5 €, le FAQ commissioni 6 €: verifica prima di operare.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "MOT / EuroTLX (depositario Montetitoli): Semplice 5€ per ordine eseguito",
+      "sourceUrl": "https://www.directa.it/prodotti-strumenti-finanziari/obbligazioni"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "EuroTLX / EuroMOT / ExtraMOT (Clearstream)",
+      "rule": {
+       "type": "fixed",
+       "fee": 8
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Tutti i profili.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "EuroTLX / EuroMot / ExtraMot (depositario Clearstream): 8€ per ordine eseguito",
+      "sourceUrl": "https://www.directa.it/prodotti-strumenti-finanziari/obbligazioni"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "ZERO spese di custodia ed amministrazione titoli",
+     "sourceUrl": "https://www.directa.it/pub2/it/conto/100/1.html",
+     "text": "Nessuna",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "ZERO canone mensile o annuale",
+     "sourceUrl": "https://www.directa.it/pub2/it/conto/100/1.html",
+     "text": "Nessun canone",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "conversione valutaria automatica e senza costi e spread",
+     "sourceUrl": "https://www.directa.it/prodotti-strumenti-finanziari/obbligazioni",
+     "text": "Conversione automatica senza costi né spread",
+     "pct": 0
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": true,
+     "evidence": "ti viene attribuito di default il regime di risparmio amministrato",
+     "sourceUrl": "https://www.directa.it/help-supporto/fiscalita/regime-fiscale"
+    },
+    "venues": [
+     "MOT",
+     "EuroTLX",
+     "EuroMOT",
+     "ExtraMOT"
+    ],
+    "tariffDocUrl": "https://www.directa.it/commissioni",
+    "unverified": [
+     "commissions"
+    ],
+    "notes": "Commissioni raddoppiate per ordini oltre 500.000 €. Bond Desk OTC solo per investitori professionali."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "dkb",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "DKB-Broker",
+    "govBonds": {
+     "evidence": "'es können Aktien, Fonds, ETFs, Anleihen, Zertifikate, Optionsscheine und Krypto-ETNs gehandelt werden'",
+     "sourceUrl": "https://www.dkb.de/privatkunden/investieren/depot",
+     "available": true,
+     "markets": "9 German exchanges, foreign exchanges, OTC via trading partners"
+    },
+    "corpBonds": {
+     "evidence": "'Anleihen (inklusive komplexe Anleihen)'",
+     "sourceUrl": "https://www.dkb.de/privatkunden/investieren/depot",
+     "available": true,
+     "markets": "German & foreign exchanges, OTC"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.dkb.de/privatkunden/investieren/depot",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "gettex, Quotrix, Tradegate, außerbörslich",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 5000,
+         "fee": 10
+        },
+        {
+         "upTo": 20000,
+         "fee": 15
+        },
+        {
+         "upTo": null,
+         "fee": 30
+        }
+       ]
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 0
+      },
+      "venueFeeUncounted": "Fremdkosten (z. B. Maklercourtage)",
+      "conditions": "Orderentgelt nach Ordervolumen, allgemeiner Wertpapiertarif.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Bis 5.000 EUR: 10 EUR; 5.000,01–20.000 EUR: 15 EUR; ab 20.000,01 EUR: 30 EUR",
+      "sourceUrl": "https://www.dkb.de/fragen-antworten/welche-kosten-entstehen-bei-handel-von-wertpapierauftraegen"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Xetra und deutsche Börsen",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 5000,
+         "fee": 10
+        },
+        {
+         "upTo": 20000,
+         "fee": 15
+        },
+        {
+         "upTo": null,
+         "fee": 30
+        }
+       ]
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 2.5
+      },
+      "venueFeeUncounted": "Fremdkosten (z. B. Maklercourtage)",
+      "conditions": "Allgemeiner Wertpapiertarif.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "Bis 5.000 EUR: 10 EUR; 5.000,01–20.000 EUR: 15 EUR; ab 20.000,01 EUR: 30 EUR",
+      "sourceUrl": "https://www.dkb.de/fragen-antworten/welche-kosten-entstehen-bei-handel-von-wertpapierauftraegen"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "'Die Depotführung ist kostenlos, bei den Produkten Xetra Gold und ADRs erheben wir ein Verwahrentgelt.'",
+     "sourceUrl": "https://www.dkb.de/privatkunden/investieren/depot",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.dkb.de/privatkunden/investieren/depot",
+     "text": null,
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "not stated on official pages read",
+     "sourceUrl": "https://www.dkb.de/privatkunden/investieren/depot",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": true,
+     "evidence": "'Der Steuerabzug erfolgt für jeden Kapitalertrag separat und direkt bei der Gutschrift.'",
+     "sourceUrl": "https://www.dkb.de/fragen-antworten/muss-ich-kapitalertragsteuer-zahlen"
+    },
+    "venues": [
+     "gettex",
+     "Tradegate",
+     "Quotrix",
+     "Xetra",
+     "Außerbörslich"
+    ],
+    "tariffDocUrl": "https://dok.dkb.de/pdf/plv_pk_depot.pdf",
+    "unverified": [
+     "fxFee",
+     "accountFee"
+    ],
+    "notes": "Zeichnung von Neuemissionen nicht möglich."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "finanzennetzero",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "finanzen.net zero Depot (Baader Bank)",
+    "govBonds": {
+     "evidence": "'Kauf oder Verkauf von Aktien, ETFs, Fonds und Renten über den Handelsplatz gettex'",
+     "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf",
+     "available": true,
+     "markets": "gettex, Tradegate, Xetra"
+    },
+    "corpBonds": {
+     "evidence": "'Aktien, ETFs, Fonds und Renten' (Renten = bonds generically)",
+     "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf",
+     "available": true,
+     "markets": "gettex, Tradegate, Xetra"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "gettex",
+      "rule": {
+       "type": "fixed",
+       "fee": 0
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Ab 500 € Ordervolumen; darunter 1 € Mindermengenzuschlag.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'...Renten über den Handelsplatz gettex' 0 €",
+      "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Tradegate",
+      "rule": {
+       "type": "fixed",
+       "fee": 2
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Bis 31.10.2027, danach max. 3,90 €.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'...Renten über den Handelsplatz Tradegate' 2,00 €",
+      "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Xetra",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 2.4,
+       "pct": 0.01,
+       "min": 3.9,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Vermittlungsentgelt + Finanzkommission.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'...Renten über den Handelsplatz Xetra ab 3,90 €'",
+      "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf"
+     }
+    ],
+    "thirdPartyFees": [
+     {
+      "description": "Mindermengenzuschlag unter 500 €",
+      "amount": "1 €",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 499.99,
+         "fee": 1
+        },
+        {
+         "upTo": null,
+         "fee": 0
+        }
+       ]
+      },
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp",
+       "fx_bond"
+      ],
+      "evidence": "'Mindermengenzuschlag bei Orders unter einem Kurswert von 500 €' 1 €",
+      "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf"
+     }
+    ],
+    "custodyFee": {
+     "evidence": "'Depotverwahrung und -verwaltung 0 €'",
+     "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Verrechnungskonto free",
+     "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": null,
+     "evidence": "Jahressteuerbescheinigung 'für in Deutschland steuerpflichtige Personen: kostenlos' (custodian Baader Bank AG, German bank) — explicit withholding statement not found",
+     "sourceUrl": "https://www.finanzen.net/zero/features/"
+    },
+    "venues": [
+     "gettex",
+     "Tradegate",
+     "Xetra"
+    ],
+    "tariffDocUrl": "https://www.finanzen.net/zero/wp-content/uploads/2026/10/Preis-Leistungsverzeichnis-V13_Wertpapiere.pdf",
+    "unverified": [
+     "fxFee",
+     "taxAgent",
+     "commissions"
+    ],
+    "notes": "Anleihen erscheinen im Preisverzeichnis als „Renten“."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "fineco",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Conto Fineco (One / Classic / Max) e Conto Fineco Trading",
+    "govBonds": {
+     "evidence": "il pricing indicato in tabella riguarda Obbligazioni dei mercati MOT/EuroMOT - EuroTLX - Vorvel - Euronext",
+     "sourceUrl": "https://it.finecobank.com/trading/commissioni/",
+     "available": true,
+     "markets": "MOT/EuroMOT, EuroTLX, Vorvel, Euronext; aste titoli di Stato"
+    },
+    "corpBonds": {
+     "evidence": "il pricing indicato in tabella riguarda Obbligazioni dei mercati MOT/EuroMOT - EuroTLX - Vorvel - Euronext",
+     "sourceUrl": "https://it.finecobank.com/trading/commissioni/",
+     "available": true,
+     "markets": "MOT/EuroMOT, EuroTLX, Vorvel, Euronext (other markets priced by order value)"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Obbligazioni USA: max 12,95$ - min 3,95$; trades in a currency without Multicurrency account settled in EUR with 'uno spread sul cambio'",
+     "sourceUrl": "https://it.finecobank.com/trading/obbligazioni/",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "MOT/EuroMOT, EuroTLX, Vorvel, Euronext",
+      "rule": {
+       "type": "fixed",
+       "fee": 19
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Conto Fineco One/Classic/Max, ordine online, fascia base (meno di 100 € di commissioni al mese). Scende a 9,95 €, 6,95 € e 2,95 € con più operatività.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Commissione fissa per ordine decrescente in base all'operatività ... max 19€ - min 2,95€; 'Più commissioni generi in un mese con la tua operatività ... prima conquisti la fascia commissionale più conveniente. Una volta raggiunta, la mantieni anche per il mese successivo.'",
+      "sourceUrl": "https://it.finecobank.com/trading/commissioni/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Mercati Italia e Germania (Conto Fineco Trading)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.19,
+       "min": 5.95,
+       "max": 19
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Conto Fineco Trading. Minimo 2,95 € solo per le obbligazioni di una lista Fineco, altrimenti 5,95 € (usato qui).",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Variabili 0,19% del controvalore ordine (min 2,95€ - max 19€)",
+      "sourceUrl": "https://it.finecobank.com/banking/confronto-conti/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Promozione nuovi clienti",
+      "rule": {
+       "type": "fixed",
+       "fee": 9.95
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Nuovi clienti, mese di apertura e successivo.",
+      "bondSpecific": true,
+      "promo": {
+       "description": "9,95 € per ordine su obbligazioni nel mese di apertura del conto e nel successivo",
+       "expires": null
+      },
+      "evidence": "Commissione fissa per ordine decrescente in base all'operatività ... max 19€ - min 2,95€; 'Più commissioni generi in un mese con la tua operatività ... prima conquisti la fascia commissionale più conveniente. Una volta raggiunta, la mantieni anche per il mese successivo.'",
+      "sourceUrl": "https://it.finecobank.com/trading/commissioni/"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Il costo mensile del conto corrente non include le imposte di bollo statali sul conto corrente e sul deposito titoli.",
+     "sourceUrl": "https://help.finecobank.com/it/il-conto-fineco/condizioni-di-conto-2026.html",
+     "text": "Nessun costo di custodia nelle condizioni pubblicate (esclusa imposta di bollo)",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Conto One: gratuito; Conto Classic: prevede un canone mensile di 3,95€; Conto Max: 29,95€; Trading: 0€",
+     "sourceUrl": "https://it.finecobank.com/banking/confronto-conti/",
+     "text": "Conto One 0 €; Classic 3,95 €/mese; Max 29,95 €/mese; Trading 0 €",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "applica uno spread sul cambio (spread not quantified on page)",
+     "sourceUrl": "https://it.finecobank.com/trading/commissioni/",
+     "text": "Nessuna commissione; spread sul cambio non quantificato (gratis con Multicurrency)",
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": "Government bond auctions from 1.000 euro",
+    "taxAgent": {
+     "value": true,
+     "evidence": "Potrai scegliere tra il regime dichiarativo ed il regime amministrato ... per il regime amministrato, Fineco fungerà da sostituto d'imposta",
+     "sourceUrl": "https://help.finecobank.com/it/FAQ/FAQ-Trading.html"
+    },
+    "venues": [
+     "MOT",
+     "EuroMOT",
+     "EuroTLX",
+     "Vorvel",
+     "Euronext"
+    ],
+    "tariffDocUrl": "https://it.finecobank.com/trading/commissioni/",
+    "unverified": [
+     "fxFee"
+    ],
+    "notes": "Le obbligazioni USA hanno commissioni in dollari (da 12,95 $ a 3,95 $ per ordine): non convertite nel confronto. Aste titoli di Stato online da 1.000 €."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "flatex",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "flatex Depot",
+    "govBonds": {
+     "evidence": "Anleihen listed among instruments tradable on exchanges; bond-specific Fremdkosten published for Frankfurt, Stuttgart, München, Düsseldorf, Berlin",
+     "sourceUrl": "https://www.flatex.de/handel/wertpapierhandel/boerslicher-handel/",
+     "available": true,
+     "markets": "German exchanges (Frankfurt, Stuttgart, München, Düsseldorf, Berlin)"
+    },
+    "corpBonds": {
+     "evidence": "Anleihen tradable on exchanges",
+     "sourceUrl": "https://www.flatex.de/handel/wertpapierhandel/boerslicher-handel/",
+     "available": true,
+     "markets": "German exchanges"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.flatex.de/preise/",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Tradegate, gettex, Quotrix, Lang & Schwarz",
+      "rule": {
+       "type": "fixed",
+       "fee": 5.9
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 2
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Pauschale pro Trade; im Preisverzeichnis ausdrücklich für Aktien genannt.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'Bei flatex zahlen Sie hier eine pauschale Ordergebühr von 5,90 EUR pro Trade zzgl. Fremdspesen.'",
+      "sourceUrl": "https://www.flatex.de/handel/wertpapierhandel/boerslicher-handel/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "München, Düsseldorf",
+      "rule": {
+       "type": "fixed",
+       "fee": 5.9
+      },
+      "venueFee": {
+       "type": "percent",
+       "pct": 0.0119,
+       "min": 1.19,
+       "max": 11.9
+      },
+      "venueFeeUncounted": "Regulierungsentgelt des Clearers",
+      "conditions": "Pauschale pro Trade.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'Bei flatex zahlen Sie hier eine pauschale Ordergebühr von 5,90 EUR pro Trade zzgl. Fremdspesen.'",
+      "sourceUrl": "https://www.flatex.de/handel/wertpapierhandel/boerslicher-handel/"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Inklusivleistungen: 'Konto- und Depotführung' without charge",
+     "sourceUrl": "https://www.flatex.de/preise/",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "'Konto- und Depotführung' included",
+     "sourceUrl": "https://www.flatex.de/preise/",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.flatex.de/preise/",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": true,
+     "evidence": "'Danach erfolgt dann der Abzug der Abgeltungsteuer zzgl. Solidaritätszuschlag und ggf. Kirchensteuer.'",
+     "sourceUrl": "https://www.flatex.de/service/faqs/detail/steuern/verlusttoepfe/in-welcher-reihenfolge-wird-die-steuerverrechnung-vorgenommen/"
+    },
+    "venues": [
+     "Tradegate",
+     "gettex",
+     "Frankfurt",
+     "Stuttgart",
+     "München",
+     "Düsseldorf"
+    ],
+    "tariffDocUrl": "https://konto.flatex.de/formularcenter_bank/public/1300100.pdf",
+    "unverified": [
+     "commissions",
+     "fxFee"
+    ],
+    "notes": "flatex veröffentlicht Fremdkosten für Anleihen je Börse (Frankfurt, Stuttgart, München/Düsseldorf, Berlin)."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "fortuneo",
+   "country": "fr",
+   "data": {
+    "eligible": true,
+    "accountType": "Compte-titres ordinaire, tarifs Starter / Progress / Trader Pro",
+    "govBonds": {
+     "evidence": "CTO page lists products incl. corporate bonds; no explicit mention of OAT/government bonds",
+     "sourceUrl": "https://www.fortuneo.fr/bourse/compte-titres",
+     "available": true,
+     "markets": "Euronext"
+    },
+    "corpBonds": {
+     "evidence": "\"Les obligations de sociétés françaises ou étrangères.\" (products held on the CTO)",
+     "sourceUrl": "https://www.fortuneo.fr/bourse/compte-titres",
+     "available": true,
+     "markets": "not specified"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Foreign markets (US, Germany, UK, Switzerland) listed for courtage, no bond-specific mention",
+     "sourceUrl": "https://www.fortuneo.fr/files/tarifs_fortuneo.pdf",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext (Starter)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.35,
+       "min": null,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Grille de courtage Euronext générale : le courtier ne publie pas de tarif distinct pour les obligations. Premier ordre ≤ 500 € du mois gratuit.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "\"0 € le 1er ordre inférieur ou égal à 500 € chaque mois, sinon 0,35 % par ordre.\"",
+      "sourceUrl": "https://www.fortuneo.fr/faq/quels-sont-les-frais-de-courtage-pour-un-ordre-sur-une-action-francaise"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext (Progress)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 3000,
+         "fee": 4.9
+        },
+        {
+         "upTo": null,
+         "pct": 0.15
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Grille de courtage Euronext générale : le courtier ne publie pas de tarif distinct pour les obligations. Un tarif par compte ; changement 60 €.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "\"4,90 € pour un ordre inférieur ou égal à 3 000 €\" ; \"0,15 % pour un ordre supérieur\"",
+      "sourceUrl": "https://www.fortuneo.fr/faq/quels-sont-les-frais-de-courtage-pour-un-ordre-sur-une-action-francaise"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext (Trader Pro)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 10000,
+         "fee": 9.5
+        },
+        {
+         "upTo": null,
+         "pct": 0.1
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Grille de courtage Euronext générale : le courtier ne publie pas de tarif distinct pour les obligations. Un tarif par compte ; changement 60 €.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "\"9,50 € pour un ordre inférieur ou égal à 10 000 €\" ; \"0,10 % pour un ordre supérieur\"",
+      "sourceUrl": "https://www.fortuneo.fr/faq/quels-sont-les-frais-de-courtage-pour-un-ordre-sur-une-action-francaise"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "\"0 € de droits de garde\"",
+     "sourceUrl": "https://www.fortuneo.fr/faq/quels-sont-les-frais-de-courtage-pour-un-ordre-sur-une-action-francaise",
+     "text": "0 €",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "\"0 € de frais de tenue de compte\"",
+     "sourceUrl": "https://www.fortuneo.fr/faq/quels-sont-les-frais-de-courtage-pour-un-ordre-sur-une-action-francaise",
+     "text": "0 €",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "\"Taux de change \\\"J+1\\\" + 0.12%\"",
+     "sourceUrl": "https://www.fortuneo.fr/files/tarifs_fortuneo.pdf",
+     "text": "Taux de change J+1 + 0,12 %",
+     "pct": 0.12
+    },
+    "otherFees": null,
+    "minInvestment": "Minimum 100 EUR balance at opening",
+    "taxAgent": {
+     "value": true,
+     "evidence": "Tariff lists IFU (\"relevé IFU\" free online, 5 EUR by post); CTO page: income taxed at PFU. Explicit withholding statement not found.",
+     "sourceUrl": "https://www.fortuneo.fr/files/tarifs_fortuneo.pdf"
+    },
+    "venues": [
+     "Euronext Paris",
+     "Euronext Amsterdam",
+     "Euronext Bruxelles"
+    ],
+    "tariffDocUrl": "https://www.fortuneo.fr/files/tarifs_fortuneo.pdf",
+    "unverified": [
+     "commissions",
+     "govBonds"
+    ],
+    "notes": "La page compte-titres confirme l'accès aux obligations d'entreprise. Obligations non éligibles au PEA."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "hellobank",
+   "country": "fr",
+   "data": {
+    "eligible": true,
+    "accountType": "Compte-titres ordinaire, offre Bourse Start (internet)",
+    "govBonds": {
+     "evidence": "Row label: \"Actions, obligations, trackers (ETF), ETC, ETN, bons, droits, warrants, turbos, certificats indexés\" under Euronext",
+     "sourceUrl": "https://www.hellobank.fr/content/dam/hellobank/rsc/contrib/document/pdf/tarifs-hellobank.pdf",
+     "available": true,
+     "markets": "Euronext Paris, Amsterdam, Bruxelles"
+    },
+    "corpBonds": {
+     "evidence": "\"Actions, obligations, trackers (ETF)...\" (Euronext courtage table)",
+     "sourceUrl": "https://www.hellobank.fr/content/dam/hellobank/rsc/contrib/document/pdf/tarifs-hellobank.pdf",
+     "available": true,
+     "markets": "Euronext Paris, Amsterdam, Bruxelles"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Foreign markets courtage (0.50%) listed; no bond-specific mention",
+     "sourceUrl": "https://www.hellobank.fr/content/dam/hellobank/rsc/contrib/document/pdf/tarifs-hellobank.pdf",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext Paris, Amsterdam, Bruxelles (Start)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 500,
+         "fee": 1.75
+        },
+        {
+         "upTo": 1200,
+         "fee": 3.5
+        },
+        {
+         "upTo": 3000,
+         "fee": 8
+        },
+        {
+         "upTo": 50000,
+         "pct": 0.48
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Offre Start, ordre internet. La ligne tarifaire cite explicitement les obligations.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "\"1,75 € par ordre jusqu’à 500 € inclus\"; \"8 € par ordre de plus de 1 200 € jusqu’à 3 000 € inclus\"; \"0,48 % par ordre supérieur à 3 000 € jusqu’à 50 000 €\"",
+      "sourceUrl": "https://www.hellobank.fr/fr/offre/bourse/offres-et-tarifications/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext (Active)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 8000,
+         "fee": 13
+        },
+        {
+         "upTo": 50000,
+         "pct": 0.2
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Offre Active. Changement d'offre gratuit une fois par an.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "\"13 € par ordre jusqu’à 8 000 € inclus\"; \"0,20 % par ordre au-delà de 8 000 € et jusqu’à 50 000 €\"",
+      "sourceUrl": "https://www.hellobank.fr/fr/offre/bourse/offres-et-tarifications/"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "\"Jusqu'à 50 000 € : 0,40 %\"; \"Par ligne au porteur : GRATUIT\"; \"Par ligne en dépôt à l'étranger ou au nominatif : 8 €\"",
+     "sourceUrl": "https://www.hellobank.fr/content/dam/hellobank/rsc/contrib/document/pdf/tarifs-hellobank.pdf",
+     "text": "Start : 0,40 % jusqu'à 50 000 €, 0,20 % jusqu'à 150 000 €, 0,10 % au-delà ; lignes au porteur gratuites. Active : gratuit.",
+     "annualEur": null
+    },
+    "accountFee": {
+     "evidence": "\"Abonnement annuel Sans Abonnement annuel\"",
+     "sourceUrl": "https://www.hellobank.fr/content/dam/hellobank/rsc/contrib/document/pdf/tarifs-hellobank.pdf",
+     "text": "Pas d'abonnement annuel",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "\"Opération de change au comptant\" 0,50 ‰ minimum 18 €",
+     "sourceUrl": "https://www.hellobank.fr/content/dam/hellobank/rsc/contrib/document/pdf/tarifs-hellobank.pdf",
+     "text": "Change au comptant 0,50 ‰ (min. 18 €) ; application aux ordres non confirmée",
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": true,
+     "evidence": "IFU \"vous est directement adressé par courrier tous les ans, entre fin février et fin mai\"; explicit withholding statement not found",
+     "sourceUrl": "https://www.hellobank.fr/faq/comment-obtenir-mon-imprime-fiscal-unique-ifu"
+    },
+    "venues": [
+     "Euronext Paris",
+     "Euronext Amsterdam",
+     "Euronext Bruxelles",
+     "Bourses étrangères"
+    ],
+    "tariffDocUrl": "https://www.hellobank.fr/content/dam/hellobank/rsc/contrib/document/pdf/tarifs-hellobank.pdf",
+    "unverified": [
+     "fxFee",
+     "custodyFee"
+    ],
+    "notes": "Obligations détenues en compte-titres ordinaire (non éligibles au PEA). Tarifs au-delà de 50 000 € non publiés dans l'extrait lu."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "ibkr",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "IBKR Pro (Interactive Brokers Ireland)",
+    "govBonds": {
+     "evidence": "European bond commission page lists venues 'Euronext Exchange', 'SIX Swiss Exchange' and 'Europe OTC - All Bonds' (no gov/corp split)",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": "Europe OTC (IBKR bond routing) and Euronext; Borsa Italiana MOT / Xetra / Tradegate not listed on the European bond commission page"
+    },
+    "corpBonds": {
+     "evidence": "'Europe OTC - All Bonds' schedule; page does not distinguish government vs corporate",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": "Europe OTC, Euronext"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Europe OTC schedule published for EUR, CHF, GBP, MXN, SGD and ZAR bonds (0.1% on first 10,000 of currency, 0.025% on excess)",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Außerbörslich Europa (EUR-Anleihen)",
+      "rule": {
+       "type": "marginal",
+       "tiers": [
+        {
+         "upTo": 10000,
+         "pct": 0.1
+        },
+        {
+         "upTo": null,
+         "pct": 0.025
+        }
+       ],
+       "min": null,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "IBKR Pro: 0,10 % auf die ersten 10.000 €, 0,025 % auf den Rest.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Europe OTC: 0.1% of trade value on first EUR 10,000, 0.025% above; no min/max; 'Commissions are tiered.'",
+      "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext",
+      "rule": {
+       "type": "marginal",
+       "tiers": [
+        {
+         "upTo": 50000,
+         "pct": 0.1
+        },
+        {
+         "upTo": 5000000,
+         "pct": 0.035
+        },
+        {
+         "upTo": null,
+         "pct": 0.015
+        }
+       ],
+       "min": 2,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Börsengebühren zum Selbstkostenpreis",
+      "conditions": "IBKR Pro: 0,10 % bis 50.000 €, mindestens 2 €, zzgl. Börsengebühren.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Euronext: 0.1% up to EUR 50,000, 0.035% to EUR 5,000,000, 0.015% above; minimum EUR 2.00, no maximum",
+      "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "IBKR charges no custody fees. / Custody fees may be charged by third parties.",
+     "sourceUrl": "https://interactivebrokers.ie/en/accounts/required-minimums.php",
+     "text": "Keine",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Individual accounts: account minimum 'USD 0.00'; inactivity fees 'USD 0.00'",
+     "sourceUrl": "https://interactivebrokers.ie/en/accounts/required-minimums.php",
+     "text": "Keine Kontoführungsgebühr",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "<= USD 1,000,000,000 monthly: 0.20 bp, minimum USD 2.00 per order",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-spot-currencies.php",
+     "text": "0,002 % (mind. 2 USD) beim Devisenkassatausch",
+     "pct": 0.002
+    },
+    "otherFees": null,
+    "minInvestment": "No account minimum (USD 0). Bond minimum sizes depend on the issue (often EUR 1,000-100,000 denominations).",
+    "taxAgent": {
+     "value": null,
+     "evidence": "No official IBKR statement found on Abgeltungsteuer withholding for German residents.",
+     "sourceUrl": null
+    },
+    "venues": [
+     "OTC",
+     "Euronext"
+    ],
+    "tariffDocUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+    "unverified": [
+     "taxAgent"
+    ],
+    "notes": "Irischer Broker (Interactive-Brokers-Gruppe): automatischer deutscher Steuerabzug nicht bestätigt. Europäische Anleihen außerbörslich und an Euronext."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "ibkr",
+   "country": "fr",
+   "data": {
+    "eligible": true,
+    "accountType": "IBKR Pro (Interactive Brokers Ireland)",
+    "govBonds": {
+     "evidence": "European bond commission page lists venues 'Euronext Exchange', 'SIX Swiss Exchange' and 'Europe OTC - All Bonds' (no gov/corp split)",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": "Europe OTC (IBKR bond routing) and Euronext; Borsa Italiana MOT / Xetra / Tradegate not listed on the European bond commission page"
+    },
+    "corpBonds": {
+     "evidence": "'Europe OTC - All Bonds' schedule; page does not distinguish government vs corporate",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": "Europe OTC, Euronext"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Europe OTC schedule published for EUR, CHF, GBP, MXN, SGD and ZAR bonds (0.1% on first 10,000 of currency, 0.025% on excess)",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Gré à gré Europe (obligations en euros)",
+      "rule": {
+       "type": "marginal",
+       "tiers": [
+        {
+         "upTo": 10000,
+         "pct": 0.1
+        },
+        {
+         "upTo": null,
+         "pct": 0.025
+        }
+       ],
+       "min": null,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "IBKR Pro : 0,10 % sur les 10 000 premiers euros, 0,025 % au-delà.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Europe OTC: 0.1% of trade value on first EUR 10,000, 0.025% above; no min/max; 'Commissions are tiered.'",
+      "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext",
+      "rule": {
+       "type": "marginal",
+       "tiers": [
+        {
+         "upTo": 50000,
+         "pct": 0.1
+        },
+        {
+         "upTo": 5000000,
+         "pct": 0.035
+        },
+        {
+         "upTo": null,
+         "pct": 0.015
+        }
+       ],
+       "min": 2,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Frais de bourse refacturés au coût",
+      "conditions": "IBKR Pro : 0,10 % jusqu'à 50 000 €, minimum 2 €, plus frais de bourse.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Euronext: 0.1% up to EUR 50,000, 0.035% to EUR 5,000,000, 0.015% above; minimum EUR 2.00, no maximum",
+      "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "IBKR charges no custody fees. / Custody fees may be charged by third parties.",
+     "sourceUrl": "https://interactivebrokers.ie/en/accounts/required-minimums.php",
+     "text": "Aucun",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Individual accounts: account minimum 'USD 0.00'; inactivity fees 'USD 0.00'",
+     "sourceUrl": "https://interactivebrokers.ie/en/accounts/required-minimums.php",
+     "text": "Aucuns frais de tenue de compte",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "<= USD 1,000,000,000 monthly: 0.20 bp, minimum USD 2.00 per order",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-spot-currencies.php",
+     "text": "0,002 % (min. 2 USD) sur le change au comptant",
+     "pct": 0.002
+    },
+    "otherFees": null,
+    "minInvestment": "No account minimum (USD 0). Bond minimum sizes depend on the issue (often EUR 1,000-100,000 denominations).",
+    "taxAgent": {
+     "value": null,
+     "evidence": "No official IBKR statement found on IFU / prelevement a la source for French residents.",
+     "sourceUrl": null
+    },
+    "venues": [
+     "OTC",
+     "Euronext"
+    ],
+    "tariffDocUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+    "unverified": [
+     "taxAgent"
+    ],
+    "notes": "Courtier irlandais (groupe Interactive Brokers) : pas d'IFU français confirmé. Obligations européennes de gré à gré et sur Euronext."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "ibkr",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "IBKR Pro (Interactive Brokers Ireland)",
+    "govBonds": {
+     "evidence": "European bond commission page lists venues 'Euronext Exchange', 'SIX Swiss Exchange' and 'Europe OTC - All Bonds' (no gov/corp split)",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": "Europe OTC (IBKR bond routing) and Euronext; Borsa Italiana MOT / Xetra / Tradegate not listed on the European bond commission page"
+    },
+    "corpBonds": {
+     "evidence": "'Europe OTC - All Bonds' schedule; page does not distinguish government vs corporate",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": "Europe OTC, Euronext"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Europe OTC schedule published for EUR, CHF, GBP, MXN, SGD and ZAR bonds (0.1% on first 10,000 of currency, 0.025% on excess)",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "OTC europeo (obbligazioni in euro)",
+      "rule": {
+       "type": "marginal",
+       "tiers": [
+        {
+         "upTo": 10000,
+         "pct": 0.1
+        },
+        {
+         "upTo": null,
+         "pct": 0.025
+        }
+       ],
+       "min": null,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "IBKR Pro: 0,10% sui primi 10.000 €, 0,025% sulla parte eccedente.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Europe OTC: 0.1% of trade value on first EUR 10,000, 0.025% above; no min/max; 'Commissions are tiered.'",
+      "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext",
+      "rule": {
+       "type": "marginal",
+       "tiers": [
+        {
+         "upTo": 50000,
+         "pct": 0.1
+        },
+        {
+         "upTo": 5000000,
+         "pct": 0.035
+        },
+        {
+         "upTo": null,
+         "pct": 0.015
+        }
+       ],
+       "min": 2,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Costi di borsa addebitati al costo",
+      "conditions": "IBKR Pro: 0,10% fino a 50.000 €, minimo 2 €, più costi di borsa.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Euronext: 0.1% up to EUR 50,000, 0.035% to EUR 5,000,000, 0.015% above; minimum EUR 2.00, no maximum",
+      "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "IBKR charges no custody fees. / Custody fees may be charged by third parties.",
+     "sourceUrl": "https://interactivebrokers.ie/en/accounts/required-minimums.php",
+     "text": "Nessuna",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Individual accounts: account minimum 'USD 0.00'; inactivity fees 'USD 0.00'",
+     "sourceUrl": "https://interactivebrokers.ie/en/accounts/required-minimums.php",
+     "text": "Nessun canone",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "<= USD 1,000,000,000 monthly: 0.20 bp, minimum USD 2.00 per order",
+     "sourceUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-spot-currencies.php",
+     "text": "0,002% (min. 2 USD) sul cambio a pronti",
+     "pct": 0.002
+    },
+    "otherFees": null,
+    "minInvestment": "No account minimum (USD 0). Bond minimum sizes depend on the issue (often EUR 1,000-100,000 denominations).",
+    "taxAgent": {
+     "value": null,
+     "evidence": "Not confirmed on an official page. An official IBKR webinar PDF is titled 'Dichiarativo - La fiscalita italiana del conto Interactive Brokers' (implies regime dichiarativo) but its text could not be read.",
+     "sourceUrl": "https://www.interactivebrokers.com/webinars/2018-WB-2907_Dichiarativo-LafiscalitaitalianadelcontoInteractiveBrokers.pdf"
+    },
+    "venues": [
+     "OTC",
+     "Euronext"
+    ],
+    "tariffDocUrl": "https://www.interactivebrokers.ie/en/pricing/commissions-bonds-europe.php",
+    "unverified": [
+     "taxAgent"
+    ],
+    "notes": "Broker irlandese (gruppo Interactive Brokers): regime dichiarativo salvo diversa indicazione ufficiale. Obbligazioni OTC europee e su Euronext; MOT non indicato."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "ingde",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "Direkt-Depot",
+    "govBonds": {
+     "evidence": "'Unternehmensanleihen, Pfandbriefen, Staatsanleihen und staatsnahen Anleihen'; 'über 9.000 Anleihen'",
+     "sourceUrl": "https://www.ing.de/wertpapiere/anleihen/",
+     "available": true,
+     "markets": "German exchanges (e.g. Stuttgart, Düsseldorf, Frankfurt), Direkthandel"
+    },
+    "corpBonds": {
+     "evidence": "'Unternehmensanleihen, Pfandbriefen, Staatsanleihen...'",
+     "sourceUrl": "https://www.ing.de/wertpapiere/anleihen/",
+     "available": true,
+     "markets": "German exchanges, Direkthandel"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Not stated on bond page; FX conversion fee exists in PLV",
+     "sourceUrl": "https://www.ing.de/wertpapiere/anleihen/",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Direkthandel",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.9,
+       "pct": 0.25,
+       "min": null,
+       "max": 69.9
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 0
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Allgemeine Direkt-Depot-Provision, kein eigener Anleihetarif.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'Provision: Grundgebühr 4,90€ + 0,25% vom Kurswert, max. 69,90€'",
+      "sourceUrl": "https://www.ing.de/dokumente/direkt-depot-auszug-plv/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "München, Stuttgart",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.9,
+       "pct": 0.25,
+       "min": null,
+       "max": 69.9
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 1.9
+      },
+      "venueFeeUncounted": "Maklercourtage / variable Börsenentgelte",
+      "conditions": "Allgemeine Provision.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'Provision: Grundgebühr 4,90€ + 0,25% vom Kurswert, max. 69,90€'",
+      "sourceUrl": "https://www.ing.de/dokumente/direkt-depot-auszug-plv/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Xetra, Frankfurt, Berlin, Düsseldorf, Hamburg",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.9,
+       "pct": 0.25,
+       "min": null,
+       "max": 69.9
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 2.9
+      },
+      "venueFeeUncounted": "Maklercourtage / variable Börsenentgelte",
+      "conditions": "Allgemeine Provision.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'Provision: Grundgebühr 4,90€ + 0,25% vom Kurswert, max. 69,90€'",
+      "sourceUrl": "https://www.ing.de/dokumente/direkt-depot-auszug-plv/"
+     },
+     {
+      "appliesTo": [
+       "eu_gov",
+       "eu_corp",
+       "fx_bond"
+      ],
+      "venue": "Auslandsbörsen",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4.9,
+       "pct": 0.25,
+       "min": null,
+       "max": 69.9
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 14.9
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Allgemeine Provision.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'Provision: Grundgebühr 4,90€ + 0,25% vom Kurswert, max. 69,90€'",
+      "sourceUrl": "https://www.ing.de/dokumente/direkt-depot-auszug-plv/"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "'Depotverwahrung/-verwaltung: kostenlos'",
+     "sourceUrl": "https://www.ing.de/dokumente/direkt-depot-auszug-plv/",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Depotführung & -verwaltung: 'kostenlos'",
+     "sourceUrl": "https://www.ing.de/sparen-anlegen/direkt-depot/konditionen/",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "'Umrechnung von Fremdwährungsumsätzen (Auf- bzw. Abschlag): 0,25% auf Devisenmittelkurs'",
+     "sourceUrl": "https://www.ing.de/dokumente/direkt-depot-auszug-plv/",
+     "text": "0,25 % auf den Devisenmittelkurs",
+     "pct": 0.25
+    },
+    "otherFees": null,
+    "minInvestment": "Bond page: 'Handel ab 1.000 Euro oder weniger möglich'",
+    "taxAgent": {
+     "value": true,
+     "evidence": "'wird automatisch die Abgeltungsteuer, der Solidaritätszuschlag und ggf. die Kirchensteuer ermittelt' ... 'an das Finanzamt abgeführt'",
+     "sourceUrl": "https://www.ing.de/sparen-anlegen/direkt-depot/kundenservice/abrechnung-steuer/"
+    },
+    "venues": [
+     "Direkthandel",
+     "Xetra",
+     "Frankfurt",
+     "Stuttgart",
+     "München",
+     "Auslandsbörsen"
+    ],
+    "tariffDocUrl": "https://www.ing.de/dokumente/direkt-depot-auszug-plv/",
+    "unverified": [],
+    "notes": "Zuteilung von Anleihe-Neuemissionen ohne Provision. Kein Mindestentgelt im gelesenen Auszug genannt."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "intesa",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Deposito titoli, ordini online (XME Conto)",
+    "govBonds": {
+     "evidence": "Titoli obbligazionari negoziati sui mercati regolamentati, MTF italiani, MTF Tradeweb EU",
+     "sourceUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/FI/FI-Other/FI-1004.pdf",
+     "available": true,
+     "markets": "Regulated markets and Italian MTFs, MTF Tradeweb EU; foreign venues"
+    },
+    "corpBonds": {
+     "evidence": "Obbligazioni italiane ed estere ... qualunque sia la sede di negoziazione 2,4000 per mille",
+     "sourceUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/FI/FI-Other/FI-1004.pdf",
+     "available": true,
+     "markets": "Regulated markets, Italian MTFs, foreign venues"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Commissione di intervento 1,5000 per mille ... applies only to transactions involving a currency exchange",
+     "sourceUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/FI/FI-Other/FI-1004.pdf",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp",
+       "fx_bond"
+      ],
+      "venue": "Mercati regolamentati, MTF italiani, Tradeweb EU (online)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.24,
+       "min": 3.5,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Costi di esecuzione 3 € per obbligazioni su mercati regolamentati/MTF italiani (non chiaro se per ordine)",
+      "conditions": "Canale online. In filiale: 3-5 per mille, minimo 8,50 €.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Titoli di Stato italiani ... 2,4000 per mille; minimo per ogni compravendita € 3,50",
+      "sourceUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/FI/FI-Other/FI-1004.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Canone mensile ... €1,50 per XME Conto; €0,00 XME Conto Silver, Gold, Platinum",
+     "sourceUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/FI/FI-Other/FI-1004.pdf",
+     "text": "1,50 €/mese con XME Conto; 0 € con XME Conto Silver, Gold, Platinum",
+     "annualEur": 18
+    },
+    "accountFee": {
+     "evidence": "not confirmed for a standard package",
+     "sourceUrl": null,
+     "text": "Dipende dal pacchetto XME Conto scelto",
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "Commissione di intervento 1,5000 per mille ... minimo 3,50",
+     "sourceUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/FI/FI-Other/FI-1004.pdf",
+     "text": "Commissione di intervento 1,5 per mille, minimo 3,50 €",
+     "pct": 0.15
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": true,
+     "evidence": "Il Cliente può scegliere il regime fiscale di risparmio amministrato ... la Banca applica ... l'imposta sostitutiva (optional; default is regime ordinario if not chosen)",
+     "sourceUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/PRE/PRE-1263.pdf"
+    },
+    "venues": [
+     "MOT",
+     "EuroTLX",
+     "Tradeweb EU",
+     "Mercati esteri"
+    ],
+    "tariffDocUrl": "https://www.intesasanpaolo.com/content/dam/vetrina/trasparenza/it/Documenti/Doc/Pdf/FI/FI-Other/FI-1004.pdf",
+    "unverified": [
+     "accountFee",
+     "thirdPartyFees"
+    ],
+    "notes": "Il regime amministrato va scelto: di default si applica il regime ordinario."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "maxblue",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "maxblue Depot",
+    "govBonds": {
+     "evidence": "'Sie können Aktien, Anleihen, Investmentfonds, ETFs' handeln",
+     "sourceUrl": "https://www.maxblue.de/wertpapierhandel/handeln/depot.html",
+     "available": true,
+     "markets": "German exchanges, Direct Trade, ~40 exchanges worldwide"
+    },
+    "corpBonds": {
+     "evidence": "'Sie können Aktien, Anleihen, ...'",
+     "sourceUrl": "https://www.maxblue.de/wertpapierhandel/handeln/depot.html",
+     "available": true,
+     "markets": "German exchanges, Direct Trade"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "not stated",
+     "sourceUrl": "https://www.maxblue.de/wertpapierhandel/handeln/depot.html",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Direct Trade (außerbörslich)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.25,
+       "min": 8.9,
+       "max": 58.9
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 0
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Allgemeines Orderentgelt, kein eigener Anleihetarif sichtbar.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'0,25% vom OV (min. 8,90 EUR, max. 58,90 EUR)'",
+      "sourceUrl": "https://www.maxblue.de/wertpapierhandel/preis/preise-leistungen.html"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Xetra",
+      "rule": {
+       "type": "percent",
+       "pct": 0.25,
+       "min": 8.9,
+       "max": 58.9
+      },
+      "venueFee": {
+       "type": "fixed",
+       "fee": 2
+      },
+      "venueFeeUncounted": "Fremdspesen und Börsengebühren",
+      "conditions": "Allgemeines Orderentgelt.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "'0,25% vom OV (min. 8,90 EUR, max. 58,90 EUR)'",
+      "sourceUrl": "https://www.maxblue.de/wertpapierhandel/preis/preise-leistungen.html"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "'Für die Verwahrung und Verwaltung von Wertpapieren ... wird kein Depotpreis erhoben.'",
+     "sourceUrl": "https://www.maxblue.de/dam/maxblue/de/files/pdf/Kosteninformation_Depotmodell_maxblue.pdf",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "'sowohl die Depotführung als auch Depotkonto (Verrechnungskonto) sind bei maxblue für Sie kostenlos'",
+     "sourceUrl": "https://www.maxblue.de/service-kontakt/services/faqs.html",
+     "text": "Depotkonto kostenlos",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "'Die Kosten sind abhängig von der Währung und können zwischen 0,5% (für Standardwährungen wie US-Dollar)' ... bis 3%",
+     "sourceUrl": "https://www.maxblue.de/dam/maxblue/de/files/pdf/Kosteninformation_Depotmodell_maxblue.pdf",
+     "text": "0,5 % (Standardwährungen wie USD) bis 3 %",
+     "pct": 0.5
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": null,
+     "evidence": "FAQ describes Abgeltungsteuer 25% and Freistellungsauftrag but no explicit statement found that maxblue withholds automatically (Deutsche Bank is a domestic bank)",
+     "sourceUrl": "https://www.maxblue.de/service-kontakt/services/faqs.html"
+    },
+    "venues": [
+     "Direct Trade",
+     "Xetra",
+     "Deutsche Börsen",
+     "Auslandsbörsen"
+    ],
+    "tariffDocUrl": "https://www.maxblue.de/dam/maxblue/de/files/pdf/deutsche_bank_konditionen_preis_leistungsverzeichnis.pdf",
+    "unverified": [
+     "commissions",
+     "taxAgent"
+    ],
+    "notes": "Teil der Deutschen Bank."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "mediobanca",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Conto Premier + Dossier Titoli, ordini online",
+    "govBonds": {
+     "evidence": "Online ... Bonds (Italian and foreign), government securities, and BOTs ... 0,18%, minimum €6,00",
+     "sourceUrl": "https://www.mediobancapremier.com/wcm/connect/public/967526b7-8d43-4401-a41e-5f85664d45e4/foglio_informativo_servizi_di_investimento_e_deposito_strumenti_finanziari_cp.pdf?MOD=AJPERES",
+     "available": true,
+     "markets": "Not specified by venue ('Obbligazioni Italia', 'Titoli di Stato', 'BOT'); subscriptions at issuance"
+    },
+    "corpBonds": {
+     "evidence": "Obbligazioni Italia / Obbligazioni Estere: 0,18% min 6,00 € (online)",
+     "sourceUrl": "https://www.mediobancapremier.com/wcm/connect/public/967526b7-8d43-4401-a41e-5f85664d45e4/foglio_informativo_servizi_di_investimento_e_deposito_strumenti_finanziari_cp.pdf?MOD=AJPERES",
+     "available": true,
+     "markets": "Obbligazioni Italia / Obbligazioni Estere (venues not named)"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Spese su operazioni che prevedono l'applicazione del tasso di cambio: 0,00 €; spread 0,25%",
+     "sourceUrl": "https://www.mediobancapremier.com/wcm/connect/public/967526b7-8d43-4401-a41e-5f85664d45e4/foglio_informativo_servizi_di_investimento_e_deposito_strumenti_finanziari_cp.pdf?MOD=AJPERES",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp",
+       "fx_bond"
+      ],
+      "venue": "Tutti i mercati obbligazionari (canale online)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.18,
+       "min": 6,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Ordini online. Telefono/filiale 0,40% minimo 12 €.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Online: bonds (Italian and foreign), government securities and BOTs - 0,18%, minimum €6,00, no maximum",
+      "sourceUrl": "https://www.mediobancapremier.com/wcm/connect/public/967526b7-8d43-4401-a41e-5f85664d45e4/foglio_informativo_servizi_di_investimento_e_deposito_strumenti_finanziari_cp.pdf?MOD=AJPERES"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Spese di custodia e amministrazione titoli 0,00 €",
+     "sourceUrl": "https://www.mediobancapremier.com/wcm/connect/public/967526b7-8d43-4401-a41e-5f85664d45e4/foglio_informativo_servizi_di_investimento_e_deposito_strumenti_finanziari_cp.pdf?MOD=AJPERES",
+     "text": "Nessuna",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Il canone mensile di 10€ è scontabile o azzerabile secondo le promozioni in corso",
+     "sourceUrl": "https://www.mediobancapremier.com/public/conti/conto-premier/passa-a-conto-premier/condizioni",
+     "text": "Conto Premier 10 €/mese, scontabile o azzerabile",
+     "annualEur": 120
+    },
+    "fxFee": {
+     "evidence": "Al tasso di cambio viene applicato uno spread pari allo 0,25% a carico del cliente",
+     "sourceUrl": "https://www.mediobancapremier.com/wcm/connect/public/967526b7-8d43-4401-a41e-5f85664d45e4/foglio_informativo_servizi_di_investimento_e_deposito_strumenti_finanziari_cp.pdf?MOD=AJPERES",
+     "text": "Spread dello 0,25% sul cambio",
+     "pct": 0.25
+    },
+    "otherFees": "Sottoscrizione titoli di Stato in collocamento: 0 €.",
+    "minInvestment": null,
+    "taxAgent": {
+     "value": null,
+     "evidence": "Modulo trasloco titoli refers to 'certificazione delle minusvalenze' and 'titoli di risparmio amministrato', but no explicit statement found",
+     "sourceUrl": "https://www.mediobancapremier.com/wcm/connect/public/61c343ca-28e8-43ff-9d57-b8f81a942f07/ModuloTraslocoTitoli_MBP.pdf?MOD=AJPERES&CVID=oQ1wSYY"
+    },
+    "venues": [
+     "Mercati italiani ed esteri"
+    ],
+    "tariffDocUrl": "https://www.mediobancapremier.com/wcm/connect/public/967526b7-8d43-4401-a41e-5f85664d45e4/foglio_informativo_servizi_di_investimento_e_deposito_strumenti_finanziari_cp.pdf?MOD=AJPERES",
+    "unverified": [
+     "taxAgent"
+    ],
+    "notes": "Ex CheBanca!. Sottoscrizione di BTP, BTP Italia, CCTEU e CTZ: 0 €."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "saxo",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Conto Saxo, livello Bronze",
+    "govBonds": {
+     "evidence": "'Commissioni fino a 7 € su Bond in Euro BTP, BOT e molto altro'; trading conditions: 'Mercato europeo (corporate e titoli di stato)'",
+     "sourceUrl": "https://www.home.saxo/it-it/rates-and-conditions/pricing-overview",
+     "available": true,
+     "markets": "Instradamento online verso più mercati e liquidity provider"
+    },
+    "corpBonds": {
+     "evidence": "'Mercato europeo (corporate e titoli di stato)' 08:00-17:00 London time",
+     "sourceUrl": "https://www.home.saxo/it-it/rates-and-conditions/bonds/trading-conditions",
+     "available": true,
+     "markets": "European market (corporate and government), US corporates"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Separate rows for USD, GBP, CHF, SGD, AUD, DKK, secondary (CAD, CNH, NOK, NZD, PLN, SEK) and 'Altre' currencies",
+     "sourceUrl": "https://www.home.saxo/it-it/rates-and-conditions/bonds/commissions",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Online (obbligazioni in euro)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 49999.99,
+         "fee": 7
+        },
+        {
+         "upTo": null,
+         "pct": 0.12,
+         "max": 150
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Livello Bronze: 7 € sotto i 50.000 €; da 50.000 € 0,12% con massimo 150 € (Silver 0,08%, Gold 0,05%, massimo 75 €).",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Obbligazioni in Euro: '7 EUR' (ordini < 50.000 EUR)",
+      "sourceUrl": "https://www.home.saxo/it-it/rates-and-conditions/bonds/commissions"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Pages fetched do not state a custody fee for Italy",
+     "sourceUrl": "https://www.home.saxo/it-it/rates-and-conditions/commissions-charges-and-margin-schedule",
+     "text": null,
+     "annualEur": null
+    },
+    "accountFee": {
+     "evidence": "Not stated on fetched pages",
+     "sourceUrl": null,
+     "text": null,
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "è applicata una commissione pari allo 0,25%",
+     "sourceUrl": "https://www.home.saxo/it-it/rates-and-conditions/commissions-charges-and-margin-schedule",
+     "text": "0,25% sugli strumenti in valuta diversa dall'euro",
+     "pct": 0.25
+    },
+    "otherFees": null,
+    "minInvestment": "International bond page: min sizes can be 50k/100k/200k; 'minimum limit of 10k in € or $ on all online bonds' (not confirmed on Italian page).",
+    "taxAgent": {
+     "value": true,
+     "evidence": "'Regime amministrato anche per operatività sui derivati'; feature list 'SOSTITUTO D'IMPOSTA'",
+     "sourceUrl": "https://www.home.saxo/it-it/campaigns/trade-derivates"
+    },
+    "venues": [
+     "OTC",
+     "Mercati europei"
+    ],
+    "tariffDocUrl": "https://www.home.saxo/-/media/documents/regional/it/legal/commissioni-costi-e-marginazione.pdf",
+    "unverified": [
+     "custodyFee",
+     "accountFee"
+    ],
+    "notes": "Le obbligazioni in USD costano 7 $ sotto i 50.000 $: non convertite nel confronto."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "smartbroker",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "SMARTBROKER+ Depot",
+    "govBonds": {
+     "evidence": "'Staatsanleihen', 'staatsnahe Anleihen'; gettex row covers 'Aktien, Anleihen, ETFs/ETPs, Fonds'",
+     "sourceUrl": "https://www.smartbrokerplus.de/de-de/anleihen-kaufen/",
+     "available": true,
+     "markets": "gettex, Xetra, Tradegate, other German exchanges, foreign venues"
+    },
+    "corpBonds": {
+     "evidence": "'Unternehmensanleihen'",
+     "sourceUrl": "https://www.smartbrokerplus.de/de-de/anleihen-kaufen/",
+     "available": true,
+     "markets": "gettex, German exchanges"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Foreign-currency availability mentioned for state and corporate bonds",
+     "sourceUrl": "https://www.smartbrokerplus.de/de-de/anleihen-kaufen/",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "gettex",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 499.99,
+         "fee": 4
+        },
+        {
+         "upTo": null,
+         "fee": 0
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Ab 500 € Ordervolumen 0 €. Unter 500 €: Gebührenseite 1 €, Anleiheseite 4 €.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "gettex: '0 EUR (ab 500 EUR Ordervolumen)' / '1 EUR (bis 499,99 EUR Ordervolumen)'",
+      "sourceUrl": "https://www.smartbrokerplus.de/de-de/konditionen/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Xetra",
+      "rule": {
+       "type": "fixed",
+       "fee": 4
+      },
+      "venueFee": {
+       "type": "percent",
+       "pct": 0.01,
+       "min": 1.5,
+       "max": null
+      },
+      "venueFeeUncounted": null,
+      "conditions": "Zzgl. börsenplatzabhängige Entgelte.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Xetra: '4 EUR + 0,01%, mind. 1,50 EUR börsenplatzabhängige Entgelte'",
+      "sourceUrl": "https://www.smartbrokerplus.de/de-de/konditionen/"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Tradegate, LS Exchange, Baader Trading",
+      "rule": {
+       "type": "fixed",
+       "fee": 4
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Tradegate, L&S Exchange, Baader Trading: '4 EUR'",
+      "sourceUrl": "https://www.smartbrokerplus.de/de-de/konditionen/"
+     },
+     {
+      "appliesTo": [
+       "eu_gov",
+       "eu_corp",
+       "fx_bond"
+      ],
+      "venue": "Auslandsbörsen (z. B. Frankreich, Italien, Niederlande, Belgien)",
+      "rule": {
+       "type": "fixed_plus_percent",
+       "fee": 4,
+       "pct": 0.02,
+       "min": 12,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Beispiel Frankreich/Italien/NL/BE; andere Länder abweichend.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Foreign: 4,00 EUR plus e.g. France 0,02%, min. 12 EUR",
+      "sourceUrl": "https://content-hub.smartbrokerplus.de/api/sb-media/2026_07_PLV_4f42b95ac5.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "'Depotführung inklusive Nebendepots' – 'Kostenlos'",
+     "sourceUrl": "https://www.smartbrokerplus.de/de-de/konditionen/",
+     "text": "Kostenlos",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "'Kontoführung inklusive Währungskonten' – 'Kostenlos'",
+     "sourceUrl": "https://www.smartbrokerplus.de/de-de/konditionen/",
+     "text": "Kostenlos, auch Währungskonten",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "mentions 'Währungsaufschlag' without amount",
+     "sourceUrl": "https://www.smartbrokerplus.de/de-de/konditionen/",
+     "text": "Währungsaufschlag an internationalen Handelsplätzen, Höhe nicht genannt",
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": true,
+     "evidence": "'Bis zu dieser Grenze werden dir auf Gewinne, Zinsen, Dividenden und Verkaufsgewinne keine Steuern abgezogen.' (Freistellungsauftrag; implies withholding above it)",
+     "sourceUrl": "https://www.smartbrokerplus.de/de-de/blog/steuern-und-steuerbelege/"
+    },
+    "venues": [
+     "gettex",
+     "Xetra",
+     "Tradegate",
+     "Deutsche Börsen",
+     "Auslandsbörsen"
+    ],
+    "tariffDocUrl": "https://content-hub.smartbrokerplus.de/api/sb-media/2026_07_PLV_4f42b95ac5.pdf",
+    "unverified": [
+     "fxFee"
+    ],
+    "notes": null
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "societegenerale",
+   "country": "fr",
+   "data": {
+    "eligible": true,
+    "accountType": "Compte-titres ordinaire, ordres par internet",
+    "govBonds": {
+     "evidence": "CTO accepts \"tous types de titres financiers (actions, obligations, OPC, warrants,…)\"",
+     "sourceUrl": "https://particuliers.sg.fr/epargner-placer-son-argent/nos-offres/cto-compte-titres-ordinaire",
+     "available": true,
+     "markets": "Euronext"
+    },
+    "corpBonds": {
+     "evidence": "\"tous types de titres financiers (actions, obligations, OPC, warrants,…)\"",
+     "sourceUrl": "https://particuliers.sg.fr/epargner-placer-son-argent/nos-offres/cto-compte-titres-ordinaire",
+     "available": true,
+     "markets": "Euronext"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "not stated",
+     "sourceUrl": "https://particuliers.sg.fr/epargner-placer-son-argent/nos-offres/cto-compte-titres-ordinaire",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "Euronext Paris, Amsterdam, Bruxelles (internet)",
+      "rule": {
+       "type": "tiered",
+       "tiers": [
+        {
+         "upTo": 2000,
+         "pct": 0.5,
+         "min": 6
+        },
+        {
+         "upTo": 8000,
+         "pct": 0.45
+        },
+        {
+         "upTo": null,
+         "pct": 0.35
+        }
+       ]
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Grille de courtage Euronext générale : le courtier ne publie pas de tarif distinct pour les obligations. Taux appliqué dès le 1er euro, minimum 6 €.",
+      "bondSpecific": false,
+      "promo": null,
+      "evidence": "0,50 % jusqu'à 2 000 €, 0,45 % de 2 001 à 8 000 €, 0,35 % à partir de 8 001 €; perception minimum 6 €",
+      "sourceUrl": "https://particuliers.sg.fr/epargner-placer-son-argent/nos-offres/cto-compte-titres-ordinaire"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "0,30 % jusqu'à 50 000 € ... commission fixe de 4,50 € par ligne",
+     "sourceUrl": "https://particuliers.sg.fr/epargner-placer-son-argent/nos-offres/cto-compte-titres-ordinaire",
+     "text": "0,30 % jusqu'à 50 000 €, 0,20 % jusqu'à 150 000 €, 0,10 % au-delà + 4,50 € par ligne",
+     "annualEur": null
+    },
+    "accountFee": {
+     "evidence": "17,50 € par compte titres par an; offert si \"au moins un achat en Bourse ou une souscription d'OPC est exécuté\"",
+     "sourceUrl": "https://particuliers.sg.fr/epargner-placer-son-argent/nos-offres/cto-compte-titres-ordinaire",
+     "text": "17,50 €/an, offerts avec au moins un achat en Bourse par an",
+     "annualEur": 17.5
+    },
+    "fxFee": {
+     "evidence": null,
+     "sourceUrl": "https://particuliers.sg.fr/epargner-placer-son-argent/nos-offres/cto-compte-titres-ordinaire",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": null,
+     "evidence": "not confirmed on an official page",
+     "sourceUrl": null
+    },
+    "venues": [
+     "Euronext Paris",
+     "Euronext Amsterdam",
+     "Euronext Bruxelles"
+    ],
+    "tariffDocUrl": "https://static.sg.fr/bigfiles/pri/sg-bt-10-26.pdf",
+    "unverified": [
+     "commissions",
+     "fxFee",
+     "taxAgent"
+    ],
+    "notes": "Le compte-titres ordinaire détient « actions, obligations… ». Brochure du 1er octobre 2026 non lisible : chiffres issus de la page produit officielle."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "traderepublic",
+   "country": "de",
+   "data": {
+    "eligible": true,
+    "accountType": "Wertpapierdepot",
+    "govBonds": {
+     "evidence": "'täglich 500 liquide Staats- und Unternehmensanleihen'; 'Orders werden über die LS Exchange ausgeführt.'",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/230915_TradeRepublic_Pressemitteilung_Anleihen_DE_DE.pdf",
+     "available": true,
+     "markets": "LS Exchange"
+    },
+    "corpBonds": {
+     "evidence": "'Staats- und Unternehmensanleihen'",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/230915_TradeRepublic_Pressemitteilung_Anleihen_DE_DE.pdf",
+     "available": true,
+     "markets": "LS Exchange"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Bond universe criteria: 'Ausgegeben in EUR', 'Ausreichende Liquidität', 'Nicht strukturiert'",
+     "sourceUrl": "https://support.traderepublic.com/de-de/1614-Wie-kann-ich-in-Anleihen-investieren",
+     "available": false,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "LS Exchange",
+      "rule": {
+       "type": "fixed",
+       "fee": 1
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "LS Exchange, 1 € Fremdkostenpauschale pro Order, keine Provision.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Press release: 'Es fällt für den Handel keine Orderprovision an, für die Abwicklung gilt die Fremdkostenpauschale von 1 Euro.' PLV: 'Fremdkostenpauschale je Handelsgeschäft (ausgenommen Sparpläne)' 1,00 €",
+      "sourceUrl": "https://assets.traderepublic.com/assets/files/230915_TradeRepublic_Pressemitteilung_Anleihen_DE_DE.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Price list shows no depot/custody fee (only 'fremde Spesen' e.g. for ADR/GDR custody)",
+     "sourceUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+     "text": "Keine",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "'Führung des Verrechnungskontos' kostenfrei",
+     "sourceUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+     "text": "Keine Kontoführungsgebühr",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "Bonds must be 'Ausgegeben in EUR'",
+     "sourceUrl": "https://support.traderepublic.com/de-de/1614-Wie-kann-ich-in-Anleihen-investieren",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": "From EUR 1 (amount / nominal orders; fractional); limit orders: no fractions, minimum order value checked in app.",
+    "taxAgent": {
+     "value": true,
+     "evidence": "Freistellungsauftrag supported; 'Rückerstattung von bereits abgeführten Steuern auf Kapitalerträge' (German bank withholds Kapitalertragsteuer)",
+     "sourceUrl": "https://support.traderepublic.com/de-de/97-Erhalte-ich-die-bereits-abgef%C3%BChrte-Kapitalertragssteuer-zur%C3%BCck,-wenn-ich-einen-Freistellungsauftrag-einstelle?web_view=true"
+    },
+    "venues": [
+     "LS Exchange"
+    ],
+    "tariffDocUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+    "unverified": [],
+    "notes": "Rund 500 Euro-Staats- und Unternehmensanleihen ab 1 €. Das gefundene Preisverzeichnis (04/2023) nennt Anleihen noch nicht."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "traderepublic",
+   "country": "fr",
+   "data": {
+    "eligible": true,
+    "accountType": "Compte-titres",
+    "govBonds": {
+     "evidence": "'täglich 500 liquide Staats- und Unternehmensanleihen'; 'Orders werden über die LS Exchange ausgeführt.'",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/230915_TradeRepublic_Pressemitteilung_Anleihen_DE_DE.pdf",
+     "available": true,
+     "markets": "LS Exchange"
+    },
+    "corpBonds": {
+     "evidence": "'Staats- und Unternehmensanleihen'",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/230915_TradeRepublic_Pressemitteilung_Anleihen_DE_DE.pdf",
+     "available": true,
+     "markets": "LS Exchange"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Bond universe criteria: 'Ausgegeben in EUR', 'Ausreichende Liquidität', 'Nicht strukturiert'",
+     "sourceUrl": "https://support.traderepublic.com/de-de/1614-Wie-kann-ich-in-Anleihen-investieren",
+     "available": false,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "LS Exchange",
+      "rule": {
+       "type": "fixed",
+       "fee": 1
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "LS Exchange, 1 € de frais externes par ordre, sans courtage.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "'there is one euro external settlement cost to cover clearing and settlement of each transaction' (EN support page; FR version redirects)",
+      "sourceUrl": "https://support.traderepublic.com/en-de/784-Are-there-commissions-for-order-execution"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Price list shows no custody fee (German PLV)",
+     "sourceUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+     "text": "Aucun",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "'Führung des Verrechnungskontos' kostenfrei",
+     "sourceUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+     "text": "Aucuns frais de tenue de compte",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "Bonds must be 'Ausgegeben in EUR'",
+     "sourceUrl": "https://support.traderepublic.com/de-de/1614-Wie-kann-ich-in-Anleihen-investieren",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": "From EUR 1 (amount / nominal orders; fractional); limit orders: no fractions, minimum order value checked in app.",
+    "taxAgent": {
+     "value": true,
+     "evidence": "Customer Agreement (FR): Migration Process involves 'taxation and social security contributions based on French laws and tax reporting obligations like the Imprimé Fiscal Unique (IFU)'; existing customers stay under prior provision until migrated",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/CA_FR-en-fr.pdf"
+    },
+    "venues": [
+     "LS Exchange"
+    ],
+    "tariffDocUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+    "unverified": [
+     "commissions",
+     "govBonds",
+     "custodyFee"
+    ],
+    "notes": "Environ 500 obligations en euros, d'État et d'entreprise, dès 1 €. Tarif lu sur la page d'aide en anglais. Fiscalité française gérée pour les comptes migrés."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "traderepublic",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Conto titoli",
+    "govBonds": {
+     "evidence": "'täglich 500 liquide Staats- und Unternehmensanleihen'; 'Orders werden über die LS Exchange ausgeführt.'",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/230915_TradeRepublic_Pressemitteilung_Anleihen_DE_DE.pdf",
+     "available": true,
+     "markets": "LS Exchange"
+    },
+    "corpBonds": {
+     "evidence": "'Staats- und Unternehmensanleihen'",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/230915_TradeRepublic_Pressemitteilung_Anleihen_DE_DE.pdf",
+     "available": true,
+     "markets": "LS Exchange"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Bond universe criteria: 'Ausgegeben in EUR', 'Ausreichende Liquidität', 'Nicht strukturiert'",
+     "sourceUrl": "https://support.traderepublic.com/de-de/1614-Wie-kann-ich-in-Anleihen-investieren",
+     "available": false,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "LS Exchange",
+      "rule": {
+       "type": "fixed",
+       "fee": 1
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "LS Exchange, 1 € di costi esterni per ordine, nessuna commissione.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "'applichiamo un euro di costi di regolamento esterno' ... 'non pagherai alcuna commissione per la negoziazione di titoli'",
+      "sourceUrl": "https://support.traderepublic.com/it-it/784-Are-there-commissions-for-order-execution"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "'non devi pagare alcuna commissione per l'amministrazione e il deposito dei titoli con Trade Republic'",
+     "sourceUrl": "https://support.traderepublic.com/it-it/1008-Devo-pagare-commissioni-per-il-deposito-titoli",
+     "text": "Nessuna",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "'Führung des Verrechnungskontos' kostenfrei",
+     "sourceUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+     "text": "Nessun canone",
+     "annualEur": 0
+    },
+    "fxFee": {
+     "evidence": "Bonds must be 'Ausgegeben in EUR'",
+     "sourceUrl": "https://support.traderepublic.com/de-de/1614-Wie-kann-ich-in-Anleihen-investieren",
+     "text": null,
+     "pct": null
+    },
+    "otherFees": null,
+    "minInvestment": "From EUR 1 (amount / nominal orders; fractional); limit orders: no fractions, minimum order value checked in app.",
+    "taxAgent": {
+     "value": true,
+     "evidence": "'Trade Republic farà da sostituto d'imposta, calcolando e trattenendo automaticamente le imposte sugli investimenti'; 'Tutti i nuovi clienti a partire da oggi beneficeranno del Regime Amministrato' (30 Jan 2025)",
+     "sourceUrl": "https://assets.traderepublic.com/assets/files/250130_TradeRepublic_PressRelease_BranchLaunch-Italy_IT_IT.pdf"
+    },
+    "venues": [
+     "LS Exchange"
+    ],
+    "tariffDocUrl": "https://assets.traderepublic.com/documents/DE/FURTHER_INFORMATION_PRICE_LIST_20230426144143.pdf",
+    "unverified": [
+     "govBonds"
+    ],
+    "notes": "Circa 500 obbligazioni in euro, governative e societarie, da 1 €."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "unicredit",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Conto Titoli, canale internet",
+    "govBonds": {
+     "evidence": "Titoli di Stato Italia - negoziazione tramite internet 0,40000 %",
+     "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf",
+     "available": true,
+     "markets": "Titoli di Stato Italia; MOT"
+    },
+    "corpBonds": {
+     "evidence": "Obbligazioni italiane e obbligazioni estere negoziate sul MOT - negoziazione tramite internet 0,40000 %",
+     "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf",
+     "available": true,
+     "markets": "MOT; foreign bonds"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Foreign bonds: internet 0,70% (min €14,00); 0,15% FX on foreign-currency securities trades",
+     "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf",
+     "available": true,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_corp"
+      ],
+      "venue": "Titoli di Stato italiani e obbligazioni su MOT (internet)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.4,
+       "min": 7,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Commissione di servizio internet 4,75 € per operazione (probabilmente in aggiunta)",
+      "conditions": "Canale internet, tariffa standard.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "negoziazione tramite internet 0,40000 % ... minimo negoziazione tramite internet euro 7,00",
+      "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf"
+     },
+     {
+      "appliesTo": [
+       "eu_gov",
+       "fx_bond"
+      ],
+      "venue": "Obbligazioni estere (internet)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.7,
+       "min": 14,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": "Commissione di servizio internet 4,75 € e costi di altri intermediari",
+      "conditions": "Più commissioni di altri intermediari non predeterminabili.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Foreign bonds: internet 0.70% (min €14.00)",
+      "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_corp"
+      ],
+      "venue": "Promozione buddy",
+      "rule": {
+       "type": "percent",
+       "pct": 0.1,
+       "min": 2,
+       "max": null
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Conti titoli aperti dal 16/02/26 al 31/01/27; non è indicato se vale per le obbligazioni.",
+      "bondSpecific": true,
+      "promo": {
+       "description": "buddy: 0,10% minimo 2 € per conti aperti entro il 31/01/2027 (applicabilità alle obbligazioni non indicata)",
+       "expires": "2027-01-31"
+      },
+      "evidence": "negoziazione tramite internet 0,40000 % ... minimo negoziazione tramite internet euro 7,00",
+      "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "Italian government securities: €10.00 per semester; promo: 'tutte le spese della sezione SPESE FISSE - GESTIONE E AMMINISTRAZIONE ... saranno azzerate fino al 31/12/2028'",
+     "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf",
+     "text": "Titoli di Stato italiani 10 €/semestre; altri titoli italiani 126 €/anno; esteri 160 €/anno",
+     "annualEur": 20
+    },
+    "accountFee": {
+     "evidence": "not checked",
+     "sourceUrl": null,
+     "text": "Dipende dal conto corrente",
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "Foreign-currency securities trading: 0.15% per transaction",
+     "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf",
+     "text": "0,15% sulle compravendite in valuta",
+     "pct": 0.15
+    },
+    "otherFees": null,
+    "minInvestment": null,
+    "taxAgent": {
+     "value": null,
+     "evidence": "Foglio informativo describes custody and administration but not the fiscal regime",
+     "sourceUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf"
+    },
+    "venues": [
+     "MOT",
+     "Mercati esteri"
+    ],
+    "tariffDocUrl": "https://trasparenza.unicredit.it/pdfprod/DT01_CONTO+TITOLIServizio+di+custodia+ed+amministrazione+di+titoli+e+strumenti+finanziari.pdf",
+    "unverified": [
+     "accountFee",
+     "thirdPartyFees",
+     "taxAgent"
+    ],
+    "notes": null
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  },
+  {
+   "brokerId": "webank",
+   "country": "it",
+   "data": {
+    "eligible": true,
+    "accountType": "Conto Webank + deposito titoli, profilo fisso o variabile",
+    "govBonds": {
+     "evidence": "Obbligazionario (EUROTLX, MOT, ExtraMOT, Hi - MTF, Akros IS, Obbligazioni OTC)",
+     "sourceUrl": "https://www.webank.it/webankpub/wbresp/t1/trading_commissioni.do",
+     "available": true,
+     "markets": "EuroTLX, MOT, ExtraMOT, Hi-MTF (Vorvel), Akros IS, Obbligazioni OTC; collocamenti/aste titoli di Stato"
+    },
+    "corpBonds": {
+     "evidence": "Obbligazionario (EUROTLX, MOT, ExtraMOT, Hi - MTF, Akros IS, Obbligazioni OTC)",
+     "sourceUrl": "https://www.webank.it/webankpub/wbresp/t1/trading_commissioni.do",
+     "available": true,
+     "markets": "EuroTLX, MOT, ExtraMOT, Hi-MTF, Akros IS, OTC"
+    },
+    "foreignCurrencyBonds": {
+     "evidence": "Foglio informativo lists an 'OUT-EURO - COMMISSIONI % 0,1500 %' intervention fee, but no explicit non-EUR bond trading line",
+     "sourceUrl": "https://www.webank.it/webankpub/aol/PDFFoglioInformativo.do?cod=05034.47166.07000",
+     "available": null,
+     "markets": null
+    },
+    "commissions": [
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "EuroTLX, MOT, ExtraMOT, Hi-MTF, Akros, OTC (profilo fisso)",
+      "rule": {
+       "type": "fixed",
+       "fee": 12
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Fascia base (fino a 500 € di commissioni il mese precedente); poi 8, 6, 4 e 2,75 €.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "Profilo fisso: 12 €, 8 €, 6 €, 4 €, 2,75 € ('Commissioni generate nel mese precedente' da 0 a 500 € ... oltre i 2000 €)",
+      "sourceUrl": "https://www.webank.it/webankpub/wbresp/t1/trading_commissioni.do"
+     },
+     {
+      "appliesTo": [
+       "domestic_gov",
+       "eu_gov",
+       "eu_corp"
+      ],
+      "venue": "EuroTLX, MOT, ExtraMOT, Hi-MTF, Akros, OTC (profilo variabile)",
+      "rule": {
+       "type": "percent",
+       "pct": 0.19,
+       "min": 2.75,
+       "max": 18.9
+      },
+      "venueFee": null,
+      "venueFeeUncounted": null,
+      "conditions": "Fascia base; il cliente sceglie il profilo fisso o variabile.",
+      "bondSpecific": true,
+      "promo": null,
+      "evidence": "0,19% (Min 2,75 €, Max 18,9 €); 'La commissione di negoziazione massima applicabile sul mercato obbligazionario è di 18,90 €.'",
+      "sourceUrl": "https://www.webank.it/webankpub/aol/PDFFoglioInformativo.do?cod=05034.47166.07000"
+     }
+    ],
+    "thirdPartyFees": [],
+    "custodyFee": {
+     "evidence": "BOT ED ALTRI TITOLI DI STATO - SPESE 0,00 €",
+     "sourceUrl": "https://www.webank.it/webankpub/aol/PDFFoglioInformativo.do?cod=05034.47166.07000",
+     "text": "0 € per BOT e altri titoli di Stato",
+     "annualEur": 0
+    },
+    "accountFee": {
+     "evidence": "Zero canone conto, carta di credito, debito e prepagata ... nuovi correntisti ... entro il 21.10.2026",
+     "sourceUrl": "https://www.webank.it/lndpage/trading.html",
+     "text": "Canone zero per i nuovi clienti che lo richiedono entro il 21.10.2026",
+     "annualEur": null
+    },
+    "fxFee": {
+     "evidence": "OUT-EURO - COMMISSIONI % 0,1500 %",
+     "sourceUrl": "https://www.webank.it/webankpub/aol/PDFFoglioInformativo.do?cod=05034.47166.07000",
+     "text": "Commissione out-euro 0,15%",
+     "pct": 0.15
+    },
+    "otherFees": "Sottoscrizione titoli di Stato (BTP, BTPi, CCT, CTZ) gratuita.",
+    "minInvestment": null,
+    "taxAgent": {
+     "value": null,
+     "evidence": "Official pages fetched describe 'servizio di deposito a custodia e amministrazione' but do not state the regime amministrato explicitly",
+     "sourceUrl": "https://www.webank.it/webankpub/aol/PDFFoglioInformativo.do?cod=05034.47166.07000"
+    },
+    "venues": [
+     "MOT",
+     "EuroTLX",
+     "ExtraMOT",
+     "Hi-MTF",
+     "Akros",
+     "OTC"
+    ],
+    "tariffDocUrl": "https://www.webank.it/webankpub/aol/PDFFoglioInformativo.do?cod=05034.47166.07000",
+    "unverified": [
+     "accountFee",
+     "taxAgent"
+    ],
+    "notes": "Sottoscrizione di BTP, BTP Italia, CCT e CTZ in collocamento gratuita."
+   },
+   "effectiveFrom": "2026-10-18",
+   "verifiedAt": "2026-10-18",
+   "status": "published"
+  }
+ ]
+}
