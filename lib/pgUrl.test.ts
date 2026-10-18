@@ -10,3 +10,14 @@ describe("cleanPgUrl", () => {
     expect(cleanPgUrl("postgres://u:p@localhost:5432/db")).toBe("postgres://u:p@localhost:5432/db");
   });
 });
+
+describe("cleanPgUrl with pasted extras", () => {
+  it("takes the URL out of a psql command", () => {
+    expect(cleanPgUrl("psql 'postgresql://u:p@h.neon.tech/db?sslmode=require&channel_binding=require'")).toBe(
+      "postgresql://u:p@h.neon.tech/db?sslmode=require",
+    );
+  });
+  it("trims quotes, spaces and a trailing newline", () => {
+    expect(cleanPgUrl('  "postgres://u:p@h/db"\n')).toBe("postgres://u:p@h/db");
+  });
+});

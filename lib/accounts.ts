@@ -122,9 +122,14 @@ export async function recordEvents(rows: { visitorId: string; userId: number | n
 }
 
 /** Where the accounts database stands, as stage + Postgres error code only (no message, no secret). */
-export async function accountsHealth(): Promise<{ configured: boolean; stage: "ok" | "connect" | "tables"; code: string | null }> {
+export async function accountsHealth(): Promise<{ configured: boolean; stage: "ok" | "url" | "connect" | "tables"; code: string | null }> {
   if (!accountsConfigured()) return { configured: false, stage: "connect", code: null };
-  const { sql } = db();
+  let sql: ReturnType<typeof postgres>;
+  try {
+    sql = db().sql;
+  } catch (e) {
+    return { configured: true, stage: "url", code: errCode(e) };
+  }
   try {
     await sql`select 1`;
   } catch (e) {
