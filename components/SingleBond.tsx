@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useFinderText } from "@/lib/finderText";
 import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
 
@@ -11,6 +12,8 @@ const pct = (n: number | null | undefined) => (n === null || n === undefined ? "
 
 /** One-bond mode: best yield per rating step for the chosen duration; click a dot to see that bond, "Change" for the next one. */
 export default function SingleBond({ duration, preview }: { duration: number; preview: string | null }) {
+  const t = useFinderText();
+  const errText = t.error;
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +29,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
         if (preview) qs.set("preview", preview);
         const res = await fetch(`/api/bonds/curve?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
-        if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+        if (!res.ok) throw new Error(body.error ?? errText);
         setData(body);
         setError(null);
         setIndex(0);
@@ -53,8 +56,8 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
   return (
     <div className={`transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
       <div className="flex items-baseline justify-between">
-        <h2 className="text-[17px] font-semibold">Best yield by rating</h2>
-        <span className="text-xs text-mute">Tap a dot to see the bond</span>
+        <h2 className="text-[17px] font-semibold">{t.bestByRating}</h2>
+        <span className="text-xs text-mute">{t.tapDot}</span>
       </div>
       <Chart points={points} selected={level} onPick={(l) => { setLevel(l); setIndex(0); }} />
 
@@ -71,7 +74,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
         />
       ) : (
         <p className="mt-4 rounded-2xl bg-canvas p-5 text-center text-sm text-mute">
-          {points.some((p) => p.ytm !== null) ? "Pick a rating on the chart to see the best bond for it." : "No bonds match this horizon. Try a different duration."}
+          {points.some((p) => p.ytm !== null) ? t.pickRating : t.noneSingle}
         </p>
       )}
     </div>
@@ -79,6 +82,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
 }
 
 function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
+  const t = useFinderText();
   const W = 420, H = 260, L = 56, R = 22, T = 22, B = 46;
   const ys = points.map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
@@ -93,7 +97,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
   const path = drawn.map((p, i) => `${i ? "L" : "M"}${x(p.level).toFixed(1)},${y(p.ytm!).toFixed(1)}`).join(" ");
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label="Best yield for each rating">
+    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label={t.chartLabel}>
       {ticks.map((v) => (
         <g key={v}>
           <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" />
@@ -105,7 +109,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
           {p.label === "BBB / BBB-" ? "BBB" : p.label === "BB and above" ? "BB" : p.label}
         </text>
       ))}
-      <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="#86868b">Higher risk → lower risk</text>
+      <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
       <path d={path} fill="none" stroke="#0071e3" strokeWidth="2.5" strokeLinejoin="round" />
       {drawn.map((p) => (
         <g key={p.level} onClick={() => onPick(p.level)} style={{ cursor: "pointer" }} data-testid={`dot-${p.level}`}>
@@ -131,7 +135,8 @@ function BondBox(props: {
   const { bond, tier } = props;
   const signedIn = tier !== "visitor";
   const paid = tier === "plus" || tier === "premium";
-  const lock = signedIn ? <Link href="/pricing" className="text-accent">with Plus</Link> : <Link href="/signup" className="text-accent">free account</Link>;
+  const t = useFinderText();
+  const lock = signedIn ? <Link href="/pricing" className="text-accent">{t.withPlus}</Link> : <Link href="/signup" className="text-accent">{t.freeAccountLower}</Link>;
   const row = (k: string, v: React.ReactNode) => (
     <div className="flex justify-between gap-4 border-b border-line/60 py-2 text-sm last:border-0">
       <dt className="text-mute">{k}</dt>
@@ -142,35 +147,35 @@ function BondBox(props: {
     <div className="mt-4 rounded-2xl border border-line/70 p-5" data-testid="bond-box">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs text-mute">Rating step {props.label}{props.bond.rank > 1 ? ` · option ${props.bond.rank}` : ""}</div>
+          <div className="text-xs text-mute">{t.ratingStep} {props.label === "BB and above" ? t.bbAbove : props.label}{props.bond.rank > 1 ? ` · ${t.option} ${props.bond.rank}` : ""}</div>
           <div className="mt-0.5 truncate text-[19px] font-semibold">{bond.issuer}</div>
           {paid && <div className="truncate text-sm text-mute">{bond.name}</div>}
         </div>
         <div className="text-right">
           <div className="text-2xl font-semibold tabular-nums">{pct(bond.ytm)}</div>
-          <div className="text-xs text-mute">yield</div>
+          <div className="text-xs text-mute">{t.yieldLower}</div>
         </div>
       </div>
       <dl className="mt-3">
         {row("ISIN", paid ? bond.isin : lock)}
-        {row("Rating", signedIn ? bond.rating ?? "NR" : lock)}
-        {row("Duration", signedIn ? `${bond.duration?.toFixed(1)} yrs` : lock)}
-        {row("Coupon", paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
-        {row("Maturity", paid ? bond.maturity ?? "—" : lock)}
-        {row("Country", signedIn ? bond.country ?? "—" : lock)}
+        {row(t.rating, signedIn ? bond.rating ?? "NR" : lock)}
+        {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
+        {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
+        {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}
+        {row(t.country, signedIn ? bond.country ?? "—" : lock)}
       </dl>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {props.canChange ? (
           <button onClick={props.onChange} className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0077ed]">
-            Change
+            {t.change}
           </button>
         ) : props.lockedMore ? (
-          <Link href="/signup" className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white">Sign up to see other bonds</Link>
+          <Link href="/signup" className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white">{t.signUpOthers}</Link>
         ) : (
-          <span className="text-sm text-mute">{props.isLast ? "No other bond at this rating." : ""}</span>
+          <span className="text-sm text-mute">{props.isLast ? t.noOther : ""}</span>
         )}
-        {props.onBack && <button onClick={props.onBack} className="text-sm text-accent">Back to the best</button>}
-        <span className="text-xs text-mute">Change shows the next bond at the same rating, with a lower yield.</span>
+        {props.onBack && <button onClick={props.onBack} className="text-sm text-accent">{t.backBest}</button>}
+        <span className="text-xs text-mute">{t.changeHint}</span>
       </div>
     </div>
   );

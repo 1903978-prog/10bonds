@@ -1,0 +1,110 @@
+import { createContext, useContext } from "react";
+
+// Words of the bond finder screen in each site language. Only text lives here: ranking, limits and data are shared.
+
+export type FinderLang = "en" | "it" | "fr" | "de";
+
+const en = {
+  h1: "Find the best bonds for your goals",
+  intro: "Choose how long you want to invest, the yield you are after and the lowest rating you accept. We show the 10 bonds that match best.",
+  mode: "Mode", single: "1 bond", portfolio: "Portfolio",
+  horizon: "Investment horizon", horizonHint: "Target duration", years: "years", year1: "1 year", years15: "15 years",
+  yieldLabel: "Target annual yield", yieldHint: "Yield to maturity", maxNote: "max (top-10 average)",
+  ratingLabel: "Worst rating accepted", ratingHint: "Credit risk", bbLabel: "BB (higher risk)", aaaLabel: "AAA (lowest risk)", bbAbove: "BB and above",
+  howPortfolio: "Bonds are ranked by how close their yield is to your target, with a small preference for stronger credit ratings.",
+  howSingle: "For each rating we show the highest-yield bond near your horizon. Change shows the next one at the same rating.",
+  info: "Results are for information only and are not investment advice.", gross: "Yields are gross and indicative.", asOf: "Yields as of",
+  sample: "Sample data. These bonds and yields are made up and are shown only to preview the design.",
+  found: "bonds found", avgYield: "average yield", avgRating: "average rating", avgDuration: "average duration",
+  none: "No bonds match this horizon and rating. Try a different duration or accept a lower rating.",
+  error: "Something went wrong.", signUp: "Sign up",
+  issuer: "Issuer", bond: "Bond", yield: "Yield", duration: "Duration", rating: "Rating", yrs: "yrs",
+  isinPlus: "ISIN with Plus", freeAccount: "Free account", detailsFree: "Details with a free account",
+  plusPitch: "Get the ISIN codes, coupons, maturities and shortlist averages with Plus.", seePlans: "See plans",
+  more: (n: number) => `${n} more bonds match your goals`, noCard: "Free, no card needed.", seeAll: "See all 10 with a free account",
+  bestByRating: "Best yield by rating", tapDot: "Tap a dot to see the bond", pickRating: "Pick a rating on the chart to see the best bond for it.",
+  noneSingle: "No bonds match this horizon. Try a different duration.", chartLabel: "Best yield for each rating", riskAxis: "Higher risk → lower risk",
+  withPlus: "with Plus", freeAccountLower: "free account", ratingStep: "Rating step", option: "option", yieldLower: "yield",
+  coupon: "Coupon", maturity: "Maturity", country: "Country", change: "Change", signUpOthers: "Sign up to see other bonds",
+  noOther: "No other bond at this rating.", backBest: "Back to the best", changeHint: "Change shows the next bond at the same rating, with a lower yield.",
+};
+export type FinderText = typeof en;
+
+const it: FinderText = {
+  h1: "Trova le obbligazioni giuste per i tuoi obiettivi",
+  intro: "Scegli per quanto tempo vuoi investire, il rendimento che cerchi e il rating minimo che accetti. Ti mostriamo le 10 obbligazioni più vicine.",
+  mode: "Modalità", single: "1 obbligazione", portfolio: "Portafoglio",
+  horizon: "Orizzonte di investimento", horizonHint: "Duration obiettivo", years: "anni", year1: "1 anno", years15: "15 anni",
+  yieldLabel: "Rendimento annuo obiettivo", yieldHint: "Rendimento a scadenza", maxNote: "max (media delle prime 10)",
+  ratingLabel: "Rating minimo accettato", ratingHint: "Rischio di credito", bbLabel: "BB (rischio più alto)", aaaLabel: "AAA (rischio più basso)", bbAbove: "BB e superiori",
+  howPortfolio: "Le obbligazioni sono ordinate per vicinanza del rendimento al tuo obiettivo, con una leggera preferenza per i rating migliori.",
+  howSingle: "Per ogni rating mostriamo l'obbligazione con il rendimento più alto vicino al tuo orizzonte. «Cambia» mostra la successiva con lo stesso rating.",
+  info: "Risultati solo a scopo informativo, non costituiscono consulenza finanziaria.", gross: "Rendimenti lordi e indicativi.", asOf: "Rendimenti al",
+  sample: "Dati di esempio. Queste obbligazioni e questi rendimenti sono inventati e servono solo a mostrare la grafica.",
+  found: "obbligazioni trovate", avgYield: "rendimento medio", avgRating: "rating medio", avgDuration: "duration media",
+  none: "Nessuna obbligazione per questo orizzonte e rating. Prova un'altra duration o accetta un rating più basso.",
+  error: "Qualcosa è andato storto.", signUp: "Registrati",
+  issuer: "Emittente", bond: "Obbligazione", yield: "Rendimento", duration: "Duration", rating: "Rating", yrs: "anni",
+  isinPlus: "ISIN con Plus", freeAccount: "Account gratuito", detailsFree: "Dettagli con un account gratuito",
+  plusPitch: "Con Plus vedi codici ISIN, cedole, scadenze e le medie della selezione.", seePlans: "Vedi i piani",
+  more: (n: number) => `Altre ${n} obbligazioni corrispondono ai tuoi obiettivi`, noCard: "Gratis, senza carta.", seeAll: "Vedi tutte e 10 con un account gratuito",
+  bestByRating: "Miglior rendimento per rating", tapDot: "Tocca un punto per vedere l'obbligazione", pickRating: "Scegli un rating sul grafico per vedere la migliore obbligazione.",
+  noneSingle: "Nessuna obbligazione per questo orizzonte. Prova un'altra duration.", chartLabel: "Miglior rendimento per ogni rating", riskAxis: "Rischio più alto → più basso",
+  withPlus: "con Plus", freeAccountLower: "account gratuito", ratingStep: "Rating", option: "opzione", yieldLower: "rendimento",
+  coupon: "Cedola", maturity: "Scadenza", country: "Paese", change: "Cambia", signUpOthers: "Registrati per vedere altre obbligazioni",
+  noOther: "Nessun'altra obbligazione con questo rating.", backBest: "Torna alla migliore", changeHint: "«Cambia» mostra l'obbligazione successiva con lo stesso rating e un rendimento più basso.",
+};
+
+const fr: FinderText = {
+  h1: "Trouvez les obligations adaptées à vos objectifs",
+  intro: "Choisissez la durée de votre placement, le rendement visé et la note minimale acceptée. Nous affichons les 10 obligations les plus proches.",
+  mode: "Mode", single: "1 obligation", portfolio: "Portefeuille",
+  horizon: "Horizon de placement", horizonHint: "Duration cible", years: "ans", year1: "1 an", years15: "15 ans",
+  yieldLabel: "Rendement annuel visé", yieldHint: "Rendement à l'échéance", maxNote: "max (moyenne du top 10)",
+  ratingLabel: "Note minimale acceptée", ratingHint: "Risque de crédit", bbLabel: "BB (risque plus élevé)", aaaLabel: "AAA (risque le plus faible)", bbAbove: "BB et plus",
+  howPortfolio: "Les obligations sont classées selon la proximité de leur rendement avec votre objectif, avec une légère préférence pour les meilleures notes.",
+  howSingle: "Pour chaque note, nous affichons l'obligation au rendement le plus élevé proche de votre horizon. « Changer » affiche la suivante à la même note.",
+  info: "Résultats fournis à titre d'information, sans valeur de conseil en investissement.", gross: "Rendements bruts et indicatifs.", asOf: "Rendements au",
+  sample: "Données d'exemple. Ces obligations et rendements sont fictifs et servent uniquement à montrer la présentation.",
+  found: "obligations trouvées", avgYield: "rendement moyen", avgRating: "note moyenne", avgDuration: "duration moyenne",
+  none: "Aucune obligation pour cet horizon et cette note. Essayez une autre duration ou une note plus basse.",
+  error: "Une erreur s'est produite.", signUp: "S'inscrire",
+  issuer: "Émetteur", bond: "Obligation", yield: "Rendement", duration: "Duration", rating: "Note", yrs: "ans",
+  isinPlus: "ISIN avec Plus", freeAccount: "Compte gratuit", detailsFree: "Détails avec un compte gratuit",
+  plusPitch: "Avec Plus : codes ISIN, coupons, échéances et moyennes de la sélection.", seePlans: "Voir les offres",
+  more: (n: number) => `${n} autres obligations correspondent à vos objectifs`, noCard: "Gratuit, sans carte.", seeAll: "Voir les 10 avec un compte gratuit",
+  bestByRating: "Meilleur rendement par note", tapDot: "Touchez un point pour voir l'obligation", pickRating: "Choisissez une note sur le graphique pour voir la meilleure obligation.",
+  noneSingle: "Aucune obligation pour cet horizon. Essayez une autre duration.", chartLabel: "Meilleur rendement pour chaque note", riskAxis: "Risque plus élevé → plus faible",
+  withPlus: "avec Plus", freeAccountLower: "compte gratuit", ratingStep: "Note", option: "option", yieldLower: "rendement",
+  coupon: "Coupon", maturity: "Échéance", country: "Pays", change: "Changer", signUpOthers: "Inscrivez-vous pour voir d'autres obligations",
+  noOther: "Aucune autre obligation à cette note.", backBest: "Retour à la meilleure", changeHint: "« Changer » affiche l'obligation suivante à la même note, avec un rendement plus bas.",
+};
+
+const de: FinderText = {
+  h1: "Finden Sie die passenden Anleihen für Ihre Ziele",
+  intro: "Wählen Sie Anlagedauer, Zielrendite und das niedrigste akzeptierte Rating. Wir zeigen die 10 Anleihen, die am besten passen.",
+  mode: "Modus", single: "1 Anleihe", portfolio: "Portfolio",
+  horizon: "Anlagehorizont", horizonHint: "Ziel-Duration", years: "Jahre", year1: "1 Jahr", years15: "15 Jahre",
+  yieldLabel: "Zielrendite pro Jahr", yieldHint: "Rendite bis Fälligkeit", maxNote: "max. (Durchschnitt der Top 10)",
+  ratingLabel: "Niedrigstes akzeptiertes Rating", ratingHint: "Kreditrisiko", bbLabel: "BB (höheres Risiko)", aaaLabel: "AAA (geringstes Risiko)", bbAbove: "BB und besser",
+  howPortfolio: "Die Anleihen sind danach sortiert, wie nah ihre Rendite an Ihrem Ziel liegt, mit leichtem Vorzug für bessere Ratings.",
+  howSingle: "Für jedes Rating zeigen wir die Anleihe mit der höchsten Rendite nahe Ihrem Horizont. „Wechseln“ zeigt die nächste mit demselben Rating.",
+  info: "Die Ergebnisse dienen nur der Information und sind keine Anlageberatung.", gross: "Renditen brutto und unverbindlich.", asOf: "Renditen vom",
+  sample: "Beispieldaten. Diese Anleihen und Renditen sind erfunden und zeigen nur das Design.",
+  found: "Anleihen gefunden", avgYield: "Durchschnittsrendite", avgRating: "Durchschnittsrating", avgDuration: "durchschnittliche Duration",
+  none: "Keine Anleihe passt zu diesem Horizont und Rating. Wählen Sie eine andere Duration oder ein niedrigeres Rating.",
+  error: "Etwas ist schiefgelaufen.", signUp: "Registrieren",
+  issuer: "Emittent", bond: "Anleihe", yield: "Rendite", duration: "Duration", rating: "Rating", yrs: "J.",
+  isinPlus: "ISIN mit Plus", freeAccount: "Kostenloses Konto", detailsFree: "Details mit kostenlosem Konto",
+  plusPitch: "Mit Plus: ISIN, Kupons, Fälligkeiten und Durchschnittswerte der Auswahl.", seePlans: "Tarife ansehen",
+  more: (n: number) => `${n} weitere Anleihen passen zu Ihren Zielen`, noCard: "Kostenlos, ohne Karte.", seeAll: "Alle 10 mit kostenlosem Konto ansehen",
+  bestByRating: "Beste Rendite je Rating", tapDot: "Tippen Sie auf einen Punkt, um die Anleihe zu sehen", pickRating: "Wählen Sie ein Rating im Diagramm, um die beste Anleihe zu sehen.",
+  noneSingle: "Keine Anleihe für diesen Horizont. Wählen Sie eine andere Duration.", chartLabel: "Beste Rendite je Rating", riskAxis: "Höheres Risiko → geringeres Risiko",
+  withPlus: "mit Plus", freeAccountLower: "kostenloses Konto", ratingStep: "Rating", option: "Option", yieldLower: "Rendite",
+  coupon: "Kupon", maturity: "Fälligkeit", country: "Land", change: "Wechseln", signUpOthers: "Registrieren, um weitere Anleihen zu sehen",
+  noOther: "Keine weitere Anleihe mit diesem Rating.", backBest: "Zurück zur besten", changeHint: "„Wechseln“ zeigt die nächste Anleihe mit demselben Rating und niedrigerer Rendite.",
+};
+
+export const FINDER_TEXT: Record<FinderLang, FinderText> = { en, it, fr, de };
+export const FinderLangContext = createContext<FinderLang>("en");
+export const useFinderText = () => FINDER_TEXT[useContext(FinderLangContext)];

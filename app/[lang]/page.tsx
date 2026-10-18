@@ -47,7 +47,7 @@ export default async function LocaleHome({ params }: Props) {
           {h.points.map((p) => <li key={p}>✓ {p}</li>)}
         </ul>
       </section>
-      <Finder />
+      <Finder lang={l} heading={false} />
       {gov && shown(gov, source) && (
         <section className="mx-auto max-w-3xl">
           <div className="mb-3 flex items-baseline justify-between gap-3">

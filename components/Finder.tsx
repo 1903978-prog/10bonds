@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LIMITS, riskLevel } from "@/lib/limits";
 import type { ResultsPayload } from "@/lib/tiers";
+import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
 import WhereToTrade from "./brokers/WhereToTrade";
@@ -16,9 +17,13 @@ type Response = ResultsPayload & {
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
-const yrs = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(1)} yrs`);
+const yrs = (n: number | null | undefined, unit = "yrs") => (n === null || n === undefined ? "—" : `${n.toFixed(1)} ${unit}`);
 
-export default function Finder() {
+/** The bond finder. `lang` only changes the words; `heading` false renders the title as h2 where the page has its own h1. */
+export default function Finder({ lang = "en", heading = true }: { lang?: FinderLang; heading?: boolean }) {
+  const t = FINDER_TEXT[lang];
+  const errText = t.error;
+  const Title = heading ? "h1" : "h2";
   const [duration, setDuration] = useState<number>(LIMITS.duration.initial);
   const [ytm, setYtm] = useState<number>(LIMITS.ytm.initial);
   const [data, setData] = useState<Response | null>(null);
@@ -68,7 +73,7 @@ export default function Finder() {
         if (preview.current) qs.set("preview", preview.current);
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
-        if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+        if (!res.ok) throw new Error(body.error ?? errText);
         setData(body);
         setError(null);
         track("search", { duration, ytm, risk, tier: body.tier, results: body.rows.length + body.lockedCount });
@@ -88,21 +93,22 @@ export default function Finder() {
   const paid = tier === "plus" || tier === "premium";
   const signedIn = tier !== "visitor";
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
-  const lockTo = signedIn ? { href: "/pricing", label: "Plus" } : { href: "/signup", label: "Sign up" };
+  const lockTo = signedIn ? { href: "/pricing", label: "Plus" } : { href: "/signup", label: t.signUp };
 
   return (
+    <FinderLangContext.Provider value={lang}>
     <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-6">
       {/* Inputs */}
       <section className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8 lg:sticky lg:top-20 lg:self-start">
-        <h1 className="text-[32px] font-semibold leading-[1.1] tracking-tight sm:text-[40px]">
-          Find the best bonds for your goals
-        </h1>
+        <Title className="text-[32px] font-semibold leading-[1.1] tracking-tight sm:text-[40px]">
+          {t.h1}
+        </Title>
         <p className="mt-3 text-[15px] leading-relaxed text-mute sm:text-base">
-          Choose how long you want to invest, the yield you are after and the lowest rating you accept. We show the 10 bonds that match best.
+          {t.intro}
         </p>
 
-        <div role="tablist" aria-label="Mode" className="mt-6 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
-          {([["single", "1 bond"], ["portfolio", "Portfolio"]] as const).map(([m, label]) => (
+        <div role="tablist" aria-label={t.mode} className="mt-6 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
+          {([["single", t.single], ["portfolio", t.portfolio]] as const).map(([m, label]) => (
             <button
               key={m}
               role="tab"
@@ -116,49 +122,49 @@ export default function Finder() {
         </div>
 
         <Slider
-          label="Investment horizon"
-          hint="Target duration"
+          label={t.horizon}
+          hint={t.horizonHint}
           value={duration}
-          display={`${duration % 1 === 0 ? duration : duration.toFixed(1)} years`}
+          display={`${duration % 1 === 0 ? duration : duration.toFixed(1)} ${t.years}`}
           min={LIMITS.duration.min}
           max={LIMITS.duration.max}
           step={LIMITS.duration.step}
-          minLabel="1 year"
-          maxLabel="15 years"
+          minLabel={t.year1}
+          maxLabel={t.years15}
           onChange={changeDuration}
         />
         {mode === "portfolio" && (<>
         <Slider
-          label="Target annual yield"
-          hint="Yield to maturity"
+          label={t.yieldLabel}
+          hint={t.yieldHint}
           value={ytm}
           display={`${ytm.toFixed(2)}%`}
           min={LIMITS.ytm.min}
           max={ytmMax}
           step={LIMITS.ytm.step}
           minLabel="1.0%"
-          maxLabel={`${ytmMax.toFixed(2)}% max (top-10 average)`}
+          maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
           onChange={setYtm}
         />
         {/* AAA always on the right: the slider position is 11 - level (level 1 = AAA). */}
         <Slider
-          label="Worst rating accepted"
-          hint="Credit risk"
+          label={t.ratingLabel}
+          hint={t.ratingHint}
           value={LIMITS.risk.max + LIMITS.risk.min - risk}
-          display={riskLevel(risk).label}
+          display={riskLevel(risk).label === "BB and above" ? t.bbAbove : riskLevel(risk).label}
           min={LIMITS.risk.min}
           max={LIMITS.risk.max}
           step={LIMITS.risk.step}
-          minLabel="BB (higher risk)"
-          maxLabel="AAA (lowest risk)"
+          minLabel={t.bbLabel}
+          maxLabel={t.aaaLabel}
           onChange={(pos) => changeRisk(LIMITS.risk.max + LIMITS.risk.min - pos)}
         />
         </>)}
 
         <p className="mt-8 text-xs leading-relaxed text-mute">
           {mode === "portfolio"
-            ? "Bonds are ranked by how close their yield is to your target, with a small preference for stronger credit ratings."
-            : "For each rating we show the highest-yield bond near your horizon. Change shows the next one at the same rating."}
+            ? t.howPortfolio
+            : t.howSingle}
         </p>
       </section>
 
@@ -168,22 +174,22 @@ export default function Finder() {
           <SingleBond duration={duration} preview={preview.current} />
           <p className="mt-5 flex gap-2 rounded-2xl bg-canvas px-4 py-3 text-xs leading-relaxed text-mute">
             <span aria-hidden>ⓘ</span>
-            <span>Results are for information only and are not investment advice. Yields are gross and indicative.</span>
+            <span>{t.info} {t.gross}</span>
           </p>
         </section>
       ) : (
       <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
         {data?.source === "sample" && (
           <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Sample data. These bonds and yields are made up and are shown only to preview the design.
+            {t.sample}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label="bonds found" />
-          <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label="average yield" lock={lockTo} />
-          <Stat value={paid ? data?.summary?.avgRating ?? "—" : null} label="average rating" lock={lockTo} />
-          <Stat value={paid ? yrs(data?.summary?.avgDuration) : null} label="average duration" lock={lockTo} />
+          <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
+          <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
+          <Stat value={paid ? data?.summary?.avgRating ?? "—" : null} label={t.avgRating} lock={lockTo} />
+          <Stat value={paid ? yrs(data?.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
         </div>
 
         <div className={`mt-5 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
@@ -191,7 +197,7 @@ export default function Finder() {
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>
           ) : data && data.rows.length === 0 ? (
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">
-              No bonds match this horizon and rating. Try a different duration or accept a lower rating.
+              {t.none}
             </p>
           ) : (
             <Results data={data} paid={paid} signedIn={signedIn} />
@@ -201,13 +207,14 @@ export default function Finder() {
         <p className="mt-5 flex gap-2 rounded-2xl bg-canvas px-4 py-3 text-xs leading-relaxed text-mute">
           <span aria-hidden>ⓘ</span>
           <span>
-            Results are for information only and are not investment advice.
-            {data?.asOf ? ` Yields as of ${data.asOf}.` : ""} Yields are gross and indicative.
+            {t.info}
+            {data?.asOf ? ` ${t.asOf} ${data.asOf}.` : ""} {t.gross}
           </span>
         </p>
       </section>
       )}
     </div>
+    </FinderLangContext.Provider>
   );
 }
 
@@ -265,6 +272,7 @@ function Stat({ value, label, lock }: { value: string | null; label: string; loc
 }
 
 function Results({ data, paid, signedIn }: { data: Response | null; paid: boolean; signedIn: boolean }) {
+  const t = useFinderText();
   const rows = data?.rows ?? [];
   const locked = data?.lockedCount ?? 0;
   return (
@@ -274,11 +282,11 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
         <thead>
           <tr className="border-b border-line text-left text-xs text-mute">
             <th className="py-2 pl-2 font-medium">#</th>
-            <th className="py-2 font-medium">Issuer</th>
-            <th className="py-2 font-medium">Bond</th>
-            <th className="py-2 text-right font-medium">Yield</th>
-            <th className="py-2 text-right font-medium">Duration</th>
-            <th className="py-2 pr-2 text-right font-medium">Rating</th>
+            <th className="py-2 font-medium">{t.issuer}</th>
+            <th className="py-2 font-medium">{t.bond}</th>
+            <th className="py-2 text-right font-medium">{t.yield}</th>
+            <th className="py-2 text-right font-medium">{t.duration}</th>
+            <th className="py-2 pr-2 text-right font-medium">{t.rating}</th>
           </tr>
         </thead>
         <tbody>
@@ -293,9 +301,9 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
                     <div className="text-xs text-mute">{r.isin}</div>
                   </>
                 ) : signedIn ? (
-                  <Link href="/pricing" className="inline-flex items-center gap-1 text-xs text-accent"><Lock /> ISIN with Plus</Link>
+                  <Link href="/pricing" className="inline-flex items-center gap-1 text-xs text-accent"><Lock /> {t.isinPlus}</Link>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> Free account</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
               <td className="py-3 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
@@ -315,10 +323,10 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
               <div className="truncate font-medium">{r.issuer}</div>
               <div className="truncate text-xs text-mute">
                 {paid
-                  ? `${r.isin} · ${r.duration?.toFixed(1)} yrs · ${r.rating ?? "—"}`
+                  ? `${r.isin} · ${r.duration?.toFixed(1)} ${t.yrs} · ${r.rating ?? "—"}`
                   : signedIn
-                    ? `${r.duration?.toFixed(1)} yrs · ${r.rating ?? "—"} · ISIN with Plus`
-                    : "Details with a free account"}
+                    ? `${r.duration?.toFixed(1)} ${t.yrs} · ${r.rating ?? "—"} · ${t.isinPlus}`
+                    : t.detailsFree}
               </div>
             </div>
             <span className="font-semibold tabular-nums">{pct(r.ytm)}</span>
@@ -333,8 +341,8 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
           href="/pricing"
           className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-canvas px-4 py-3 text-sm transition hover:bg-line/60"
         >
-          <span>Get the ISIN codes, coupons, maturities and shortlist averages with Plus.</span>
-          <span className="shrink-0 font-medium text-accent">See plans</span>
+          <span>{t.plusPitch}</span>
+          <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
         </Link>
       )}
     </div>
@@ -342,6 +350,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
 }
 
 function LockedRows({ count }: { count: number }) {
+  const t = useFinderText();
   return (
     <div className="relative mt-2">
       <div aria-hidden className="select-none space-y-2 blur-[6px]">
@@ -354,13 +363,13 @@ function LockedRows({ count }: { count: number }) {
         ))}
       </div>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
-        <p className="text-[17px] font-semibold">{count} more bonds match your goals</p>
-        <p className="-mt-1 text-sm text-mute">Free, no card needed.</p>
+        <p className="text-[17px] font-semibold">{t.more(count)}</p>
+        <p className="-mt-1 text-sm text-mute">{t.noCard}</p>
         <Link
           href="/signup"
           className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#0077ed]"
         >
-          See all 10 with a free account
+          {t.seeAll}
         </Link>
       </div>
     </div>
