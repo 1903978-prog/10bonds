@@ -36,22 +36,23 @@ export async function loadBonds(): Promise<BondSource> {
     from public_bonds
     where gross_ytm is not null and modified_duration is not null
       and (maturity is null or maturity > current_date)
+      and currency = 'EUR'
   `;
   const bonds: PublicBond[] = rows.map((r) => ({
     isin: r.isin,
     name: r.name,
-    issuer: r.issuer,
+    issuer: cleanIssuer(r.issuer),
     country: r.country,
     currency: r.currency,
     coupon: num(r.coupon),
-    maturity: r.maturity ? String(r.maturity).slice(0, 10) : null,
+    maturity: isoDay(r.maturity),
     ratingSp: r.rating_sp,
     ratingMoodys: r.rating_moodys,
     ratingFitch: r.rating_fitch,
     ratingResolved: r.rating_resolved,
     grossYtm: num(r.gross_ytm),
     modifiedDuration: num(r.modified_duration),
-    ytmAsOf: r.ytm_as_of ? String(r.ytm_as_of) : null,
+    ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
   }));
   cache = { at: Date.now(), bonds, source: "live" };
   return withAsOf(bonds, "live");
@@ -66,4 +67,20 @@ function num(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function isoDay(v: unknown): string | null {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(String(v));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
+// Some issuer names in the copy still carry bond terms ("DekaBank ... 3.625% 26/29"); show the issuer only.
+export function cleanIssuer(name: string | null): string | null {
+  if (!name) return name;
+  const cleaned = name
+    .replace(/\s+\d+(?:[.,]\d+)?\s*%.*$/, "")
+    .replace(/,\s*[A-ZÀ-Ü][\p{L} .-]*$/u, (m) => (/\b(S\.?A|AG|SE|N\.?V|B\.?V|plc|S\.p\.A)\b/i.test(m) ? m : ""))
+    .trim();
+  return cleaned || name;
 }
