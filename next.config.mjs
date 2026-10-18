@@ -33,6 +33,9 @@ const securityHeaders = [
 const nextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // Title, description, canonical and hreflang always in the page <head> for every visitor and crawler
+  // (no streamed metadata), so every search engine and the SEO check read them without running scripts.
+  htmlLimitedBots: /.*/,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

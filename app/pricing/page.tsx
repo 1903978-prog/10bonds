@@ -4,7 +4,7 @@ import { ManageButton, PlanButton } from "@/components/PlanButton";
 import { currentUser } from "@/lib/currentUser";
 import { stripeConfigured } from "@/lib/stripe";
 
-export const metadata: Metadata = { title: "Pricing · 10BONDS" };
+export const metadata: Metadata = { title: "Pricing · 10BONDS", alternates: { canonical: "/pricing" } };
 export const dynamic = "force-dynamic";
 
 const PLANS = [

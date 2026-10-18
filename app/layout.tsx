@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
+import LangSwitch from "@/components/LangSwitch";
 import ProNavLink from "@/components/ProNavLink";
 import UsageStats, { UsageStatsSetting } from "@/components/UsageStats";
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight">10BONDS</Link>
             <div className="ml-3 flex items-center gap-3 text-sm text-mute sm:gap-5">
+              <LangSwitch />
               <ProNavLink />
               <Link href="/pricing" className="hover:text-ink">Pricing</Link>
               <Link href="/disclaimer" className="hidden hover:text-ink sm:inline">Disclaimer</Link>
@@ -49,6 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </p>
           <p className="mt-2">
             © {new Date().getFullYear()} 10BONDS · <Link href="/terms" className="underline hover:text-ink">Terms</Link> · <Link href="/pro" className="underline hover:text-ink">For wealth managers</Link> · <UsageStatsSetting />
+          </p>
+          <p className="mt-2">
+            <Link href="/it" hrefLang="it-IT" className="underline hover:text-ink">Italiano</Link> · <Link href="/fr" hrefLang="fr-FR" className="underline hover:text-ink">Français</Link> · <Link href="/de" hrefLang="de-DE" className="underline hover:text-ink">Deutsch</Link>
           </p>
         </footer>
         <UsageStats />
