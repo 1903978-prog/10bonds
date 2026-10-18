@@ -106,3 +106,27 @@ function isoDay(v: unknown): string | null {
 
 import { cleanIssuer } from "./issuer";
 export { cleanIssuer };
+
+/** Counts over the whole copy (not only what the site shows), for the admin page. The copy holds yields, not prices. */
+export async function bondDataStats(): Promise<{
+  total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number;
+} | null> {
+  const client = db();
+  if (!client) return null;
+  const [r] = await client`
+    select count(*) total,
+           count(gross_ytm) with_ytm,
+           count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null) with_rating,
+           count(*) filter (where gross_ytm is not null and ytm_as_of > now() - interval '24 hours') ytm_24h,
+           max(ytm_as_of) newest
+    from public_bonds`;
+  const shown = await loadBonds().then((d) => d.bonds.length).catch(() => 0);
+  return {
+    total: Number(r.total),
+    withYtm: Number(r.with_ytm),
+    withRating: Number(r.with_rating),
+    ytmLast24h: Number(r.ytm_24h),
+    newestYtm: r.newest ? new Date(r.newest).toISOString() : null,
+    shownOnSite: shown,
+  };
+}

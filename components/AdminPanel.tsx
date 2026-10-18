@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminData from "./AdminData";
 
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
 type Stats = { users: number; verified: number; onTrial: number; newThisWeek: number; events30d: { kind: string; n: number }[]; topPages30d: { path: string; n: number }[] };
@@ -66,6 +67,8 @@ export default function AdminPanel() {
           ))}
         </div>
       )}
+
+      <AdminData />
 
       <section className={card}>
         <h2 className="text-lg font-semibold">Free trial codes</h2>

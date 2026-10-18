@@ -82,6 +82,21 @@ async function setup(sql: ReturnType<typeof postgres>) {
       primary key (duration, level, rank)
     )`;
   await sql`create index if not exists events_kind_at_idx on app.events (kind, at)`;
+  // "Refresh prices" requests from the admin page. The main app (which owns the bond prices) reads this table,
+  // runs its own refresh and copy, then marks the row done. The public site never calls the main app.
+  await sql`
+    create table if not exists app.refresh_requests (
+      id bigserial primary key,
+      requested_at timestamptz not null default now(),
+      requested_by text,
+      status text not null default 'pending' check (status in ('pending','running','done','failed')),
+      picked_up_at timestamptz,
+      finished_at timestamptz,
+      note text
+    )`;
+  // The main app's export login must be able to read and update this one table (nothing else in schema app).
+  await sql`grant usage on schema app to public`.catch(() => {});
+  await sql`grant select, update on app.refresh_requests to public`.catch(() => {});
   // Keep 13 months of usage history.
   await sql`delete from app.events where at < now() - interval '13 months'`;
 }
@@ -369,4 +384,30 @@ export async function applySubscription(s: {
       and (${s.plan} <> 'free' or stripe_subscription_id is null or stripe_subscription_id = ${s.subscriptionId})
     returning id`;
   return rows[0] ? Number(rows[0].id) : null;
+}
+
+export type RefreshRequest = { id: number; requestedAt: string; requestedBy: string | null; status: string; pickedUpAt: string | null; finishedAt: string | null; note: string | null };
+const toReq = (r: Record<string, unknown>): RefreshRequest => ({
+  id: Number(r.id),
+  requestedAt: new Date(r.requested_at as string).toISOString(),
+  requestedBy: (r.requested_by as string) ?? null,
+  status: r.status as string,
+  pickedUpAt: r.picked_up_at ? new Date(r.picked_up_at as string).toISOString() : null,
+  finishedAt: r.finished_at ? new Date(r.finished_at as string).toISOString() : null,
+  note: (r.note as string) ?? null,
+});
+
+export async function listRefreshRequests(limit = 5): Promise<RefreshRequest[]> {
+  const sql = await accountsSql();
+  const rows = await sql`select * from app.refresh_requests order by id desc limit ${limit}`;
+  return rows.map(toReq);
+}
+
+/** One open request at a time: a second click while one is pending or running returns the open one. */
+export async function requestRefresh(by: string): Promise<{ request: RefreshRequest; created: boolean }> {
+  const sql = await accountsSql();
+  const [open] = await sql`select * from app.refresh_requests where status in ('pending','running') order by id desc limit 1`;
+  if (open) return { request: toReq(open), created: false };
+  const [row] = await sql`insert into app.refresh_requests (requested_by) values (${by}) returning *`;
+  return { request: toReq(row), created: true };
 }
