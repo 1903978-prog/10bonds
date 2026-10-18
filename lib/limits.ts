@@ -1,6 +1,6 @@
 export const LIMITS = {
   duration: { min: 1, max: 15, step: 0.5, initial: 5 },
-  ytm: { min: 1, max: 12, step: 0.1, initial: 4 },
+  ytm: { min: 1, max: 12, step: 0.01, initial: 4 },
   risk: { min: 1, max: 10, step: 1, initial: 10 },
 } as const;
 

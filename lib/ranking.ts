@@ -100,7 +100,7 @@ function topIssuersBy<T extends { key: string }>(sorted: T[], count: number): T[
 export function capOf(yields: number[]): number {
   const avg = yields.reduce((s, x) => s + x, 0) / yields.length;
   const down = Math.floor(avg / LIMITS.ytm.step + 1e-9) * LIMITS.ytm.step;
-  return Math.round(Math.min(LIMITS.ytm.max, Math.max(LIMITS.ytm.min + LIMITS.ytm.step, down)) * 10) / 10;
+  return Math.round(Math.min(LIMITS.ytm.max, Math.max(LIMITS.ytm.min + LIMITS.ytm.step, down)) * 100) / 100;
 }
 
 /** Bonds rated equal to or better than the slider level. Unrated bonds only at the last level. */

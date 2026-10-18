@@ -110,15 +110,15 @@ describe("one bond per issuer", () => {
 });
 
 describe("ytmCaps", () => {
-  it("follows the yields near each duration, rounded down to the slider step", () => {
+  it("follows the yields near each duration, rounded down to 0.01", () => {
     const bonds = [bond("S", 3.04, 2, "A"), bond("L", 5.51, 10, "A")];
     const caps = ytmCaps(bonds, { min: 2, max: 10, step: 4 }, { min: 1, max: 12, step: 0.1 });
-    expect(caps).toEqual({ "2": 3.0, "6": null, "10": 5.5 });
+    expect(caps).toEqual({ "2": 3.04, "6": null, "10": 5.51 });
   });
   it("is the average of the 10 best issuers, not the single best bond (Livio's 5.8% vs 4.72% case)", () => {
     const bonds = [{ ...bond("SA", 5.76, 5, "A-"), issuer: "Saudi" }, { ...bond("SA2", 5.9, 5.2, "A-"), issuer: "Saudi" }, ...Array.from({ length: 11 }, (_, i) => bond(`X${i}`, 4.6, 5, "A-"))];
     const caps = ytmCaps(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
-    expect(caps["5"]).toBe(4.7); // (5.9 + 9 x 4.6) / 10 = 4.73, rounded down
+    expect(caps["5"]).toBe(4.73); // (5.9 + 9 x 4.6) / 10 = 4.73
   });
   it("never goes above the slider's own maximum", () => {
     const caps = ytmCaps([bond("J", 40, 5, null)], { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
@@ -150,7 +150,7 @@ describe("risk slider", () => {
     const caps = ytmCapsByRisk(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
     expect(caps["1"]["5"]).toBe(3.0);
     expect(caps["9"]["5"]).toBe(3.5);
-    expect(caps["10"]["5"]).toBe(3.7); // (3 + 3.5 + 4 + 4.6) / 4, unrated left out
+    expect(caps["10"]["5"]).toBe(3.77); // (3 + 3.5 + 4 + 4.6) / 4, unrated left out
   });
 });
 
@@ -164,7 +164,7 @@ describe("the list's average matches the target and the maximum", () => {
     const { results } = rankBonds(many, 5, cap);
     const top10 = [...many].sort((a, b) => b.grossYtm! - a.grossYtm!).slice(0, 10).map((b) => b.isin).sort();
     expect(results.map((r) => r.isin).sort()).toEqual(top10);
-    expect(Math.abs(mean(results) - cap)).toBeLessThan(0.1);
+    expect(Math.abs(mean(results) - cap)).toBeLessThan(0.011);
   });
   it("for any lower target the average is within 0.05 of it", () => {
     // Reachable targets: from the 10 lowest yields (avg 2.9) up to the maximum.

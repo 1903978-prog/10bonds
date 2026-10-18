@@ -131,12 +131,12 @@ export default function Finder() {
           label="Target annual yield"
           hint="Yield to maturity"
           value={ytm}
-          display={`${ytm.toFixed(1)}%`}
+          display={`${ytm.toFixed(2)}%`}
           min={LIMITS.ytm.min}
           max={ytmMax}
           step={LIMITS.ytm.step}
           minLabel="1.0%"
-          maxLabel={`${ytmMax.toFixed(1)}% max (top-10 average)`}
+          maxLabel={`${ytmMax.toFixed(2)}% max (top-10 average)`}
           onChange={setYtm}
         />
         {/* AAA always on the right: the slider position is 11 - level (level 1 = AAA). */}
@@ -314,9 +314,9 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
               <div className="truncate font-medium">{r.issuer}</div>
               <div className="truncate text-xs text-mute">
                 {paid
-                  ? `${r.isin} · ${r.duration?.toFixed(1)} yrs · ${r.rating ?? "NR"}`
+                  ? `${r.isin} · ${r.duration?.toFixed(1)} yrs · ${r.rating ?? "—"}`
                   : signedIn
-                    ? `${r.duration?.toFixed(1)} yrs · ${r.rating ?? "NR"} · ISIN with Plus`
+                    ? `${r.duration?.toFixed(1)} yrs · ${r.rating ?? "—"} · ISIN with Plus`
                     : "Details with a free account"}
               </div>
             </div>

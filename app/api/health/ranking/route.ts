@@ -30,16 +30,16 @@ export async function GET() {
         for (const target of [cap, cap - 0.3, cap - 0.8]) {
           if (target < LIMITS.ytm.min) continue;
           if (target !== cap && target < floor + 0.05) continue;
-          const { results } = rankBonds(data.bonds, d, Math.round(target * 10) / 10, undefined, risk);
+          const { results } = rankBonds(data.bonds, d, Math.round(target * 100) / 100, undefined, risk);
           if (!results.length) continue;
           const avg = results.reduce((s, r) => s + r.grossYtm!, 0) / results.length;
           const gap = Math.abs(avg - target);
           checked++;
-          // At the maximum the average may sit up to one slider step above it (the maximum is rounded down).
-          const limit = target === cap ? 0.1 : 0.05;
+          // At the maximum the list is the top 10 and the maximum is their average rounded down to 0.01.
+          const limit = target === cap ? 0.011 : 0.05;
           if (target === cap) atMaxGapWorst = Math.max(atMaxGapWorst, gap);
           else belowGapWorst = Math.max(belowGapWorst, gap);
-          if (gap > limit && failures.length < 20) failures.push({ duration: d, risk, target: Math.round(target * 10) / 10, average: Math.round(avg * 100) / 100 });
+          if (gap > limit && failures.length < 20) failures.push({ duration: d, risk, target: Math.round(target * 100) / 100, average: Math.round(avg * 100) / 100 });
         }
       }
     }
