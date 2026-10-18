@@ -51,7 +51,11 @@ export default function Finder() {
     };
   }, [duration, ytm]);
 
-  const paid = data?.tier !== undefined && data.tier !== "free";
+  const tier = data?.tier ?? "visitor";
+  const paid = tier === "plus" || tier === "premium";
+  const signedIn = tier !== "visitor";
+  // Visitors are asked to open a free account first; upgrade prompts come only after that.
+  const lockTo = signedIn ? { href: "/pricing", label: "Plus" } : { href: "/signup", label: "Sign up" };
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-6">
@@ -104,9 +108,9 @@ export default function Finder() {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label="bonds found" />
-          <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label="average yield" />
-          <Stat value={paid ? data?.summary?.avgRating ?? "—" : null} label="average rating" />
-          <Stat value={paid ? yrs(data?.summary?.avgDuration) : null} label="average duration" />
+          <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label="average yield" lock={lockTo} />
+          <Stat value={paid ? data?.summary?.avgRating ?? "—" : null} label="average rating" lock={lockTo} />
+          <Stat value={paid ? yrs(data?.summary?.avgDuration) : null} label="average duration" lock={lockTo} />
         </div>
 
         <div className={`mt-5 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
@@ -117,7 +121,7 @@ export default function Finder() {
               No bonds match this horizon. Try a different duration.
             </p>
           ) : (
-            <Results data={data} paid={paid} />
+            <Results data={data} paid={paid} signedIn={signedIn} />
           )}
         </div>
 
@@ -171,12 +175,12 @@ function Slider(props: {
   );
 }
 
-function Stat({ value, label }: { value: string | null; label: string }) {
+function Stat({ value, label, lock }: { value: string | null; label: string; lock?: { href: string; label: string } }) {
   return (
     <div className="rounded-2xl border border-line/70 px-4 py-3">
       {value === null ? (
-        <Link href="/pricing" className="flex items-center gap-1.5 text-[15px] font-semibold text-accent">
-          <Lock /> Plus
+        <Link href={lock?.href ?? "/signup"} className="flex items-center gap-1.5 text-[15px] font-semibold text-accent">
+          <Lock /> {lock?.label}
         </Link>
       ) : (
         <div className="text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
@@ -186,7 +190,7 @@ function Stat({ value, label }: { value: string | null; label: string }) {
   );
 }
 
-function Results({ data, paid }: { data: Response | null; paid: boolean }) {
+function Results({ data, paid, signedIn }: { data: Response | null; paid: boolean; signedIn: boolean }) {
   const rows = data?.rows ?? [];
   const locked = data?.lockedCount ?? 0;
   return (
@@ -214,13 +218,15 @@ function Results({ data, paid }: { data: Response | null; paid: boolean }) {
                     <div>{r.name}</div>
                     <div className="text-xs text-mute">{r.isin}</div>
                   </>
+                ) : signedIn ? (
+                  <Link href="/pricing" className="inline-flex items-center gap-1 text-xs text-accent"><Lock /> ISIN with Plus</Link>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> ISIN with Plus</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> Free account</span>
                 )}
               </td>
               <td className="py-3 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
-              <td className="py-3 text-right tabular-nums">{paid ? r.duration?.toFixed(1) : <Dim />}</td>
-              <td className="py-3 pr-2 text-right">{paid ? <RatingPill rating={r.rating ?? null} /> : <Dim />}</td>
+              <td className="py-3 text-right tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
+              <td className="py-3 pr-2 text-right">{signedIn ? <RatingPill rating={r.rating ?? null} /> : <Dim />}</td>
             </tr>
           ))}
         </tbody>
@@ -234,7 +240,11 @@ function Results({ data, paid }: { data: Response | null; paid: boolean }) {
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.issuer}</div>
               <div className="truncate text-xs text-mute">
-                {paid ? `${r.isin} · ${r.duration?.toFixed(1)} yrs · ${r.rating ?? "NR"}` : "ISIN and details with Plus"}
+                {paid
+                  ? `${r.isin} · ${r.duration?.toFixed(1)} yrs · ${r.rating ?? "NR"}`
+                  : signedIn
+                    ? `${r.duration?.toFixed(1)} yrs · ${r.rating ?? "NR"} · ISIN with Plus`
+                    : "Details with a free account"}
               </div>
             </div>
             <span className="font-semibold tabular-nums">{pct(r.ytm)}</span>
@@ -243,6 +253,15 @@ function Results({ data, paid }: { data: Response | null; paid: boolean }) {
       </ul>
 
       {locked > 0 && <LockedRows count={locked} />}
+      {signedIn && !paid && rows.length > 0 && (
+        <Link
+          href="/pricing"
+          className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-canvas px-4 py-3 text-sm transition hover:bg-line/60"
+        >
+          <span>Get the ISIN codes, coupons, maturities and shortlist averages with Plus.</span>
+          <span className="shrink-0 font-medium text-accent">See plans</span>
+        </Link>
+      )}
     </div>
   );
 }
@@ -261,11 +280,12 @@ function LockedRows({ count }: { count: number }) {
       </div>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
         <p className="text-[17px] font-semibold">{count} more bonds match your goals</p>
+        <p className="-mt-1 text-sm text-mute">Free, no card needed.</p>
         <Link
-          href="/pricing"
+          href="/signup"
           className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#0077ed]"
         >
-          Unlock the full top 10
+          See all 10 with a free account
         </Link>
       </div>
     </div>

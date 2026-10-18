@@ -4,6 +4,7 @@ import { rankBonds } from "@/lib/ranking";
 import { shapeForTier } from "@/lib/tiers";
 import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
+import { currentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +26,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
 
-  // Until accounts exist everyone is on Free. The paid view can be previewed on sample data only.
-  const previewPlus = url.searchParams.get("preview") === "plus" && data.source === "sample";
-  const tier: Tier = previewPlus ? "plus" : "free";
+  // The tier comes from the signed-in account (server side). Other views can be previewed on sample data only.
+  const user = await currentUser();
+  let tier: Tier = user ? user.plan : "visitor";
+  const preview = url.searchParams.get("preview");
+  if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
 
   const { results, band } = rankBonds(data.bonds, duration, ytm);
   return NextResponse.json(

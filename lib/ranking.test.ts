@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { rankBonds, averages, NOTCH_PENALTY } from "./ranking";
-import { shapeForTier, FREE_VISIBLE } from "./tiers";
+import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import type { PublicBond } from "./types";
@@ -58,12 +58,21 @@ describe("rankBonds", () => {
 describe("shapeForTier", () => {
   const ranked = rankBonds(SAMPLE_BONDS, 5, 4).results;
 
-  it("free users get 3 rows with issuer and yield only", () => {
-    const p = shapeForTier(ranked, "free");
-    expect(p.rows).toHaveLength(FREE_VISIBLE);
+  it("visitors without an account get 3 rows with issuer and yield only", () => {
+    const p = shapeForTier(ranked, "visitor");
+    expect(p.rows).toHaveLength(VISITOR_VISIBLE);
     expect(p.lockedCount).toBe(7);
     expect(p.summary).toBeNull();
     for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["issuer", "rank", "ytm"]);
+    expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
+  });
+
+  it("free accounts get all 10 rows, never an ISIN, bond name, coupon or maturity", () => {
+    const p = shapeForTier(ranked, "free");
+    expect(p.rows).toHaveLength(10);
+    expect(p.lockedCount).toBe(0);
+    expect(p.summary).toBeNull();
+    for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["country", "duration", "issuer", "rank", "rating", "ytm"]);
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
   });
 

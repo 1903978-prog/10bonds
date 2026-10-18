@@ -1,27 +1,33 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { currentUser } from "@/lib/currentUser";
 
 export const metadata: Metadata = { title: "Pricing · 10BONDS" };
+export const dynamic = "force-dynamic";
 
 const PLANS = [
   {
-    name: "Free",
+    key: "free",
+    name: "Free account",
     price: "€0",
     period: "",
-    tagline: "See how simple it is.",
-    features: ["Two-slider search", "Top 3 bonds", "Issuer and yield"],
-    cta: "Current plan",
+    tagline: "Sign up with your email.",
+    features: ["Two-slider search", "Full top 10 bonds", "Issuer, yield, rating, duration", "No ISIN codes"],
+    cta: "Create free account",
     highlight: false,
   },
   {
+    key: "plus",
     name: "Plus",
     price: "€9",
     period: "/month",
     tagline: "The full shortlist.",
-    features: ["Full top 10 bonds", "ISIN codes", "Rating, duration, maturity, coupon", "Average shortlist figures"],
+    features: ["Everything in the free account", "ISIN codes", "Bond name, coupon, maturity", "Average shortlist figures"],
     cta: "Coming soon",
     highlight: true,
   },
   {
+    key: "premium",
     name: "Premium",
     price: "€19",
     period: "/month",
@@ -32,12 +38,16 @@ const PLANS = [
   },
 ];
 
-export default function Pricing() {
+export default async function Pricing() {
+  const user = await currentUser();
   return (
     <div>
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="text-[36px] font-semibold tracking-tight sm:text-[48px]">Simple plans</h1>
-        <p className="mt-3 text-mute">Start free. Upgrade when you want the full list. Cancel anytime.</p>
+        <p className="mt-3 text-mute">
+          Start with a free account. Upgrade when you want the ISIN codes and more. Cancel anytime.
+        </p>
+        {!user && <p className="mt-2 text-sm text-mute">Without an account you can try the search and see the top 3.</p>}
       </div>
       <div className="mt-10 grid gap-5 md:grid-cols-3">
         {PLANS.map((p) => (
@@ -59,12 +69,21 @@ export default function Pricing() {
                 </li>
               ))}
             </ul>
-            <button
-              disabled
-              className={`mt-7 rounded-full px-5 py-3 text-[15px] font-medium ${p.highlight ? "bg-accent text-white" : "bg-canvas text-ink"} disabled:cursor-default disabled:opacity-80`}
-            >
-              {p.cta}
-            </button>
+            {p.key === "free" && !user ? (
+              <Link
+                href="/signup"
+                className="mt-7 rounded-full bg-ink px-5 py-3 text-center text-[15px] font-medium text-white hover:opacity-90"
+              >
+                {p.cta}
+              </Link>
+            ) : (
+              <button
+                disabled
+                className={`mt-7 rounded-full px-5 py-3 text-[15px] font-medium ${p.highlight ? "bg-accent text-white" : "bg-canvas text-ink"} disabled:cursor-default disabled:opacity-80`}
+              >
+                {user?.plan === p.key ? "Your plan" : p.key === "free" ? "Included" : "Coming soon"}
+              </button>
+            )}
           </div>
         ))}
       </div>

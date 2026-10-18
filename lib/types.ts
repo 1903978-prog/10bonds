@@ -16,7 +16,8 @@ export type PublicBond = {
   ytmAsOf: string | null;
 };
 
-export type Tier = "free" | "plus" | "premium";
+// visitor = not signed in; free = signed-in free account.
+export type Tier = "visitor" | "free" | "plus" | "premium";
 
 export type RankedBond = PublicBond & {
   rank: number;

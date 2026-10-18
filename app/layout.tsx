@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
+import AccountNav from "@/components/AccountNav";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
@@ -28,7 +29,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="text-lg font-semibold tracking-tight">10BONDS</Link>
             <div className="flex items-center gap-5 text-sm text-mute">
               <Link href="/pricing" className="hover:text-ink">Pricing</Link>
-              <Link href="/disclaimer" className="hover:text-ink">Disclaimer</Link>
+              <Link href="/disclaimer" className="hidden hover:text-ink sm:inline">Disclaimer</Link>
+              <AccountNav />
             </div>
           </nav>
         </header>
