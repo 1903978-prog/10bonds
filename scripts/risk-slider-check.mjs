@@ -6,7 +6,7 @@ for (const w of [1440, 390]) {
   const s = p.getByLabel("Worst rating accepted");
   await s.waitFor();
   const yMaxBefore = await p.getByLabel("Target annual yield").getAttribute("max");
-  await s.fill("1");
+  await s.fill("10"); // AAA is on the right
   await p.waitForTimeout(1500);
   const label = await p.locator("text=AAA").first().isVisible();
   const yMaxAfter = await p.getByLabel("Target annual yield").getAttribute("max");

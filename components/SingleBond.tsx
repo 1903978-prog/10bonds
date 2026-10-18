@@ -79,11 +79,12 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
 }
 
 function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
-  const W = 420, H = 260, L = 40, R = 14, T = 22, B = 46;
+  const W = 420, H = 260, L = 56, R = 22, T = 22, B = 46;
   const ys = points.map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
   const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
-  const x = (level: number) => L + ((level - 1) / 9) * (W - L - R);
+  // AAA always on the right: level 1 (AAA) at the right edge, level 10 (BB) at the left.
+  const x = (level: number) => L + ((10 - level) / 9) * (W - L - R);
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
   const ticks: number[] = [];
   const step = hi - lo > 4 ? 1 : 0.5;
@@ -104,7 +105,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
           {p.label === "BBB / BBB-" ? "BBB" : p.label === "BB and above" ? "BB" : p.label}
         </text>
       ))}
-      <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="#86868b">Lower risk → higher risk</text>
+      <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="#86868b">Higher risk → lower risk</text>
       <path d={path} fill="none" stroke="#0071e3" strokeWidth="2.5" strokeLinejoin="round" />
       {drawn.map((p) => (
         <g key={p.level} onClick={() => onPick(p.level)} style={{ cursor: "pointer" }} data-testid={`dot-${p.level}`}>

@@ -139,17 +139,18 @@ export default function Finder() {
           maxLabel={`${ytmMax.toFixed(1)}% max (top-10 average)`}
           onChange={setYtm}
         />
+        {/* AAA always on the right: the slider position is 11 - level (level 1 = AAA). */}
         <Slider
           label="Worst rating accepted"
           hint="Credit risk"
-          value={risk}
+          value={LIMITS.risk.max + LIMITS.risk.min - risk}
           display={riskLevel(risk).label}
           min={LIMITS.risk.min}
           max={LIMITS.risk.max}
           step={LIMITS.risk.step}
-          minLabel="AAA (lowest risk)"
-          maxLabel="BB (higher risk)"
-          onChange={changeRisk}
+          minLabel="BB (higher risk)"
+          maxLabel="AAA (lowest risk)"
+          onChange={(pos) => changeRisk(LIMITS.risk.max + LIMITS.risk.min - pos)}
         />
         </>)}
 
