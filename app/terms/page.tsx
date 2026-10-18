@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import TermsText from "@/components/TermsText";
 
-export const metadata: Metadata = { title: "Terms of Use and Risk Disclosure · 10BONDS" };
+export const metadata: Metadata = { title: "Terms of Use and Risk Disclosure · 10BONDS", alternates: { canonical: "/terms" } };
 
 export default function Terms() {
   return (

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Disclaimer · 10BONDS" };
+export const metadata: Metadata = { title: "Disclaimer · 10BONDS", alternates: { canonical: "/disclaimer" } };
 
 export default function Disclaimer() {
   return (

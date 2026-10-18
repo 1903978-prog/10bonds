@@ -32,6 +32,8 @@ jobs:
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -83,6 +85,15 @@ jobs:
             echo "Paid plans: on."
           else
             echo "Paid plans: off (no STRIPE_SECRET_KEY secret)."
+          fi
+          # SEO: Search Console / GA4 read access and PageSpeed, each only when its secret exists.
+          # The JSON key goes in base64 so its line breaks survive.
+          if [ -n "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
+            printf 'GOOGLE_SERVICE_ACCOUNT_JSON=%s\n' "$(printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" | base64 -w0)" | flyctl secrets import -a 10bonds --stage >/dev/null
+            echo "Google Search Console / GA4: key set."
+          fi
+          if [ -n "$PAGESPEED_API_KEY" ]; then
+            printf 'PAGESPEED_API_KEY=%s\n' "$PAGESPEED_API_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
           fi
       - name: Deploy
         if: env.ok == '1'
