@@ -2,9 +2,13 @@
 
 import type { EventKind } from "./trackRules";
 
-// Usage stats run only after the visitor says yes. Nothing is sent, and no id is created, before that.
-const CONSENT_KEY = "tb_consent";
+// Cookie consent by category. Usage stats (Statistics) run only after the visitor allows them:
+// nothing is sent, and no visitor id is created, before that.
+const CONSENT_KEY = "tb_cookie_consent";
+const OLD_KEY = "tb_consent";
 const VISITOR_KEY = "tb_vid";
+
+export type Categories = { preferences: boolean; statistics: boolean; marketing: boolean };
 type Consent = "yes" | "no" | null;
 
 function store(): Storage | null {
@@ -15,19 +19,38 @@ function store(): Storage | null {
   }
 }
 
-export function getConsent(): Consent {
-  const v = store()?.getItem(CONSENT_KEY);
-  return v === "yes" || v === "no" ? v : null;
+/** The choice made in the cookie banner, or null when none has been made yet. */
+export function getCategories(): Categories | null {
+  const s = store();
+  if (!s) return null;
+  try {
+    const v = JSON.parse(s.getItem(CONSENT_KEY) ?? "null");
+    if (v && typeof v === "object") return { preferences: v.preferences === true, statistics: v.statistics === true, marketing: v.marketing === true };
+  } catch {}
+  const old = s.getItem(OLD_KEY); // the earlier Allow / No thanks banner
+  if (old === "yes" || old === "no") return { preferences: false, statistics: old === "yes", marketing: false };
+  return null;
 }
 
-export function setConsent(c: "yes" | "no") {
+/** Statistics consent: "yes", "no", or null when the visitor has not chosen yet. */
+export function getConsent(): Consent {
+  const c = getCategories();
+  return c ? (c.statistics ? "yes" : "no") : null;
+}
+
+export function setCategories(c: Categories) {
   const s = store();
-  s?.setItem(CONSENT_KEY, c);
-  if (c === "no") {
+  s?.setItem(CONSENT_KEY, JSON.stringify({ ...c, necessary: true, at: new Date().toISOString() }));
+  s?.removeItem(OLD_KEY);
+  if (!c.statistics) {
     s?.removeItem(VISITOR_KEY);
     queue.length = 0;
   }
   window.dispatchEvent(new Event("tb-consent"));
+}
+
+export function reopenCookieBanner() {
+  window.dispatchEvent(new Event("tb-cookie-open"));
 }
 
 function visitorId(): string | null {

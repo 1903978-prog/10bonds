@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import AccountNav from "@/components/AccountNav";
+import AccountNotices from "@/components/AccountNotices";
 import UsageStats, { UsageStatsSetting } from "@/components/UsageStats";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
@@ -27,15 +28,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen font-sans">
         <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
           <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-            <Link href="/" className="text-lg font-semibold tracking-tight">10BONDS</Link>
-            <div className="flex items-center gap-5 text-sm text-mute">
+            <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight">10BONDS</Link>
+            <div className="ml-3 flex items-center gap-3 text-sm text-mute sm:gap-5">
               <Link href="/pricing" className="hover:text-ink">Pricing</Link>
               <Link href="/disclaimer" className="hidden hover:text-ink sm:inline">Disclaimer</Link>
               <AccountNav />
             </div>
           </nav>
         </header>
-        <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-10">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-10">
+          <AccountNotices />
+          {children}
+        </main>
         <footer className="border-t border-line/70 py-8 text-center text-xs leading-relaxed text-mute">
           <p className="mx-auto max-w-2xl px-4">
             10BONDS is a bond discovery tool. Information only, not investment advice, not an offer to buy or sell.

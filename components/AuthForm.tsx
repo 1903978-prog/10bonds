@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { solveChallenge } from "@/lib/solveChallenge";
 import { flushNow, track } from "@/lib/track";
 import TermsText from "./TermsText";
 
@@ -12,6 +13,8 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [accept, setAccept] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState<string | null>(null);
+  const [website, setWebsite] = useState("");
   const signup = mode === "signup";
 
   async function submit(e: React.FormEvent) {
@@ -19,17 +22,26 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
     setBusy(true);
     setError(null);
     try {
+      let check: { challenge: string; nonce: string } | null = null;
+      if (signup) {
+        setStep("Checking you are not a robot…");
+        const c = await fetch("/api/auth/challenge", { cache: "no-store" }).then((r) => r.json());
+        if (!c?.challenge) throw new Error(c?.error ?? "Sign-up is not available right now.");
+        check = { challenge: c.challenge, nonce: await solveChallenge(c.challenge, c.difficulty) };
+        setStep(null);
+      }
       const res = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signup ? { email, username, password, acceptTerms: accept } : { email, password }),
+        body: JSON.stringify(signup ? { email, username, password, acceptTerms: accept, website, ...check } : { email, password }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
       track(signup ? "signup" : "login", null);
       flushNow();
-      window.location.href = "/";
+      window.location.href = signup ? "/?welcome=1" : "/";
     } catch (err) {
+      setStep(null);
       setError((err as Error).message);
       setBusy(false);
     }
@@ -84,6 +96,18 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
           {signup && <span className="mt-1 block text-xs text-mute">At least 8 characters.</span>}
         </label>
         {signup && (
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            className="absolute left-[-9999px] h-px w-px opacity-0"
+          />
+        )}
+        {signup && (
           <div>
             <div className="max-h-56 overflow-y-auto rounded-xl border border-line bg-canvas p-4" data-testid="terms-box">
               <p className="mb-3 text-sm font-semibold">Terms of Use and Risk Disclosure</p>
@@ -113,7 +137,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
           disabled={busy || (signup && !accept)}
           className="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-medium text-white transition hover:bg-[#0077ed] disabled:opacity-60"
         >
-          {busy ? "Please wait…" : signup ? "Create free account" : "Sign in"}
+          {busy ? step ?? "Please wait…" : signup ? "Create free account" : "Sign in"}
         </button>
       </form>
       <p className="mt-5 text-center text-sm text-mute">
@@ -125,7 +149,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       </p>
       {signup && (
         <p className="mt-4 text-center text-xs leading-relaxed text-mute">
-          10BONDS is an information service and does not give investment advice.
+          Protected by a robot check that runs in your browser: no Google, no tracking. 10BONDS is an information service and does not give investment advice.
         </p>
       )}
     </div>

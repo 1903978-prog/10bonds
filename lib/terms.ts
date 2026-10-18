@@ -75,6 +75,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
     title: "9. Paid plans",
     paragraphs: [
       "Paid plans, when offered, give access to additional information and features as described at the time of purchase. Paying for a plan does not turn the Service into advice or create any advisory, fiduciary or client relationship. Prices, features, payment terms, renewal and cancellation rules will be shown before you pay and form part of these Terms. Where the law of your country gives consumers a right of withdrawal, you will be told how it applies.",
+      "Free trials: each new account receives a free trial of the Premium plan for a limited period stated at sign-up (currently 7 days). Trial codes we hand out give the same Premium features for the period stated with the code; each code can be used once and has no cash value. When a trial ends your account returns to the free plan automatically; you are never charged for a trial and no payment details are needed. We may change or end trial offers at any time for the future.",
     ],
   },
   {
@@ -106,7 +107,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     title: "14. Privacy",
     paragraphs: [
-      "We process your personal data (your e-mail address, username, a securely hashed form of your password, your plan, the date you accepted these Terms and, only if you allow usage statistics, records of pages visited, searches and buttons clicked) to provide the Service, keep it secure, and improve it, in line with the EU and UK General Data Protection Regulation and other applicable data-protection laws. We do not store your IP address with usage statistics, do not sell your data and do not use third-party advertising trackers. Usage statistics are kept for at most 13 months. You can ask to access, correct, export or delete your data, object to processing, or withdraw consent at any time, and you may complain to your data-protection authority.",
+      "We process your personal data (your e-mail address, username, a securely hashed form of your password, your plan, the date you accepted these Terms and, only if you allow usage statistics, records of pages visited, searches and buttons clicked) to provide the Service, keep it secure, and improve it, in line with the EU and UK General Data Protection Regulation and other applicable data-protection laws. We do not store your IP address with usage statistics, do not sell your data and do not use third-party advertising trackers. Usage statistics are kept for at most 13 months. Cookies and similar storage are grouped as Necessary (signing in, remembering your cookie choice; always on), Preferences, Statistics and Marketing (we use no marketing cookies today); everything except Necessary is used only if you allow it in the cookie banner, and you can change your choice at any time with “Cookie settings”. We send e-mails needed to run your account, such as the link to confirm your address. You can ask to access, correct, export or delete your data, object to processing, or withdraw consent at any time, and you may complain to your data-protection authority.",
     ],
   },
   {

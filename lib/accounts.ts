@@ -1,3 +1,4 @@
+import { emailConfigured } from "./email";
 import postgres from "postgres";
 import { accountsUrl } from "./pgUrl";
 import type { Tier } from "./types";
@@ -102,8 +103,9 @@ export function toUser(r: UserRow, now = Date.now()): User {
     storedPlan: r.plan,
     premiumUntil: r.premium_until ? new Date(r.premium_until).toISOString() : null,
     emailVerified,
-    // Admin needs the address to be confirmed, so nobody can claim it by signing up with it first.
-    isAdmin: emailVerified && ADMIN_EMAILS.includes(r.email),
+    // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
+    // account holding the admin address is admin (an address can be used by one account only).
+    isAdmin: ADMIN_EMAILS.includes(r.email) && (emailVerified || !emailConfigured()),
   };
 }
 

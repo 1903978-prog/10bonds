@@ -4,13 +4,18 @@ import { readCredentials, withSession } from "@/lib/authResponse";
 import { hashPassword } from "@/lib/password";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { TERMS_VERSION } from "@/lib/terms";
+import { checkSolution } from "@/lib/botCheck";
+import { sendConfirmation } from "@/lib/confirm";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   if (!accountsConfigured()) return NextResponse.json({ error: "Free accounts open very soon." }, { status: 503 });
   if (!allow(`signup:${clientIp(req)}`, 5)) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
-  const { email, password, username, acceptTerms } = await readCredentials(req);
+  const { email, password, username, acceptTerms, challenge, nonce, website } = await readCredentials(req);
+  // "website" is a hidden field people never see; scripts that fill every field do.
+  if (website || !checkSolution(challenge, nonce))
+    return NextResponse.json({ error: "The robot check did not pass. Please reload the page and try again." }, { status: 400 });
   if (acceptTerms !== true)
     return NextResponse.json({ error: "Please read and accept the Terms and Risk Disclosure to create an account." }, { status: 400 });
   const e = normaliseEmail(email);
@@ -23,7 +28,8 @@ export async function POST(req: Request) {
     const user = await createUser(e, u, await hashPassword(password), TERMS_VERSION);
     if (user === "email-taken") return NextResponse.json({ error: "An account with this email already exists. Please sign in." }, { status: 409 });
     if (user === "username-taken") return NextResponse.json({ error: "This username is taken. Please choose another." }, { status: 409 });
-    return withSession(user.id, { ok: true, plan: user.plan });
+    const emailed = await sendConfirmation(user.id, user.email, u);
+    return withSession(user.id, { ok: true, plan: user.plan, premiumUntil: user.premiumUntil, emailSent: emailed === "sent" });
   } catch (err) {
     console.error("[signup] failed:", (err as { code?: string }).code ?? "", (err as Error).message);
     return NextResponse.json({ error: "Sign-up is not available right now. Please try again later." }, { status: 503 });
