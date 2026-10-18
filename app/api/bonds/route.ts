@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { allow, clientIp } from "@/lib/rateLimit";
 import { loadBonds } from "@/lib/bonds";
 import { rankBonds } from "@/lib/ranking";
 import { shapeForTier } from "@/lib/tiers";
@@ -15,6 +16,9 @@ function clampParam(raw: string | null, { min, max, initial }: { min: number; ma
 }
 
 export async function GET(req: Request) {
+  // Sliders send one request per move; 240 a minute per address (both bond routes together) is far above normal use.
+  if (!allow(`bonds:${clientIp(req)}`, 240, 60_000))
+    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const ytm = clampParam(url.searchParams.get("ytm"), LIMITS.ytm);
