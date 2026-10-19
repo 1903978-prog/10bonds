@@ -6,6 +6,7 @@ import { sectionPath } from "@/lib/brokers/content";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { KC_ORDER } from "@/lib/seo/knowledgeHub";
+import { curvePath, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { CALCULATOR_EN, enPath, hubLangs, KC_TEXT_EN, withEnglish } from "@/lib/seo/knowledgeEn";
 import { LOCALES } from "@/lib/seo/locales";
 import type { KcSection } from "@/lib/seo/knowledge";
@@ -30,6 +31,7 @@ export default async function KnowledgePage() {
   for (const g of EN_GUIDES) items[g.section].push({ title: g.title, href: enPath(g.slug) });
   items.best.push({ title: k.finder, href: "/" });
   items.calculators.push({ title: CALCULATOR_EN.h1, href: enPath(CALCULATOR_EN.slug) });
+  items.government.unshift({ title: CURVE_TEXT.en.h1, href: curvePath("en") });
   const published = await Promise.all(LOCALES.map((l) => brokersPublished(l).catch(() => false)));
   LOCALES.forEach((l, i) => published[i] && items.brokers.push({ title: k.brokersIn[l], href: sectionPath(l) }));
   return (
