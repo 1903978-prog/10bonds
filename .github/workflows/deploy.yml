@@ -8,19 +8,9 @@ on:
   workflow_dispatch:
 concurrency: deploy
 jobs:
-  # Nothing reaches the live site unless type checks and tests pass.
+  # Nothing reaches the live site unless all checks pass (types, lint, tests, database design, browser check).
   test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
+    uses: ./.github/workflows/ci.yml
   deploy:
     needs: test
     runs-on: ubuntu-latest
@@ -37,7 +27,10 @@ jobs:
       BING_WEBMASTER_API_KEY: ${{ secrets.BING_WEBMASTER_API_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # Pinned: the same tool version every run, changed on purpose only.
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
+        with:
+          version: 0.4.118
       - name: Stop if the Fly token is not set yet
         run: |
           if [ -z "$FLY_API_TOKEN" ]; then
@@ -119,6 +112,7 @@ jobs:
             echo "10bonds.com does not answer yet: the site stays on 10bonds.fly.dev."
           fi
       - name: Deploy
+        id: deploy
         if: env.ok == '1'
         run: flyctl deploy --remote-only -a 10bonds --ha=false
       # Read-only checks after the deploy. Each step fails on its own, so the run's step list says where
@@ -161,3 +155,11 @@ jobs:
         run: |
           body=$(curl -sS -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/ranking); echo "$body"
           echo "$body" | grep -q '"ok":true'
+      - name: "Bond data: fresh and complete (informational; the daily data watch alerts)"
+        if: env.ok == '1'
+        continue-on-error: true
+        run: curl -sS -w ' HTTP %{http_code}\n' https://10bonds.fly.dev/api/health/data
+      # A new release that fails any check above is replaced at once by the previous one; the run stays red.
+      - name: Automatic rollback when a check failed
+        if: failure() && steps.deploy.outcome == 'success'
+        run: bash scripts/fly-rollback.sh

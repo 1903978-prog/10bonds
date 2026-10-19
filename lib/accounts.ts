@@ -92,6 +92,9 @@ async function setup(sql: ReturnType<typeof postgres>) {
       primary key (duration, level, rank)
     )`;
   await sql`create index if not exists events_kind_at_idx on app.events (kind, at)`;
+  // Lookups by account (data export, account deletion) and by Stripe customer (payment webhooks).
+  await sql`create index if not exists events_user_idx on app.events (user_id) where user_id is not null`;
+  await sql`create index if not exists users_stripe_customer_idx on app.users (stripe_customer_id) where stripe_customer_id is not null`;
   // Weekly search allowance (lib/searchQuota.ts): one row per counted search. Kept 30 days.
   await sql`
     create table if not exists app.search_usage (
@@ -413,6 +416,11 @@ function urlShape(raw: string): Record<string, boolean | number> {
 }
 
 /** The accounts connection, tables ready, for modules that keep their own tables in schema "app". */
+/** Runs the table setup once more on the open connection (schema check: setup must be repeatable). */
+export async function setupAgainForTest() {
+  await setup(db().sql);
+}
+
 export async function accountsSql() {
   const { sql, ready } = db();
   await ready;

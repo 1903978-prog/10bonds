@@ -14,6 +14,8 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // Lint runs as its own CI step before every deploy (npm run lint); the Fly build does not repeat it.
+  eslint: { ignoreDuringBuilds: true },
   output: "standalone",
   poweredByHeader: false,
   // Title, description, canonical and hreflang always in the page <head> for every visitor and crawler

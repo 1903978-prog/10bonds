@@ -184,7 +184,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
         )}
         {signup && (
           <div>
-            <div className="max-h-32 overflow-y-auto rounded-xl border border-line bg-canvas p-4" data-testid="terms-box">
+            <div className="max-h-32 overflow-y-auto rounded-xl border border-line bg-canvas p-4" data-testid="terms-box" tabIndex={0} role="region" aria-label="Terms summary">
               <p className="mb-3 text-sm font-semibold">Terms of Use and Risk Disclosure</p>
               <TermsText compact />
             </div>

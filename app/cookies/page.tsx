@@ -28,7 +28,7 @@ export default function Cookies() {
         <li><strong>Marketing:</strong> none are used today.</li>
       </ul>
       <h2 className="mt-8 text-lg font-semibold">What we use</h2>
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 overflow-x-auto" tabIndex={0} role="region" aria-label="Table (scrolls sideways on small screens)">
         <table className="w-full min-w-[560px] text-left text-sm" data-testid="cookie-table">
           <thead><tr><th className="px-3 py-2">Name</th><th className="px-3 py-2">Type</th><th className="px-3 py-2">Category</th><th className="px-3 py-2">Purpose</th><th className="px-3 py-2">Kept</th></tr></thead>
           <tbody>

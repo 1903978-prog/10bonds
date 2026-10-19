@@ -1,6 +1,5 @@
 import { GSC_COUNTRY, type SeoMarket } from "./input";
 import { searchConsoleQueries } from "./google";
-import type { Locale } from "./locales";
 import { listKeywords, setKeywordMetrics, type Keyword } from "./store";
 
 // Google rankings of the target keywords, from Search Console. Position is Google's average position over the last

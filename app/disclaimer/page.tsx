@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Disclaimer · 10BONDS", alternates: { canonical: "/disclaimer" } };
@@ -30,7 +31,7 @@ export default function Disclaimer() {
       <p className="mt-2 text-sm" lang="de">Das Risiko von 1 (am geringsten) bis 10 (am höchsten) ist eine interne Einschätzung von 10BONDS, nur zur Information, und kein Kreditrating. Prüfen Sie offizielle Ratings bei den Ratingagenturen, beim Emittenten und bei Ihrem Finanzberater und verlassen Sie sich nicht auf das Risiko von 10BONDS.</p>
       <h2 className="mt-6 font-semibold">No execution</h2>
       <p className="mt-2">10BONDS does not hold money, place orders or manage portfolios.</p>
-      <p className="mt-8 text-sm">Full text: <a href="/terms" className="text-accent">Terms of Use and Risk Disclosure</a>.</p>
+      <p className="mt-8 text-sm">Full text: <Link href="/terms" className="text-accent">Terms of Use and Risk Disclosure</Link>.</p>
     </article>
   );
 }

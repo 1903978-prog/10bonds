@@ -12,7 +12,8 @@ export default {
         mute: "#6e6e73",
         line: "#e5e5ea",
         canvas: "#f5f5f7",
-        accent: "#0071e3",
+        // #0066cc: Apple's link blue, readable on white and on the grey canvas (contrast 4.5:1 or more, WCAG AA).
+        accent: "#0066cc",
       },
     },
   },

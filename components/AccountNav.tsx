@@ -14,8 +14,8 @@ export default function AccountNav() {
   if (!me)
     return (
       <>
-        <NavLink href="/login">Sign in</NavLink>
-        <Link href="/signup" className="rounded-full bg-accent px-3.5 py-1.5 font-medium text-white hover:bg-[#0077ed]"><span className="sm:hidden">Sign up</span><span className="hidden sm:inline">Sign up free</span></Link>
+        <span className="whitespace-nowrap"><NavLink href="/login">Sign in</NavLink></span>
+        <Link href="/signup" className="whitespace-nowrap rounded-full bg-accent px-3 py-1.5 font-medium sm:px-3.5 text-white hover:bg-[#0077ed]"><span className="sm:hidden">Sign up</span><span className="hidden sm:inline">Sign up free</span></Link>
       </>
     );
   // The admin has full access for good: no trial badge.

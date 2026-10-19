@@ -5,6 +5,7 @@ import { SAMPLE_BONDS } from "./sample-bonds";
 import { bondNotch } from "./ratings";
 import { correctedMin } from "./minOverrides";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
+import { judge, missingColumns, type DataHealth } from "./dataHealth";
 
 // The public site only ever READS one table, with a read-only login.
 // It has no connection details for the main app and no way to write anywhere.
@@ -50,8 +51,12 @@ async function loadAllBonds(): Promise<BondSource> {
     select * from public_bonds
     where gross_ytm is not null and modified_duration is not null
       and (maturity is null or maturity > current_date)
-  `).filter((r) => r.structure_modelled !== false);
-  const bonds: PublicBond[] = rows.map((r) => ({
+  `);
+  // A renamed or dropped column would turn into blanks (no rating, no maturity) without any error: refuse instead.
+  const missing = rows.length ? missingColumns(rows.columns.map((c) => c.name)) : [];
+  if (missing.length) throw new Error(`Bond table is missing columns: ${missing.join(", ")}`);
+  const modelled = rows.filter((r) => r.structure_modelled !== false);
+  const bonds: PublicBond[] = modelled.map((r) => ({
     isin: r.isin,
     name: r.name,
     issuer: cleanIssuer(r.issuer),
@@ -127,4 +132,25 @@ export async function bondDataStats(): Promise<{
     newestYtm: r.newest ? new Date(r.newest).toISOString() : null,
     shownOnSite: shown,
   };
+}
+
+/** Freshness and shape of the bond copy, for /api/health/data and the daily data watch. Numbers only, no bond details. */
+export async function bondDataHealth(now = Date.now()): Promise<DataHealth> {
+  const client = db();
+  if (!client) {
+    const sample = process.env.NODE_ENV !== "production" || process.env.ALLOW_SAMPLE_DATA === "1";
+    return judge({ source: sample ? "sample" : null, newest: null, columns: [], rows: sample ? SAMPLE_BONDS.length : 0, duplicateIsins: 0 }, now);
+  }
+  const cols = await client`select column_name from information_schema.columns where table_name = 'public_bonds'`;
+  const [r] = await client`
+    select count(*) total, max(ytm_as_of) newest,
+           (select count(*) from (select isin from public_bonds group by isin having count(*) > 1) d) dups
+    from public_bonds`;
+  return judge({
+    source: "live",
+    newest: r.newest ? new Date(r.newest).toISOString() : null,
+    columns: cols.map((c) => String(c.column_name)),
+    rows: Number(r.total),
+    duplicateIsins: Number(r.dups),
+  }, now);
 }

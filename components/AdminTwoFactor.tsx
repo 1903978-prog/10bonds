@@ -56,7 +56,7 @@ export default function AdminTwoFactor() {
           <p className="mt-2 text-[15px] text-mute">Admin needs a code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…). Scan this QR code with the app, then type the 6-digit code it shows.</p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={s.qr} alt="QR code for the authenticator app" width={220} height={220} className="mx-auto mt-4" data-testid="twofa-qr" />
-          <p className="mt-2 text-center text-xs text-mute">Can't scan? Enter this key by hand: <span className="font-mono" data-allow-copy>{s.secret.match(/.{1,4}/g)?.join(" ")}</span></p>
+          <p className="mt-2 text-center text-xs text-mute">Can&apos;t scan? Enter this key by hand: <span className="font-mono" data-allow-copy>{s.secret.match(/.{1,4}/g)?.join(" ")}</span></p>
         </>
       ) : (
         <p className="mt-2 text-[15px] text-mute">Type the 6-digit code from your authenticator app, or a backup code.</p>

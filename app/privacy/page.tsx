@@ -64,7 +64,7 @@ export default function Privacy() {
       <p className="mt-3">The platform provides general bond-market information and objective comparison tools without requiring you to disclose your personal financial situation. We do not build personal investor profiles from information about your holdings. The Pro portfolio tool works on a list of bonds you upload for the analysis; it is used to compute the result and is not kept as a profile of you.</p>
 
       <H>5. Purpose and legal basis for processing</H>
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 overflow-x-auto" tabIndex={0} role="region" aria-label="Table (scrolls sideways on small screens)">
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead><tr><th className="px-3 py-2">Purpose</th><th className="px-3 py-2">Legal basis (GDPR art. 6)</th></tr></thead>
           <tbody>
@@ -90,7 +90,7 @@ export default function Privacy() {
 
       <H>7. Data sharing and processors</H>
       <p className="mt-2">We do not sell your personal information. These service providers process data for us, on our instructions and under a data processing agreement:</p>
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 overflow-x-auto" tabIndex={0} role="region" aria-label="Table (scrolls sideways on small screens)">
         <table className="w-full min-w-[520px] text-left text-sm" data-testid="processors">
           <thead><tr><th className="px-3 py-2">Provider</th><th className="px-3 py-2">What for</th><th className="px-3 py-2">Where</th></tr></thead>
           <tbody>

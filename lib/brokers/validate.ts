@@ -1,4 +1,4 @@
-import { CATEGORIES, COUNTRIES, type BrokerProfile, type Category, type Country, type FeeRule, type TariffData } from "./types";
+import { CATEGORIES, COUNTRIES, type BrokerProfile, type Category, type Country, type TariffData } from "./types";
 
 // Checks for what the admin saves. A tariff that fails here is refused before it can become a draft.
 

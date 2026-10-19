@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Stripe answers are untyped JSON; each use reads only known fields. */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getSetting, setSetting } from "./accounts";
 import { siteUrl } from "./email";
