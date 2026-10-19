@@ -29,7 +29,7 @@ export function durationSteps(): number[] {
 /** Signature of a bond copy: changes whenever the daily copy brings new yields. */
 export function signatureOf(src: BondSource): string {
   // The leading version changes when the way the table is computed changes, so a new deploy rebuilds it.
-  return `v5:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
+  return `v6:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
 }
 
 export function computeBestTable(src: BondSource): BestTable {
