@@ -25,9 +25,13 @@ export function applyFilter(bonds: PublicBond[], f: BondFilter): PublicBond[] {
   );
 }
 
-/** The minimum a buyer must invest: the issuer's minimum denomination, else the venue lot when it is above 1. */
-export function minInvestmentOf(minDenomination: number | null, minLot: number | null): number | null {
+/**
+ * The minimum a buyer must invest: the issuer's minimum denomination, else the venue lot when it is above 1.
+ * USD bonds use the issuer denomination only: their venue lot (often 1,000) says nothing about the many dollar notes
+ * sold in 200,000 pieces, so an unknown minimum stays unknown rather than landing in the small-order filter.
+ */
+export function minInvestmentOf(minDenomination: number | null, minLot: number | null, currency: string | null = "EUR"): number | null {
   if (minDenomination != null && minDenomination > 0) return minDenomination;
-  if (minLot != null && minLot > 1) return minLot;
+  if (currency !== "USD" && minLot != null && minLot > 1) return minLot;
   return null;
 }
