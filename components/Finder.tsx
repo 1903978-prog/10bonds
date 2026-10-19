@@ -10,6 +10,7 @@ import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
+import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
@@ -44,6 +45,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [size, setSize] = useState<BondFilter["size"]>("100k");
   const [minKnown, setMinKnown] = useState<boolean | null>(null);
   const sizeTouched = useRef(false);
+  // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
+  const [touched, setTouched] = useState(false);
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
   const [resultsH, setResultsH] = useState<number | null>(null);
@@ -82,12 +85,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // A target at the maximum stays at the maximum when the horizon or risk changes, so more risk shows more yield.
   const followCap = (cap: number) => setYtm((y) => (y > cap || y >= ytmMax - 1e-9 ? cap : y));
   const changeDuration = (d: number) => {
+    setTouched(true);
     setDuration(d);
     const r = Math.min(risk, riskTopFor(d));
     if (r !== risk) setRisk(r);
     followCap(capFor(d, r));
   };
   const changeRisk = (r: number) => {
+    setTouched(true);
     setRisk(r);
     followCap(capFor(duration, r));
   };
@@ -153,7 +158,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               key={m}
               role="tab"
               aria-selected={mode === m}
-              onClick={() => setMode(m)}
+              onClick={() => { setTouched(true); setMode(m); }}
               className={`rounded-full px-4 py-1.5 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
             >
               {label}
@@ -162,12 +167,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => setCurrency(v as BondFilter["currency"])} testId="toggle-currency" />
+          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" />
           <Toggle
             label={t.minOrder}
             value={size}
             options={[["1k", t.small], ["100k", t.allSizes]]}
-            onChange={(v) => { sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
+            onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
             testId="toggle-size"
             disabled={minKnown === false ? ["1k"] : []}
             disabledTitle={t.minNoData}
@@ -198,7 +203,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           step={LIMITS.ytm.step}
           minLabel="1.0%"
           maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
-          onChange={setYtm}
+          onChange={(v) => { setTouched(true); setYtm(v); }}
         />
         {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
         <Slider
@@ -227,7 +232,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
         </section>
       ) : (
-      <section ref={resultsBox} className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+      <section ref={resultsBox} className="relative flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+        {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
+        {!touched && (
+          <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
+            <Frontier currency={currency} />
+          </div>
+        )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
