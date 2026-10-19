@@ -41,8 +41,8 @@ export default function AccountNotices() {
         </div>
       )}
       {me && !me.emailVerified && me.confirmationOn && !welcome && !confirmMsg && (
-        <div className="mx-auto mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="confirm-strip">
-          <span>Please confirm your e-mail address: we sent a link to {me.email}.</span>
+        <div className="mb-2 ml-auto flex w-fit max-w-full flex-wrap items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-900" data-testid="confirm-strip">
+          <span>Please confirm your e-mail ({me.email}).</span>
           <button
             disabled={resend === "sending"}
             onClick={async () => {

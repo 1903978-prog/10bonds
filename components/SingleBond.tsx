@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFinderText } from "@/lib/finderText";
 import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
@@ -9,6 +9,7 @@ import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
 import { downloadXlsx } from "@/lib/xlsx";
 import { fmtMin } from "@/lib/fmtMin";
+import { dropDominated } from "@/lib/curveFilter";
 
 type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
@@ -58,8 +59,9 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   }, [duration, preview, currency, size]);
 
   const tier = data?.tier ?? "visitor";
-  const points = data?.points ?? [];
-  const point = level === null ? null : points[level - 1];
+  // Hide a risk step whose best yield is not above every lower-risk step: more risk must pay more.
+  const points = dropDominated(data?.points ?? []);
+  const point = level === null ? null : points.find((p) => p.level === level) ?? null;
   const bond = point?.options[index] ?? null;
 
   if (limit) return <LimitReached quota={limit} />;
@@ -71,8 +73,8 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         <h2 className="text-[17px] font-semibold">{t.bestByRating}</h2>
         <span className="text-xs text-mute">{t.tapDot}</span>
       </div>
-      <Chart points={points} selected={level} onPick={(l) => { setLevel(l); setIndex(0); }} />
-      {points.some((p) => p.far) && <p className="mt-1 text-xs text-mute" data-testid="far-note">{t.farNote}</p>}
+      <Chart points={points} axis={data?.points ?? []} selected={level} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      {points.some((p) => p.far) && <p className="text-[11px] text-mute" data-testid="far-note">{t.farNote}</p>}
 
       {point && bond ? (
         <BondBox
@@ -88,50 +90,61 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
           onBack={index > 0 ? () => setIndex(0) : undefined}
         />
       ) : (
-        <p className="mt-4 rounded-2xl bg-canvas p-5 text-center text-sm text-mute">
-          {points.some((p) => p.ytm !== null) ? t.pickRating : t.noneSingle}
-        </p>
+        !loading && data && !points.some((p) => p.ytm !== null) && <p className="mt-4 text-center text-sm text-mute">{t.noneSingle}</p>
       )}
       <QuotaNote quota={data?.quota} />
     </div>
   );
 }
 
-function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
+function Chart({ points, axis, selected, onPick }: { points: CurvePoint[]; axis: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
   const t = useFinderText();
-  const W = 460, H = 200, L = 52, R = 22, T = 22, B = 40;
+  // PAD keeps the first risk column clear of the y-axis figures.
+  // Drawn at the container's real pixel width so text stays readable on phones and the chart fills wide screens.
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(680);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(300, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = W < 500 ? 240 : 300, L = 44, R = 22, T = 26, B = 40, PAD = 22;
   const ys = points.map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
   const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
   // Risk 1 (lowest) always on the right edge, risk 10 at the left.
-  const x = (level: number) => L + ((10 - level) / 9) * (W - L - R);
+  const x = (level: number) => L + PAD + ((10 - level) / 9) * (W - L - PAD - R);
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
   const ticks: number[] = [];
-  const step = hi - lo > 4 ? 1 : 0.5;
+  // At most ~6 gridlines so the axis figures never crowd each other.
+  const step = hi - lo > 10 ? 2 : hi - lo > 4 ? 1 : 0.5;
   for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 10) / 10);
   const drawn = points.filter((p) => p.ytm !== null);
   const path = drawn.map((p, i) => `${i ? "L" : "M"}${x(p.level).toFixed(1)},${y(p.ytm!).toFixed(1)}`).join(" ");
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 h-[230px] w-full" role="img" aria-label={t.chartLabel}>
+    <div ref={box} className="mt-1 w-full">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label={t.chartLabel}>
       {ticks.map((v) => (
         <g key={v}>
           <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" />
-          <text x={L - 8} y={y(v) + 4} textAnchor="end" fontSize="12" fill="#86868b">{v.toFixed(step < 1 ? 1 : 0)}%</text>
+          <text x={L - 8} y={y(v) + 4} textAnchor="end" fontSize="13" fill="#86868b">{v.toFixed(step < 1 ? 1 : 0)}%</text>
         </g>
       ))}
-      {points.map((p) => (
-        <text key={p.level} x={x(p.level)} y={H - B + 17} textAnchor="middle" fontSize="12" fill="#86868b">
+      {axis.map((p) => (
+        <text key={p.level} x={x(p.level)} y={H - B + 17} textAnchor="middle" fontSize="13" fill="#86868b">
           {p.label}
         </text>
       ))}
-      <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
+      <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="13" fill="#86868b">{t.riskAxis}</text>
       <path d={path} fill="none" stroke="#0071e3" strokeWidth="2.5" strokeLinejoin="round" />
       {drawn.map((p) => (
         <g key={p.level} onClick={() => onPick(p.level)} style={{ cursor: "pointer" }} data-testid={`dot-${p.level}`}>
           <circle cx={x(p.level)} cy={y(p.ytm!)} r="16" fill="transparent" />
           <circle cx={x(p.level)} cy={y(p.ytm!)} r={selected === p.level ? 7 : 5} fill={selected === p.level ? "#0071e3" : "#fff"} stroke="#0071e3" strokeWidth="2.5" />
-          <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontSize="12" fontWeight="600" fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>
+          <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontSize="13" fontWeight="600" fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>
           {p.far && p.duration !== undefined && (
             <text x={x(p.level)} y={y(p.ytm!) + 20} textAnchor="middle" fontSize="10" fill="#86868b" data-testid={`far-${p.level}`}>~{p.duration.toFixed(1)} {t.yrs}</text>
           )}
@@ -146,6 +159,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
         </g>
       ))}
     </svg>
+    </div>
   );
 }
 
@@ -167,26 +181,23 @@ function BondBox(props: {
   const t = useFinderText();
   const lock = signedIn ? <Link href="/pricing" className="text-accent">{t.withPlus}</Link> : <Link href="/signup" className="text-accent">{t.freeAccountLower}</Link>;
   const row = (k: string, v: React.ReactNode) => (
-    <div className="flex justify-between gap-3 border-b border-line/60 py-1 text-[13px]">
+    <div className="flex justify-between gap-2 border-b border-line/50 py-0.5 text-xs">
       <dt className="text-mute">{k}</dt>
       <dd className="text-right font-medium tabular-nums">{v}</dd>
     </div>
   );
   return (
-    <div className="mt-3 rounded-2xl border border-line/70 px-4 py-3" data-testid="bond-box">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs text-mute">{t.ratingStep} {props.label}{props.bond.rank > 1 ? ` · ${t.option} ${props.bond.rank}` : ""}</div>
-          <div className="mt-0.5 truncate text-[17px] font-semibold">{bond.issuer}</div>
-          {paid && <div className="truncate text-sm text-mute">{bond.name}</div>}
+    <div className="mt-1 rounded-xl border border-line/70 px-3 py-2" data-testid="bond-box">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="min-w-0 truncate text-sm">
+          <span className="text-xs text-mute">{t.ratingStep} {props.label}{props.bond.rank > 1 ? ` · ${t.option} ${props.bond.rank}` : ""} · </span>
+          <span className="font-semibold">{bond.issuer}</span>
+          {paid && <span className="text-xs text-mute"> · {bond.name}</span>}
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-semibold tabular-nums">{pct(bond.ytm)}</div>
-          <div className="text-xs text-mute">{t.yieldLower}</div>
-        </div>
+        <div className="shrink-0 text-right text-lg font-semibold tabular-nums">{pct(bond.ytm)} <span className="text-xs font-normal text-mute">{t.yieldLower}</span></div>
       </div>
-      {props.far && <p className="mt-1 text-xs text-mute">{t.farBox}</p>}
-      <dl className="mt-2 grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+      {props.far && <p className="text-xs text-mute">{t.farBox}</p>}
+      <dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
         {row("ISIN", paid ? bond.isin : lock)}
         {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} /> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
@@ -195,17 +206,17 @@ function BondBox(props: {
         {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment, props.currency) : lock)}
         {(!signedIn || bond.country) && row(t.country, signedIn ? bond.country : lock)}
       </dl>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         {props.canChange ? (
-          <button onClick={props.onChange} className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0077ed]">
+          <button onClick={props.onChange} className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[#0077ed]">
             {t.change}
           </button>
         ) : props.lockedMore ? (
-          <Link href="/signup" className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white">{t.signUpOthers}</Link>
+          <Link href="/signup" className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white">{t.signUpOthers}</Link>
         ) : (
-          <span className="text-sm text-mute">{props.isLast ? t.noOther : ""}</span>
+          <span className="text-xs text-mute">{props.isLast ? t.noOther : ""}</span>
         )}
-        {props.onBack && <button onClick={props.onBack} className="text-sm text-accent">{t.backBest}</button>}
+        {props.onBack && <button onClick={props.onBack} className="text-xs text-accent">{t.backBest}</button>}
         {paid && (
           <button
             type="button"
@@ -220,12 +231,12 @@ function BondBox(props: {
                 "Bond",
               )
             }
-            className="rounded-full border border-line px-3.5 py-1.5 text-xs font-medium text-ink hover:bg-canvas"
+            className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
           >
             ⬇ {t.excel}
           </button>
         )}
-        <span className="text-xs text-mute">{t.changeHint}</span>
+        <span className="text-[11px] text-mute">{t.changeHint}</span>
       </div>
     </div>
   );
