@@ -1,7 +1,7 @@
 import type { PublicBond } from "../types";
 import { bondRisk } from "../ratings";
 import { issuerKey } from "../ranking";
-import { issuerClass, sovereignOf } from "./classify";
+import { countryCode, issuerClass, sovereignOf } from "./classify";
 import type { Locale } from "./locales";
 
 // Public comparison pages built from the one shared bond copy, in three languages. The same page (same id) exists
@@ -105,7 +105,7 @@ function yieldDef(y: number): ComparisonDef {
 function homeIssuersDef(c: "IT" | "FR" | "DE"): ComparisonDef {
   const names = { IT: ["italiani", "italiens", "italienische", "Italia", "Italie", "Italien"], FR: ["francesi", "français", "französische", "Francia", "France", "Frankreich"], DE: ["tedeschi", "allemands", "deutsche", "Germania", "Allemagne", "Deutschland"] }[c];
   return {
-    id: `issuers-${c.toLowerCase()}`, kind: "issuers", match: (b) => b.country === c, topics: ["credit", "ytm"],
+    id: `issuers-${c.toLowerCase()}`, kind: "issuers", match: (b) => countryCode(b) === c, topics: ["credit", "ytm"],
     related: [`gov-${c.toLowerCase()}`, "corporate"], home: [c === "IT" ? "it" : c === "FR" ? "fr" : "de"],
     text: {
       it: { slug: `emittenti-${names[0]}`, h1: `Obbligazioni in euro di emittenti ${names[0]}`, title: `Obbligazioni di emittenti ${names[0]}: confronto`, description: `Obbligazioni in euro di emittenti con sede in ${names[3]}: rendimento a scadenza, duration e rischio a confronto, aggiornati ogni giorno.`, intro: [c === "IT" ? "Molti risparmiatori italiani preferiscono emittenti che conoscono: lo Stato, le banche e le grandi aziende del Paese. Conoscere il nome non riduce il rischio: contano il rischio di credito, la duration e diversificazione." : `Le obbligazioni di emittenti con sede in ${names[3]} sono un modo per diversificare fuori dall'Italia restando in euro, senza rischio di cambio.`, `Qui trovi le obbligazioni in euro di emittenti con Paese ${names[3]}, una per emittente, ordinate per rendimento a scadenza.`] },
