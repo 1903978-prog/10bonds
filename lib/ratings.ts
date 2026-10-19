@@ -42,6 +42,15 @@ const RISK_BY_NOTCH = [1, 2, 2, 2, 3, 3, 3, 4, 5, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 
 export const RISK_MIN = 1;
 export const RISK_MAX = 10;
 
+/** The agency grade the risk score comes from, e.g. "S&P BB-", "Moody's B1" or "Fitch B+" (admin only). */
+export function ratingSourceLabel(b: Parameters<typeof bondNotch>[0]): string | null {
+  const n = bondNotch(b);
+  if (n === null) return null;
+  const agencies: [string, string | null][] = [["S&P", b.ratingSp], ["Moody's", b.ratingMoodys], ["Fitch", b.ratingFitch]];
+  const hit = agencies.find(([, g]) => notchOf(g) === n);
+  return hit ? `${hit[0]} ${hit[1]!.trim()}` : spGradeOf(n);
+}
+
 /** Risk score 1..10 for a notch, or null when unrated or in default. */
 export function riskOfNotch(notch: number | null): number | null {
   return notch === null ? null : RISK_BY_NOTCH[notch] ?? null;

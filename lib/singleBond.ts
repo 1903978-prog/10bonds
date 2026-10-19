@@ -1,6 +1,6 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { RISK_LEVELS } from "./limits";
-import { bondNotch, bondRisk } from "./ratings";
+import { bondNotch, bondRisk, ratingSourceLabel } from "./ratings";
 import { issuerKey } from "./ranking";
 import type { ResultRow } from "./tiers";
 
@@ -45,7 +45,7 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
 export type CurvePoint = { level: number; label: string; ytm: number | null; options: ResultRow[]; more: number };
 
 /** Cut each step down to what this tier may see. Visitors see the best bond of each step only, without details. */
-/** `admin`: also add each bond's S&P grade (admin only, never for customers). */
+/** `admin`: also add the agency grade each bond's risk score comes from (admin only, never for customers). */
 export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, admin = false): CurvePoint[] {
   return curve.map(({ level, label, bonds }) => {
     const ytm = bonds[0]?.grossYtm ?? null;
@@ -56,7 +56,7 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, a
       const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country, minInvestment: b.minInvestment ?? null };
       if (tier === "free") return free;
       const paid: ResultRow = { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
-      return admin ? { ...paid, sp: b.ratingSp ?? null } : paid;
+      return admin ? { ...paid, sp: ratingSourceLabel(b) } : paid;
     });
     return { level, label, ytm, options, more: bonds.length - visible.length };
   });

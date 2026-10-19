@@ -143,7 +143,7 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
       {axis.map((p) => (
         <text key={p.level} x={x(p.level)} y={H - B + 17} textAnchor="middle" fontSize="13" fill="#86868b">
           {p.label}
-          {admin && <tspan x={x(p.level)} dy={14} fontSize="10" data-testid={`sp-${p.level}`}>{p.options[0] ? p.options[0].sp ?? "S&P –" : ""}</tspan>}
+          {admin && <tspan x={x(p.level)} dy={14} fontSize="10" data-testid={`sp-${p.level}`}>{p.options[0] ? p.options[0].sp ?? "–" : ""}</tspan>}
         </text>
       ))}
       {ghosts.map((p) => (
@@ -209,7 +209,7 @@ function BondBox(props: {
       </div>
       <dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
         {row("ISIN", paid ? bond.isin : lock)}
-        {row(t.risk, signedIn ? <>{bond.sp !== undefined && <span className="mr-1.5 text-mute">S&amp;P {bond.sp ?? "–"}</span>}<RiskBadge risk={bond.risk} title={t.riskNote} /></> : lock)}
+        {row(t.risk, signedIn ? <>{bond.sp !== undefined && <span className="mr-1.5 text-mute">{bond.sp ?? "–"}</span>}<RiskBadge risk={bond.risk} title={t.riskNote} /></> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}
