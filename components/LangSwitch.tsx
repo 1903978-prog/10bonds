@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LANG_COOKIE, LOCALE, LOCALES, type Locale } from "@/lib/seo/locales";
 
 // Language switcher in the header. The page shown is always in the language the visitor picked here; nothing
@@ -48,19 +48,64 @@ export default function LangSwitch() {
     else if (pathname === "/") remember("en");
   }, [pathname, current]);
 
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+
+  // Closes the menu on a click elsewhere, on Escape and on navigation.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  useEffect(() => setOpen(false), [pathname]);
+
+  const others = [
+    ...(current === null ? [] : [{ code: "en" as const, href: enHref, hreflang: "en", name: "English" }]),
+    ...LOCALES.filter((l) => l !== current).map((l) => ({ code: l, href: hrefs[l], hreflang: LOCALE[l].hreflang, name: LOCALE[l].name })),
+  ];
+
   return (
-    <>
-      <span className="hidden items-center gap-1.5 text-xs sm:flex" aria-label="Language">
-        <Link href={enHref} hrefLang="en" onClick={() => remember("en")} className={current === null ? "font-semibold text-ink" : "hover:text-ink"} title="English" data-testid="lang-en">
-          EN
-        </Link>
-        {LOCALES.map((l) => (
-          <Link key={l} href={hrefs[l]} hrefLang={LOCALE[l].hreflang} onClick={() => remember(l)} className={l === current ? "font-semibold text-ink" : "hover:text-ink"} title={LOCALE[l].name}>
-            {l.toUpperCase()}
-          </Link>
-        ))}
-      </span>
-    </>
+    <span ref={box} className="relative hidden text-xs sm:inline-block" aria-label="Language">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={current ? LOCALE[current].name : "English"}
+        className="flex items-center gap-0.5 font-semibold text-ink"
+        data-testid="lang-current"
+      >
+        {(current ?? "en").toUpperCase()}
+        <svg viewBox="0 0 10 6" className={`h-1.5 w-2.5 text-mute transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true">
+          <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <span role="menu" className="absolute left-1/2 top-full z-30 mt-2 flex -translate-x-1/2 flex-col rounded-lg border border-line bg-white py-1 shadow-lg">
+          {others.map((o) => (
+            <Link
+              key={o.code}
+              role="menuitem"
+              href={o.href}
+              hrefLang={o.hreflang}
+              onClick={() => remember(o.code)}
+              title={o.name}
+              className="px-3 py-1.5 text-center hover:bg-line/40 hover:text-ink"
+              data-testid={`lang-${o.code}`}
+            >
+              {o.code.toUpperCase()}
+            </Link>
+          ))}
+        </span>
+      )}
+    </span>
   );
 }
-

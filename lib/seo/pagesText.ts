@@ -80,8 +80,8 @@ export const METHOD: Record<Locale, Method> = {
     lead: "Come scegliamo le obbligazioni che vedi, da dove arrivano i dati e cosa non possiamo garantire.",
     sections: [
       { id: "ranking", h2: "Come funziona la classifica", paras: [
-        "Indichi due criteri: una duration e un rendimento a scadenza obiettivo. Prendiamo le obbligazioni in euro con duration entro un anno da quella scelta, allargando la finestra di mezzo anno alla volta (fino a tre anni) finché ci sono almeno 10 emittenti diversi.",
-        "Tra queste scegliamo 10 obbligazioni, una per emittente, il cui rendimento medio è il più vicino possibile al tuo obiettivo, preferendo obbligazioni con rendimento singolo vicino all'obiettivo e rischio più basso. Le mostriamo dalla più vicina all'obiettivo. Con il terzo cursore scegli il rischio massimo che accetti, da 1 (più basso) a 10 (più alto).",
+        "Indichi due criteri: una duration e un rendimento a scadenza obiettivo. Prendiamo le obbligazioni in euro con duration entro il ±20% di quella scelta (per 13 anni: da 10,4 a 15,6), allargando la finestra di mezzo anno alla volta finché ci sono almeno 10 emittenti diversi.",
+        "Tra queste scegliamo 10 obbligazioni, una per emittente, con il rendimento più alto e il rischio più basso possibili: il rendimento medio raggiunge almeno il tuo obiettivo e la duration media resta vicina a quella scelta. Le mostriamo dalla migliore per rendimento e rischio. Con il terzo cursore scegli il rischio massimo che accetti, da 1 (più basso) a 10 (più alto).",
         "Il rendimento massimo che puoi chiedere per ogni duration è la media dei 10 emittenti con il rendimento più alto: oltre quel valore nessuna lista di 10 obbligazioni potrebbe raggiungerlo.",
       ] },
       { id: "sources", h2: "Fonti dei dati", paras: [
@@ -107,8 +107,8 @@ export const METHOD: Record<Locale, Method> = {
     lead: "Comment nous choisissons les obligations affichées, d'où viennent les données et ce que nous ne pouvons pas garantir.",
     sections: [
       { id: "ranking", h2: "Comment fonctionne le classement", paras: [
-        "Vous indiquez deux critères : une duration et un rendement à l'échéance cible. Nous retenons les obligations en euros dont la duration est à moins d'un an de votre choix, en élargissant la fenêtre d'une demi-année à la fois (jusqu'à trois ans) jusqu'à obtenir au moins 10 émetteurs différents.",
-        "Parmi elles, nous choisissons 10 obligations, une par émetteur, dont le rendement moyen est le plus proche possible de votre cible, en privilégiant les obligations dont le rendement est proche de la cible et le risque plus faible. Elles sont affichées de la plus proche à la plus éloignée de la cible. Le troisième curseur fixe le risque maximal accepté, de 1 (le plus faible) à 10 (le plus élevé).",
+        "Vous indiquez deux critères : une duration et un rendement à l'échéance cible. Nous retenons les obligations en euros dont la duration est à ±20 % de votre choix (pour 13 ans : de 10,4 à 15,6), en élargissant la fenêtre d'une demi-année à la fois jusqu'à réunir au moins 10 émetteurs différents.",
+        "Parmi elles, nous choisissons 10 obligations, une par émetteur, au rendement le plus élevé et au risque le plus faible possibles : le rendement moyen atteint au moins votre objectif et la duration moyenne reste proche de votre choix. Nous les affichons de la meilleure en rendement et risque à la moins bonne. Le troisième curseur fixe le risque maximal accepté, de 1 (le plus faible) à 10 (le plus élevé).",
         "Le rendement maximal que vous pouvez demander pour chaque duration est la moyenne des 10 émetteurs les mieux rémunérés : au-delà, aucune liste de 10 obligations ne pourrait l'atteindre.",
       ] },
       { id: "sources", h2: "Sources des données", paras: [
@@ -134,8 +134,8 @@ export const METHOD: Record<Locale, Method> = {
     lead: "Wie wir die angezeigten Anleihen auswählen, woher die Daten stammen und was wir nicht garantieren können.",
     sections: [
       { id: "ranking", h2: "So funktioniert die Auswahl", paras: [
-        "Sie geben zwei Kriterien vor: eine Duration und eine Zielrendite bis Fälligkeit. Wir nehmen Euro-Anleihen, deren Duration höchstens ein Jahr von Ihrer Wahl abweicht, und erweitern das Fenster in Halbjahresschritten (bis drei Jahre), bis mindestens 10 verschiedene Emittenten dabei sind.",
-        "Daraus wählen wir 10 Anleihen, eine je Emittent, deren Durchschnittsrendite Ihrer Zielrendite möglichst nahe kommt, wobei Anleihen mit Einzelrendite nahe am Ziel und geringerem Risiko bevorzugt werden. Angezeigt werden sie nach Nähe zum Ziel. Mit dem dritten Regler wählen Sie das höchste akzeptierte Risiko, von 1 (am geringsten) bis 10 (am höchsten).",
+        "Sie geben zwei Kriterien vor: eine Duration und eine Zielrendite bis Fälligkeit. Wir nehmen Euro-Anleihen mit einer Duration innerhalb von ±20 % Ihrer Wahl (bei 13 Jahren: 10,4 bis 15,6), und erweitern das Fenster in Halbjahresschritten, bis mindestens 10 verschiedene Emittenten enthalten sind.",
+        "Daraus wählen wir 10 Anleihen, eine je Emittent, mit möglichst hoher Rendite und möglichst geringem Risiko: Die Durchschnittsrendite erreicht mindestens Ihr Ziel und die durchschnittliche Duration bleibt nahe Ihrer Wahl. Wir zeigen sie von der besten Kombination aus Rendite und Risiko an. Mit dem dritten Regler wählen Sie das höchste akzeptierte Risiko, von 1 (am niedrigsten) bis 10 (am höchsten).",
         "Die höchste wählbare Zielrendite je Duration ist der Durchschnitt der 10 renditestärksten Emittenten: Darüber könnte keine Liste aus 10 Anleihen das Ziel erreichen.",
       ] },
       { id: "sources", h2: "Datenquellen", paras: [

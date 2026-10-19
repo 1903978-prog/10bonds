@@ -5,6 +5,7 @@ import { SEED_GUIDES } from "./guidesSeed";
 import { SEED_GUIDES_LIVIO_FR } from "./guidesLivioFr";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
+import { SEED_GUIDES_WAVE2 } from "./guidesSeedWave2";
 import { landingFor } from "./landingLivio";
 import { EXTRA_IT } from "./guidesExtraIt";
 import { SEED_KEYWORDS } from "./keywordsSeed";
@@ -267,6 +268,24 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
           status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = ${g.locale} and slug = ${g.slug} and status <> 'published' returning id`;
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Full localized version published (19 Oct 2026)."})`;
+    }
+  }
+  // The last missing or outline guides of the translation matrix (19 Oct 2026, Livio asked to fill and publish them),
+  // once: full text replaces the outline of the same slug. The other seed guides still in draft or review are published
+  // too, except outlines that still carry the "to complete" note. A guide Livio later moves back stays where he puts it.
+  const [wave2] = await s`insert into app.settings (key, value) values ('seo_wave2_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (wave2) {
+    for (const g of SEED_GUIDES_WAVE2) {
+      const [row] = await s`update app.seo_guides set title = ${g.title}, seo_title = ${g.seoTitle}, meta_description = ${g.metaDescription}, body_html = ${g.bodyHtml},
+          primary_keyword = ${g.primaryKeyword}, related_keywords = ${g.relatedKeywords}, related_slugs = ${g.relatedSlugs}, translation_group = ${g.group ?? g.topic},
+          status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
+        where locale = ${g.locale} and slug = ${g.slug} and status <> 'published' returning id`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Full guide published (19 Oct 2026)."})`;
+    }
+    for (const g of SEED_GUIDES.filter((x) => !SEED_GUIDES_WAVE2.includes(x))) {
+      const [row] = await s`update app.seo_guides set status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
+        where locale = ${g.locale} and slug = ${g.slug} and status in ('draft', 'review') and body_html not like ${"%<blockquote><strong>%"} returning id`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at Livio's request (19 Oct 2026)."})`;
     }
   }
   for (const k of SEED_KEYWORDS) {

@@ -198,12 +198,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         />
         </>)}
 
-        <p className="mt-4 text-[11px] leading-snug text-mute">
-          {mode === "portfolio"
-            ? t.howPortfolio
-            : t.howSingle}
-        </p>
-        <p className="mt-1 text-[11px] leading-snug text-mute">{t.riskNote}</p>
       </section>
 
       {/* Results */}
@@ -214,6 +208,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             <span aria-hidden>ⓘ</span>
             <span>{t.info} {t.gross}</span>
           </p>
+          <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote}</p>
         </section>
       ) : (
       <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
@@ -258,6 +253,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="yields-date">
           {data?.asOf ? `${t.asOf} ${plainDate(data.asOf, lang)}. ` : ""}{t.gross}
         </p>
+        <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
       </section>
       )}
     </div>
