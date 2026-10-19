@@ -1,3 +1,4 @@
+import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -91,7 +92,8 @@ export default async function LocaleHome({ params }: Props) {
         <p className="mt-3 text-sm"><Link href="/pricing" className="text-accent">{h.plansLink} ›</Link> · <Link href={pathOf(l, "method")} className="text-accent">{t.method}</Link> · <Link href={pathOf(l, "team")} className="text-accent">{t.team}</Link></p>
       </section>
       <div className="mx-auto max-w-3xl"><RiskNote locale={l} /></div>
-      <JsonLd data={{ "@context": "https://schema.org", "@type": "WebSite", name: "10BONDS", url: `${SITE_URL}/${l}`, inLanguage: LOCALE[l].hreflang, description: h.description }} />
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "WebSite", name: "10BONDS", url: `${SITE_URL}/${l}`, inLanguage: LOCALE[l].hreflang, description: h.description, publisher: ORGANIZATION }} />
+      <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />
     </div>
   );
 }

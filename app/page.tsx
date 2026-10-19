@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Finder from "@/components/Finder";
+import { JsonLd } from "@/components/seo/Seo";
+import { ORGANIZATION } from "@/lib/seo/org";
 import { getSeoSetting } from "@/lib/seo/store";
 import { accountsConfigured } from "@/lib/accounts";
 
@@ -14,5 +16,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Home() {
-  return <Finder />;
+  return (
+    <>
+      <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />
+      <Finder />
+    </>
+  );
 }
