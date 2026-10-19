@@ -28,9 +28,17 @@ describe("rankBonds", () => {
     expect(results.map((r) => r.isin)).toEqual(["NEAR"]);
   });
 
-  it("prefers the bond closest to the target yield", () => {
-    const bonds = [bond("CLOSE", 4.05, 5, "A"), bond("OFF", 5.5, 5, "A")];
-    expect(rankBonds(bonds, 5, 4).results[0].isin).toBe("CLOSE");
+  it("puts the higher yield first at the same risk, even below the target", () => {
+    const bonds = [bond("LOW", 4.05, 5, "A"), bond("HIGH", 5.5, 5, "A")];
+    expect(rankBonds(bonds, 5, 4).results[0].isin).toBe("HIGH");
+  });
+
+  it("keeps durations within ±20% of the target (13 years: 10.4 to 15.6)", () => {
+    const bonds = [10.3, 10.5, 13, 15.5, 15.7].map((d, i) => ({ ...bond(`D${d}`, 4, d, "A"), issuer: `I${i}` }));
+    const { results, band } = rankBonds([...bonds, ...Array.from({ length: 10 }, (_, i) => ({ ...bond(`F${i}`, 4, 13, "A"), issuer: `F${i}` }))], 13, 3);
+    expect(band).toBeCloseTo(2.6, 10);
+    expect(results.map((r) => r.isin)).not.toContain("D10.3");
+    expect(results.map((r) => r.isin)).not.toContain("D15.7");
   });
 
   it("lets a better rating win when yields are equally close", () => {
@@ -38,9 +46,9 @@ describe("rankBonds", () => {
     expect(rankBonds(bonds, 5, 4).results[0].isin).toBe("AA");
   });
 
-  it("scores |yield gap| + penalty x notch, worked by hand", () => {
+  it("scores yield - penalty x notch, worked by hand", () => {
     const [r] = rankBonds([bond("X", 4.5, 5, "A-")], 5, 4).results;
-    expect(r.score).toBeCloseTo(0.5 + NOTCH_PENALTY * 6, 10);
+    expect(r.score).toBeCloseTo(4.5 - NOTCH_PENALTY * 6, 10);
   });
 
   it("widens the duration band when fewer than 10 bonds are near", () => {
@@ -126,10 +134,22 @@ describe("ytmCaps", () => {
   });
 });
 
-describe("closest yield first", () => {
-  it("a bond nearer the target beats a better-rated one further away (Livio's 15-year case)", () => {
-    const bonds = [{ ...bond("FR", 5.35, 15.5, "A+"), issuer: "France" }, { ...bond("BAY", 5.75, 14.1, "BBB"), issuer: "Bayer AG" }];
-    expect(rankBonds(bonds, 15, 9.7, 2).results.map((r) => r.isin)).toEqual(["BAY", "FR"]);
+describe("highest yield with the lowest risk", () => {
+  it("a safer bond with a slightly lower yield beats a riskier one", () => {
+    // AA scores 4.6 - 0.2 = 4.4, A 4.5 - 0.5 = 4.0, BBB- 4.8 - 0.9 = 3.9.
+    const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
+    expect(rankBonds(bonds, 13, 3, 2).results.map((r) => r.isin)).toEqual(["AA", "A"]);
+  });
+  it("takes on more risk only when that is needed to reach the target yield", () => {
+    const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
+    expect(rankBonds(bonds, 13, 4.6, 2).results.map((r) => r.isin).sort()).toEqual(["AA", "BBB"]);
+  });
+  it("keeps the average duration near the target", () => {
+    // Long bonds yield more, but the list should not drift to the long end of the window.
+    const bonds = Array.from({ length: 30 }, (_, i) => ({ ...bond(`L${i}`, 3 + (i % 10) * 0.1 + (i >= 20 ? 0.5 : 0), i >= 20 ? 15.5 : i >= 10 ? 13 : 10.5, "A"), issuer: `L${i}` }));
+    const { results } = rankBonds(bonds, 13, 3);
+    const avgDur = results.reduce((s, r) => s + r.modifiedDuration!, 0) / results.length;
+    expect(Math.abs(avgDur - 13)).toBeLessThanOrEqual(13 * 0.05 + 1e-9);
   });
 });
 
@@ -169,12 +189,11 @@ describe("the list's average matches the target and the maximum", () => {
     expect(results.map((r) => r.isin).sort()).toEqual(top10);
     expect(Math.abs(mean(results) - cap)).toBeLessThan(0.011);
   });
-  it("for any lower target the average is within 0.05 of it", () => {
-    // Reachable targets: from the 10 lowest yields (avg 2.9) up to the maximum.
-    for (let t = 3.0; t <= 6.8; t += 0.1) {
+  it("for any lower target the average reaches it", () => {
+    for (let t = 1.0; t <= 6.8; t += 0.1) {
       const { results } = rankBonds(many, 5, t);
       expect(results).toHaveLength(10);
-      expect(Math.abs(mean(results) - t)).toBeLessThan(0.05);
+      expect(mean(results)).toBeGreaterThanOrEqual(t - 1e-9);
       expect(new Set(results.map((r) => r.issuer)).size).toBe(10);
     }
   });
