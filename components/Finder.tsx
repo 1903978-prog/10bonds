@@ -10,6 +10,7 @@ import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
+import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
@@ -44,6 +45,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [size, setSize] = useState<BondFilter["size"]>("100k");
   const [minKnown, setMinKnown] = useState<boolean | null>(null);
   const sizeTouched = useRef(false);
+  // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
+  const [touched, setTouched] = useState(false);
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
@@ -66,11 +69,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, [currency, size]);
 
   const changeDuration = (d: number) => {
+    setTouched(true);
     setDuration(d);
     const cap = capFor(d, risk);
     setYtm((y) => (y > cap ? cap : y));
   };
   const changeRisk = (r: number) => {
+    setTouched(true);
     setRisk(r);
     const cap = capFor(duration, r);
     setYtm((y) => (y > cap ? cap : y));
@@ -137,7 +142,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               key={m}
               role="tab"
               aria-selected={mode === m}
-              onClick={() => setMode(m)}
+              onClick={() => { setTouched(true); setMode(m); }}
               className={`rounded-full px-4 py-1.5 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
             >
               {label}
@@ -146,12 +151,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => setCurrency(v as BondFilter["currency"])} testId="toggle-currency" />
+          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" />
           <Toggle
             label={t.minOrder}
             value={size}
             options={[["1k", t.small], ["100k", t.allSizes]]}
-            onChange={(v) => { sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
+            onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
             testId="toggle-size"
             disabled={minKnown === false ? ["1k"] : []}
           />
@@ -181,7 +186,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           step={LIMITS.ytm.step}
           minLabel="1.0%"
           maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
-          onChange={setYtm}
+          onChange={(v) => { setTouched(true); setYtm(v); }}
         />
         {/* Risk 1 (lowest) always on the right: the slider position is 11 - risk. */}
         <Slider
@@ -207,7 +212,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
         </section>
       ) : (
-      <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+      <section className="relative rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+        {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
+        {!touched && (
+          <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
+            <Frontier currency={currency} />
+          </div>
+        )}
         {data?.source === "sample" && (
           <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {t.sample}
