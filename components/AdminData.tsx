@@ -48,7 +48,7 @@ export default function AdminData() {
             ))}
           </div>
           <p className="mt-2 text-xs text-mute">
-            Shown on the site: {ok.shownOnSite} (EUR, rated, fresh, modelled). Newest yield: {when(ok.newestYtm)}. The copy holds yields, not prices, so a price refresh shows here as an updated yield.
+            Shown on the site: {ok.shownOnSite} (EUR and USD, rated, fresh, modelled). Newest yield: {when(ok.newestYtm)}. The copy holds yields, not prices, so a price refresh shows here as an updated yield.
           </p>
         </>
       )}

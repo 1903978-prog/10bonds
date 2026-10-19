@@ -71,7 +71,7 @@ async function loadAllBonds(): Promise<BondSource> {
     grossYtm: num(r.gross_ytm),
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
-    minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot))),
+    minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot), r.currency)),
   }));
   // Unrated bonds never appear on the site (Livio, 18/10/2026).
   const fresh = dropStale(bonds).filter((b) => bondNotch(b) !== null);
@@ -123,7 +123,7 @@ export async function bondDataStats(): Promise<{
            count(*) filter (where gross_ytm is not null and ytm_as_of > now() - interval '24 hours') ytm_24h,
            max(ytm_as_of) newest
     from public_bonds`;
-  const shown = await loadBonds().then((d) => d.bonds.length).catch(() => 0);
+  const shown = await loadAllBonds().then((d) => d.bonds.length).catch(() => 0);
   return {
     total: Number(r.total),
     withYtm: Number(r.with_ytm),
