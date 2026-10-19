@@ -24,3 +24,30 @@ describe("rating methodology", () => {
     for (const l of METHOD_LANGS) expect(METHOD[l].factors).toHaveLength(16);
   });
 });
+
+import { CORP, CORP_WEIGHTS } from "./methodology";
+import { CORPORATE_MD, SOVEREIGN_MD } from "./methodologyText";
+import { parseMethodDoc } from "./methodDoc";
+
+describe("corporate methodology", () => {
+  it("pillar weights add to 100 and every language has 5 pillars and 4 steps", () => {
+    expect(CORP_WEIGHTS.reduce((s, w) => s + w, 0)).toBe(100);
+    for (const l of METHOD_LANGS) {
+      expect(CORP[l].pillars).toHaveLength(5);
+      expect(CORP[l].flow).toHaveLength(4);
+    }
+  });
+  it("parses both full texts into their sections", () => {
+    const corp = parseMethodDoc(CORPORATE_MD);
+    expect(corp.map((s) => s.title)[0]).toBe("Overview");
+    expect(corp).toHaveLength(11);
+    expect(corp[3].subs).toHaveLength(8);
+    expect(corp[2].intro.filter((b) => b.t === "pillar").reduce((s, b) => s + (b.t === "pillar" ? b.weight : 0), 0)).toBe(100);
+    const sov = parseMethodDoc(SOVEREIGN_MD);
+    expect(sov).toHaveLength(13);
+    expect(sov[1].intro.some((b) => b.t === "table" && b.rows.length === 16)).toBe(true);
+  });
+  it("leaves no pasted-in artefacts", () => {
+    expect(CORPORATE_MD).not.toMatch(/favicon|Illustrative only|\+2\n|&#x20;/);
+  });
+});
