@@ -1,24 +1,7 @@
 /** @type {import('next').NextConfig} */
 
-// Browser safety rules sent with every page and file.
-// Everything the site loads comes from its own address; Stripe and Resend are only called from the server.
-// Next.js puts small inline scripts and styles in each page, so those stay allowed.
-// Development also needs 'unsafe-eval' for hot reload.
-const dev = process.env.NODE_ENV !== "production";
-const csp = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  `connect-src 'self'${dev ? " ws:" : ""}`,
-  "object-src 'none'",
-  "base-uri 'self'",
-  "frame-ancestors 'none'",
-].join("; ");
-
+// The Content-Security-Policy is set per request in middleware.ts (it needs a fresh nonce every time).
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
