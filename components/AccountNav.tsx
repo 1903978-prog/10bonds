@@ -17,7 +17,8 @@ export default function AccountNav() {
         <Link href="/signup" className="rounded-full bg-accent px-3.5 py-1.5 font-medium text-white hover:bg-[#0077ed]"><span className="sm:hidden">Sign up</span><span className="hidden sm:inline">Sign up free</span></Link>
       </>
     );
-  const days = trialDaysLeft(me);
+  // The admin has full access for good: no trial badge.
+  const days = me.isAdmin || me.adminState ? null : trialDaysLeft(me);
   return (
     <>
       {(me.isAdmin || me.adminState) && <Link href="/admin" className="hover:text-ink" data-testid="nav-admin">Admin</Link>}

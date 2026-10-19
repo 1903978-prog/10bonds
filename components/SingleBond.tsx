@@ -8,13 +8,14 @@ import type { Tier } from "@/lib/types";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
 import { downloadXlsx } from "@/lib/xlsx";
+import { fmtMin } from "@/lib/fmtMin";
 
 type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 
 /** One-bond mode: best yield per risk step for the chosen duration; click a dot to see that bond, "Change" for the next one. */
-export default function SingleBond({ duration, preview }: { duration: number; preview: string | null }) {
+export default function SingleBond({ duration, preview, currency = "EUR", size = "100k" }: { duration: number; preview: string | null; currency?: string; size?: string }) {
   const t = useFinderText();
   const errText = t.error;
   const [data, setData] = useState<Payload | null>(null);
@@ -29,7 +30,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const qs = new URLSearchParams({ duration: String(duration) });
+        const qs = new URLSearchParams({ duration: String(duration), currency, size });
         if (preview) qs.set("preview", preview);
         const res = await fetch(`/api/bonds/curve?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
@@ -54,7 +55,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, preview]);
+  }, [duration, preview, currency, size]);
 
   const tier = data?.tier ?? "visitor";
   const points = data?.points ?? [];
@@ -95,7 +96,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
 
 function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
   const t = useFinderText();
-  const W = 420, H = 260, L = 56, R = 22, T = 22, B = 46;
+  const W = 460, H = 200, L = 52, R = 22, T = 22, B = 40;
   const ys = points.map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
   const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
@@ -117,11 +118,11 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
         </g>
       ))}
       {points.map((p) => (
-        <text key={p.level} x={x(p.level)} y={H - B + 20} textAnchor="middle" fontSize="12" fill="#86868b">
+        <text key={p.level} x={x(p.level)} y={H - B + 17} textAnchor="middle" fontSize="12" fill="#86868b">
           {p.label}
         </text>
       ))}
-      <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
+      <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
       <path d={path} fill="none" stroke="#0071e3" strokeWidth="2.5" strokeLinejoin="round" />
       {drawn.map((p) => (
         <g key={p.level} onClick={() => onPick(p.level)} style={{ cursor: "pointer" }} data-testid={`dot-${p.level}`}>
@@ -150,17 +151,17 @@ function BondBox(props: {
   const t = useFinderText();
   const lock = signedIn ? <Link href="/pricing" className="text-accent">{t.withPlus}</Link> : <Link href="/signup" className="text-accent">{t.freeAccountLower}</Link>;
   const row = (k: string, v: React.ReactNode) => (
-    <div className="flex justify-between gap-4 border-b border-line/60 py-2 text-sm last:border-0">
+    <div className="flex justify-between gap-3 border-b border-line/60 py-1 text-[13px]">
       <dt className="text-mute">{k}</dt>
       <dd className="text-right font-medium tabular-nums">{v}</dd>
     </div>
   );
   return (
-    <div className="mt-4 rounded-2xl border border-line/70 p-5" data-testid="bond-box">
+    <div className="mt-3 rounded-2xl border border-line/70 px-4 py-3" data-testid="bond-box">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xs text-mute">{t.ratingStep} {props.label}{props.bond.rank > 1 ? ` · ${t.option} ${props.bond.rank}` : ""}</div>
-          <div className="mt-0.5 truncate text-[19px] font-semibold">{bond.issuer}</div>
+          <div className="mt-0.5 truncate text-[17px] font-semibold">{bond.issuer}</div>
           {paid && <div className="truncate text-sm text-mute">{bond.name}</div>}
         </div>
         <div className="text-right">
@@ -168,15 +169,16 @@ function BondBox(props: {
           <div className="text-xs text-mute">{t.yieldLower}</div>
         </div>
       </div>
-      <dl className="mt-3">
+      <dl className="mt-2 grid grid-cols-1 gap-x-6 sm:grid-cols-2">
         {row("ISIN", paid ? bond.isin : lock)}
         {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} /> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}
-        {row(t.country, signedIn ? bond.country ?? "—" : lock)}
+        {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment) : lock)}
+        {(!signedIn || bond.country) && row(t.country, signedIn ? bond.country : lock)}
       </dl>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         {props.canChange ? (
           <button onClick={props.onChange} className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0077ed]">
             {t.change}
@@ -194,8 +196,8 @@ function BondBox(props: {
             onClick={() =>
               downloadXlsx(
                 [
-                  [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.risk, t.duration, `${t.coupon} %`, t.maturity, t.country],
-                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.risk, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null],
+                  [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.risk, t.duration, `${t.coupon} %`, t.maturity, t.country, t.minInvest],
+                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.risk, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null, bond.minInvestment ?? null],
                 ],
                 `10bonds-${bond.isin ?? "bond"}.xlsx`,
                 "Bond",

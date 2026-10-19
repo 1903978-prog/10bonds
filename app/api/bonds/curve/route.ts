@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
-import { loadBonds } from "@/lib/bonds";
+import { loadBondsFor } from "@/lib/bonds";
+import { parseFilter } from "@/lib/bondFilter";
 import { shapeCurve } from "@/lib/singleBond";
-import { bestTable, curveAt } from "@/lib/bestTable";
+import { bestTableFor, curveAt } from "@/lib/bestTable";
 import { RISK_LEVELS } from "@/lib/limits";
 import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
@@ -23,7 +24,8 @@ export async function GET(req: Request) {
 
   let data, table;
   try {
-    [data, table] = await Promise.all([loadBonds(), bestTable()]);
+    const f = parseFilter(url.searchParams);
+    [data, table] = await Promise.all([loadBondsFor(f), bestTableFor(f)]);
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }

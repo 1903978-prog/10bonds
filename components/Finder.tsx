@@ -10,6 +10,8 @@ import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
+import { fmtMin } from "@/lib/fmtMin";
+import type { BondFilter } from "@/lib/bondFilter";
 import WhereToTrade from "./brokers/WhereToTrade";
 
 type Response = ResultsPayload & {
@@ -38,21 +40,29 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
+  const [currency, setCurrency] = useState<BondFilter["currency"]>("EUR");
+  const [size, setSize] = useState<BondFilter["size"]>("100k");
+  const [minKnown, setMinKnown] = useState<boolean | null>(null);
+  const sizeTouched = useRef(false);
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
 
   useEffect(() => {
-    fetch("/api/bonds/caps")
+    fetch(`/api/bonds/caps?${new URLSearchParams({ currency, size })}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((b) => {
         if (!b?.caps) return;
         setCaps(b.caps);
-        const cap = b.caps[String(LIMITS.risk.initial)]?.[String(LIMITS.duration.initial)];
+        setMinKnown(Boolean(b.minKnown));
+        // Small orders (1k-10k) is the default once the data says which bonds they are.
+        if (b.minKnown && !sizeTouched.current && size === "100k") { sizeTouched.current = true; setSize("1k"); }
+        const cap = b.caps[String(risk)]?.[String(Math.round(duration * 100) / 100)];
         if (typeof cap === "number") setYtm((y) => Math.min(y, cap));
       })
       .catch(() => {});
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency, size]);
 
   const changeDuration = (d: number) => {
     setDuration(d);
@@ -76,7 +86,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk) });
+        const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (preview.current) qs.set("preview", preview.current);
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
@@ -100,7 +110,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode]);
+  }, [duration, ytm, risk, mode, currency, size]);
 
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
@@ -133,6 +143,18 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             </button>
           ))}
         </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => setCurrency(v as BondFilter["currency"])} testId="toggle-currency" />
+          <Toggle
+            label={t.minOrder}
+            value={size}
+            options={[["1k", t.small], ["100k", t.allSizes]]}
+            onChange={(v) => { sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
+            testId="toggle-size"
+          />
+        </div>
+        {minKnown === false && <p className="mt-1.5 text-[11px] leading-snug text-mute">{t.minNoData}</p>}
 
         <Slider
           label={t.horizon}
@@ -184,15 +206,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
       {/* Results */}
       {mode === "single" ? (
-        <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
-          <SingleBond duration={duration} preview={preview.current} />
-          <p className="mt-5 flex gap-2 rounded-2xl bg-canvas px-4 py-3 text-xs leading-relaxed text-mute">
+        <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+          <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
+          <p className="mt-3 flex gap-2 rounded-2xl bg-canvas px-4 py-2.5 text-xs leading-relaxed text-mute">
             <span aria-hidden>ⓘ</span>
             <span>{t.info} {t.gross}</span>
           </p>
         </section>
       ) : (
-      <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+      <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
         {data?.source === "sample" && (
           <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {t.sample}
@@ -221,7 +243,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {!limit && <QuotaNote quota={data?.quota} />}
         </div>
 
-        <p className="mt-5 flex gap-2 rounded-2xl bg-canvas px-4 py-3 text-xs leading-relaxed text-mute">
+        <p className="mt-3 flex gap-2 rounded-2xl bg-canvas px-4 py-2.5 text-xs leading-relaxed text-mute">
           <span aria-hidden>ⓘ</span>
           <span>
             {t.info}
@@ -249,7 +271,7 @@ function Slider(props: {
 }) {
   const fill = ((props.value - props.min) / (props.max - props.min)) * 100;
   return (
-    <div className="mt-8">
+    <div className="mt-5">
       <div className="flex items-baseline justify-between">
         <label className="text-[15px] font-semibold">{props.label}</label>
         <span className="text-[17px] font-semibold tabular-nums">{props.display}</span>
@@ -257,7 +279,7 @@ function Slider(props: {
       <input
         type="range"
         aria-label={props.label}
-        className="slider mt-4"
+        className="slider mt-3"
         min={props.min}
         max={props.max}
         step={props.step}
@@ -268,6 +290,28 @@ function Slider(props: {
       <div className="mt-2 flex justify-between text-xs text-mute">
         <span>{props.minLabel}</span>
         <span>{props.maxLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ label, value, options, onChange, testId }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; testId: string }) {
+  return (
+    <div>
+      <div className="text-xs font-medium text-mute">{label}</div>
+      <div role="radiogroup" aria-label={label} data-testid={testId} className="mt-1 grid grid-cols-2 rounded-full bg-canvas p-0.5 text-[13px] font-medium">
+        {options.map(([v, text]) => (
+          <button
+            key={v}
+            type="button"
+            role="radio"
+            aria-checked={value === v}
+            onClick={() => onChange(v)}
+            className={`rounded-full px-2 py-1 transition ${value === v ? "bg-white shadow-sm" : "text-mute"}`}
+          >
+            {text}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -303,15 +347,16 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
             <th className="py-2 font-medium">{t.bond}</th>
             <th className="py-2 text-right font-medium">{t.yield}</th>
             <th className="py-2 text-right font-medium">{t.duration}</th>
+            <th className="py-2 text-right font-medium">{t.minInvest}</th>
             <th className="py-2 pr-2 text-right font-medium" title={t.riskNote}>{t.risk}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.rank} className="border-b border-line/60 last:border-0">
-              <td className="py-3 pl-2 text-mute tabular-nums">{r.rank}</td>
-              <td className="py-3 font-medium">{r.issuer}</td>
-              <td className="py-3">
+              <td className="py-2 pl-2 text-mute tabular-nums">{r.rank}</td>
+              <td className="py-2 font-medium">{r.issuer}</td>
+              <td className="py-2">
                 {paid ? (
                   <>
                     <div>{r.name}</div>
@@ -323,9 +368,10 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
                   <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="py-3 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
-              <td className="py-3 text-right tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
-              <td className="py-3 pr-2 text-right">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              <td className="py-2 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="py-2 text-right tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
+              <td className="py-2 text-right tabular-nums">{signedIn ? fmtMin(r.minInvestment) : <Dim />}</td>
+              <td className="py-2 pr-2 text-right">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
             </tr>
           ))}
         </tbody>
@@ -340,7 +386,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
               <div className="truncate font-medium">{r.issuer}</div>
               <div className="truncate text-xs text-mute">
                 {paid
-                  ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} /></>
+                  ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} />{r.minInvestment != null && <> · min {fmtMin(r.minInvestment)}</>}</>
                   : signedIn
                     ? <>{r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} /> · {t.isinPlus}</>
                     : t.detailsFree}
@@ -357,7 +403,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
           data-testid="excel-download"
           onClick={() =>
             downloadXlsx(
-              [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk])],
+              [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk, r.minInvestment ?? null])],
               "10bonds-top10.xlsx",
               "Top 10",
             )

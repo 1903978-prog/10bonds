@@ -72,7 +72,7 @@ describe("shapeForTier", () => {
     expect(p.rows).toHaveLength(10);
     expect(p.lockedCount).toBe(0);
     expect(p.summary).toBeNull();
-    for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["country", "duration", "issuer", "rank", "risk", "ytm"]);
+    for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["country", "duration", "issuer", "minInvestment", "rank", "risk", "ytm"]);
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
   });
 

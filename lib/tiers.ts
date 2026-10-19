@@ -13,6 +13,7 @@ export type ResultRow = {
   duration?: number;
   risk?: number | null; // 10BONDS risk score 1..10, never an agency grade
   country?: string | null;
+  minInvestment?: number | null;
   // Paid only: never sent to visitors or free accounts.
   name?: string;
   isin?: string;
@@ -47,6 +48,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
         duration: b.modifiedDuration!,
         risk: bondRisk(b),
         country: b.country,
+        minInvestment: b.minInvestment ?? null,
       })),
       lockedCount: 0,
       summary: null,
@@ -66,6 +68,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       duration: b.modifiedDuration!,
       risk: bondRisk(b),
       country: b.country,
+      minInvestment: b.minInvestment ?? null,
     })),
     lockedCount: 0,
     summary: {

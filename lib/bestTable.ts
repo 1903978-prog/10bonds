@@ -1,4 +1,5 @@
-import { loadBonds, type BondSource } from "./bonds";
+import { loadBonds, loadBondsFor, type BondSource } from "./bonds";
+import { filterKey, isDefaultFilter, type BondFilter } from "./bondFilter";
 import { accountsConfigured, accountsSql } from "./accounts";
 import { LIMITS } from "./limits";
 import { curveByLevel } from "./singleBond";
@@ -28,7 +29,7 @@ export function durationSteps(): number[] {
 /** Signature of a bond copy: changes whenever the daily copy brings new yields. */
 export function signatureOf(src: BondSource): string {
   // The leading version changes when the way the table is computed changes, so a new deploy rebuilds it.
-  return `v3:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
+  return `v4:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
 }
 
 export function computeBestTable(src: BondSource): BestTable {
@@ -50,6 +51,22 @@ export async function bestTable(): Promise<BestTable> {
   if (memo?.signature === sig) return memo;
   building ??= load(src, sig).finally(() => (building = null));
   return building;
+}
+
+const filtered = new Map<string, BestTable>();
+
+/** The table for one filter: the stored one for the default, otherwise computed in memory and kept until the copy changes. */
+export async function bestTableFor(f: BondFilter): Promise<BestTable> {
+  if (isDefaultFilter(f)) return bestTable();
+  const src = await loadBondsFor(f);
+  const k = `${filterKey(f)}|${signatureOf(src)}`;
+  let t = filtered.get(k);
+  if (!t) {
+    if (filtered.size > 8) filtered.clear();
+    t = computeBestTable(src);
+    filtered.set(k, t);
+  }
+  return t;
 }
 
 async function load(src: BondSource, sig: string): Promise<BestTable> {

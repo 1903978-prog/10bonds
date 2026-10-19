@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
-import { loadBonds } from "@/lib/bonds";
+import { loadBondsFor } from "@/lib/bonds";
+import { parseFilter } from "@/lib/bondFilter";
 import { rankBonds } from "@/lib/ranking";
 import { shapeForTier } from "@/lib/tiers";
 import type { Tier } from "@/lib/types";
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
 
   let data;
   try {
-    data = await loadBonds();
+    data = await loadBondsFor(parseFilter(url.searchParams));
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }

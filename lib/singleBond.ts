@@ -47,7 +47,7 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier): 
     const options: ResultRow[] = visible.map((b) => {
       const base: ResultRow = { rank: b.rank, issuer: b.issuer ?? b.name, ytm: b.grossYtm! };
       if (tier === "visitor") return base;
-      const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country };
+      const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country, minInvestment: b.minInvestment ?? null };
       if (tier === "free") return free;
       return { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
     });

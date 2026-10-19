@@ -14,6 +14,7 @@ export type PublicBond = {
   grossYtm: number | null; // percent, e.g. 4.12
   modifiedDuration: number | null; // years
   ytmAsOf: string | null;
+  minInvestment?: number | null; // smallest amount that can be bought, in the bond's currency; null = unknown
 };
 
 // visitor = not signed in; free = signed-in free account.

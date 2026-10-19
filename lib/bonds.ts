@@ -3,6 +3,7 @@ import { cleanPgUrl } from "./pgUrl";
 import type { PublicBond } from "./types";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import { bondNotch } from "./ratings";
+import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
 
 // The public site only ever READS one table, with a read-only login.
 // It has no connection details for the main app and no way to write anywhere.
@@ -19,7 +20,18 @@ let cache: { at: number; bonds: PublicBond[]; source: "live" | "sample" } | null
 
 export type BondSource = { bonds: PublicBond[]; source: "live" | "sample"; asOf: string | null };
 
+/** EUR bonds, any minimum size: what every page shows unless the visitor picks other filters. */
 export async function loadBonds(): Promise<BondSource> {
+  return loadBondsFor(DEFAULT_FILTER);
+}
+
+/** The bonds for one choice of currency and minimum order size. */
+export async function loadBondsFor(f: BondFilter): Promise<BondSource> {
+  const all = await loadAllBonds();
+  return withAsOf(applyFilter(all.bonds, f), all.source);
+}
+
+async function loadAllBonds(): Promise<BondSource> {
   if (cache && Date.now() - cache.at < CACHE_MS) return withAsOf(cache.bonds, cache.source);
 
   const client = db();
@@ -31,29 +43,13 @@ export async function loadBonds(): Promise<BondSource> {
     return withAsOf(SAMPLE_BONDS, "sample");
   }
 
+  // Every column the copy has (min_denomination / min_lot arrive with a later export); filters are applied below.
   // Bonds whose cash flows the main app could not model (inflation-linked, step-up, floating) are left out.
-  // If the column cannot be read, fall back to the plain list rather than showing nothing.
-  const rows = await client`
-    select isin, name, issuer, country, currency, coupon, maturity,
-           rating_sp, rating_moodys, rating_fitch, rating_resolved,
-           gross_ytm, modified_duration, ytm_as_of
-    from public_bonds
+  const rows = (await client`
+    select * from public_bonds
     where gross_ytm is not null and modified_duration is not null
       and (maturity is null or maturity > current_date)
-      and currency = 'EUR'
-      and coalesce(structure_modelled, true)
-  `.catch((e) => {
-    console.error("[bonds] structure filter unavailable:", (e as Error).message);
-    return client`
-      select isin, name, issuer, country, currency, coupon, maturity,
-             rating_sp, rating_moodys, rating_fitch, rating_resolved,
-             gross_ytm, modified_duration, ytm_as_of
-      from public_bonds
-      where gross_ytm is not null and modified_duration is not null
-        and (maturity is null or maturity > current_date)
-        and currency = 'EUR'
-    `;
-  });
+  `).filter((r) => r.structure_modelled !== false);
   const bonds: PublicBond[] = rows.map((r) => ({
     isin: r.isin,
     name: r.name,
@@ -69,6 +65,7 @@ export async function loadBonds(): Promise<BondSource> {
     grossYtm: num(r.gross_ytm),
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
+    minInvestment: minInvestmentOf(num(r.min_denomination), num(r.min_lot)),
   }));
   // Unrated bonds never appear on the site (Livio, 18/10/2026).
   const fresh = dropStale(bonds).filter((b) => bondNotch(b) !== null);
