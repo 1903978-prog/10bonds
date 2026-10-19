@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import FooterNote, { FooterLegal } from "@/components/FooterNote";
@@ -30,7 +31,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f5f5f7" };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Builds every page per request, so each one gets the fresh script nonce from middleware.ts.
+  await headers();
   return (
     <html lang="en">
       <body className="font-sans">
