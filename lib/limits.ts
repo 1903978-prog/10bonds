@@ -23,3 +23,13 @@ export function riskLevel(level: number) {
   const i = Math.min(RISK_LEVELS.length, Math.max(1, Math.round(level))) - 1;
   return { ...RISK_LEVELS[i], allowUnrated: false };
 }
+
+// Weekly search allowances per plan (rolling 7 days). null = unlimited. Change a number here to change the plan.
+// A "search" is a session: moving the sliders for SEARCH_SESSION_MINUTES after a counted search does not count again.
+export const SEARCH_LIMITS = {
+  free: { single: 10, portfolio: 3 },
+  plus: { single: null, portfolio: null },
+  premium: { single: null, portfolio: null },
+} as const satisfies Record<"free" | "plus" | "premium", { single: number | null; portfolio: number | null }>;
+export const SEARCH_SESSION_MINUTES = 15;
+export type SearchKind = "single" | "portfolio";

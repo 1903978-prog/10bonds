@@ -7,6 +7,7 @@ import { RISK_LEVELS } from "@/lib/limits";
 import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
+import { publicQuota, consumeSearch } from "@/lib/searchQuota";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +32,12 @@ export async function GET(req: Request) {
   const preview = url.searchParams.get("preview");
   if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
 
+  // Weekly allowance per plan (Free: limited; Plus and Premium: see SEARCH_LIMITS). Visitors keep their short preview.
+  const usage = user && tier === user.plan ? await consumeSearch(user, "single") : null;
+  if (usage && !usage.allowed)
+    return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   return NextResponse.json(
-    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier), source: data.source, asOf: data.asOf, inputs: { duration } },
+    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

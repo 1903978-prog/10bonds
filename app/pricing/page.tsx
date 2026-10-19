@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ManageButton, PlanButton } from "@/components/PlanButton";
 import { currentUser } from "@/lib/currentUser";
 import { stripeConfigured } from "@/lib/stripe";
+import { SEARCH_LIMITS } from "@/lib/limits";
 
 export const metadata: Metadata = { title: "Pricing · 10BONDS", alternates: { canonical: "/pricing" } };
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ const PLANS = [
     price: "€0",
     period: "",
     tagline: "Sign up with your email.",
-    features: ["Two-slider search", "Full top 10 bonds", "Issuer, yield, rating, duration", "No ISIN codes"],
+    features: [`${SEARCH_LIMITS.free.single} single-bond searches a week`, `${SEARCH_LIMITS.free.portfolio} portfolio searches a week`, "Full top 10 bonds", "Issuer, yield, rating, duration", "No ISIN codes"],
     cta: "Create free account",
     highlight: false,
   },
@@ -24,7 +25,7 @@ const PLANS = [
     price: "€9",
     period: "/month",
     tagline: "The full shortlist.",
-    features: ["Everything in the free account", "ISIN codes", "Bond name, coupon, maturity", "Average shortlist figures"],
+    features: ["Everything in the free account", "ISIN codes visible", "Unlimited single-bond searches", SEARCH_LIMITS.plus.portfolio === null ? "Unlimited portfolio searches" : `${SEARCH_LIMITS.plus.portfolio} portfolio searches a week`, "Bond name, coupon, maturity", "Average shortlist figures"],
     cta: "Get Plus",
     highlight: true,
   },

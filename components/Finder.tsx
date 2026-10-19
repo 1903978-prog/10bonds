@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { LIMITS, riskLevel } from "@/lib/limits";
 import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
@@ -10,6 +11,7 @@ import SingleBond from "./SingleBond";
 import WhereToTrade from "./brokers/WhereToTrade";
 
 type Response = ResultsPayload & {
+  quota?: Quota | null;
   source: "live" | "sample";
   asOf: string | null;
   durationBand: number;
@@ -28,6 +30,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [ytm, setYtm] = useState<number>(LIMITS.ytm.initial);
   const [data, setData] = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limit, setLimit] = useState<Quota | null>(null);
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
@@ -65,6 +68,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, []);
 
   useEffect(() => {
+    // Only the portfolio list is searched here (the 1-bond mode asks for its own data), so it never uses a portfolio search.
+    if (mode !== "portfolio") return;
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setLoading(true);
@@ -73,8 +78,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         if (preview.current) qs.set("preview", preview.current);
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
+        if (res.status === 402 && body.limitReached) {
+          setLimit(body.limitReached);
+          setError(null);
+          return;
+        }
         if (!res.ok) throw new Error(body.error ?? errText);
         setData(body);
+        setLimit(null);
         setError(null);
         track("search", { duration, ytm, risk, tier: body.tier, results: body.rows.length + body.lockedCount });
       } catch (e) {
@@ -87,7 +98,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk]);
+  }, [duration, ytm, risk, mode]);
 
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
@@ -193,7 +204,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className={`mt-5 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
-          {error ? (
+          {limit ? (
+            <LimitReached quota={limit} />
+          ) : error ? (
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>
           ) : data && data.rows.length === 0 ? (
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">
@@ -202,6 +215,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           ) : (
             <Results data={data} paid={paid} signedIn={signedIn} />
           )}
+          {!limit && <QuotaNote quota={data?.quota} />}
         </div>
 
         <p className="mt-5 flex gap-2 rounded-2xl bg-canvas px-4 py-3 text-xs leading-relaxed text-mute">

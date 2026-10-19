@@ -6,7 +6,7 @@ describe("finder translations", () => {
     const keys = Object.keys(FINDER_TEXT.en).sort();
     for (const [lang, t] of Object.entries(FINDER_TEXT)) {
       expect(Object.keys(t).sort(), lang).toEqual(keys);
-      for (const [k, v] of Object.entries(t)) expect(typeof v === "function" ? v(3) : v, `${lang}.${k}`).toBeTruthy();
+      for (const [k, v] of Object.entries(t)) expect(typeof v === "function" ? (v as (...a: unknown[]) => string)(3, 10, true, "Monday") : v, `${lang}.${k}`).toBeTruthy();
     }
   });
 });

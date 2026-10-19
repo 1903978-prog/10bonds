@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { useFinderText } from "@/lib/finderText";
 import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
+import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 
-type Payload = { tier: Tier; points: CurvePoint[]; source: "live" | "sample"; asOf: string | null };
+type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 
@@ -16,6 +17,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
   const errText = t.error;
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limit, setLimit] = useState<Quota | null>(null);
   const [loading, setLoading] = useState(true);
   const [level, setLevel] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
@@ -29,7 +31,13 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
         if (preview) qs.set("preview", preview);
         const res = await fetch(`/api/bonds/curve?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
+        if (res.status === 402 && body.limitReached) {
+          setLimit(body.limitReached);
+          setError(null);
+          return;
+        }
         if (!res.ok) throw new Error(body.error ?? errText);
+        setLimit(null);
         setData(body);
         setError(null);
         setIndex(0);
@@ -51,6 +59,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
   const point = level === null ? null : points[level - 1];
   const bond = point?.options[index] ?? null;
 
+  if (limit) return <LimitReached quota={limit} />;
   if (error) return <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>;
 
   return (
@@ -77,6 +86,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
           {points.some((p) => p.ytm !== null) ? t.pickRating : t.noneSingle}
         </p>
       )}
+      <QuotaNote quota={data?.quota} />
     </div>
   );
 }

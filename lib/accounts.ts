@@ -82,6 +82,16 @@ async function setup(sql: ReturnType<typeof postgres>) {
       primary key (duration, level, rank)
     )`;
   await sql`create index if not exists events_kind_at_idx on app.events (kind, at)`;
+  // Weekly search allowance (lib/searchQuota.ts): one row per counted search. Kept 30 days.
+  await sql`
+    create table if not exists app.search_usage (
+      id bigserial primary key,
+      user_id bigint not null references app.users(id) on delete cascade,
+      kind text not null check (kind in ('single','portfolio')),
+      at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists search_usage_user_idx on app.search_usage (user_id, kind, at)`;
+  await sql`delete from app.search_usage where at < now() - interval '30 days'`;
   // "Refresh prices" requests from the admin page. The main app (which owns the bond prices) reads this table,
   // runs its own refresh and copy, then marks the row done. The public site never calls the main app.
   await sql`

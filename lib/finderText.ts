@@ -27,6 +27,10 @@ const en = {
   withPlus: "with Plus", freeAccountLower: "free account", ratingStep: "Rating step", option: "option", yieldLower: "yield",
   coupon: "Coupon", maturity: "Maturity", country: "Country", change: "Change", signUpOthers: "Sign up to see other bonds",
   noOther: "No other bond at this rating.", backBest: "Back to the best", changeHint: "Change shows the next bond at the same rating, with a lower yield.",
+  quotaLeft: (left: number, limit: number, single: boolean) => `${left} of ${limit} ${single ? "single-bond" : "portfolio"} searches left this week`,
+  limitTitle: "You've used this week's free searches",
+  limitBody: (limit: number, single: boolean, date: string) => `The free account includes ${limit} ${single ? "single-bond" : "portfolio"} searches a week. Your next one is available on ${date}.`,
+  limitCta: "Get unlimited searches with Plus", locale: "en-GB",
 };
 export type FinderText = typeof en;
 
@@ -53,6 +57,10 @@ const it: FinderText = {
   withPlus: "con Plus", freeAccountLower: "account gratuito", ratingStep: "Rating", option: "opzione", yieldLower: "rendimento",
   coupon: "Cedola", maturity: "Scadenza", country: "Paese", change: "Cambia", signUpOthers: "Registrati per vedere altre obbligazioni",
   noOther: "Nessun'altra obbligazione con questo rating.", backBest: "Torna alla migliore", changeHint: "«Cambia» mostra l'obbligazione successiva con lo stesso rating e un rendimento più basso.",
+  quotaLeft: (left: number, limit: number, single: boolean) => `${left} di ${limit} ricerche ${single ? "di singole obbligazioni" : "di portafoglio"} rimaste questa settimana`,
+  limitTitle: "Hai usato le ricerche gratuite di questa settimana",
+  limitBody: (limit: number, single: boolean, date: string) => `L'account gratuito include ${limit} ricerche ${single ? "di singole obbligazioni" : "di portafoglio"} a settimana. La prossima sarà disponibile il ${date}.`,
+  limitCta: "Ricerche illimitate con Plus", locale: "it-IT",
 };
 
 const fr: FinderText = {
@@ -78,6 +86,10 @@ const fr: FinderText = {
   withPlus: "avec Plus", freeAccountLower: "compte gratuit", ratingStep: "Note", option: "option", yieldLower: "rendement",
   coupon: "Coupon", maturity: "Échéance", country: "Pays", change: "Changer", signUpOthers: "Inscrivez-vous pour voir d'autres obligations",
   noOther: "Aucune autre obligation à cette note.", backBest: "Retour à la meilleure", changeHint: "« Changer » affiche l'obligation suivante à la même note, avec un rendement plus bas.",
+  quotaLeft: (left: number, limit: number, single: boolean) => `${left} recherche${left === 1 ? "" : "s"} ${single ? "d'obligation" : "de portefeuille"} sur ${limit} restante${left === 1 ? "" : "s"} cette semaine`,
+  limitTitle: "Vous avez utilisé les recherches gratuites de la semaine",
+  limitBody: (limit: number, single: boolean, date: string) => `Le compte gratuit comprend ${limit} recherches ${single ? "d'obligation" : "de portefeuille"} par semaine. La prochaine sera disponible le ${date}.`,
+  limitCta: "Recherches illimitées avec Plus", locale: "fr-FR",
 };
 
 const de: FinderText = {
@@ -103,6 +115,10 @@ const de: FinderText = {
   withPlus: "mit Plus", freeAccountLower: "kostenloses Konto", ratingStep: "Rating", option: "Option", yieldLower: "Rendite",
   coupon: "Kupon", maturity: "Fälligkeit", country: "Land", change: "Wechseln", signUpOthers: "Registrieren, um weitere Anleihen zu sehen",
   noOther: "Keine weitere Anleihe mit diesem Rating.", backBest: "Zurück zur besten", changeHint: "„Wechseln“ zeigt die nächste Anleihe mit demselben Rating und niedrigerer Rendite.",
+  quotaLeft: (left: number, limit: number, single: boolean) => `Noch ${left} von ${limit} ${single ? "Einzelanleihe" : "Portfolio"}-Suchen diese Woche`,
+  limitTitle: "Sie haben die kostenlosen Suchen dieser Woche genutzt",
+  limitBody: (limit: number, single: boolean, date: string) => `Das kostenlose Konto umfasst ${limit} ${single ? "Einzelanleihe" : "Portfolio"}-Suchen pro Woche. Die nächste ist ab ${date} verfügbar.`,
+  limitCta: "Unbegrenzte Suchen mit Plus", locale: "de-DE",
 };
 
 export const FINDER_TEXT: Record<FinderLang, FinderText> = { en, it, fr, de };

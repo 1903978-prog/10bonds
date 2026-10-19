@@ -18,8 +18,8 @@ export const HOME: Record<Locale, Home> = {
     points: ["Rendimento a scadenza, duration e rating in un'unica lista.", "BTP, titoli di Stato europei e obbligazioni societarie a confronto.", "Dati aggiornati ogni giorno, con la data sempre in vista."],
     govId: "gov-it", govTitle: "I BTP oggi", compareTitle: "Confronta le obbligazioni", guidesTitle: "Guide per capire i numeri",
     plansTitle: "Piani", plans: [
-      { name: "Gratis", price: "0 €", text: "Con un account: la top 10 completa con emittente, rendimento, rating e duration." },
-      { name: "Plus", price: "9 € al mese", text: "Codici ISIN, nome, cedola e scadenza di ogni obbligazione, medie della lista." },
+      { name: "Gratis", price: "0 €", text: "Con un account: 10 ricerche di singole obbligazioni e 3 di portafoglio a settimana, la top 10 completa con emittente, rendimento, rating e duration." },
+      { name: "Plus", price: "9 € al mese", text: "Codici ISIN visibili, ricerche illimitate, nome, cedola e scadenza di ogni obbligazione, medie della lista." },
       { name: "Premium", price: "19 € al mese", text: "Avvisi sui cambiamenti, ricerche salvate e analisi del rischio." },
     ], plansLink: "Dettagli dei piani",
   },
@@ -31,8 +31,8 @@ export const HOME: Record<Locale, Home> = {
     points: ["Rendement à l'échéance, duration et notation dans une seule liste.", "OAT, Bund, BTP et obligations d'entreprise comparés sur les mêmes critères.", "Données mises à jour chaque jour, toujours datées."],
     govId: "gov-fr", govTitle: "Les OAT aujourd'hui", compareTitle: "Comparer les obligations", guidesTitle: "Guides pour comprendre les chiffres",
     plansTitle: "Offres", plans: [
-      { name: "Gratuit", price: "0 €", text: "Avec un compte : le top 10 complet avec émetteur, rendement, notation et duration." },
-      { name: "Plus", price: "9 € par mois", text: "Codes ISIN, nom, coupon et échéance de chaque obligation, moyennes de la liste." },
+      { name: "Gratuit", price: "0 €", text: "Avec un compte : 10 recherches d'obligation et 3 recherches de portefeuille par semaine, le top 10 complet avec émetteur, rendement, notation et duration." },
+      { name: "Plus", price: "9 € par mois", text: "Codes ISIN visibles, recherches illimitées, nom, coupon et échéance de chaque obligation, moyennes de la liste." },
       { name: "Premium", price: "19 € par mois", text: "Alertes sur les changements, recherches enregistrées et analyse du risque." },
     ], plansLink: "Détail des offres",
   },
@@ -44,8 +44,8 @@ export const HOME: Record<Locale, Home> = {
     points: ["Rendite bis Fälligkeit, Duration und Rating in einer Liste.", "Bundesanleihen, OAT, BTP und Unternehmensanleihen nach denselben Kriterien.", "Täglich aktualisierte Daten, immer mit Datum."],
     govId: "gov-de", govTitle: "Bundesanleihen heute", compareTitle: "Anleihen vergleichen", guidesTitle: "Ratgeber zu den Kennzahlen",
     plansTitle: "Tarife", plans: [
-      { name: "Kostenlos", price: "0 €", text: "Mit Konto: die komplette Top 10 mit Emittent, Rendite, Rating und Duration." },
-      { name: "Plus", price: "9 € im Monat", text: "ISIN, Name, Kupon und Fälligkeit jeder Anleihe, Durchschnittswerte der Liste." },
+      { name: "Kostenlos", price: "0 €", text: "Mit Konto: 10 Einzelanleihe- und 3 Portfolio-Suchen pro Woche, die komplette Top 10 mit Emittent, Rendite, Rating und Duration." },
+      { name: "Plus", price: "9 € im Monat", text: "ISIN sichtbar, unbegrenzte Suchen, Name, Kupon und Fälligkeit jeder Anleihe, Durchschnittswerte der Liste." },
       { name: "Premium", price: "19 € im Monat", text: "Hinweise bei Änderungen, gespeicherte Suchen und Risikoanalysen." },
     ], plansLink: "Tarife im Detail",
   },

@@ -6,6 +6,7 @@ import { shapeForTier } from "@/lib/tiers";
 import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
+import { publicQuota, consumeSearch } from "@/lib/searchQuota";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +38,13 @@ export async function GET(req: Request) {
   const preview = url.searchParams.get("preview");
   if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
 
+  // Weekly allowance per plan (Free: limited; Plus and Premium: see SEARCH_LIMITS). Visitors keep their short preview.
+  const usage = user && tier === user.plan ? await consumeSearch(user, "portfolio") : null;
+  if (usage && !usage.allowed)
+    return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   const { results, band } = rankBonds(data.bonds, duration, ytm, undefined, risk);
   return NextResponse.json(
-    { ...shapeForTier(results, tier), source: data.source, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk } },
+    { ...shapeForTier(results, tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
