@@ -9,7 +9,7 @@ import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
 import { downloadXlsx } from "@/lib/xlsx";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
-import { dropDominated } from "@/lib/curveFilter";
+import { dominatedLevels, dropDominated } from "@/lib/curveFilter";
 
 type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
@@ -75,7 +75,8 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         <h2 className="text-[17px] font-semibold">{t.bestByRating}</h2>
         <span className="text-xs text-mute">{t.tapDot}</span>
       </div>
-      <Chart points={points} axis={data?.points ?? []} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      <Chart points={points} ghosts={dominatedLevels(data?.points ?? [])} axis={data?.points ?? []} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      {dominatedLevels(data?.points ?? []).length > 0 && <p className="text-[11px] text-mute" data-testid="ghost-note">{t.ghostNote}</p>}
 
       {point && bond ? (
         <BondBox
@@ -97,7 +98,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   );
 }
 
-function Chart({ points, axis, selected, onPick }: { points: CurvePoint[]; axis: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
+function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[]; ghosts: CurvePoint[]; axis: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
   const t = useFinderText();
   // PAD keeps the first risk column clear of the y-axis figures.
   // Drawn at the container's real pixel width so text stays readable on phones and the chart fills wide screens.
@@ -110,8 +111,9 @@ function Chart({ points, axis, selected, onPick }: { points: CurvePoint[]; axis:
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const H = W < 500 ? 240 : 300, L = 44, R = 22, T = 26, B = 40, PAD = 22;
-  const ys = points.map((p) => p.ytm).filter((y): y is number => y !== null);
+  const admin = axis.some((p) => p.options[0]?.sp !== undefined);
+  const H = (W < 500 ? 240 : 300) + (admin ? 14 : 0), L = 44, R = 22, T = 26, B = admin ? 54 : 40, PAD = 22;
+  const ys = [...points, ...ghosts].map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
   const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
   // Risk 1 (lowest) always on the right edge, risk 10 at the left.
@@ -136,7 +138,15 @@ function Chart({ points, axis, selected, onPick }: { points: CurvePoint[]; axis:
       {axis.map((p) => (
         <text key={p.level} x={x(p.level)} y={H - B + 17} textAnchor="middle" fontSize="13" fill="#86868b">
           {p.label}
+          {admin && <tspan x={x(p.level)} dy={14} fontSize="10" data-testid={`sp-${p.level}`}>{p.options[0] ? p.options[0].sp ?? "S&P –" : ""}</tspan>}
         </text>
+      ))}
+      {ghosts.map((p) => (
+        <g key={`g${p.level}`} data-testid={`ghost-${p.level}`}>
+          <title>{t.ghostNote}</title>
+          <circle cx={x(p.level)} cy={y(p.ytm!)} r="4" fill="#fff" stroke="#c7c7cc" strokeWidth="2" />
+          <text x={x(p.level)} y={y(p.ytm!) - 10} textAnchor="middle" fontSize="11" fill="#aeaeb2">{p.ytm!.toFixed(1)}%</text>
+        </g>
       ))}
       <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="13" fill="#86868b">{t.riskAxis}</text>
       <path d={path} fill="none" stroke="#0071e3" strokeWidth="2.5" strokeLinejoin="round" />
@@ -194,7 +204,7 @@ function BondBox(props: {
       </div>
       <dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
         {row("ISIN", paid ? bond.isin : lock)}
-        {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} /> : lock)}
+        {row(t.risk, signedIn ? <>{bond.sp !== undefined && <span className="mr-1.5 text-mute">S&amp;P {bond.sp ?? "–"}</span>}<RiskBadge risk={bond.risk} title={t.riskNote} /></> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}

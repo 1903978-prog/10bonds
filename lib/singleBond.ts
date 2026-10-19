@@ -45,7 +45,8 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
 export type CurvePoint = { level: number; label: string; ytm: number | null; options: ResultRow[]; more: number };
 
 /** Cut each step down to what this tier may see. Visitors see the best bond of each step only, without details. */
-export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier): CurvePoint[] {
+/** `admin`: also add each bond's S&P grade (admin only, never for customers). */
+export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, admin = false): CurvePoint[] {
   return curve.map(({ level, label, bonds }) => {
     const ytm = bonds[0]?.grossYtm ?? null;
     const visible = tier === "visitor" ? bonds.slice(0, 1) : bonds;
@@ -54,7 +55,8 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier): 
       if (tier === "visitor") return base;
       const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country, minInvestment: b.minInvestment ?? null };
       if (tier === "free") return free;
-      return { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
+      const paid: ResultRow = { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
+      return admin ? { ...paid, sp: b.ratingSp ?? null } : paid;
     });
     return { level, label, ytm, options, more: bonds.length - visible.length };
   });
