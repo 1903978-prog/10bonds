@@ -65,15 +65,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currency, size]);
 
+  // A target at the maximum stays at the maximum when the horizon or risk changes, so more risk shows more yield.
+  const followCap = (cap: number) => setYtm((y) => (y > cap || y >= ytmMax - 1e-9 ? cap : y));
   const changeDuration = (d: number) => {
     setDuration(d);
-    const cap = capFor(d, risk);
-    setYtm((y) => (y > cap ? cap : y));
+    followCap(capFor(d, risk));
   };
   const changeRisk = (r: number) => {
     setRisk(r);
-    const cap = capFor(duration, r);
-    setYtm((y) => (y > cap ? cap : y));
+    followCap(capFor(duration, r));
   };
 
   useEffect(() => {
