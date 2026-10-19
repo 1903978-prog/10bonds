@@ -4,7 +4,7 @@ import type { KcSection } from "./knowledge";
 // Translated from the Italian originals (and Livio's own article); `group` matches the translation group of the
 // Italian/French/German versions so the pages point to each other with hreflang.
 
-export type EnGuide = { slug: string; group: string; section: KcSection; title: string; seoTitle: string; metaDescription: string; primaryKeyword: string; bodyHtml: string };
+export type EnGuide = { slug: string; group: string; section: KcSection; title: string; seoTitle: string; metaDescription: string; primaryKeyword: string; bodyHtml: string; published?: string };
 
 export const EN_GUIDES: EnGuide[] = [
   {
@@ -425,5 +425,81 @@ export const EN_GUIDES: EnGuide[] = [
 <ul><li>These are past averages across many issuers and economic cycles, not a forecast for any single issuer.</li><li>Default does not mean losing everything: how much is recovered depends on the bond's seniority and collateral.</li><li>The data covers companies; government bonds have a different default history.</li></ul>
 <p>For how ratings, default probability and expected loss fit together, read the guides on <a href="/knowledge/bond-credit-risk">bond credit risk</a> and <a href="/knowledge/investment-grade-bonds">investment-grade bonds</a>.</p>
 <p><a class="cta" href="/">Compare bonds by risk, yield and duration</a></p>`,
+  },
+  {
+    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    slug: "treasury-bills-notes-bonds",
+    group: "us-treasuries",
+    section: "government",
+    title: "Treasury Bills vs. Notes vs. Bonds: Understanding What You're Actually Buying",
+    seoTitle: "Treasury Bills vs. Notes vs. Bonds: Maturities, Yields, Taxes",
+    metaDescription: "T-bills, Treasury notes and Treasury bonds compared: maturities, coupons, yield to maturity, duration risk and how Treasury interest is taxed.",
+    primaryKeyword: "treasury bills vs notes vs bonds",
+    published: "2026-10-19",
+    bodyHtml: `
+<p><strong>An investor's guide to Treasury maturities, yields, taxes and the risks that matter.</strong></p>
+<p>U.S. Treasury securities have a reputation for being among the safest investments available. Backed by the full faith and credit of the federal government, they are used by everyone from individual savers to central banks. Yet the label “Treasury” covers several instruments that behave quite differently.</p>
+<p>A three-month Treasury bill and a 30-year Treasury bond may have the same issuer, but they serve very different purposes. One turns back into cash within weeks. The other can fluctuate substantially in price as interest rates change. And while both carry the credit of the U.S. government, that does not mean their investment outcomes are interchangeable.</p>
+<p>The most useful place to begin is with their maturity.</p>
+<h2 id="essential-differences">Treasury bills, notes and bonds: the essential differences</h2>
+<p>The Treasury divides its marketable fixed-rate securities into three principal categories.</p>
+<p><strong>Treasury bills</strong>, commonly called T-bills, mature in one year or less. They do not make regular coupon payments. Instead, investors generally purchase them at a discount to face value and receive the full face value at maturity. The difference represents their interest income.</p>
+<p><strong>Treasury notes</strong> have original maturities of two, three, five, seven or ten years. They pay a fixed coupon every six months and return the principal at maturity.</p>
+<p><strong>Treasury bonds</strong> are issued with original maturities of 20 or 30 years. Like notes, they generally pay interest semiannually.</p>
+<table>
+<thead><tr><th>Security</th><th>Original maturity</th><th>Interest structure</th></tr></thead>
+<tbody>
+<tr><td>Treasury bill</td><td>4–52 weeks</td><td>Generally issued at a discount</td></tr>
+<tr><td>Treasury note</td><td>2–10 years</td><td>Fixed semiannual coupons</td></tr>
+<tr><td>Treasury bond</td><td>20 or 30 years</td><td>Fixed semiannual coupons</td></tr>
+</tbody>
+</table>
+<p>All three can be sold before maturity. Their resale prices, however, depend on prevailing market conditions.</p>
+<p>An important distinction is that the Treasury's labels describe maturity when the security was originally issued. A Treasury bond issued 25 years ago may have only five years remaining until repayment. For someone buying it today, that remaining maturity is often more relevant than its original classification.</p>
+<h2 id="coupon-vs-return">Why a higher coupon doesn't necessarily mean a higher return</h2>
+<p>Suppose you compare two Treasury notes. The first has a coupon of 4%, while the second pays 2%.</p>
+<p>It is tempting to conclude that the first must be the more rewarding investment. But the conclusion depends on the price.</p>
+<p>Treasury securities trade in the secondary market, where prices adjust as interest rates change. An older note with a 2% coupon may trade below its face value if newly issued securities offer higher yields. The discount can compensate a buyer for receiving smaller coupon payments.</p>
+<p>Conversely, a note paying a 4% coupon may trade above face value when market yields are lower.</p>
+<p>This is why professional bond comparisons focus on <strong>yield to maturity</strong>, rather than the coupon alone.</p>
+<p>Yield to maturity incorporates the price paid, remaining coupons, the repayment amount and the time until maturity. It provides a common basis for comparing fixed-rate obligations, assuming promised payments are made.</p>
+<p>For Treasuries purchased between coupon dates, the accrued interest and settlement conventions also matter. A quotation on a brokerage screen is only the starting point for understanding the actual amount paid.</p>
+<h2 id="long-term-risk">The overlooked risk of long-term Treasuries</h2>
+<p>The credit risk of a Treasury bill and a Treasury bond is associated with the same federal government. Their exposure to interest-rate movements, however, can be dramatically different.</p>
+<p>Imagine purchasing a 30-year Treasury bond and then seeing market yields rise by one percentage point.</p>
+<p>Because the bond's coupon is fixed, its price must fall to provide a competitive yield to new buyers. The decline can be substantial, particularly for a long-duration security.</p>
+<p>Now imagine holding a Treasury bill that matures in three months. Its market value may also move, but its remaining life is short, so its sensitivity to the same interest-rate change is generally much smaller.</p>
+<p>This difference is measured using <strong>duration</strong>.</p>
+<p>Duration is not simply the number of years remaining before repayment. It is a measure of how sensitive a bond's price is to changes in yield.</p>
+<p>For example, a security with a modified duration of eight years could experience an approximate 8% price decline following a one-percentage-point increase in yield, before accounting for convexity and other market effects.</p>
+<p>That doesn't mean a long-term Treasury necessarily loses money if held to maturity. Provided the Treasury meets its payment obligations, the contractual coupons and redemption amount remain defined. But an investor who needs to sell early may realize a gain or loss that differs significantly from the original yield-to-maturity calculation.</p>
+<p>The distinction between predictable contractual cash flows and unpredictable interim market prices is fundamental to bond investing.</p>
+<h2 id="taxes">Are Treasury securities tax-free?</h2>
+<p>Not entirely.</p>
+<p>Interest earned on Treasury bills, notes and bonds is generally subject to <strong>federal income tax</strong>, but it is exempt from state and local income taxes.</p>
+<p>That distinction can matter considerably for investors living in states with relatively high income-tax rates.</p>
+<p>A Treasury security and a corporate bond with identical headline yields may produce different after-tax outcomes because their interest income may be treated differently.</p>
+<p>U.S. investors should also distinguish Treasury securities from municipal bonds, whose interest may qualify for federal and sometimes state tax exemptions, depending on the security and the investor's circumstances.</p>
+<p>The tax consequences of buying a Treasury above or below par can involve additional rules, so a simple comparison of coupon rates after tax is not always sufficient.</p>
+<h2 id="what-to-compare">What should investors compare?</h2>
+<p>Consider two securities with approximately five years remaining until maturity: a Treasury note and an investment-grade corporate bond.</p>
+<p>If the corporate bond offers a higher yield, that additional return is not free. It may compensate the investor for corporate credit risk, reduced liquidity or particular contractual features.</p>
+<p>The Treasury's yield provides a useful reference point. The difference between the yields is one way of examining the additional compensation demanded by the market.</p>
+<p>A meaningful comparison therefore starts with the remaining maturity and duration, then considers yield, credit quality and trading costs.</p>
+<p>This approach is more informative than simply searching for the highest coupon.</p>
+<h2 id="explore">A better way to explore fixed-income securities</h2>
+<p>There are thousands of bonds available in the market, including government and corporate issues with different maturities and risk characteristics.</p>
+<p>10BONDS is designed to simplify that complexity. By choosing a desired duration and yield, users can explore a shortlist of bonds with comparable characteristics and review their yield, duration and credit-risk information.</p>
+<p>The objective is to make differences between securities easier to understand—not to replace the judgment required in making an investment decision.</p>
+<p><a class="cta" href="/">Explore bonds by duration and yield on 10BONDS.</a></p>
+<h3 id="sources">Sources and further reading</h3>
+<ul>
+<li>U.S. Treasury — Treasury Notes: <a href="https://treasurydirect.gov/marketable-securities/treasury-notes/">https://treasurydirect.gov/marketable-securities/treasury-notes/</a></li>
+<li>U.S. Treasury — Treasury Bills: <a href="https://treasurydirect.gov/marketable-securities/treasury-bills/">https://treasurydirect.gov/marketable-securities/treasury-bills/</a></li>
+<li>U.S. Treasury — Understanding Pricing and Interest Rates: <a href="https://www.treasurydirect.gov/marketable-securities/understanding-pricing/">https://www.treasurydirect.gov/marketable-securities/understanding-pricing/</a></li>
+<li>Internal Revenue Service — Topic 403, Interest Received: <a href="https://www.irs.gov/taxtopics/tc403">https://www.irs.gov/taxtopics/tc403</a></li>
+</ul>
+<p><em>This article is intended for general financial education. It does not constitute personalized investment advice or a recommendation to purchase a particular security.</em></p>
+`,
   },
 ];

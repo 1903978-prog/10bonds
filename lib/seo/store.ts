@@ -264,6 +264,7 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       values (${k.market}, ${k.keyword}, ${k.intent}, ${k.landingPath}, ${k.section ?? null}, ${k.potential ?? null}, ${k.volume ?? null}, ${k.volumeSource ?? null},
               ${k.volume ? "2026-10-18" : null})
       on conflict (market, keyword) do update set
+        landing_path = coalesce(app.seo_keywords.landing_path, excluded.landing_path),
         kc_section = coalesce(app.seo_keywords.kc_section, excluded.kc_section),
         potential = coalesce(app.seo_keywords.potential, excluded.potential),
         volume_source = case when app.seo_keywords.volume is null then excluded.volume_source else app.seo_keywords.volume_source end,
