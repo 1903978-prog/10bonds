@@ -115,7 +115,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
       {crumbs(g.title, enPath(g.slug))}
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
         <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{g.title}</h1>
-        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team</p>
+        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{g.published && <> · <time dateTime={g.published}>{new Date(g.published).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}</p>
         <div className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: body }} />
       </div>
       {related.length > 0 && (
@@ -128,7 +128,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
       )}
       <p className="mt-6 text-sm"><Link href={enPath()} className="text-accent">{KC_TEXT_EN.h1} ›</Link></p>
       {risk}
-      <JsonLd data={{ "@context": "https://schema.org", "@type": "Article", headline: g.title, description: g.metaDescription, inLanguage: "en", mainEntityOfPage: url, url, author: { "@type": "Organization", name: "10BONDS", url: SITE_URL }, publisher: { "@type": "Organization", name: "10BONDS", url: SITE_URL }, keywords: g.primaryKeyword }} />
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "Article", headline: g.title, description: g.metaDescription, inLanguage: "en", mainEntityOfPage: url, url, ...(g.published ? { datePublished: g.published } : {}), author: { "@type": "Organization", name: "10BONDS", url: SITE_URL }, publisher: { "@type": "Organization", name: "10BONDS", url: SITE_URL }, keywords: g.primaryKeyword }} />
       {faq.length > 0 && <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />}
     </article>
   );
