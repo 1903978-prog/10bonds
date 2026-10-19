@@ -23,22 +23,22 @@ export default function RedeemForm() {
 
   if (!open)
     return (
-      <p className="mt-6 text-center text-sm">
+      <p className="mt-3 text-center text-xs">
         <button type="button" onClick={() => setOpen(true)} className="text-accent" data-testid="redeem-toggle">Have a code?</button>
       </p>
     );
   return (
-    <form onSubmit={submit} className="mx-auto mt-6 flex max-w-md flex-col gap-3 sm:flex-row" data-testid="redeem-form">
+    <form onSubmit={submit} className="mx-auto mt-3 flex max-w-md flex-col gap-2 sm:flex-row" data-testid="redeem-form">
       <input
         required
         autoFocus
         placeholder="10B-XXXX-XXXX"
         value={code}
         onChange={(e) => setCode(e.target.value.toUpperCase())}
-        className="min-w-0 flex-1 rounded-xl border border-line bg-white px-4 py-3 font-mono text-[15px] uppercase outline-none focus:border-accent"
+        className="min-w-0 flex-1 rounded-xl border border-line bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-accent"
         data-testid="redeem-code"
       />
-      <button disabled={busy} className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white hover:bg-[#0077ed] disabled:opacity-60">
+      <button disabled={busy} className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white hover:bg-[#0077ed] disabled:opacity-60">
         {busy ? "Please wait…" : "Use code"}
       </button>
       {msg && <p className={`basis-full rounded-xl px-4 py-3 text-sm sm:order-last ${msg.ok ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`} data-testid="redeem-msg">{msg.text}</p>}
