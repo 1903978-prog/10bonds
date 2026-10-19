@@ -19,8 +19,7 @@ export default function Privacy() {
       <H>1. Who is responsible (data controller)</H>
       <p className="mt-2">
         {COMPANY.legalName}, {COMPANY.address}, {COMPANY.registration}. Privacy contact: {COMPANY.privacyEmail}.
-        <br />
-        {COMPANY.dpo}
+        {COMPANY.dpo && <><br />{COMPANY.dpo}</>}
       </p>
 
       <H>2. What data we hold</H>

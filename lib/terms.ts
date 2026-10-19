@@ -2,7 +2,7 @@
  * Terms of Use and Risk Disclosure that every user accepts before an account is created.
  * Changing the text means raising TERMS_VERSION, so each account records which version it accepted.
  */
-export const TERMS_VERSION = "2026-10-19";
+export const TERMS_VERSION = "2026-10-19.2";
 
 export type TermsSection = { title: string; paragraphs: string[] };
 
@@ -10,7 +10,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     title: "1. Who we are and what this agreement covers",
     paragraphs: [
-      "These Terms of Use and Risk Disclosure (the \"Terms\") form a binding agreement between you and the operator of the 10BONDS website and service (\"10BONDS\", \"we\", \"us\", \"our\"). They govern your access to and use of the website at 10bonds.com and any successor domain, every page, tool, list, ranking, figure, e-mail and feature offered under the 10BONDS name (together, the \"Service\").",
+      "These Terms of Use and Risk Disclosure (the \"Terms\") form a binding agreement between you and SQUARE ONE OÜ, a company registered in Estonia (registry code 14035002, VAT number EE102234240, Männimäe/1, Pudisoo küla, Kuusalu vald, 74626 Harju maakond), which operates the 10BONDS website and service (\"10BONDS\", \"we\", \"us\", \"our\"). They govern your access to and use of the website at 10bonds.com and any successor domain, every page, tool, list, ranking, figure, e-mail and feature offered under the 10BONDS name (together, the \"Service\").",
       "By ticking the acceptance box, creating an account, or otherwise using the Service, you confirm that you have read, understood and agree to be bound by these Terms in full. If you do not agree, you must not create an account and must not use the Service.",
       "If you use the Service on behalf of a company or other organisation, you confirm that you have authority to bind it, and \"you\" includes that organisation.",
     ],
@@ -125,7 +125,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     title: "17. Governing law and disputes",
     paragraphs: [
-      "These Terms and any dispute arising from them are governed by the laws of Italy, excluding its conflict-of-law rules and the UN Convention on Contracts for the International Sale of Goods. The courts of Milan, Italy have exclusive jurisdiction, except that if you are a consumer you keep the protection of the mandatory laws of your country of residence and may bring proceedings in the courts of that country. EU consumers may also use the European Commission's online dispute resolution information at https://ec.europa.eu/consumers/odr.",
+      "These Terms and any dispute arising from them are governed by the laws of Estonia, excluding its conflict-of-law rules and the UN Convention on Contracts for the International Sale of Goods. The Harju County Court (Harju Maakohus) in Tallinn, Estonia has exclusive jurisdiction, except that if you are a consumer you keep the protection of the mandatory laws of your country of residence and may bring proceedings in the courts of that country. EU consumers may also use the European Commission's online dispute resolution information at https://ec.europa.eu/consumers/odr.",
       "To the extent permitted by law, any claim must be brought individually, not as a plaintiff or class member in any class, collective or representative action, and must be brought within one year after the cause of action arises.",
     ],
   },
