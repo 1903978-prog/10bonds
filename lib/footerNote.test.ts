@@ -10,10 +10,11 @@ describe("footer note", () => {
     expect(footerLang("/de/anleihen")).toBe("de");
     expect(footerLang("/italy")).toBe("en");
   });
-  it("every language carries the disclaimer and the plan terms once", () => {
+  it("every language carries only the short disclaimer (plan terms are on Pricing)", () => {
     for (const [l, t] of Object.entries(FOOTER_NOTE)) {
-      expect(t, l).toMatch(/Stripe/);
-      expect(t, l).toMatch(/VAT|IVA|TVA|MwSt/);
+      expect(t, l).not.toMatch(/Stripe/);
+      expect(t, l).toMatch(/10BONDS/);
+      expect(t.length, l).toBeLessThan(140);
     }
     expect(FOOTER_NOTE.en.match(/investment advice/g)).toHaveLength(1);
   });

@@ -12,7 +12,6 @@ import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
 import { fmtMin } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
-import WhereToTrade from "./brokers/WhereToTrade";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -117,7 +116,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const paid = tier === "plus" || tier === "premium";
   const signedIn = tier !== "visitor";
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
-  const lockTo = signedIn ? { href: "/pricing", label: "Plus" } : { href: "/signup", label: t.signUp };
+  const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: "/signup", label: t.avgSignUp };
 
   return (
     <FinderLangContext.Provider value={lang}>
@@ -229,6 +228,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <Stat value={paid ? (data?.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} /> : "—") : null} label={t.avgRisk} lock={lockTo} />
           <Stat value={paid ? yrs(data?.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
         </div>
+        {!paid && (
+          <Link href={lockTo.href} className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline" data-testid="avg-unlock">
+            <Lock /> {lockTo.label}
+          </Link>
+        )}
 
         <div className={`mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
           {limit ? (
@@ -245,12 +249,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {!limit && <QuotaNote quota={data?.quota} />}
         </div>
 
-        <p className="mt-2 flex gap-2 rounded-xl bg-canvas px-3 py-1.5 text-[11px] leading-snug text-mute">
-          <span aria-hidden>ⓘ</span>
-          <span>
-            {t.info}
-            {data?.asOf ? ` ${t.asOf} ${data.asOf}.` : ""} {t.gross}
-          </span>
+        <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="yields-date">
+          {data?.asOf ? `${t.asOf} ${plainDate(data.asOf, lang)}. ` : ""}{t.gross}
         </p>
       </section>
       )}
@@ -324,9 +324,10 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
   return (
     <div className="rounded-xl border border-line/70 px-3 py-2">
       {value === null ? (
-        <Link href={lock?.href ?? "/signup"} className="flex items-center gap-1.5 text-[15px] font-semibold text-accent">
-          <Lock /> {lock?.label}
-        </Link>
+        // Locked: a grey lock and a dash; the one sign-up link sits under the row.
+        <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute/60" aria-label={lock?.label}>
+          <Lock /> —
+        </div>
       ) : (
         <div className="text-xl font-semibold leading-tight tabular-nums tracking-tight">{value}</div>
       )}
@@ -416,7 +417,6 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
         </button>
       )}
       {locked > 0 && <LockedRows count={locked} />}
-      {rows.length > 0 && <WhereToTrade />}
       {signedIn && !paid && rows.length > 0 && (
         <Link
           href="/pricing"
@@ -472,3 +472,11 @@ function Lock() {
   );
 }
 
+
+/** "19 Oct 2026, 06:16" in the page's language, instead of the raw ISO time. */
+function plainDate(iso: string, lang: FinderLang): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const loc = { en: "en-GB", it: "it-IT", fr: "fr-FR", de: "de-DE" }[lang] ?? "en-GB";
+  return d.toLocaleString(loc, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+}

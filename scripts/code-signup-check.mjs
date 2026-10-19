@@ -39,11 +39,11 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
   await page.getByRole("button", { name: "Use code" }).click();
   await page.getByTestId("redeem-msg").waitFor({ timeout: 8000 }).catch(() => {});
   ok((await page.getByTestId("redeem-msg").textContent().catch(() => ""))?.includes("already been used"), `${w}: used code refused on pricing`);
-  ok(await page.getByTestId("footer-note").textContent().then((t) => t.includes("Stripe") && t.includes("not investment advice")), `${w}: one footer with plan terms and disclaimer`);
+  ok(await page.getByTestId("footer-note").textContent().then((t) => t.includes("not investment advice")), `${w}: one footer with plan terms and disclaimer`);
   ok(!(await page.locator("main").textContent()).includes("Prices include VAT"), `${w}: no separate note above the footer`);
   { const sw = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth, [...document.querySelectorAll("body *")].filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1).slice(0,3).map((e) => e.tagName + "." + String(e.className).slice(0,40))]); ok(sw[0] <= sw[1], `${w}: no sideways scroll ${JSON.stringify(sw)}`); }
   await page.goto(BASE + "/it");
-  ok((await page.getByTestId("footer-note").textContent()).includes("Stripe") && (await page.getByTestId("footer-note").textContent()).includes("IVA"), `${w}: Italian footer on /it`);
+  ok((await page.getByTestId("footer-note").textContent()).includes("consulenza"), `${w}: Italian footer on /it`);
   if (w === 390) await page.goto(BASE + "/pricing").then(() => page.screenshot({ path: "/tmp/claude-0/pricing-bottom.png", fullPage: true }));
   await ctx.close();
 }
