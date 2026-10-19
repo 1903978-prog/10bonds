@@ -9,6 +9,9 @@ import { CATEGORIES, COUNTRIES, SCENARIOS, type Country } from "@/lib/brokers/ty
 import { brokerView, countryView, type Row } from "@/lib/brokers/view";
 import CostTable, { type TableRow } from "./CostTable";
 import { formatters } from "./format";
+import { prose } from "@/components/seo/Seo";
+import { landingFor } from "@/lib/seo/landingLivio";
+import { sanitizeHtml } from "@/lib/seo/sanitize";
 
 // Server-rendered pages of the Brokers & Trading Fees section, shared by the /it, /fr and /de routes.
 
@@ -137,6 +140,7 @@ export async function ComparisonPage({ country }: { country: Country }) {
   const v = countryView(data, country, today());
   const intro = v.settings.intro ?? t.intro;
   const path = sectionPath(country);
+  const land = landingFor(path);
   return (
     <article lang={t.lang} className="mx-auto max-w-5xl space-y-6">
       <Preview t={t} on={preview} />
@@ -168,6 +172,13 @@ export async function ComparisonPage({ country }: { country: Country }) {
       <Sponsored t={t} country={country} list={v.sponsored.map((p) => ({ id: p.id, name: p.name, url: p.affiliate.url }))} />
 
       <FindBonds t={t} />
+
+      {land && (
+        <section className={card}>
+          <h2 className="text-2xl font-semibold tracking-tight">{land.h1}</h2>
+          <div className={`mt-4 ${prose}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(land.bodyHtml) }} />
+        </section>
+      )}
 
       <section className={`${card} space-y-6`}>
         {t.editorial.map((s) => (

@@ -364,4 +364,66 @@ export const EN_GUIDES: EnGuide[] = [
 <p><strong>Sources:</strong> <a href="https://www.borsaitaliana.it/notizie/sotto-la-lente/btp.htm">Borsa Italiana — Guide to BTPs</a>; <a href="https://www.consob.it/ProspettiPortlet/DownloadProspetto?EmitID=217319">CONSOB — Documentation on bond yields</a>.</p>
 <p><em>This information is for informational and educational purposes only. It does not constitute a personalised investment recommendation. Yields and ratings may change over time.</em></p>`,
   },
+  {
+    slug: "government-bonds-or-bond-etfs",
+    group: "bonds-vs-etf",
+    section: "academy",
+    title: "BTPs or bond ETFs: what are the differences?",
+    seoTitle: "BTPs or Bond ETFs? Differences, Costs and Risks",
+    metaDescription: "BTPs and bond ETFs compared: coupons, maturities, diversification, costs and risks. How the two instruments work.",
+    primaryKeyword: "btp or bond etf",
+    bodyHtml: `
+<p>BTPs and bond ETFs both give you exposure to the bond market, but they work differently. A BTP is a single bond issued by the Italian state. A bond ETF is an exchange-traded fund that holds a basket of bonds.</p>
+<h2 id="maturity">Maturity and repayment</h2>
+<p>A traditional BTP has a fixed maturity date and defined repayment terms. A traditional bond ETF, by contrast, generally keeps a rolling portfolio and does not repay your investment on a single date.</p>
+<p>There are also fixed-maturity bond ETFs, which behave differently from traditional funds.</p>
+<h2 id="diversification">Diversification</h2>
+<p>Buying a single BTP means a specific exposure to Italian government debt. An ETF can spread your money across several issuers and maturities, depending on what it holds.</p>
+<h2 id="costs-and-risks">Costs and risks</h2>
+<p>When comparing the two, check:</p>
+<ul><li>Trading commissions.</li><li>The fund's ongoing charges, where applicable.</li><li>The bid-ask spread.</li><li>Sensitivity to interest rates.</li><li>Credit risk.</li><li>Tax treatment.</li></ul>
+<p>There is no answer that fits every investor: the two instruments are built differently.</p>
+<p><a class="cta" href="/">Explore the yield and risk of individual bonds</a></p>`,
+  },
+  {
+    slug: "bond-default-rates-by-rating",
+    group: "default-rates",
+    section: "risk",
+    title: "What is the historical default probability of a BBB rating?",
+    seoTitle: "Default probability by rating: BBB, A, BB and more",
+    metaDescription: "Historical default probability by rating, from AAA to CCC: BBB issuers defaulted in 1.44% of cases over 5 years and 3.52% over 10 years (S&P averages).",
+    primaryKeyword: "default probability bbb rating",
+    bodyHtml: `
+<p><strong>Short answer:</strong> according to S&amp;P's long-run averages, a BBB-rated issuer defaulted in 0.16% of cases within 1 year, 1.44% within 5 years and 3.52% within 10 years. Out of 100 BBB issuers, on average fewer than 4 defaulted over ten years.</p>
+<p>The table shows average cumulative default rates for each rating notch, from 1 to 15 years. A cumulative rate is the share of issuers with that rating at the start of the period that defaulted by the end of it.</p>
+<h2 id="table">Cumulative default rates by rating (%)</h2>
+<table><thead><tr><th scope="col">Rating</th><th scope="col">10BONDS risk</th><th scope="col">1 year</th><th scope="col">3 years</th><th scope="col">5 years</th><th scope="col">7 years</th><th scope="col">10 years</th><th scope="col">15 years</th></tr></thead><tbody>
+<tr><td>AAA</td><td>1</td><td>0.00%</td><td>0.03%</td><td>0.13%</td><td>0.25%</td><td>0.44%</td><td>0.58%</td></tr>
+<tr><td>AA+</td><td>2</td><td>0.00%</td><td>0.05%</td><td>0.15%</td><td>0.29%</td><td>0.52%</td><td>0.77%</td></tr>
+<tr><td>AA</td><td>2</td><td>0.02%</td><td>0.10%</td><td>0.25%</td><td>0.43%</td><td>0.70%</td><td>1.05%</td></tr>
+<tr><td>AA−</td><td>2</td><td>0.03%</td><td>0.15%</td><td>0.36%</td><td>0.57%</td><td>0.88%</td><td>1.34%</td></tr>
+<tr><td>A+</td><td>3</td><td>0.04%</td><td>0.18%</td><td>0.39%</td><td>0.65%</td><td>1.10%</td><td>1.82%</td></tr>
+<tr><td>A</td><td>3</td><td>0.05%</td><td>0.22%</td><td>0.48%</td><td>0.81%</td><td>1.38%</td><td>2.19%</td></tr>
+<tr><td>A−</td><td>3</td><td>0.07%</td><td>0.28%</td><td>0.57%</td><td>0.98%</td><td>1.65%</td><td>2.52%</td></tr>
+<tr><td>BBB+</td><td>4</td><td>0.11%</td><td>0.46%</td><td>0.98%</td><td>1.58%</td><td>2.54%</td><td>4.02%</td></tr>
+<tr><td>BBB</td><td>5</td><td>0.16%</td><td>0.71%</td><td>1.44%</td><td>2.27%</td><td>3.52%</td><td>5.38%</td></tr>
+<tr><td>BBB−</td><td>6</td><td>0.27%</td><td>1.22%</td><td>2.84%</td><td>4.08%</td><td>5.92%</td><td>8.44%</td></tr>
+<tr><td>BB+</td><td>7</td><td>0.39%</td><td>1.85%</td><td>3.65%</td><td>5.52%</td><td>8.05%</td><td>11.22%</td></tr>
+<tr><td>BB</td><td>7</td><td>0.63%</td><td>2.87%</td><td>5.48%</td><td>7.92%</td><td>11.08%</td><td>14.88%</td></tr>
+<tr><td>BB−</td><td>7</td><td>0.95%</td><td>4.22%</td><td>7.98%</td><td>11.25%</td><td>15.18%</td><td>19.65%</td></tr>
+<tr><td>B+</td><td>8</td><td>1.75%</td><td>6.20%</td><td>10.42%</td><td>13.95%</td><td>18.22%</td><td>23.40%</td></tr>
+<tr><td>B</td><td>8</td><td>3.32%</td><td>10.32%</td><td>15.65%</td><td>19.68%</td><td>24.33%</td><td>29.50%</td></tr>
+<tr><td>B−</td><td>8</td><td>6.25%</td><td>16.48%</td><td>23.10%</td><td>27.95%</td><td>33.15%</td><td>38.80%</td></tr>
+<tr><td>CCC+</td><td>9</td><td>15.40%</td><td>28.50%</td><td>35.80%</td><td>40.10%</td><td>44.90%</td><td>49.50%</td></tr>
+<tr><td>CCC / C</td><td>9–10</td><td>26.63%</td><td>40.85%</td><td>46.90%</td><td>50.41%</td><td>54.21%</td><td>57.86%</td></tr>
+</tbody></table>
+<p><em>Source: S&amp;P, average cumulative corporate default rates by rating notch (long-run historical average). The "10BONDS risk" column shows which 1-10 risk score each rating corresponds to in our bond finder.</em></p>
+<h2 id="how-to-read">How to read the table</h2>
+<p>As the rating falls, the default probability rises, and not in a straight line: at 5 years it goes from 1.44% for BBB to 2.84% for BBB−, then jumps to 5.48% for BB, the first fully speculative-grade notch. The line between investment grade (down to BBB−) and speculative grade (BB+ and below) is where risk changes pace.</p>
+<p>Time matters as much as the rating. A 1-year probability cannot be compared with a 10-year one: for a BBB bond maturing in 5 years, the column to look at is the 5-year one.</p>
+<h2 id="limits">What the table does not tell you</h2>
+<ul><li>These are past averages across many issuers and economic cycles, not a forecast for any single issuer.</li><li>Default does not mean losing everything: how much is recovered depends on the bond's seniority and collateral.</li><li>The data covers companies; government bonds have a different default history.</li></ul>
+<p>For how ratings, default probability and expected loss fit together, read the guides on <a href="/knowledge/bond-credit-risk">bond credit risk</a> and <a href="/knowledge/investment-grade-bonds">investment-grade bonds</a>.</p>
+<p><a class="cta" href="/">Compare bonds by risk, yield and duration</a></p>`,
+  },
 ];

@@ -1,7 +1,8 @@
 import type { SeedGuide } from "./guidesSeed";
 
 // Articles Livio wrote himself for the Knowledge Center. They are his own text, approved by him, so they go in
-// published. Kept word for word; only turned into HTML.
+// published. Kept word for word; only turned into HTML. The default-rate page is built on the S&P table he sent
+// (19 Oct 2026), with our Risk 1-10 column added.
 
 export const SEED_GUIDES_LIVIO: SeedGuide[] = [
   {
@@ -72,5 +73,46 @@ export const SEED_GUIDES_LIVIO: SeedGuide[] = [
 <hr>
 <p><strong>Fonti:</strong> <a href="https://www.borsaitaliana.it/notizie/sotto-la-lente/btp.htm">Borsa Italiana — Guida ai BTP</a>; <a href="https://www.consob.it/ProspettiPortlet/DownloadProspetto?EmitID=217319">CONSOB — Documentazione sui rendimenti obbligazionari</a>.</p>
 <p><em>Le informazioni hanno finalità esclusivamente informative ed educative. Non costituiscono una raccomandazione di investimento personalizzata. I rendimenti e i rating possono variare nel tempo.</em></p>`,
+  },
+  {
+    locale: "it", topic: "credit", group: "default-rates", status: "published",
+    slug: "probabilita-default-rating",
+    title: "Qual è la probabilità storica di default di un rating BBB?",
+    seoTitle: "Probabilità di default per rating: BBB, A, BB e altri",
+    metaDescription: "Probabilità storica di default per rating, da AAA a CCC: un BBB è andato in default nell'1,44% dei casi a 5 anni e nel 3,52% a 10 anni (medie S&P).",
+    primaryKeyword: "probabilità default rating bbb",
+    relatedKeywords: ["probabilità di default rating", "tassi di default per rating", "default obbligazioni bbb"],
+    relatedSlugs: ["rischio-di-credito-obbligazioni", "obbligazioni-investment-grade", "obbligazioni-alto-rendimento"],
+    bodyHtml: `<p><strong>Risposta breve:</strong> secondo le medie storiche di S&amp;P, un emittente con rating BBB è andato in default nello 0,16% dei casi entro 1 anno, nell'1,44% entro 5 anni e nel 3,52% entro 10 anni. Su 100 emittenti BBB, in media meno di 4 sono andati in default in dieci anni.</p>
+<p>La tabella mostra i tassi di default cumulati medi per ogni gradino di rating, da 1 a 15 anni. Un tasso cumulato indica la quota di emittenti con quel rating all'inizio del periodo che è andata in default entro la fine del periodo.</p>
+<h2 id="tabella">Tassi di default cumulati per rating (%)</h2>
+<table><thead><tr><th scope="col">Rating</th><th scope="col">Rischio 10BONDS</th><th scope="col">1 anno</th><th scope="col">3 anni</th><th scope="col">5 anni</th><th scope="col">7 anni</th><th scope="col">10 anni</th><th scope="col">15 anni</th></tr></thead><tbody>
+<tr><td>AAA</td><td>1</td><td>0,00%</td><td>0,03%</td><td>0,13%</td><td>0,25%</td><td>0,44%</td><td>0,58%</td></tr>
+<tr><td>AA+</td><td>2</td><td>0,00%</td><td>0,05%</td><td>0,15%</td><td>0,29%</td><td>0,52%</td><td>0,77%</td></tr>
+<tr><td>AA</td><td>2</td><td>0,02%</td><td>0,10%</td><td>0,25%</td><td>0,43%</td><td>0,70%</td><td>1,05%</td></tr>
+<tr><td>AA−</td><td>2</td><td>0,03%</td><td>0,15%</td><td>0,36%</td><td>0,57%</td><td>0,88%</td><td>1,34%</td></tr>
+<tr><td>A+</td><td>3</td><td>0,04%</td><td>0,18%</td><td>0,39%</td><td>0,65%</td><td>1,10%</td><td>1,82%</td></tr>
+<tr><td>A</td><td>3</td><td>0,05%</td><td>0,22%</td><td>0,48%</td><td>0,81%</td><td>1,38%</td><td>2,19%</td></tr>
+<tr><td>A−</td><td>3</td><td>0,07%</td><td>0,28%</td><td>0,57%</td><td>0,98%</td><td>1,65%</td><td>2,52%</td></tr>
+<tr><td>BBB+</td><td>4</td><td>0,11%</td><td>0,46%</td><td>0,98%</td><td>1,58%</td><td>2,54%</td><td>4,02%</td></tr>
+<tr><td>BBB</td><td>5</td><td>0,16%</td><td>0,71%</td><td>1,44%</td><td>2,27%</td><td>3,52%</td><td>5,38%</td></tr>
+<tr><td>BBB−</td><td>6</td><td>0,27%</td><td>1,22%</td><td>2,84%</td><td>4,08%</td><td>5,92%</td><td>8,44%</td></tr>
+<tr><td>BB+</td><td>7</td><td>0,39%</td><td>1,85%</td><td>3,65%</td><td>5,52%</td><td>8,05%</td><td>11,22%</td></tr>
+<tr><td>BB</td><td>7</td><td>0,63%</td><td>2,87%</td><td>5,48%</td><td>7,92%</td><td>11,08%</td><td>14,88%</td></tr>
+<tr><td>BB−</td><td>7</td><td>0,95%</td><td>4,22%</td><td>7,98%</td><td>11,25%</td><td>15,18%</td><td>19,65%</td></tr>
+<tr><td>B+</td><td>8</td><td>1,75%</td><td>6,20%</td><td>10,42%</td><td>13,95%</td><td>18,22%</td><td>23,40%</td></tr>
+<tr><td>B</td><td>8</td><td>3,32%</td><td>10,32%</td><td>15,65%</td><td>19,68%</td><td>24,33%</td><td>29,50%</td></tr>
+<tr><td>B−</td><td>8</td><td>6,25%</td><td>16,48%</td><td>23,10%</td><td>27,95%</td><td>33,15%</td><td>38,80%</td></tr>
+<tr><td>CCC+</td><td>9</td><td>15,40%</td><td>28,50%</td><td>35,80%</td><td>40,10%</td><td>44,90%</td><td>49,50%</td></tr>
+<tr><td>CCC / C</td><td>9–10</td><td>26,63%</td><td>40,85%</td><td>46,90%</td><td>50,41%</td><td>54,21%</td><td>57,86%</td></tr>
+</tbody></table>
+<p><em>Fonte: S&amp;P, tassi di default cumulati medi delle società per gradino di rating (media storica di lungo periodo). La colonna "Rischio 10BONDS" indica a quale punteggio di rischio da 1 a 10 corrisponde ogni rating nel nostro strumento.</em></p>
+<h2 id="come-leggere">Come leggere la tabella</h2>
+<p>Più il rating scende, più la probabilità di default cresce, e non in modo lineare: a 5 anni passa dall'1,44% di BBB al 2,84% di BBB−, ma salta al 5,48% di BB, il primo gradino speculative grade pieno. Il confine tra investment grade (fino a BBB−) e speculative grade (da BB+ in giù) è il punto in cui il rischio cambia passo.</p>
+<p>La durata conta quanto il rating. Una probabilità a 1 anno non si confronta con una a 10 anni: per un'obbligazione BBB con scadenza tra 5 anni il dato da guardare è la colonna dei 5 anni.</p>
+<h2 id="limiti">Cosa la tabella non dice</h2>
+<ul><li>Sono medie del passato su molti emittenti e molti cicli economici: non sono una previsione per un singolo emittente.</li><li>Il default non significa perdere tutto: quanto si recupera dipende dalla seniority e dalle garanzie dell'obbligazione.</li><li>I dati riguardano le società; i titoli di Stato hanno una storia di default diversa.</li></ul>
+<p>Per capire come rating, probabilità di default e perdita attesa si combinano, leggi la guida al <a href="/it/guide/rischio-di-credito-obbligazioni">rischio di credito delle obbligazioni</a> e quella sulle <a href="/it/guide/obbligazioni-investment-grade">obbligazioni investment grade</a>.</p>
+<p><a class="cta" href="/it">Confronta obbligazioni per rischio, rendimento e durata</a></p>`,
   },
 ];

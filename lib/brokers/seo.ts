@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { brokerPath, CONTENT, methodologyPath, sectionPath } from "./content";
 import { PROFILES, SEED_TARIFFS } from "./data";
 import { COUNTRIES, type Country } from "./types";
+import { landingFor } from "@/lib/seo/landingLivio";
 
 // Page titles, canonical URLs, hreflang links and sitemap entries for the broker section.
 
@@ -18,9 +19,10 @@ const hreflang = (paths: Partial<Record<Country, string>>): Record<string, strin
 export function sectionMetadata(c: Country, published: boolean): Metadata {
   const t = CONTENT[c];
   const path = sectionPath(c);
+  const land = landingFor(path); // Livio's own title and description, where he wrote the page text
   return {
-    title: `${t.metaTitle} · 10BONDS`,
-    description: t.metaDescription,
+    title: land ? { absolute: land.seoTitle } : `${t.metaTitle} · 10BONDS`,
+    description: land?.metaDescription ?? t.metaDescription,
     alternates: { canonical: abs(path), languages: { ...hreflang({ it: sectionPath("it"), fr: sectionPath("fr"), de: sectionPath("de") }), "x-default": abs(sectionPath("it")) } },
     openGraph: { title: t.metaTitle, description: t.metaDescription, url: abs(path), locale: t.lang.replace("-", "_"), type: "article", siteName: "10BONDS" },
     robots: published ? { index: true, follow: true } : { index: false, follow: false },

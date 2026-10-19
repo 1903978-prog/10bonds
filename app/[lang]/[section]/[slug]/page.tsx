@@ -11,6 +11,7 @@ import { SITE_URL } from "@/lib/seo/crawl";
 import { isLocale, LOCALE, pathOf, sectionOf, T, type Locale } from "@/lib/seo/locales";
 import { calcLangs, CALCULATOR_EN, enGuideByGroup, enPath, withEnglish } from "@/lib/seo/knowledgeEn";
 import { unlinkMissing } from "@/lib/seo/links";
+import { landingFor, splitLead } from "@/lib/seo/landingLivio";
 import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
 import { alternates, comparisonAlternates, comparisonPages, fmtDate, guideAlternates, indexable, shown } from "@/lib/seo/site";
 import { guideBySlug, listGuides, listPeople, type Guide } from "@/lib/seo/store";
@@ -52,20 +53,22 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   if (!r) return { robots: { index: false } };
   if (r.kind === "tool") {
     const c = CALCULATORS[r.l];
+    const land = landingFor(pathOf(r.l, "tools", c.slug));
     return {
-      title: { absolute: c.title },
-      description: c.description,
+      title: { absolute: land?.seoTitle ?? c.title },
+      description: land?.metaDescription ?? c.description,
       alternates: withEnglish(pathOf(r.l, "tools", c.slug), enPath(CALCULATOR_EN.slug), calcLangs()),
       openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description },
     };
   }
   if (r.kind === "bonds") {
     const x = r.def.text[r.l];
+    const land = landingFor(pathOf(r.l, "bonds", x.slug));
     const { pages, source } = await comparisonPages();
     const c = pages.find((p) => p.def.id === r.def.id);
     return {
-      title: { absolute: x.title },
-      description: x.description,
+      title: { absolute: land?.seoTitle ?? x.title },
+      description: land?.metaDescription ?? x.description,
       alternates: comparisonAlternates(r.l, r.def),
       robots: c && indexable(c, source) ? undefined : { index: false, follow: true },
       openGraph: { locale: LOCALE[r.l].ogLocale, title: x.title, description: x.description },
@@ -94,12 +97,15 @@ function ToolPage({ l }: { l: Locale }) {
   const t = T[l];
   const c = CALCULATORS[l];
   const url = SITE_URL + pathOf(l, "tools", c.slug);
+  const land = landingFor(pathOf(l, "tools", c.slug));
+  const [lead, rest] = land ? splitLead(land.bodyHtml) : ["", ""];
   return (
     <div className="mx-auto max-w-3xl">
       <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.tools, href: pathOf(l, "tools") }, { name: c.h1, href: pathOf(l, "tools", c.slug) }]} />
-      <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
-      {c.intro.map((p) => <p key={p.slice(0, 30)} className="mt-3 text-[17px] text-mute">{p}</p>)}
-      <YieldCalculator locale={l} text={c} />
+      <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{land?.h1 ?? c.h1}</h1>
+      {land ? <div className={`mt-4 ${prose}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(lead) }} /> : c.intro.map((p) => <p key={p.slice(0, 30)} className="mt-3 text-[17px] text-mute">{p}</p>)}
+      <div id="calcolatore" className="scroll-mt-20"><YieldCalculator locale={l} text={c} /></div>
+      {land && <section className={`mt-8 rounded-[28px] bg-white p-6 sm:p-10 ${prose}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(rest) }} />}
       <section className="mt-8 rounded-[28px] bg-white p-6 text-[16px] leading-[1.7] sm:p-10">
         <h2 id="metodo" className="text-[22px] font-semibold tracking-tight">{c.how.h2}</h2>
         {c.how.paras.map((p) => <p key={p.slice(0, 30)} className="mt-3">{p}</p>)}
@@ -119,14 +125,18 @@ async function ComparisonPage({ l, def }: { l: Locale; def: ComparisonDef }) {
   const c = pages.find((p) => p.def.id === def.id);
   if (!c || !shown(c, source)) notFound();
   const url = SITE_URL + pathOf(l, "bonds", x.slug);
+  const land = landingFor(pathOf(l, "bonds", x.slug));
+  const live = new Set(pages.filter((p) => shown(p, source)).map((p) => p.def.text[l].slug));
+  const [lead, rest] = land ? splitLead(unlinkMissing(sanitizeHtml(land.bodyHtml), l, new Set(guides.map((g) => g.slug)), live)) : ["", ""];
   const related = def.related.map(comparisonById).map((d) => d && pages.find((p) => p.def.id === d.id)).filter((p) => p && shown(p, source));
   const relGuides = guides.filter((g) => g.translationGroup && (def.topics as string[]).includes(g.translationGroup));
   return (
     <div className="mx-auto max-w-3xl">
       <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.bonds, href: pathOf(l, "bonds") }, { name: x.h1, href: pathOf(l, "bonds", x.slug) }]} />
-      <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{x.h1}</h1>
-      {x.intro.map((p) => <p key={p.slice(0, 30)} className="mt-4 text-[16px] leading-[1.7]">{p}</p>)}
-      <div className="mt-6"><ComparisonBody locale={l} c={c} asOf={asOf} source={source} /></div>
+      <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{land?.h1 ?? x.h1}</h1>
+      {land ? <div className={`mt-4 ${prose}`} dangerouslySetInnerHTML={{ __html: lead }} /> : x.intro.map((p) => <p key={p.slice(0, 30)} className="mt-4 text-[16px] leading-[1.7]">{p}</p>)}
+      <div id="tabella" className="mt-6 scroll-mt-20"><ComparisonBody locale={l} c={c} asOf={asOf} source={source} /></div>
+      {land && <section className={`mt-8 rounded-[28px] bg-white p-6 sm:p-10 ${prose}`} dangerouslySetInnerHTML={{ __html: rest }} />}
       {relGuides.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t.guides}</h2>
