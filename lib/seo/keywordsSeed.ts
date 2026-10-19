@@ -73,6 +73,20 @@ const RESEARCH: Seed[] = [
   { ...de("anleihen etf oder einzelanleihen", "/de/ratgeber/anleihen-etf-oder-einzelanleihen"), section: "academy", potential: "medium" },
 ];
 
+/** Google suggestions for "migliori btp" Livio asked to track (19 Oct 2026). No volume until a tool gives one. */
+const BTP_SUGGESTIONS: Seed[] = [
+  it("migliori btp", "/it/obbligazioni/btp", "commercial"),
+  it("migliori btp da comprare oggi sotto 100 e quali da acquistare", "/it/obbligazioni/btp", "commercial"),
+  it("migliori btp da comprare", "/it/obbligazioni/btp", "commercial"),
+  it("migliori btp a 5 anni da comprare oggi", "/it/obbligazioni/btp", "commercial"),
+  it("migliori btp europei", "/it/calcolatori/curva-rendimenti-titoli-di-stato", "commercial"),
+  it("migliori btp scadenza 2028", "/it/obbligazioni/scadenza-2028", "commercial"),
+  it("migliori btp da acquistare", "/it/obbligazioni/btp", "commercial"),
+  it("migliori btp scadenza 2027", "/it/obbligazioni/scadenza-2027", "commercial"),
+  it("migliori btp a 1 anno", "/it/obbligazioni/btp", "commercial"),
+  it("migliori btp scadenza 3 anni", "/it/obbligazioni/btp", "commercial"),
+].map((k) => ({ ...k, section: "government" as const }));
+
 /** Section and potential for base keywords that the brief places in the Knowledge Center. */
 const EXTRA: Record<string, Partial<Seed>> = {
   "it:migliori obbligazioni 2026": { section: "best", potential: "high" },
@@ -90,4 +104,4 @@ const EXTRA: Record<string, Partial<Seed>> = {
   "de:kreditrisiko anleihen": { section: "risk" },
 };
 
-export const SEED_KEYWORDS: Seed[] = [...BASE.map((k) => ({ ...k, ...EXTRA[`${k.market}:${k.keyword}`] })), ...RESEARCH];
+export const SEED_KEYWORDS: Seed[] = [...BASE.map((k) => ({ ...k, ...EXTRA[`${k.market}:${k.keyword}`] })), ...RESEARCH, ...BTP_SUGGESTIONS];

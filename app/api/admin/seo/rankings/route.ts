@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { searchConsoleTotals, serviceAccount } from "@/lib/seo/google";
 import { marketOf, notFound, seoAdmin } from "@/lib/seo/input";
+import { contentScoreFor } from "@/lib/seo/contentScores";
 import { rankings, syncKeywords } from "@/lib/seo/rankings";
 import { getSeoSetting, keywordHistory, listKeywords } from "@/lib/seo/store";
 
@@ -28,5 +29,7 @@ export async function GET(req: Request) {
     }
   }
   const [keywords, history] = await Promise.all([listKeywords(market), keywordHistory(market)]);
-  return NextResponse.json({ market, state, site, serviceAccount: sa?.client_email ?? null, error, site28, ...rankings(keywords, history) }, { headers: { "Cache-Control": "no-store" } });
+  const r = rankings(keywords, history);
+  const rows = r.rows.map((x) => ({ ...x, content: contentScoreFor(market, x.keyword) }));
+  return NextResponse.json({ market, state, site, serviceAccount: sa?.client_email ?? null, error, site28, ...r, rows }, { headers: { "Cache-Control": "no-store" } });
 }

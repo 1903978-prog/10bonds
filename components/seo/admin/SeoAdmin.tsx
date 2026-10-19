@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Locale } from "@/lib/seo/locales";
+import AiVisibility from "./AiVisibility";
 import Backlinks from "./Backlinks";
 import Countries from "./Countries";
 import Guides from "./Guides";
@@ -18,6 +19,7 @@ const MARKETS: { id: Locale; label: string }[] = [
 const TABS = [
   ["overview", "Score & roadmap"],
   ["rankings", "Google rankings"],
+  ["ai", "AI visibility"],
   ["countries", "Countries & Languages"],
   ["keywords", "Keywords & Knowledge Center"],
   ["guides", "Guides & authors"],
@@ -30,7 +32,7 @@ type Tab = (typeof TABS)[number][0];
 export default function SeoAdmin() {
   const [market, setMarket] = useState<Locale>("it");
   const [tab, setTab] = useState<Tab>("overview");
-  const perMarket = tab !== "countries" && tab !== "backlinks";
+  const perMarket = tab !== "countries" && tab !== "backlinks" && tab !== "ai";
   return (
     <div className="space-y-5">
       <div>
@@ -58,6 +60,7 @@ export default function SeoAdmin() {
       )}
       {tab === "overview" && <Overview market={market} />}
       {tab === "rankings" && <Rankings market={market} />}
+      {tab === "ai" && <AiVisibility />}
       {tab === "countries" && <Countries />}
       {tab === "keywords" && <Keywords market={market} />}
       {tab === "guides" && <Guides market={market} />}

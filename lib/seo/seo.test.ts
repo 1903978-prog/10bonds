@@ -10,6 +10,8 @@ import { SEED_KEYWORDS } from "./keywordsSeed";
 import { FIRST_WAVE, opportunity } from "./knowledge";
 import { landingFor, LIVIO_LANDINGS } from "./landingLivio";
 import { govCurves } from "./yieldCurves";
+import { aiVisibility, guideShape, REQUIRED_CRAWLERS, robotsAllows } from "./geo";
+import robots from "../../app/robots";
 import { LOCALE, LOCALES, localeFromAcceptLanguage, pathOf, sectionOf, suggestLocale, T } from "./locales";
 import { findIsins, isValidIsin, parsePage, similarity } from "./page";
 import { DIMENSIONS, mergeManual, overallScore, recommendations, type CriterionResult } from "./rubric";
@@ -362,5 +364,27 @@ describe("government yield curves", () => {
     const curves = govCurves([b("Italy", "IT", "2030-01-01", 3), b("Italy", "IT", "2030-12-01", 3.4), b("Italy", "IT", "2032-06-01", 3.8), b("Kingdom of Spain", "ES", "2030-05-01", 2.9), b("Enel", "IT", "2030-01-01", 9), b("Italy", "IT", "2031-01-01", 5, "USD")], 2027);
     expect(curves.map((c) => c.country)).toEqual(["ES", "IT"]);
     expect(curves[1].points).toEqual([{ year: 2030, ytm: 3.2, bonds: 2 }, { year: 2032, ytm: 3.8, bonds: 1 }]);
+  });
+});
+
+describe("AI visibility", () => {
+  it("robots.txt lets the AI search crawlers in and keeps private pages out", () => {
+    const r = robots();
+    for (const a of REQUIRED_CRAWLERS) expect(robotsAllows(r, a)).toBe(true);
+    expect(robotsAllows({ rules: [{ userAgent: "*", disallow: "/" }] }, "Claude-User")).toBe(false);
+    expect(robotsAllows({ rules: [{ userAgent: "*", disallow: "/" }, { userAgent: ["Claude-User"], allow: "/" }] }, "Claude-User")).toBe(true);
+  });
+  it("scores out of 100 on the seven weights and counts nothing that is not connected", () => {
+    const base = { robots: robots(), sitemap: true, livePages: 25, calculators: 3, curvePage: true, defaultTable: true, brokerMarkets: 3, guides: [], englishGroups: [], publicAuthors: 0, referringDomains: 0, dataAgeDays: 1, methodology: true, aiReferralTracking: true, citationTest: false, bingConnected: false };
+    const v = aiVisibility(base);
+    expect(v.dimensions.map((d) => d.weight).reduce((a, b) => a + b)).toBe(100);
+    expect(v.dimensions.find((d) => d.id === "data")!.score).toBe(100);
+    expect(v.dimensions.find((d) => d.id === "measure")!.score).toBe(33);
+    expect(v.score).toBeGreaterThan(0);
+    expect(v.score).toBeLessThan(100);
+  });
+  it("recognises an answer-first guide with question headings", () => {
+    const g = guideShape({ bodyHtml: "<p><strong>Risposta breve:</strong> un BBB è andato in default nell'1,44% dei casi entro 5 anni secondo le medie storiche.</p><h2>Perché?</h2><p>x</p><h2>Come si legge?</h2><table></table>" });
+    expect(g).toMatchObject({ answerFirst: true, questionHeadings: 2, table: true });
   });
 });
