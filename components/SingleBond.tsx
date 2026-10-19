@@ -60,7 +60,11 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
 
   const tier = data?.tier ?? "visitor";
   // Hide a risk step whose best yield is not above every lower-risk step: more risk must pay more.
-  const points = dropDominated(data?.points ?? []);
+  // The axis stops at the riskiest step on the blue line: riskier steps would only hold "no bond" or grey dots (6 to 1 if nothing riskier pays more).
+  const onLine = dropDominated(data?.points ?? []).filter((p) => p.ytm !== null).map((p) => p.level);
+  const top = onLine.length ? Math.max(2, ...onLine) : 10;
+  const all = (data?.points ?? []).filter((p) => p.level <= top);
+  const points = dropDominated(all);
   // Until a dot is tapped, show the lowest-risk bond (rightmost dot) so the card is always there.
   const shown = level ?? points.find((p) => p.ytm !== null)?.level ?? null;
   const point = shown === null ? null : points.find((p) => p.level === shown) ?? null;
@@ -75,8 +79,8 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         <h2 className="text-[17px] font-semibold">{t.bestByRating}</h2>
         <span className="text-xs text-mute">{t.tapDot}</span>
       </div>
-      <Chart points={points} ghosts={dominatedLevels(data?.points ?? [])} axis={data?.points ?? []} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
-      {dominatedLevels(data?.points ?? []).length > 0 && <p className="text-[11px] text-mute" data-testid="ghost-note">{t.ghostNote}</p>}
+      <Chart points={points} ghosts={dominatedLevels(all)} axis={all} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      {dominatedLevels(all).length > 0 && <p className="text-[11px] text-mute" data-testid="ghost-note">{t.ghostNote}</p>}
 
       {point && bond ? (
         <BondBox
@@ -116,8 +120,9 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
   const ys = [...points, ...ghosts].map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
   const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
-  // Risk 1 (lowest) always on the right edge, risk 10 at the left.
-  const x = (level: number) => L + PAD + ((10 - level) / 9) * (W - L - PAD - R);
+  // Risk 1 (lowest) always on the right edge, the riskiest step shown at the left.
+  const top = Math.max(2, ...axis.map((p) => p.level));
+  const x = (level: number) => L + PAD + ((top - level) / (top - 1)) * (W - L - PAD - R);
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
   const ticks: number[] = [];
   // At most ~6 gridlines so the axis figures never crowd each other.

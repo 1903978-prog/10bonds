@@ -53,6 +53,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
+  // The highest risk level that has bonds at each horizon: the risk slider stops there (no risk-7 bonds = 6 to 1).
+  const [maxRisk, setMaxRisk] = useState<Record<string, number | null> | null>(null);
+  const riskTopFor = (d: number, m = maxRisk) => Math.max(LIMITS.risk.min + 1, m?.[String(Math.round(d * 100) / 100)] ?? LIMITS.risk.max);
+  const riskTop = riskTopFor(duration);
 
   useEffect(() => {
     fetch(`/api/bonds/caps?${new URLSearchParams({ currency, size })}`)
@@ -60,6 +64,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       .then((b) => {
         if (!b?.caps) return;
         setCaps(b.caps);
+        if (b.maxRisk) {
+          setMaxRisk(b.maxRisk);
+          setRisk((r) => Math.min(r, riskTopFor(duration, b.maxRisk)));
+        }
         setMinKnown(Boolean(b.minKnown));
         if (!b.minKnown) setSize("100k");
         // Small orders (1k-10k) is the default once the data says which bonds they are.
@@ -75,7 +83,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const followCap = (cap: number) => setYtm((y) => (y > cap || y >= ytmMax - 1e-9 ? cap : y));
   const changeDuration = (d: number) => {
     setDuration(d);
-    followCap(capFor(d, risk));
+    const r = Math.min(risk, riskTopFor(d));
+    if (r !== risk) setRisk(r);
+    followCap(capFor(d, r));
   };
   const changeRisk = (r: number) => {
     setRisk(r);
@@ -190,18 +200,18 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
           onChange={setYtm}
         />
-        {/* Risk 1 (lowest) always on the right: the slider position is 11 - risk. */}
+        {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
         <Slider
           label={t.ratingLabel}
           hint={t.ratingHint}
-          value={LIMITS.risk.max + LIMITS.risk.min - risk}
+          value={riskTop + LIMITS.risk.min - risk}
           display={<RiskBadge risk={risk} />}
           min={LIMITS.risk.min}
-          max={LIMITS.risk.max}
+          max={riskTop}
           step={LIMITS.risk.step}
-          minLabel={t.highRiskLabel}
+          minLabel={t.highRiskLabel.replace(/^\d+/, String(riskTop))}
           maxLabel={t.lowRiskLabel}
-          onChange={(pos) => changeRisk(LIMITS.risk.max + LIMITS.risk.min - pos)}
+          onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
 
