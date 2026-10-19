@@ -4,13 +4,13 @@ export function riskColor(risk: number): string {
   return r <= 3 ? "#16a34a" : r <= 6 ? "#ea580c" : "#dc2626";
 }
 
-export function RiskBadge({ risk, title }: { risk: number | null | undefined; title?: string }) {
+export function RiskBadge({ risk, title, size = "sm" }: { risk: number | null | undefined; title?: string; size?: "sm" | "lg" }) {
   if (risk === null || risk === undefined) return <span className="text-mute">—</span>;
   const text = Number.isInteger(risk) ? String(risk) : risk.toFixed(1);
   return (
     <span
       title={title}
-      className="inline-block min-w-[28px] rounded-md px-1.5 py-0.5 text-center text-xs font-semibold tabular-nums text-white"
+      className={`inline-block rounded-md text-center font-semibold tabular-nums text-white ${size === "lg" ? "min-w-[52px] px-2.5 py-0.5 text-xl leading-tight" : "min-w-[28px] px-1.5 py-0.5 text-xs"}`}
       style={{ background: riskColor(risk) }}
     >
       {text}
