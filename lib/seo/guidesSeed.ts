@@ -10,6 +10,7 @@ import { landingFor } from "./landingLivio";
 import { SEED_GUIDES_WAVE } from "./guidesSeedWave";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
+import { EXTRA_IT } from "./guidesExtraIt";
 
 export type SeedGuide = {
   locale: Locale;
@@ -280,4 +281,20 @@ function withLanding(g: SeedGuide): SeedGuide {
   return { ...g, title: x.h1, seoTitle: x.seoTitle, metaDescription: x.metaDescription, bodyHtml: x.bodyHtml, relatedSlugs: related, status: "published" };
 }
 
-export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO, ...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2].map(withLanding);
+/** Small search fixes on Livio's guides (19 Oct 2026): the title carries the searched words, and the BTP guide now
+ *  covers yields and net yield too. */
+const META_IT: Record<string, Partial<SeedGuide>> = {
+  "rendimento-a-scadenza": { seoTitle: "Come calcolare il rendimento a scadenza: calcolo YTM" },
+  btp: { relatedKeywords: ["rendimenti btp", "btp rendimento netto", "titoli di stato italiani"] },
+};
+
+/** Sections added under Livio's Italian guides (approved 19 Oct 2026); his text above them is unchanged. */
+function withExtra(g: SeedGuide): SeedGuide {
+  if (g.locale !== "it") return g;
+  const extra = EXTRA_IT[g.slug];
+  return { ...g, ...META_IT[g.slug], bodyHtml: extra ? g.bodyHtml + extra : g.bodyHtml };
+}
+
+export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO, ...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2]
+  .map(withLanding)
+  .map(withExtra);

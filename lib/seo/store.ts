@@ -5,6 +5,7 @@ import { SEED_GUIDES } from "./guidesSeed";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { landingFor } from "./landingLivio";
+import { EXTRA_IT } from "./guidesExtraIt";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import type { Potential } from "./knowledge";
 import type { Locale } from "./locales";
@@ -211,6 +212,17 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
           related_slugs = ${g.relatedSlugs}, status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = 'it' and slug = ${g.slug} returning id`;
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Replaced with Livio's landing text (19 Oct 2026)."})`;
+    }
+  }
+  // Sections added under Livio's Italian guides and two search fixes (he agreed 19 Oct 2026), once. Only a guide whose
+  // text is still exactly his is extended, so any later edit in Admin is kept.
+  const [extra] = await s`insert into app.settings (key, value) values ('seo_it_extensions_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (extra) {
+    for (const g of SEED_GUIDES.filter((x) => x.locale === "it" && EXTRA_IT[x.slug])) {
+      const original = g.bodyHtml.slice(0, g.bodyHtml.length - EXTRA_IT[g.slug].length);
+      const [row] = await s`update app.seo_guides set body_html = ${g.bodyHtml}, seo_title = ${g.seoTitle}, related_keywords = ${g.relatedKeywords}, updated_at = now()
+        where locale = 'it' and slug = ${g.slug} and body_html = ${original} returning id`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Sections added under Livio's text (19 Oct 2026)."})`;
     }
   }
   // French and German versions of six topics (19 Oct 2026, Livio asked for every topic in every language): they replace
