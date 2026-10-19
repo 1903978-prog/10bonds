@@ -58,3 +58,32 @@ export async function bingStats(key: string, site = BING_SITE, days = 28): Promi
       .sort((a, b) => b.impressions - a.impressions).slice(0, 25),
   };
 }
+
+async function callOne<T>(method: string, key: string, params: Record<string, string | number>): Promise<T | null> {
+  const q = Object.entries({ ...params, apikey: key }).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&");
+  const r = await fetch(`${API}/${method}?${q}`, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
+  if (!r.ok) throw new Error(`Bing ${method}: ${r.status}`);
+  return ((await r.json()) as { d?: T }).d ?? null;
+}
+
+/** Links from other websites that Bing knows, as (linking page, page on the site) pairs. Own domains are left out. */
+export async function bingInboundLinks(key: string, site = BING_SITE, maxPages = 50): Promise<{ sourceUrl: string; targetUrl: string }[]> {
+  type Counts = { Links?: { Url: string; Count: number }[]; TotalPages?: number };
+  type Details = { Details?: { Url: string; AnchorText?: string }[]; TotalPages?: number };
+  const targets: { Url: string; Count: number }[] = [];
+  for (let page = 0; page < 10; page++) {
+    const c = await callOne<Counts>("GetLinkCounts", key, { siteUrl: site, page });
+    targets.push(...(c?.Links ?? []));
+    if (!c || page + 1 >= (c.TotalPages ?? 1)) break;
+  }
+  const own = (u: string) => { try { return /(^|\.)10bonds\.(com|fly\.dev)$/.test(new URL(u).hostname); } catch { return true; } };
+  const out = new Map<string, { sourceUrl: string; targetUrl: string }>();
+  for (const t of targets.filter((t) => t.Count > 0).sort((a, b) => b.Count - a.Count).slice(0, maxPages)) {
+    for (let page = 0; page < 5; page++) {
+      const d = await callOne<Details>("GetUrlLinks", key, { siteUrl: site, link: t.Url, page });
+      for (const l of d?.Details ?? []) if (/^https?:\/\//.test(l.Url) && !own(l.Url)) out.set(`${l.Url} ${t.Url}`, { sourceUrl: l.Url, targetUrl: t.Url });
+      if (!d || page + 1 >= (d.TotalPages ?? 1)) break;
+    }
+  }
+  return [...out.values()];
+}

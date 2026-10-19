@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SAMPLE_BONDS } from "../sample-bonds";
 import { linksFromCsv, parseCsv } from "./backlinkCsv";
+import { LISTING_SITES } from "./listingSites";
 import { countryCode, issuerClass, sovereignOf } from "./classify";
 import { allComparisons, buildComparison, comparisonById, comparisonBySlug, COMPARISONS, hasEnough } from "./comparisons";
 import { disallowed, internalPath, type CrawlResult, type CrawledPage } from "./crawl";
@@ -433,5 +434,13 @@ describe("Livio's French articles", () => {
       expect(sanitizeHtml(g.bodyHtml)).toMatch(/<p>\[\[10bonds:(calculator|bonds:[a-z0-9-]+)\]\]<\/p>/);
     }
     expect(SEED_GUIDES_LIVIO_FR[1].bodyHtml).toContain("Il s'élève à environ <strong>5,16 % par an</strong>.");
+  });
+});
+
+describe("listing sites", () => {
+  it("have unique ids and https links, and cover every priority market", () => {
+    expect(new Set(LISTING_SITES.map((x) => x.id)).size).toBe(LISTING_SITES.length);
+    for (const x of LISTING_SITES) expect(x.url).toMatch(/^https:\/\//);
+    for (const m of ["it", "fr", "de", "us", "uk"]) expect(LISTING_SITES.some((x) => x.market === m && x.priority === 1)).toBe(true);
   });
 });
