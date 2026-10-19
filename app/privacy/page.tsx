@@ -83,19 +83,21 @@ export default function Privacy() {
         <li>Search allowance records: 30 days, then deleted automatically.</li>
         <li>Usage statistics: 13 months, then deleted automatically.</li>
         <li>IP addresses for sign-in protection: only in the server&apos;s memory, for minutes; hosting logs are kept by Fly.io for a short period for operation and security.</li>
+        <li>Encrypted backups of the accounts database: 30 days, then deleted automatically.</li>
         <li>Payment and invoice records: kept by Stripe for as long as tax law requires, even after you delete your account.</li>
       </ul>
 
       <H>7. Data sharing and processors</H>
       <p className="mt-2">We do not sell your personal information. These service providers process data for us, on our instructions and under a data processing agreement:</p>
       <div className="mt-3 overflow-x-auto" tabIndex={0} role="region" aria-label="Table (scrolls sideways on small screens)">
-        <table className="w-full min-w-[520px] text-left text-sm" data-testid="processors">
-          <thead><tr><th className="px-3 py-2">Provider</th><th className="px-3 py-2">What for</th><th className="px-3 py-2">Where</th></tr></thead>
+        <table className="w-full min-w-[640px] text-left text-sm" data-testid="processors">
+          <thead><tr><th className="px-3 py-2">Provider</th><th className="px-3 py-2">What for</th><th className="px-3 py-2">Where</th><th className="px-3 py-2">Data processing terms</th></tr></thead>
           <tbody>
-            <tr><td className={td}>Fly.io, Inc.</td><td className={td}>Hosting the website</td><td className={td}>Servers in Paris, France (EU); US company</td></tr>
-            <tr><td className={td}>Neon, Inc. (Databricks)</td><td className={td}>Database holding accounts and usage data</td><td className={td}>Cloud database; US company</td></tr>
-            <tr><td className={td}>Stripe Payments Europe, Ltd.</td><td className={td}>Payments, subscriptions, invoices</td><td className={td}>Ireland (EU), with transfers to Stripe, Inc. (US)</td></tr>
-            <tr><td className={td}>Resend (Plus Five Five, Inc.)</td><td className={td}>Sending account e-mails (confirmation, password reset)</td><td className={td}>US</td></tr>
+            <tr><td className={td}>Fly.io, Inc.</td><td className={td}>Hosting the website</td><td className={td}>Servers in Paris, France (EU); US company</td><td className={td}><a href="https://fly.io/compliance" className="text-accent" rel="noopener">Fly.io DPA (pre-signed, accepted in the Fly dashboard)</a></td></tr>
+            <tr><td className={td}>Neon, Inc. (Databricks)</td><td className={td}>Database holding accounts and usage data</td><td className={td}>Cloud database; US company</td><td className={td}><a href="https://neon.com/dpa" className="text-accent" rel="noopener">Neon DPA</a></td></tr>
+            <tr><td className={td}>Stripe Payments Europe, Ltd.</td><td className={td}>Payments, subscriptions, invoices</td><td className={td}>Ireland (EU), with transfers to Stripe, Inc. (US)</td><td className={td}><a href="https://stripe.com/legal/dpa" className="text-accent" rel="noopener">Stripe DPA</a></td></tr>
+            <tr><td className={td}>Resend (Plus Five Five, Inc.)</td><td className={td}>Sending account e-mails (confirmation, password reset)</td><td className={td}>US</td><td className={td}><a href="https://resend.com/legal/dpa" className="text-accent" rel="noopener">Resend DPA</a></td></tr>
+            <tr><td className={td}>GitHub, Inc.</td><td className={td}>Keeping the encrypted nightly backup of the accounts database (30 days)</td><td className={td}>US</td><td className={td}><a href="https://github.com/customer-terms/github-data-protection-agreement" className="text-accent" rel="noopener">GitHub DPA</a></td></tr>
           </tbody>
         </table>
       </div>
