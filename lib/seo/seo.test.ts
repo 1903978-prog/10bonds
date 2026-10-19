@@ -9,6 +9,7 @@ import { SEED_GUIDES } from "./guidesSeed";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import { FIRST_WAVE, opportunity } from "./knowledge";
 import { landingFor, LIVIO_LANDINGS } from "./landingLivio";
+import { govCurves } from "./yieldCurves";
 import { LOCALE, LOCALES, localeFromAcceptLanguage, pathOf, sectionOf, suggestLocale, T } from "./locales";
 import { findIsins, isValidIsin, parsePage, similarity } from "./page";
 import { DIMENSIONS, mergeManual, overallScore, recommendations, type CriterionResult } from "./rubric";
@@ -351,5 +352,15 @@ describe("Livio's Italian landing pages", () => {
     const g = SEED_GUIDES.find((x) => x.slug === "probabilita-default-rating")!;
     expect(g.bodyHtml).toMatch(/^<p><strong>Risposta breve:<\/strong>.*1,44%.*3,52%/);
     expect((g.bodyHtml.match(/<tr>/g) ?? []).length).toBe(19);
+  });
+});
+
+describe("government yield curves", () => {
+  const b = (issuer: string, country: string, maturity: string, grossYtm: number, currency = "EUR") =>
+    ({ isin: issuer + maturity, name: issuer, issuer, country, currency, coupon: 3, maturity, ratingSp: "A", ratingMoodys: null, ratingFitch: null, ratingResolved: "A", grossYtm, modifiedDuration: 3, ytmAsOf: null });
+  it("averages each country's EUR government bonds per maturity year and ignores companies and other currencies", () => {
+    const curves = govCurves([b("Italy", "IT", "2030-01-01", 3), b("Italy", "IT", "2030-12-01", 3.4), b("Italy", "IT", "2032-06-01", 3.8), b("Kingdom of Spain", "ES", "2030-05-01", 2.9), b("Enel", "IT", "2030-01-01", 9), b("Italy", "IT", "2031-01-01", 5, "USD")], 2027);
+    expect(curves.map((c) => c.country)).toEqual(["ES", "IT"]);
+    expect(curves[1].points).toEqual([{ year: 2030, ytm: 3.2, bonds: 2 }, { year: 2032, ytm: 3.8, bonds: 1 }]);
   });
 });

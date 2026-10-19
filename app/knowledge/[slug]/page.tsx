@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd, prose } from "@/components/seo/Seo";
+import CurveSection from "@/components/seo/CurveSection";
 import YieldCalculator from "@/components/seo/YieldCalculator";
+import { curveAlternates, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { calcLangs, CALCULATOR_EN, enGuide, enPath, KC_TEXT_EN, withEnglish } from "@/lib/seo/knowledgeEn";
@@ -24,6 +26,10 @@ async function languageVersions(group: string): Promise<Partial<Record<Locale, s
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (slug === CURVE_TEXT.en.slug) {
+    const c = CURVE_TEXT.en;
+    return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+  }
   if (slug === CALCULATOR_EN.slug) {
     const c = CALCULATOR_EN;
     return { title: { absolute: c.title }, description: c.description, alternates: withEnglish(enPath(c.slug), enPath(c.slug), calcLangs()), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
@@ -50,6 +56,19 @@ const risk = <p className="mt-8 text-xs leading-relaxed text-mute">Information a
 
 export default async function EnglishKnowledgePage({ params }: Props) {
   const { slug } = await params;
+  if (slug === CURVE_TEXT.en.slug) {
+    const c = CURVE_TEXT.en;
+    return (
+      <div className="mx-auto max-w-4xl">
+        {crumbs(c.h1, enPath(c.slug))}
+        <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+        {c.intro.map((p) => <p key={p} className="mt-3 text-[17px] text-mute">{p}</p>)}
+        <CurveSection locale="en" text={c} />
+        {risk}
+        <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + enPath(c.slug), inLanguage: "en", creator: { "@type": "Organization", name: "10BONDS", url: SITE_URL } }} />
+      </div>
+    );
+  }
   if (slug === CALCULATOR_EN.slug) {
     const c = CALCULATOR_EN;
     return (
