@@ -42,7 +42,10 @@ export default function LangSwitch() {
   useEffect(() => {
     setHrefs({ it: targetFor("it"), fr: targetFor("fr"), de: targetFor("de") });
     setEnHref(current ? englishTarget() : pathname);
-    remember(current ?? "en");
+    // Only a language site is remembered on its own: opening a shared English page (sign-up, pricing) keeps the
+    // visitor's language, so e-mails go out in it. Choosing EN is remembered by its click.
+    if (current) remember(current);
+    else if (pathname === "/") remember("en");
   }, [pathname, current]);
 
   return (

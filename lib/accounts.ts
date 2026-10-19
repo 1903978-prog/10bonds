@@ -276,6 +276,14 @@ export async function markEmailVerified(id: number, email: string): Promise<bool
   return rows.length > 0;
 }
 
+/** True when this account signed up with (or later redeemed) a 10BONDS promo code. */
+export async function usedPromoCode(userId: number): Promise<boolean> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql`select 1 from app.trial_codes where redeemed_by = ${userId} limit 1`;
+  return rows.length > 0;
+}
+
 export type TrialCode = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
 
 export async function createTrialCodes(createdBy: number, count: number, days: number, note: string | null, make: () => string): Promise<string[]> {
