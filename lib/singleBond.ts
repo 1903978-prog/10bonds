@@ -20,7 +20,15 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
   return RISK_LEVELS.map((l, i) => {
     const level = i + 1;
     const inStep = bonds.filter((b) => levelOf(b) === level);
-    const { pool } = durationPool(inStep, targetDuration, 3);
+    let { pool } = durationPool(inStep, targetDuration, 3);
+    // Nothing within 3 years: take the bonds of this step nearest to the horizon instead, so every risk score keeps
+    // its best bond (Livio, 19/10/2026). The chart marks such a point with the bond's own duration.
+    if (!pool.length) {
+      const usable = inStep.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
+      const gap = (b: PublicBond) => Math.abs(b.modifiedDuration! - targetDuration);
+      const nearest = Math.min(...usable.map(gap));
+      pool = usable.filter((b) => gap(b) <= nearest + 1);
+    }
     const sorted = [...pool].sort((a, b) => b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
     const seen = new Set<string>();
     const picked = sorted.filter((b) => {
@@ -37,10 +45,14 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
   });
 }
 
-export type CurvePoint = { level: number; label: string; ytm: number | null; options: ResultRow[]; more: number };
+/** Beyond this many years from the horizon a point is labelled with its bond's own duration. */
+export const FAR_GAP = 3;
+
+/** `far`: the best bond of the step is more than FAR_GAP years from the horizon; `duration` is then its duration. */
+export type CurvePoint = { level: number; label: string; ytm: number | null; options: ResultRow[]; more: number; far?: boolean; duration?: number };
 
 /** Cut each step down to what this tier may see. Visitors see the best bond of each step only, without details. */
-export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier): CurvePoint[] {
+export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, targetDuration?: number): CurvePoint[] {
   return curve.map(({ level, label, bonds }) => {
     const ytm = bonds[0]?.grossYtm ?? null;
     const visible = tier === "visitor" ? bonds.slice(0, 1) : bonds;
@@ -51,6 +63,8 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier): 
       if (tier === "free") return free;
       return { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
     });
-    return { level, label, ytm, options, more: bonds.length - visible.length };
+    const best = bonds[0]?.modifiedDuration;
+    const far = targetDuration !== undefined && best != null && Math.abs(best - targetDuration) > FAR_GAP;
+    return { level, label, ytm, options, more: bonds.length - visible.length, ...(far ? { far, duration: Math.round(best * 10) / 10 } : {}) };
   });
 }

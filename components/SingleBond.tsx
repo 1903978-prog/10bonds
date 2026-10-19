@@ -72,11 +72,13 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         <span className="text-xs text-mute">{t.tapDot}</span>
       </div>
       <Chart points={points} selected={level} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      {points.some((p) => p.far) && <p className="mt-1 text-xs text-mute" data-testid="far-note">{t.farNote}</p>}
 
       {point && bond ? (
         <BondBox
           currency={currency}
           label={point.label}
+          far={point.far}
           bond={bond}
           tier={tier}
           canChange={index + 1 < point.options.length}
@@ -130,6 +132,17 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
           <circle cx={x(p.level)} cy={y(p.ytm!)} r="16" fill="transparent" />
           <circle cx={x(p.level)} cy={y(p.ytm!)} r={selected === p.level ? 7 : 5} fill={selected === p.level ? "#0071e3" : "#fff"} stroke="#0071e3" strokeWidth="2.5" />
           <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontSize="12" fontWeight="600" fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>
+          {p.far && p.duration !== undefined && (
+            <text x={x(p.level)} y={y(p.ytm!) + 20} textAnchor="middle" fontSize="10" fill="#86868b" data-testid={`far-${p.level}`}>~{p.duration.toFixed(1)} {t.yrs}</text>
+          )}
+        </g>
+      ))}
+      {ys.length > 0 && points.filter((p) => p.ytm === null).map((p) => (
+        <g key={p.level} data-testid={`empty-${p.level}`}>
+          <circle cx={x(p.level)} cy={y(lo)} r="4" fill="#fff" stroke="#c7c7cc" strokeWidth="2" strokeDasharray="2 2" />
+          <text x={x(p.level)} y={y(lo) - 20} textAnchor="middle" fontSize="9" fill="#86868b">
+            {t.noBond.split(" ").map((w, i) => <tspan key={i} x={x(p.level)} dy={i ? 10 : 0}>{w}</tspan>)}
+          </text>
         </g>
       ))}
     </svg>
@@ -139,6 +152,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
 function BondBox(props: {
   currency: string;
   label: string;
+  far?: boolean;
   bond: CurvePoint["options"][number];
   tier: Tier;
   canChange: boolean;
@@ -171,6 +185,7 @@ function BondBox(props: {
           <div className="text-xs text-mute">{t.yieldLower}</div>
         </div>
       </div>
+      {props.far && <p className="mt-1 text-xs text-mute">{t.farBox}</p>}
       <dl className="mt-2 grid grid-cols-1 gap-x-6 sm:grid-cols-2">
         {row("ISIN", paid ? bond.isin : lock)}
         {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} /> : lock)}
