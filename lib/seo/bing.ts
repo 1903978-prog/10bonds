@@ -87,3 +87,54 @@ export async function bingInboundLinks(key: string, site = BING_SITE, maxPages =
   }
   return [...out.values()];
 }
+
+export type SearchKpis = {
+  days: number;
+  clicks: number; impressions: number; ctr: number | null; position: number | null;
+  prevClicks: number | null; prevImpressions: number | null;
+  indexed: number | null; // pages in the index (Bing: latest crawl report)
+};
+
+type Day = { Date: string; Clicks: number; Impressions: number };
+type QueryRow = { Query: string; Clicks: number; Impressions: number; AvgImpressionPosition: number; Date: string };
+type CrawlRow = { Date: string; InIndex: number };
+
+/** Headline Bing figures from the raw API rows: this period, the period before, and the latest indexed-page count. */
+export function bingKpisFrom(traffic: Day[], queries: QueryRow[], crawl: CrawlRow[], days = 28, now = Date.now()): SearchKpis {
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const since = iso(now - days * 86_400_000);
+  const before = iso(now - 2 * days * 86_400_000);
+  const sum = (from: string, to: string | null) => traffic.reduce((s, d) => {
+    const day = bingDate(d.Date) ?? "";
+    return day >= from && (to === null || day < to) ? { clicks: s.clicks + (Number(d.Clicks) || 0), impressions: s.impressions + (Number(d.Impressions) || 0) } : s;
+  }, { clicks: 0, impressions: 0 });
+  const cur = sum(since, null);
+  const oldest = traffic.map((d) => bingDate(d.Date) ?? "").filter(Boolean).sort()[0];
+  const prev = oldest && oldest <= before ? sum(before, since) : null; // only when Bing has the whole earlier period
+  let pos = 0, w = 0;
+  for (const q of queries) {
+    const imp = Number(q.Impressions) || 0;
+    if ((bingDate(q.Date) ?? "") >= since && q.AvgImpressionPosition > 0) { pos += q.AvgImpressionPosition * imp; w += imp; }
+  }
+  const lastCrawl = [...crawl].sort((a, b) => (bingDate(b.Date) ?? "").localeCompare(bingDate(a.Date) ?? ""))[0];
+  return {
+    days,
+    clicks: cur.clicks,
+    impressions: cur.impressions,
+    ctr: cur.impressions ? cur.clicks / cur.impressions : null,
+    position: w ? Math.round((pos / w) * 10) / 10 : null,
+    prevClicks: prev?.clicks ?? null,
+    prevImpressions: prev?.impressions ?? null,
+    indexed: lastCrawl ? Number(lastCrawl.InIndex) || 0 : null,
+  };
+}
+
+/** Bing headline figures for the last `days` days. */
+export async function bingKpis(key: string, site = BING_SITE, days = 28): Promise<SearchKpis> {
+  const [traffic, queries, crawl] = await Promise.all([
+    call<Day>("GetRankAndTrafficStats", key, site),
+    call<QueryRow>("GetQueryStats", key, site),
+    call<CrawlRow>("GetCrawlStats", key, site).catch(() => []),
+  ]);
+  return bingKpisFrom(traffic, queries, crawl, days);
+}

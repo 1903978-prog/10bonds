@@ -1,4 +1,5 @@
 import { createSign } from "node:crypto";
+import type { SearchKpis } from "./bing";
 
 // Google data sources. Nothing here is ever invented: without credentials each source reports "not connected".
 // - PageSpeed Insights: public API, works without a key at a low daily quota; PAGESPEED_API_KEY raises it.
@@ -61,7 +62,53 @@ async function googleJson(url: string, body: unknown) {
   return j;
 }
 
+async function googleGet(url: string) {
+  const sa = serviceAccount();
+  if (!sa) throw new Error("not connected");
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${await accessToken(sa)}` }, signal: AbortSignal.timeout(20000) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j?.error?.message ? String(j.error.message).slice(0, 200) : `HTTP ${r.status}`);
+  return j;
+}
+
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
+
+/** The 10bonds.com Search Console property the service account can read: the domain property first, else a URL one. */
+export async function gscSiteFor(domain = "10bonds.com"): Promise<string | null> {
+  const j = await googleGet("https://www.googleapis.com/webmasters/v3/sites");
+  const sites: string[] = (j.siteEntry ?? []).filter((e: { permissionLevel?: string }) => e.permissionLevel !== "siteUnverifiedUser").map((e: { siteUrl: string }) => e.siteUrl);
+  return sites.find((s) => s === `sc-domain:${domain}`) ?? sites.find((s) => s === `https://${domain}/`) ?? sites.find((s) => s.includes(domain)) ?? null;
+}
+
+/**
+ * Google headline figures for the last `days` days (and the period before). Google's API has no index-coverage count,
+ * so "indexed" is the number of pages that appeared in Google search at least once in the period.
+ */
+export async function searchConsoleKpis(siteUrl: string, days = 28): Promise<SearchKpis> {
+  const end = new Date(Date.now() - 2 * 86_400_000); // Search Console data lags 2-3 days
+  const start = new Date(end.getTime() - (days - 1) * 86_400_000);
+  const pEnd = new Date(start.getTime() - 86_400_000);
+  const pStart = new Date(pEnd.getTime() - (days - 1) * 86_400_000);
+  const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
+  const cur = { startDate: ymd(start), endDate: ymd(end), type: "web" };
+  const [tot, prev, pages] = await Promise.all([
+    googleJson(url, cur),
+    googleJson(url, { ...cur, startDate: ymd(pStart), endDate: ymd(pEnd) }),
+    googleJson(url, { ...cur, dimensions: ["page"], rowLimit: 25000 }),
+  ]);
+  const t = tot.rows?.[0];
+  const p = prev.rows?.[0];
+  return {
+    days,
+    clicks: t?.clicks ?? 0,
+    impressions: t?.impressions ?? 0,
+    ctr: t?.impressions ? t.ctr : null,
+    position: t?.impressions ? Math.round(t.position * 10) / 10 : null,
+    prevClicks: p?.clicks ?? 0,
+    prevImpressions: p?.impressions ?? 0,
+    indexed: (pages.rows ?? []).length,
+  };
+}
 
 export type GscData = {
   range: { start: string; end: string };
