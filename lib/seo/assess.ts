@@ -4,6 +4,7 @@ import { evaluate } from "./evaluate";
 import { pageSpeed, type PsiResult } from "./google";
 import { LOCALES, type Locale } from "./locales";
 import { mergeManual, overallScore, round2, type CriterionResult } from "./rubric";
+import { recordRefresh } from "./summary";
 import {
   clearStale, getSeoSetting, guideLogCounts, latestManual, listBacklinks, listGuides, listKeywords, listOpportunities, listPeople, saveAssessment, setSeoSetting,
 } from "./store";
@@ -92,5 +93,7 @@ export async function runAssessment(by: string, trigger: string, opts: { psi?: b
     markets.push({ market: m, id, overall: score.total });
   }
   await clearStale();
-  return { markets, global: round2(markets.reduce((s, x) => s + x.overall, 0) / markets.length), crawl: { pages: crawl.pages.length, error: crawl.error } };
+  const global = round2(markets.reduce((s, x) => s + x.overall, 0) / markets.length);
+  await recordRefresh(crawl, global).catch(() => {});
+  return { markets, global, crawl: { pages: crawl.pages.length, error: crawl.error } };
 }

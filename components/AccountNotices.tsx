@@ -33,7 +33,7 @@ export default function AccountNotices() {
     confirmed === "error" ? "We could not confirm your address just now. Please try the link again later." : null;
 
   // After the 3-hour grace period an unconfirmed account sees only this screen (legal pages stay readable).
-  const legal = typeof window !== "undefined" && /^\/(privacy|terms|cookies|disclaimer)(\/|$)/.test(window.location.pathname);
+  const legal = typeof window !== "undefined" && /^\/(privacy|terms|cookies|disclaimer|methodology)(\/|$)/.test(window.location.pathname);
   if (me?.confirmBlocked && !legal) return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white p-4" role="dialog" aria-modal="true" data-testid="confirm-block">
       <div className="w-full max-w-sm text-center">

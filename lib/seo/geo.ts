@@ -77,7 +77,7 @@ export type GeoFacts = {
   bingConnected: boolean;
 };
 
-export type Check = { label: string; done: boolean; detail?: string };
+export type Check = { label: string; done: boolean; detail?: string; notConnected?: boolean }; // notConnected: the source to check it is missing
 export type Dimension = { id: string; name: string; weight: number; score: number; checks: Check[] };
 
 const share = (n: number, of: number) => (of ? n / of : 0);
@@ -131,8 +131,8 @@ export function aiVisibility(f: GeoFacts): { score: number; dimensions: Dimensio
     ] },
     { id: "measure", name: "AI citation and referral measurement", weight: 5, checks: [
       { label: "Visitors from AI assistants are counted", done: f.aiReferralTracking },
-      { label: "Weekly citation test of the question set", done: f.citationTest, detail: f.citationTest ? undefined : "not connected" },
-      { label: "Bing Webmaster Tools AI Performance connected", done: f.bingConnected, detail: f.bingConnected ? undefined : "not connected" },
+      { label: "Weekly citation test of the question set", done: f.citationTest, detail: f.citationTest ? undefined : "not connected", notConnected: !f.citationTest },
+      { label: "Bing Webmaster Tools AI Performance connected", done: f.bingConnected, detail: f.bingConnected ? undefined : "not connected", notConnected: !f.bingConnected },
     ] },
   ];
   const dimensions = dims.map((d) => ({ ...d, score: Math.round((d.checks.filter((c) => c.done).length / d.checks.length) * 100) }));
@@ -157,4 +157,10 @@ export async function aiFunnel(days = 28): Promise<AiFunnel> {
     from v where source is not null`;
   const byAssistant = AI_SOURCES.map((a) => ({ name: a.name, visitors: rows.filter((r) => a.re.test(String(r.source))).length }));
   return { days, visitors: rows.length, signups: rows.filter((r) => r.signed).length, paid: rows.filter((r) => r.paid).length, byAssistant };
+}
+
+/** GEO share of checks that could be assessed: checks whose data source is missing do not count. */
+export function geoAssessed(dims: Dimension[]): number {
+  const all = dims.flatMap((d) => d.checks);
+  return all.length ? Math.round((all.filter((c) => !c.notConnected).length / all.length) * 100) : 0;
 }

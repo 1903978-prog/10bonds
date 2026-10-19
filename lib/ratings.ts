@@ -13,7 +13,8 @@ export function notchOf(grade: string | null | undefined): number | null {
   const g = grade.trim();
   const sp = SP_SCALE.indexOf(g);
   if (sp >= 0) return sp;
-  const m = MOODYS_SCALE.indexOf(g);
+  // Moody's grades sometimes arrive upper-cased ("BAA2"); S&P grades have no digits, so this cannot clash.
+  const m = MOODYS_SCALE.findIndex((x) => x.toLowerCase() === g.toLowerCase());
   if (m >= 0) return m;
   return null;
 }
@@ -23,9 +24,9 @@ export function spGradeOf(notch: number | null): string | null {
   return notch === null ? null : SP_SCALE[notch] ?? null;
 }
 
-/** Best available rating: the resolved one, else S&P, else Moody's, else Fitch. */
+/** Rating used for the risk score: S&P first (so a BB- bond is always risk 7), else Moody's, else Fitch, else the resolved one. */
 export function bondNotch(b: { ratingResolved: string | null; ratingSp: string | null; ratingMoodys: string | null; ratingFitch: string | null }): number | null {
-  for (const g of [b.ratingResolved, b.ratingSp, b.ratingMoodys, b.ratingFitch]) {
+  for (const g of [b.ratingSp, b.ratingMoodys, b.ratingFitch, b.ratingResolved]) {
     const n = notchOf(g);
     if (n !== null) return n;
   }
@@ -41,6 +42,20 @@ export const INVESTMENT_GRADE_LAST_NOTCH = 9; // BBB-
 const RISK_BY_NOTCH = [1, 2, 2, 2, 3, 3, 3, 4, 5, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10];
 export const RISK_MIN = 1;
 export const RISK_MAX = 10;
+
+/** The S&P grades a risk score stands for, e.g. 7 -> "BB+, BB, BB-" (admin only). */
+export function riskBand(risk: number): string {
+  return SP_SCALE.filter((_, n) => RISK_BY_NOTCH[n] === risk).join(", ");
+}
+
+/** The agency grade the risk score comes from, e.g. "S&P BB-", "Moody's B1" or "Fitch B+" (admin only). */
+export function ratingSourceLabel(b: Parameters<typeof bondNotch>[0]): string | null {
+  const n = bondNotch(b);
+  if (n === null) return null;
+  const agencies: [string, string | null][] = [["S&P", b.ratingSp], ["Moody's", b.ratingMoodys], ["Fitch", b.ratingFitch]];
+  const hit = agencies.find(([, g]) => notchOf(g) === n);
+  return hit ? `${hit[0]} ${hit[1]!.trim()}` : spGradeOf(n);
+}
 
 /** Risk score 1..10 for a notch, or null when unrated or in default. */
 export function riskOfNotch(notch: number | null): number | null {

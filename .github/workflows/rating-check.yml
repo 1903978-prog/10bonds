@@ -1,0 +1,41 @@
+name: Rating coverage
+# Manual (and when this file changes): how many usable bonds each rating has, overall and near a long horizon. Counts only.
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: "Horizon in years (±20% window)"
+        default: "16.7"
+  push:
+    paths: [".github/workflows/rating-check.yml"]
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      D: ${{ inputs.duration || '16.7' }}
+    steps:
+      - run: |
+          sudo apt-get install -y -qq postgresql-client >/dev/null 2>&1 || true
+          q() { psql "$DATABASE_URL" -X -A -t -F ' | ' -c "$1"; }
+          U="from public_bonds where currency='EUR' and gross_ytm is not null and modified_duration is not null and (maturity is null or maturity > current_date) and structure_modelled is not false"
+          R="coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch, 'NR')"
+          echo "== EUR usable bonds by best rating (count | issuers | max yield | max duration)"
+          q "select $R, count(*), count(distinct issuer), max(gross_ytm), max(modified_duration) $U group by 1 order by 2 desc"
+          echo "== EUR usable bonds within ±20% of $D years, by rating (count | issuers | max yield)"
+          q "select $R, count(*), count(distinct issuer), max(gross_ytm) $U and abs(modified_duration - $D) <= $D * 0.2 group by 1 order by 2 desc"
+          echo "== EUR bonds per duration bucket for BBB- and below (Baa3 and below)"
+          q "select width_bucket(modified_duration, 0, 25, 5)*5 as dur_to, count(*) $U and $R in ('BBB-','Baa3','BB+','BB','BB-','Ba1','Ba2','Ba3','B+','B','B-','B1','B2','B3') group by 1 order by 1"
+          echo "== EUR rows dropped: no yield / no duration / matured / not modelled"
+          q "select count(*) filter (where gross_ytm is null), count(*) filter (where modified_duration is null), count(*) filter (where maturity <= current_date), count(*) filter (where structure_modelled is false) from public_bonds where currency='EUR'"
+          for c in rating_sp rating_moodys rating_fitch rating_resolved; do
+            echo "== distinct $c values, all currencies (value | bonds | with yield+duration)"
+            q "select '[' || coalesce($c,'∅') || ']', count(*), count(*) filter (where gross_ytm is not null and modified_duration is not null) from public_bonds group by 1 order by 2 desc"
+          done
+          echo "== EUR rows: all / usable / no rating at all / usable with no rating"
+          q "select count(*), count(*) filter (where gross_ytm is not null and modified_duration is not null and (maturity is null or maturity > current_date) and structure_modelled is not false), count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is null), count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is null and gross_ytm is not null and modified_duration is not null) from public_bonds where currency='EUR'"
+          echo "== all currencies: rows / usable"
+          q "select currency, count(*), count(*) filter (where gross_ytm is not null and modified_duration is not null and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null) from public_bonds group by 1 order by 2 desc limit 8"
+          echo "== rating combinations (top 40)"
+          q "select coalesce(rating_resolved,'∅'), coalesce(rating_sp,'∅'), coalesce(rating_moodys,'∅'), coalesce(rating_fitch,'∅'), count(*) from public_bonds where currency='EUR' group by 1,2,3,4 order by 5 desc limit 40"

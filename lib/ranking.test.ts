@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { rankBonds, averages, NOTCH_PENALTY, ytmCaps, withinRisk, ytmCapsByRisk } from "./ranking";
+import { rankBonds, averages, ytmCaps, withinRisk, ytmCapsByRisk } from "./ranking";
 import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import type { PublicBond } from "./types";
+import { expectedLoss } from "./expectedLoss";
 
 const bond = (isin: string, ytm: number, dur: number, rating: string | null): PublicBond => ({
   isin, name: isin, issuer: isin, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -46,9 +47,11 @@ describe("rankBonds", () => {
     expect(rankBonds(bonds, 5, 4).results[0].isin).toBe("AA");
   });
 
-  it("scores yield - penalty x notch, worked by hand", () => {
+  it("scores yield after expected losses, worked by hand", () => {
+    // A- over 5 years: 0.57% cumulative default -> 0.114% a year x 60% loss = 0.0684 points.
     const [r] = rankBonds([bond("X", 4.5, 5, "A-")], 5, 4).results;
-    expect(r.score).toBeCloseTo(4.5 - NOTCH_PENALTY * 6, 10);
+    expect(r.score).toBeCloseTo(4.5 - 0.0684, 10);
+    expect(expectedLoss(6, 5)).toBeCloseTo(0.0684, 10);
   });
 
   it("widens the duration band when fewer than 10 bonds are near", () => {
@@ -135,10 +138,14 @@ describe("ytmCaps", () => {
 });
 
 describe("highest yield with the lowest risk", () => {
-  it("yield comes first: a riskier bond paying clearly more ranks above a safer one", () => {
-    // BBB- scores 4.8 - 0.18 = 4.62, AA 4.6 - 0.04 = 4.56, A 4.5 - 0.10 = 4.40.
-    const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
-    expect(rankBonds(bonds, 13, 3, 2).results.map((r) => r.isin)).toEqual(["BBB", "AA"]);
+  it("the target sets the risk: a low target picks the safer bond, a high one the riskier", () => {
+    const bonds = [{ ...bond("R4", 4.30, 5, "BBB+"), issuer: "Four" }, { ...bond("R5", 4.60, 5, "BBB"), issuer: "Five" }];
+    expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("R4");
+    expect(rankBonds(bonds, 5, 4.5, 1).results[0].isin).toBe("R5");
+  });
+  it("same risk: the higher yield after losses wins", () => {
+    const bonds = [{ ...bond("LO", 4.0, 5, "A"), issuer: "Lo" }, { ...bond("HI", 4.4, 5, "A-"), issuer: "Hi" }];
+    expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("HI");
   });
   it("takes on more risk only when that is needed to reach the target yield", () => {
     const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
