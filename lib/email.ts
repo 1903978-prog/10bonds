@@ -11,6 +11,7 @@ export function siteUrl(): string {
 let domainVerified = false;
 let checkedAt = 0;
 let checking: Promise<void> | null = null;
+let lastRefusedAt = 0;
 
 /** The domain part of EMAIL_FROM ("10BONDS <noreply@10bonds.com>" -> "10bonds.com"). */
 export function fromDomain(from = process.env.EMAIL_FROM ?? ""): string | null {
@@ -29,6 +30,8 @@ async function refreshDomain() {
   if (domain === "resend.dev") return markEmailDomainVerified(true);
   try {
     const r = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` }, signal: AbortSignal.timeout(8000) });
+    // A "sending only" key may not list domains (401): then the only proof is a send, so try and learn from the answer.
+    if (r.status === 401) return markEmailDomainVerified(Date.now() - lastRefusedAt > 1_800_000);
     if (!r.ok) return;
     const b = (await r.json()) as { data?: { name: string; status: string }[] };
     markEmailDomainVerified(Boolean(b.data?.some((d) => d.name === domain && d.status === "verified")));
@@ -70,7 +73,13 @@ export async function sendEmail(to: string, subject: string, html: string, text:
       body: JSON.stringify({ from: process.env.EMAIL_FROM, to, subject, html, text }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) console.error("[email] send failed: HTTP", res.status, (await res.text().catch(() => "")).slice(0, 300));
+    const body = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 300);
+    if (!res.ok) console.error("[email] send failed: HTTP", res.status, body);
+    // Resend refuses a domain that is not verified yet (403): stop claiming e-mail works until a later send succeeds.
+    if (!res.ok && res.status === 403 && /verif|domain/i.test(body)) {
+      lastRefusedAt = Date.now();
+      markEmailDomainVerified(false);
+    }
     return res.ok ? "sent" : "failed";
   } catch (e) {
     console.error("[email] send failed:", (e as Error).name);

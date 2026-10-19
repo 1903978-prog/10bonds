@@ -30,7 +30,13 @@ jobs:
           list=$(curl -sS -w '\n%{http_code}' -H "$H" https://api.resend.com/domains)
           echo "list domains: HTTP $(echo "$list" | tail -1) $(echo "$list" | head -n -1 | jq -c '{name,message,statusCode}' 2>/dev/null)"
           id=$(echo "$list" | head -n -1 | jq -r --arg d "$DOMAIN" '.data[]? | select(.name==$d) | .id')
-          [ -n "$id" ] || { echo "Domain $DOMAIN is not in Resend"; exit 1; }
+          if [ -z "$id" ]; then
+            echo "This key can only send, so the domain is tested by sending one e-mail from no-reply@$DOMAIN:"
+            r=$(curl -sS -w '\n%{http_code}' -X POST -H "$H" -H 'Content-Type: application/json' -d '{"from":"10BONDS <no-reply@10bonds.com>","to":"1903978@gmail.com","subject":"10BONDS e-mail test","text":"If you read this, 10BONDS e-mails work."}' https://api.resend.com/emails)
+            echo "send: HTTP $(echo "$r" | tail -1) $(echo "$r" | head -n -1 | jq -c '{name,message}' 2>/dev/null)"
+            [ "$(echo "$r" | tail -1)" = 200 ] && echo "status=verified" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           curl -sS -o /dev/null -X POST -H "$H" "https://api.resend.com/domains/$id/verify"
           sleep 20
           d=$(curl -sS -H "$H" "https://api.resend.com/domains/$id")
