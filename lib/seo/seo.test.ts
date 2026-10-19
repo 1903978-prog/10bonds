@@ -409,3 +409,14 @@ describe("country of a bond", () => {
     expect(countryName("ZZZ", "it-IT")).toBe("ZZZ");
   });
 });
+
+describe("manual AI citation check", () => {
+  it("splits pasted answers by Q number and finds 10bonds.com", async () => {
+    const { parseManual, isoWeek } = await import("./citationManual");
+    const r = parseManual("Intro\n**Q1:** BTP. Sources: https://www.borsaitaliana.it/x https://10bonds.com/it\nQ2: text https://simpletoolsforinvestors.eu/a\nQ31: out of range");
+    expect(r.answered).toBe(2);
+    expect(r.cited).toBe(1);
+    expect(r.answers[1].domains).toEqual(["simpletoolsforinvestors.eu"]);
+    expect(isoWeek(new Date("2026-10-19T08:00:00Z"))).toBe("2026-W43");
+  });
+});
