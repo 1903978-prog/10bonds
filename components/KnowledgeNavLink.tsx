@@ -1,16 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NavLink from "@/components/NavLink";
 import { LOCALES, pathOf, T } from "@/lib/seo/locales";
 
 /** "Knowledge" in the header, in the language of the page being read (the one picked with EN/IT/FR/DE). */
 export default function KnowledgeNavLink() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const l = LOCALES.find((x) => pathname === `/${x}` || pathname.startsWith(`/${x}/`)) ?? null;
+  // Every page inside a language site (guides, bonds, tools, brokers...) belongs to Knowledge.
+  const isKnowledge = (p: string) => p === "/knowledge" || p.startsWith("/knowledge/") || (l !== null && p.startsWith(`/${l}/`));
   return (
-    <Link href={l ? pathOf(l, "knowledge") : "/knowledge"} className="hover:text-ink" data-testid="nav-knowledge">
+    <NavLink href={l ? pathOf(l, "knowledge") : "/knowledge"} match={isKnowledge} testId="nav-knowledge">
       {l ? T[l].knowledge : "Knowledge"}
-    </Link>
+    </NavLink>
   );
 }

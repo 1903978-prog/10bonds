@@ -9,6 +9,7 @@ import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import LangSwitch from "@/components/LangSwitch";
 import ProNavLink from "@/components/ProNavLink";
+import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
 import CopyGuard from "@/components/CopyGuard";
 
@@ -44,7 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <LangSwitch />
               <KnowledgeNavLink />
               <ProNavLink />
-              <Link href="/pricing" className="hover:text-ink">Pricing</Link>
+              <NavLink href="/pricing">Pricing</NavLink>
               <AccountNav />
             </div>
           </nav>

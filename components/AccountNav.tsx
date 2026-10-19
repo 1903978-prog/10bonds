@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NavLink from "@/components/NavLink";
 import { useEffect, useState } from "react";
 import { loadMe, trialDaysLeft, type Me } from "@/lib/me";
 
@@ -13,7 +14,7 @@ export default function AccountNav() {
   if (!me)
     return (
       <>
-        <Link href="/login" className="hover:text-ink">Sign in</Link>
+        <NavLink href="/login">Sign in</NavLink>
         <Link href="/signup" className="rounded-full bg-accent px-3.5 py-1.5 font-medium text-white hover:bg-[#0077ed]"><span className="sm:hidden">Sign up</span><span className="hidden sm:inline">Sign up free</span></Link>
       </>
     );
@@ -21,7 +22,7 @@ export default function AccountNav() {
   const days = me.isAdmin || me.adminState ? null : trialDaysLeft(me);
   return (
     <>
-      {(me.isAdmin || me.adminState) && <Link href="/admin" className="hover:text-ink" data-testid="nav-admin">Admin</Link>}
+      {(me.isAdmin || me.adminState) && <NavLink href="/admin" testId="nav-admin">Admin</NavLink>}
       {days !== null && (
         <Link href="/pricing" className="whitespace-nowrap rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent" data-testid="trial-badge" title={`Premium trial: ${days} ${days === 1 ? "day" : "days"} left`}>
           <span className="sm:hidden">Premium {days}d</span>
