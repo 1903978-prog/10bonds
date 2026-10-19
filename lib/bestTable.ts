@@ -6,7 +6,7 @@ import { ytmCapsByRisk } from "./ranking";
 import type { RankedBond } from "./types";
 
 /**
- * The "best bonds" table: for every duration step of the slider and every rating step (AAA .. BB),
+ * The "best bonds" table: for every duration step of the slider and every risk step (1 .. 10),
  * the bonds with the highest yield, one per issuer, ranked. Stored in app.best_bonds and rebuilt
  * whenever a new copy of public_bonds is loaded, so the one-bond chart and the slider limits are read, not computed.
  */
@@ -89,7 +89,7 @@ async function load(src: BondSource, sig: string): Promise<BestTable> {
   }
 }
 
-/** The ranked bonds per rating step for the duration step nearest to `d`. */
+/** The ranked bonds per risk step for the duration step nearest to `d`. */
 export function curveAt(table: BestTable, d: number) {
   const step = LIMITS.duration.step;
   const snapped = Math.min(LIMITS.duration.max, Math.max(LIMITS.duration.min, Math.round(d / step) * step));

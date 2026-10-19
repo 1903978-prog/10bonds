@@ -33,3 +33,34 @@ export function bondNotch(b: { ratingResolved: string | null; ratingSp: string |
 }
 
 export const INVESTMENT_GRADE_LAST_NOTCH = 9; // BBB-
+
+// Risk score shown on the site (1 = lowest risk, 10 = highest). We may not show agency grades, so every
+// rating is turned into this score on the server and only the score leaves it. Notch -> risk:
+// AAA 1; AA+..AA- 2; A+..A- 3; BBB+ 4; BBB 5; BBB- 6; BB+..BB- 7; B+..B- 8; CCC+..CCC- 9; CC, C 10.
+// D (default) and unrated bonds have no risk score and are never shown.
+const RISK_BY_NOTCH = [1, 2, 2, 2, 3, 3, 3, 4, 5, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10];
+export const RISK_MIN = 1;
+export const RISK_MAX = 10;
+
+/** Risk score 1..10 for a notch, or null when unrated or in default. */
+export function riskOfNotch(notch: number | null): number | null {
+  return notch === null ? null : RISK_BY_NOTCH[notch] ?? null;
+}
+
+/** Risk score 1..10 for a bond, or null when unrated or in default. */
+export function bondRisk(b: Parameters<typeof bondNotch>[0]): number | null {
+  return riskOfNotch(bondNotch(b));
+}
+
+/** Weakest notch inside a risk score (used to filter by "highest risk accepted"). */
+export function maxNotchOfRisk(risk: number): number {
+  let last = 0;
+  RISK_BY_NOTCH.forEach((r, n) => { if (r <= risk) last = n; });
+  return last;
+}
+
+/** Average risk of a set, one decimal. */
+export function averageRisk(risks: (number | null)[]): number | null {
+  const xs = risks.filter((r): r is number => r !== null);
+  return xs.length ? Math.round((xs.reduce((s, r) => s + r, 0) / xs.length) * 10) / 10 : null;
+}

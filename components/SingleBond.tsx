@@ -6,12 +6,13 @@ import { useFinderText } from "@/lib/finderText";
 import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
+import { RiskBadge } from "./RiskBadge";
 
 type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 
-/** One-bond mode: best yield per rating step for the chosen duration; click a dot to see that bond, "Change" for the next one. */
+/** One-bond mode: best yield per risk step for the chosen duration; click a dot to see that bond, "Change" for the next one. */
 export default function SingleBond({ duration, preview }: { duration: number; preview: string | null }) {
   const t = useFinderText();
   const errText = t.error;
@@ -97,7 +98,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
   const ys = points.map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
   const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
-  // AAA always on the right: level 1 (AAA) at the right edge, level 10 (BB) at the left.
+  // Risk 1 (lowest) always on the right edge, risk 10 at the left.
   const x = (level: number) => L + ((10 - level) / 9) * (W - L - R);
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
   const ticks: number[] = [];
@@ -116,7 +117,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
       ))}
       {points.map((p) => (
         <text key={p.level} x={x(p.level)} y={H - B + 20} textAnchor="middle" fontSize="12" fill="#86868b">
-          {p.label === "BBB / BBB-" ? "BBB" : p.label === "BB and above" ? "BB" : p.label}
+          {p.label}
         </text>
       ))}
       <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
@@ -157,7 +158,7 @@ function BondBox(props: {
     <div className="mt-4 rounded-2xl border border-line/70 p-5" data-testid="bond-box">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs text-mute">{t.ratingStep} {props.label === "BB and above" ? t.bbAbove : props.label}{props.bond.rank > 1 ? ` · ${t.option} ${props.bond.rank}` : ""}</div>
+          <div className="text-xs text-mute">{t.ratingStep} {props.label}{props.bond.rank > 1 ? ` · ${t.option} ${props.bond.rank}` : ""}</div>
           <div className="mt-0.5 truncate text-[19px] font-semibold">{bond.issuer}</div>
           {paid && <div className="truncate text-sm text-mute">{bond.name}</div>}
         </div>
@@ -168,7 +169,7 @@ function BondBox(props: {
       </div>
       <dl className="mt-3">
         {row("ISIN", paid ? bond.isin : lock)}
-        {row(t.rating, signedIn ? bond.rating ?? "NR" : lock)}
+        {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} /> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}

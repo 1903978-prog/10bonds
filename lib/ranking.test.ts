@@ -72,7 +72,7 @@ describe("shapeForTier", () => {
     expect(p.rows).toHaveLength(10);
     expect(p.lockedCount).toBe(0);
     expect(p.summary).toBeNull();
-    for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["country", "duration", "issuer", "rank", "rating", "ytm"]);
+    for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["country", "duration", "issuer", "rank", "risk", "ytm"]);
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
   });
 
@@ -135,22 +135,25 @@ describe("closest yield first", () => {
 
 describe("risk slider", () => {
   const bonds = [bond("AAA1", 3.0, 5, "AAA"), bond("A1", 3.5, 5, "A"), bond("BBBm", 4.0, 5, "BBB-"), bond("BB1", 4.6, 5, "BB"), bond("B1", 6.0, 5, "B"), bond("NR", 5.0, 5, null)];
-  it("keeps only bonds rated equal or better than the level", () => {
+  it("keeps only bonds with a risk score equal or lower than the level", () => {
     expect(withinRisk(bonds, 1).map((b) => b.isin)).toEqual(["AAA1"]);
-    expect(withinRisk(bonds, 6).map((b) => b.isin)).toEqual(["AAA1", "A1"]);
-    expect(withinRisk(bonds, 9).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm"]);
+    expect(withinRisk(bonds, 3).map((b) => b.isin)).toEqual(["AAA1", "A1"]);
+    expect(withinRisk(bonds, 5).map((b) => b.isin)).toEqual(["AAA1", "A1"]);
+    expect(withinRisk(bonds, 6).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm"]);
+    expect(withinRisk(bonds, 7).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm", "BB1"]);
   });
-  it("level 10 is BB and above, never B, never unrated", () => {
-    expect(withinRisk(bonds, 10).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm", "BB1"]);
+  it("level 10 includes B, never unrated", () => {
+    expect(withinRisk(bonds, 10).map((b) => b.isin)).toEqual(["AAA1", "A1", "BBBm", "BB1", "B1"]);
   });
   it("ranking respects the level", () => {
-    expect(rankBonds(bonds, 5, 5, 10, 6).results.map((r) => r.isin).sort()).toEqual(["A1", "AAA1"]);
+    expect(rankBonds(bonds, 5, 5, 10, 5).results.map((r) => r.isin).sort()).toEqual(["A1", "AAA1"]);
   });
   it("yield caps follow the level", () => {
     const caps = ytmCapsByRisk(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
     expect(caps["1"]["5"]).toBe(3.0);
-    expect(caps["9"]["5"]).toBe(3.5);
-    expect(caps["10"]["5"]).toBe(3.77); // (3 + 3.5 + 4 + 4.6) / 4, unrated left out
+    expect(caps["6"]["5"]).toBe(3.5);
+    expect(caps["7"]["5"]).toBe(3.77); // (3 + 3.5 + 4 + 4.6) / 4, unrated left out
+    expect(caps["10"]["5"]).toBe(4.22);
   });
 });
 

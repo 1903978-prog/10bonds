@@ -62,7 +62,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
   }
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 export function confirmationEmail(username: string, link: string) {
   const subject = "Confirm your 10BONDS account";

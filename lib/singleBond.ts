@@ -1,18 +1,15 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { RISK_LEVELS } from "./limits";
-import { bondNotch } from "./ratings";
+import { bondNotch, bondRisk } from "./ratings";
 import { durationPool, issuerKey } from "./ranking";
 import type { ResultRow } from "./tiers";
 
 /** How many bonds per rating step can be cycled with "Change". */
 export const PER_LEVEL = 10;
 
-/** The rating step (1..10) a bond belongs to, or null when it is weaker than BB or unrated (never shown). */
+/** The risk score (1..10) a bond belongs to, or null when unrated or in default (never shown). */
 export function levelOf(b: PublicBond): number | null {
-  const n = bondNotch(b);
-  if (n === null) return null;
-  const i = RISK_LEVELS.findIndex((l) => n <= l.maxNotch);
-  return i < 0 ? null : i + 1;
+  return bondRisk(b);
 }
 
 /**
@@ -50,8 +47,7 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier): 
     const options: ResultRow[] = visible.map((b) => {
       const base: ResultRow = { rank: b.rank, issuer: b.issuer ?? b.name, ytm: b.grossYtm! };
       if (tier === "visitor") return base;
-      const rating = b.ratingResolved ?? b.ratingSp ?? b.ratingMoodys ?? b.ratingFitch;
-      const free: ResultRow = { ...base, duration: b.modifiedDuration!, rating, country: b.country };
+      const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country };
       if (tier === "free") return free;
       return { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
     });

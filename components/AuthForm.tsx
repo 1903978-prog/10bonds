@@ -97,6 +97,9 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
             className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-[15px] outline-none focus:border-accent"
           />
           {signup && <span className="mt-1 block text-xs text-mute">At least 8 characters.</span>}
+          {!signup && (
+            <Link href="/forgot-password" className="mt-1.5 block text-right text-sm text-accent" data-testid="forgot-link">Forgot password?</Link>
+          )}
         </label>
         {signup && (
           <div>

@@ -11,7 +11,7 @@ import { publicQuota, consumeSearch } from "@/lib/searchQuota";
 
 export const dynamic = "force-dynamic";
 
-/** Best yield per rating step for one duration, with the bonds behind each dot (cut to the caller's plan). */
+/** Best yield per risk step for one duration, with the bonds behind each dot (cut to the caller's plan). */
 export async function GET(req: Request) {
   // Sliders send one request per move; 240 a minute per address (both bond routes together) is far above normal use.
   if (!allow(`bonds:${clientIp(req)}`, 240, 60_000))

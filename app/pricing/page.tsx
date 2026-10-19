@@ -16,7 +16,7 @@ const PLANS = [
     key: "free",
     name: "Free account",
     tagline: "Sign up with your email.",
-    features: [`${SEARCH_LIMITS.free.single} single-bond searches a week`, `${SEARCH_LIMITS.free.portfolio} portfolio searches a week`, "Full top 10 bonds", "Issuer, yield, rating, duration", "No ISIN codes"],
+    features: [`${SEARCH_LIMITS.free.single} single-bond searches a week`, `${SEARCH_LIMITS.free.portfolio} portfolio searches a week`, "Full top 10 bonds", "Issuer, yield, risk score, duration", "No ISIN codes"],
     cta: "Create free account",
     highlight: false,
   },

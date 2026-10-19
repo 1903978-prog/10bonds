@@ -13,6 +13,8 @@ export async function POST(req: Request) {
   if (!stripeConfigured()) return NextResponse.json({ error: "Paid plans open very soon." }, { status: 503 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Please create a free account or sign in first." }, { status: 401 });
+  // The owner already has every plan for free and is never charged.
+  if (user.isAdmin) return NextResponse.json({ error: "Your admin account already has every plan, free of charge." }, { status: 400 });
   const b = await req.json().catch(() => ({}));
   const plan = b?.plan;
   const interval = b?.interval ?? "month";

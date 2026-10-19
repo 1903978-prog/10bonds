@@ -1,10 +1,10 @@
 import type { PublicBond } from "./types";
-import { bondNotch, spGradeOf } from "./ratings";
+import { bondRisk } from "./ratings";
 
 // Bond Replacement Engine (professional accounts only).
 // For each bond in an uploaded portfolio, look for a bond in our data that is either:
-//   A) higher yield: similar duration, same or better rating, more yield; or
-//   B) lower risk:   similar duration, similar yield, better rating.
+//   A) higher yield: similar duration, same or lower risk score, more yield; or
+//   B) lower risk:   similar duration, similar yield, lower risk score.
 // A swap is only suggested when the gain is clear after trading costs and it does not
 // build up a bigger position in one issuer. Otherwise the answer is "keep".
 
@@ -43,14 +43,14 @@ export const SETTING_LIMITS: Record<Exclude<keyof EngineSettings, "mode">, { min
 
 /** Trading costs are spread over the bond's remaining duration, but never over less than a year. */
 const MIN_HORIZON_YEARS = 1;
-// Same weight as the ranking: one rating notch counts like 0.1 points of yield.
-const NOTCH_VALUE = 0.1;
+// One step of the 10BONDS risk score counts like 0.1 points of yield.
+const RISK_STEP_VALUE = 0.1;
 
 export type BondView = {
   isin: string;
   name: string;
   issuer: string;
-  rating: string | null;
+  risk: number | null; // 10BONDS risk score 1..10
   ytm: number;
   duration: number;
   maturity: string | null;
@@ -66,7 +66,7 @@ export type Line =
       ytmChange: number; // percentage points, before costs
       netYtmChange: number; // per year, after costs
       durationChange: number;
-      notchesBetter: number; // > 0 = better rating
+      riskBetter: number; // > 0 = lower risk score
       costPct: number;
       breakevenYears: number | null;
       rationale: string[];
@@ -74,7 +74,7 @@ export type Line =
   | { action: "keep"; amount: number; sell: BondView; reason: string }
   | { action: "unknown"; amount: number; isin: string; reason: string };
 
-export type PortfolioStats = { amount: number; ytm: number | null; duration: number | null; rating: string | null; largestIssuer: { issuer: string; pct: number } | null };
+export type PortfolioStats = { amount: number; ytm: number | null; duration: number | null; risk: number | null; largestIssuer: { issuer: string; pct: number } | null };
 
 export type EngineResult = {
   lines: Line[];
@@ -104,7 +104,7 @@ function view(b: PublicBond): BondView {
     isin: b.isin,
     name: b.name,
     issuer: issuerOf(b),
-    rating: spGradeOf(bondNotch(b)) ?? b.ratingResolved ?? b.ratingSp ?? b.ratingMoodys ?? b.ratingFitch,
+    risk: bondRisk(b),
     ytm: b.grossYtm!,
     duration: b.modifiedDuration!,
     maturity: b.maturity,
@@ -141,9 +141,9 @@ export function runEngine(holdings: Holding[], universe: PublicBond[], s: Engine
       lines[i] = { action: "unknown", amount: h.amount, isin: h.isin, reason: "Not in our bond data (only euro bonds with a current yield are covered), so we cannot compare it." };
       continue;
     }
-    const oldNotch = bondNotch(old);
-    if (oldNotch === null) {
-      lines[i] = { action: "keep", amount: h.amount, sell: view(old), reason: "This bond has no credit rating in our data, so we cannot be sure an alternative has no higher credit risk." };
+    const oldRisk = bondRisk(old);
+    if (oldRisk === null) {
+      lines[i] = { action: "keep", amount: h.amount, sell: view(old), reason: "This bond has no risk score in our data, so we cannot be sure an alternative has no higher credit risk." };
       continue;
     }
 
@@ -159,19 +159,19 @@ export function runEngine(holdings: Holding[], universe: PublicBond[], s: Engine
     for (const b of usable) {
       if (held.has(b.isin) || usedBuys.has(b.isin)) continue;
       if (Math.abs(b.modifiedDuration! - old.modifiedDuration!) > s.durationTolerance) continue;
-      const notch = bondNotch(b);
-      if (notch === null) continue; // unknown credit risk is never a replacement
+      const risk = bondRisk(b);
+      if (risk === null) continue; // unknown credit risk is never a replacement
       similar++;
       const gross = b.grossYtm! - old.grossYtm!;
       const net = gross - costPerYear;
-      const notches = oldNotch - notch;
+      const notches = oldRisk - risk;
 
       let kind: "yield" | "risk" | null = null;
       if (s.mode !== "risk" && notches >= 0 && net >= s.minPickupPct) kind = "yield";
       else if (s.mode !== "yield" && notches >= 1 && net >= -s.maxGiveUpPct) kind = "risk";
       if (!kind) continue;
 
-      const score = net + NOTCH_VALUE * notches;
+      const score = net + RISK_STEP_VALUE * notches;
       if (best && score <= best.score) continue;
 
       // Concentration: the buy issuer may not end above the limit, unless the sold position was already that big.
@@ -209,7 +209,7 @@ export function runEngine(holdings: Holding[], universe: PublicBond[], s: Engine
       ytmChange: gross,
       netYtmChange: net,
       durationChange: b.modifiedDuration! - old.modifiedDuration!,
-      notchesBetter: notches,
+      riskBetter: notches,
       costPct: s.costPct,
       breakevenYears: breakeven,
       rationale: rationale(kind, sell, buy, gross, net, notches, breakeven, s),
@@ -236,14 +236,14 @@ export function runEngine(holdings: Holding[], universe: PublicBond[], s: Engine
 }
 
 function keepReason(similar: number, blocked: PublicBond | null, s: EngineSettings): string {
-  if (similar === 0) return `No other rated bond in our data has a similar duration (within ${s.durationTolerance} years).`;
+  if (similar === 0) return `No other bond with a risk score in our data has a similar duration (within ${s.durationTolerance} years).`;
   if (blocked) return `The best alternative (${issuerOf(blocked)}) would push that issuer above ${s.maxIssuerPct}% of the portfolio, so we do not suggest it.`;
   const goals =
     s.mode === "risk"
-      ? "a better rating at a similar yield"
+      ? "a lower risk score at a similar yield"
       : s.mode === "yield"
-        ? `at least ${pct(s.minPickupPct)} more yield a year after costs, with no lower rating`
-        : `at least ${pct(s.minPickupPct)} more yield a year after costs with no lower rating, or a better rating at a similar yield`;
+        ? `at least ${pct(s.minPickupPct)} more yield a year after costs, with no higher risk score`
+        : `at least ${pct(s.minPickupPct)} more yield a year after costs with no higher risk score, or a lower risk score at a similar yield`;
   return `None of the ${similar} bonds with a similar duration gives ${goals}. This bond already holds up well.`;
 }
 
@@ -253,13 +253,13 @@ function rationale(kind: "yield" | "risk", sell: BondView, buy: BondView, gross:
   out.push(
     kind === "yield"
       ? `Higher yield for the same risk: ${pct(buy.ytm)} instead of ${pct(sell.ytm)} (${signedPct(gross)} a year).`
-      : `Lower credit risk for a similar yield: rated ${buy.rating} instead of ${sell.rating}.`,
+      : `Lower credit risk for a similar yield: risk ${buy.risk} instead of ${sell.risk}.`,
   );
   out.push(`Similar interest-rate risk: duration ${yrs(buy.duration)} vs ${yrs(sell.duration)} (${durDiff >= 0 ? "+" : "−"}${Math.abs(durDiff).toFixed(1)} yrs).`);
   out.push(
     notches > 0
-      ? `Credit quality improves by ${notches} ${notches === 1 ? "notch" : "notches"} (${sell.rating} → ${buy.rating}).`
-      : `Same credit rating (${buy.rating}).`,
+      ? `Risk score improves by ${notches} ${notches === 1 ? "step" : "steps"} (${sell.risk} → ${buy.risk}).`
+      : `Same risk score (${buy.risk}).`,
   );
   if (kind === "risk") out.push(`Yield ${gross >= 0 ? "also rises" : "drops only"} by ${Math.abs(gross).toFixed(2)}% a year.`);
   out.push(
@@ -273,13 +273,13 @@ function rationale(kind: "yield" | "risk", sell: BondView, buy: BondView, gross:
 function stats(rows: ({ b: PublicBond; amount: number } | null)[]): PortfolioStats {
   const known = rows.filter((r): r is { b: PublicBond; amount: number } => r !== null);
   const amount = known.reduce((s, r) => s + r.amount, 0);
-  if (!amount) return { amount: 0, ytm: null, duration: null, rating: null, largestIssuer: null };
+  if (!amount) return { amount: 0, ytm: null, duration: null, risk: null, largestIssuer: null };
   const w = (f: (b: PublicBond) => number | null) => {
     const xs = known.filter((r) => f(r.b) !== null);
     const a = xs.reduce((s, r) => s + r.amount, 0);
     return a ? xs.reduce((s, r) => s + f(r.b)! * r.amount, 0) / a : null;
   };
-  const notch = w((b) => bondNotch(b));
+  const risk = w((b) => bondRisk(b));
   const issuers = new Map<string, number>();
   for (const r of known) issuers.set(issuerOf(r.b), (issuers.get(issuerOf(r.b)) ?? 0) + r.amount);
   const [topIssuer, topAmount] = [...issuers.entries()].sort((a, b) => b[1] - a[1])[0];
@@ -287,7 +287,7 @@ function stats(rows: ({ b: PublicBond; amount: number } | null)[]): PortfolioSta
     amount,
     ytm: w((b) => b.grossYtm),
     duration: w((b) => b.modifiedDuration),
-    rating: notch === null ? null : spGradeOf(Math.round(notch)),
+    risk: risk === null ? null : Math.round(risk * 10) / 10,
     largestIssuer: { issuer: topIssuer, pct: (topAmount / amount) * 100 },
   };
 }

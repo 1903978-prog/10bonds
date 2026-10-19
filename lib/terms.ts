@@ -2,7 +2,7 @@
  * Terms of Use and Risk Disclosure that every user accepts before an account is created.
  * Changing the text means raising TERMS_VERSION, so each account records which version it accepted.
  */
-export const TERMS_VERSION = "2026-10-19.2";
+export const TERMS_VERSION = "2026-10-19.3";
 
 export type TermsSection = { title: string; paragraphs: string[] };
 
@@ -43,9 +43,9 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     title: "5. Data: indicative, possibly delayed, incomplete or wrong",
     paragraphs: [
-      "Prices, yields, yields to maturity, durations, coupons, maturity dates, ratings, issuer names, country information and all other figures are indicative only. They come from third-party and public sources and from calculations that rely on assumptions. They may be delayed, stale, incomplete, approximate, rounded, estimated or simply wrong, and they may differ from the prices at which you can actually trade.",
+      "Prices, yields, yields to maturity, durations, coupons, maturity dates, risk scores, issuer names, country information and all other figures are indicative only. They come from third-party and public sources and from calculations that rely on assumptions. They may be delayed, stale, incomplete, approximate, rounded, estimated or simply wrong, and they may differ from the prices at which you can actually trade.",
       "Yields are calculated under simplifying assumptions (for example, that the bond is held to maturity, that all payments are made in full and on time, that coupons are reinvested at the same yield, and without taxes, fees, commissions, spreads or currency effects). Your actual return can be materially lower and can be negative.",
-      "Credit ratings shown are the opinions of the agencies that issue them, may be out of date, may refer to the issuer rather than the specific bond, and are not a guarantee of creditworthiness. 10BONDS is not a credit rating agency within the meaning of the EU Credit Rating Agencies Regulation (Regulation (EC) No 1060/2009) and does not issue ratings.",
+      "The risk score shown (from 1, lowest, to 10, highest) is 10BONDS' own internal assessment, provided for information only. It is not a credit rating, may be out of date, may refer to the issuer rather than the specific bond, and is not a guarantee of creditworthiness. You must check official credit ratings with the rating agencies, the issuer and your financial adviser, and you must not rely on the 10BONDS risk score. 10BONDS is not a credit rating agency within the meaning of the EU Credit Rating Agencies Regulation (Regulation (EC) No 1060/2009) and does not issue ratings.",
       "We do not guarantee the accuracy, completeness, timeliness, availability or fitness for any purpose of any data or output. You must verify every figure independently with your bank, broker or the official documentation before relying on it.",
     ],
   },
@@ -53,7 +53,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
     title: "6. Investment risks you accept",
     paragraphs: [
       "Investing in bonds involves significant risk, including the possible loss of all the money invested. Risks include, without limitation: credit and default risk (the issuer may fail to pay interest or principal); interest-rate risk (bond prices fall when interest rates rise); liquidity risk (you may be unable to sell, or only at a large discount); market and price risk; reinvestment risk; inflation risk; currency risk for bonds denominated in a currency other than your own; call, prepayment and extension risk; subordination risk (subordinated, hybrid, perpetual and Additional Tier 1 instruments rank behind other creditors and may be written down or converted into shares); bail-in and resolution risk for banks under the EU Bank Recovery and Resolution Directive and similar laws; sovereign and political risk; legal, regulatory and tax risk; and concentration risk.",
-      "Past performance, historical yields and ratings are not reliable indicators of future results. Any figure describing a possible return is not a forecast or a promise.",
+      "Past performance, historical yields and risk scores are not reliable indicators of future results. Any figure describing a possible return is not a forecast or a promise.",
       "You alone decide whether to invest, how much and in what. You accept full responsibility for your investment decisions and their consequences.",
     ],
   },

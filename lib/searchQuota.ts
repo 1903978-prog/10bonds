@@ -38,7 +38,7 @@ export async function consumeSearch(user: Pick<User, "id" | "plan" | "isAdmin">,
     const rows = await sql<{ at: Date }[]>`
       select at from app.search_usage where user_id = ${user.id} and kind = ${kind} and at > now() - interval '7 days'`;
     const d = decideSearch(rows.map((r) => new Date(r.at)), new Date(), limit, kind);
-    if (d.record) await sql`insert into app.search_usage (user_id, kind) values (${user.id}, ${kind})`;
+    if (d.record && !user.isAdmin) await sql`insert into app.search_usage (user_id, kind) values (${user.id}, ${kind})`;
     return d;
   } catch (e) {
     console.error("[searchQuota]", (e as Error).message);

@@ -108,7 +108,7 @@ export default function ReplacementEngine() {
                 <span className="text-mute">Goal</span>
                 <select value={settings.mode} onChange={(e) => set("mode", e.target.value as EngineSettings["mode"])} className="mt-1 block w-full rounded-xl border border-line bg-white px-3 py-2">
                   <option value="both">Higher yield or lower risk (best of both)</option>
-                  <option value="yield">Higher yield, same or better rating</option>
+                  <option value="yield">Higher yield, same or lower risk</option>
                   <option value="risk">Lower risk, similar yield</option>
                 </select>
               </label>
@@ -160,7 +160,7 @@ function Results({ data }: { data: Response }) {
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Compare label="Yield (YTM)" before={pct(data.before.ytm)} after={pct(data.after.ytm)} />
           <Compare label="Duration" before={yrs(data.before.duration)} after={yrs(data.after.duration)} />
-          <Compare label="Average rating" before={data.before.rating ?? "—"} after={data.after.rating ?? "—"} />
+          <Compare label="Average risk (1 lowest, 10 highest)" before={data.before.risk === null ? "—" : String(data.before.risk)} after={data.after.risk === null ? "—" : String(data.after.risk)} />
           <Compare label="Largest issuer" before={issuer(data.before)} after={issuer(data.after)} />
         </div>
         {data.swaps > 0 && (
@@ -221,7 +221,7 @@ function LineCard({ line }: { line: Line }) {
         <Badge tone={line.kind === "yield" ? "green" : "blue"}>{line.kind === "yield" ? "Higher yield" : "Lower risk"}</Badge>
         <span className="text-sm text-mute">
           {line.netYtmChange >= 0 ? "+" : "−"}{Math.abs(line.netYtmChange).toFixed(2)}% a year after costs
-          {line.notchesBetter > 0 ? ` · ${line.notchesBetter} ${line.notchesBetter === 1 ? "notch" : "notches"} better rating` : ""}
+          {line.riskBetter > 0 ? ` · risk ${line.riskBetter} ${line.riskBetter === 1 ? "step" : "steps"} lower` : ""}
         </span>
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -242,13 +242,13 @@ function LineCard({ line }: { line: Line }) {
   );
 }
 
-function BondRow({ b, amount }: { b: { name: string; issuer: string; isin: string; rating: string | null; ytm: number; duration: number; maturity: string | null }; amount?: number }) {
+function BondRow({ b, amount }: { b: { name: string; issuer: string; isin: string; risk: number | null; ytm: number; duration: number; maturity: string | null }; amount?: number }) {
   return (
     <div className="mt-1">
       <p className="text-[15px] font-medium">{b.issuer}</p>
       <p className="text-xs text-mute">{b.name} · <span className="font-mono">{b.isin}</span></p>
       <p className="mt-1 text-sm">
-        {pct(b.ytm)} YTM · {yrs(b.duration)} · {b.rating ?? "NR"}{b.maturity ? ` · ${b.maturity.slice(0, 4)}` : ""}{amount !== undefined ? ` · ${eur(amount)}` : ""}
+        {pct(b.ytm)} YTM · {yrs(b.duration)} · risk {b.risk ?? "—"}{b.maturity ? ` · ${b.maturity.slice(0, 4)}` : ""}{amount !== undefined ? ` · ${eur(amount)}` : ""}
       </p>
     </div>
   );
@@ -271,11 +271,11 @@ export function ProNotice() {
 }
 
 function downloadCsv(data: Response) {
-  const rows = [["Action", "Type", "Amount EUR", "Sell ISIN", "Sell bond", "Sell YTM", "Sell duration", "Sell rating", "Buy ISIN", "Buy bond", "Buy YTM", "Buy duration", "Buy rating", "Net yield change % a year", "Reason"]];
+  const rows = [["Action", "Type", "Amount EUR", "Sell ISIN", "Sell bond", "Sell YTM", "Sell duration", "Sell risk", "Buy ISIN", "Buy bond", "Buy YTM", "Buy duration", "Buy risk", "Net yield change % a year", "Reason"]];
   for (const l of data.lines) {
     if (l.action === "swap")
-      rows.push(["Swap", l.kind === "yield" ? "Higher yield" : "Lower risk", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.rating ?? "", l.buy.isin, l.buy.name, l.buy.ytm.toFixed(2), l.buy.duration.toFixed(2), l.buy.rating ?? "", l.netYtmChange.toFixed(2), l.rationale.join(" ")]);
-    else if (l.action === "keep") rows.push(["Keep", "", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.rating ?? "", "", "", "", "", "", "", l.reason]);
+      rows.push(["Swap", l.kind === "yield" ? "Higher yield" : "Lower risk", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.risk === null ? "" : String(l.sell.risk), l.buy.isin, l.buy.name, l.buy.ytm.toFixed(2), l.buy.duration.toFixed(2), l.buy.risk === null ? "" : String(l.buy.risk), l.netYtmChange.toFixed(2), l.rationale.join(" ")]);
+    else if (l.action === "keep") rows.push(["Keep", "", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.risk === null ? "" : String(l.sell.risk), "", "", "", "", "", "", l.reason]);
     else rows.push(["Not covered", "", String(l.amount), l.isin, "", "", "", "", "", "", "", "", "", "", l.reason]);
   }
   const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\n");

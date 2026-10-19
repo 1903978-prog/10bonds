@@ -40,7 +40,7 @@ export default function AdminData() {
       {ok && (
         <>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[["Bonds in the copy", ok.total], ["With a yield (YTM)", ok.withYtm], ["With a rating", ok.withRating], ["YTM updated in last 24h", ok.ytmLast24h]].map(([k, v]) => (
+            {[["Bonds in the copy", ok.total], ["With a yield (YTM)", ok.withYtm], ["With a risk score", ok.withRating], ["YTM updated in last 24h", ok.ytmLast24h]].map(([k, v]) => (
               <div key={k as string} className="rounded-xl bg-canvas p-3">
                 <p className="text-xs text-mute">{k}</p>
                 <p className="mt-1 text-2xl font-semibold" data-testid={`stat-${String(k).split(" ")[0].toLowerCase()}`}>{v}</p>

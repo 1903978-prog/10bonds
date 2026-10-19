@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { LIMITS, riskLevel } from "@/lib/limits";
+import { RiskBadge } from "./RiskBadge";
 import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
@@ -157,17 +158,17 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
           onChange={setYtm}
         />
-        {/* AAA always on the right: the slider position is 11 - level (level 1 = AAA). */}
+        {/* Risk 1 (lowest) always on the right: the slider position is 11 - risk. */}
         <Slider
           label={t.ratingLabel}
           hint={t.ratingHint}
           value={LIMITS.risk.max + LIMITS.risk.min - risk}
-          display={riskLevel(risk).label === "BB and above" ? t.bbAbove : riskLevel(risk).label}
+          display={<RiskBadge risk={risk} />}
           min={LIMITS.risk.min}
           max={LIMITS.risk.max}
           step={LIMITS.risk.step}
-          minLabel={t.bbLabel}
-          maxLabel={t.aaaLabel}
+          minLabel={t.highRiskLabel}
+          maxLabel={t.lowRiskLabel}
           onChange={(pos) => changeRisk(LIMITS.risk.max + LIMITS.risk.min - pos)}
         />
         </>)}
@@ -177,6 +178,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             ? t.howPortfolio
             : t.howSingle}
         </p>
+        <p className="mt-2 text-xs leading-relaxed text-mute">{t.riskNote}</p>
       </section>
 
       {/* Results */}
@@ -199,7 +201,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
-          <Stat value={paid ? data?.summary?.avgRating ?? "—" : null} label={t.avgRating} lock={lockTo} />
+          <Stat value={paid ? (data?.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} /> : "—") : null} label={t.avgRisk} lock={lockTo} />
           <Stat value={paid ? yrs(data?.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
         </div>
 
@@ -236,7 +238,7 @@ function Slider(props: {
   label: string;
   hint: string;
   value: number;
-  display: string;
+  display: ReactNode;
   min: number;
   max: number;
   step: number;
@@ -270,7 +272,7 @@ function Slider(props: {
   );
 }
 
-function Stat({ value, label, lock }: { value: string | null; label: string; lock?: { href: string; label: string } }) {
+function Stat({ value, label, lock }: { value: ReactNode | null; label: string; lock?: { href: string; label: string } }) {
   return (
     <div className="rounded-2xl border border-line/70 px-4 py-3">
       {value === null ? (
@@ -300,7 +302,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
             <th className="py-2 font-medium">{t.bond}</th>
             <th className="py-2 text-right font-medium">{t.yield}</th>
             <th className="py-2 text-right font-medium">{t.duration}</th>
-            <th className="py-2 pr-2 text-right font-medium">{t.rating}</th>
+            <th className="py-2 pr-2 text-right font-medium" title={t.riskNote}>{t.risk}</th>
           </tr>
         </thead>
         <tbody>
@@ -322,7 +324,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
               </td>
               <td className="py-3 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
               <td className="py-3 text-right tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
-              <td className="py-3 pr-2 text-right">{signedIn ? <RatingPill rating={r.rating ?? null} /> : <Dim />}</td>
+              <td className="py-3 pr-2 text-right">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
             </tr>
           ))}
         </tbody>
@@ -337,9 +339,9 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
               <div className="truncate font-medium">{r.issuer}</div>
               <div className="truncate text-xs text-mute">
                 {paid
-                  ? `${r.isin} · ${r.duration?.toFixed(1)} ${t.yrs} · ${r.rating ?? "—"}`
+                  ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} /></>
                   : signedIn
-                    ? `${r.duration?.toFixed(1)} ${t.yrs} · ${r.rating ?? "—"} · ${t.isinPlus}`
+                    ? <>{r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} /> · {t.isinPlus}</>
                     : t.detailsFree}
               </div>
             </div>
@@ -390,13 +392,7 @@ function LockedRows({ count }: { count: number }) {
   );
 }
 
-function RatingPill({ rating }: { rating: string | null }) {
-  return (
-    <span className="inline-block min-w-[44px] rounded-full bg-canvas px-2.5 py-1 text-center text-xs font-semibold">
-      {rating ?? "NR"}
-    </span>
-  );
-}
+
 
 function Dim() {
   return <span className="inline-block h-3 w-8 rounded bg-line align-middle" />;

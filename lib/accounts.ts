@@ -113,6 +113,16 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`grant select, update on app.refresh_requests to public`.catch(() => {});
   // Keep 13 months of usage history.
   await sql`delete from app.events where at < now() - interval '13 months'`;
+  // The admin account made before confirmation e-mails existed holds its address already: count it as confirmed,
+  // so turning e-mails on never locks the owner out of the admin pages.
+  if (ADMIN_EMAILS.length) {
+    await sql`update app.users set email_verified_at = created_at
+      where email in ${sql(ADMIN_EMAILS)} and email_verified_at is null and created_at < '2026-10-20T00:00:00Z'`;
+    // The owner's own browsing never counts in the site stats or search counters.
+    await sql`delete from app.events where visitor_id in (
+      select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where u.email in ${sql(ADMIN_EMAILS)})`;
+    await sql`delete from app.search_usage where user_id in (select id from app.users where email in ${sql(ADMIN_EMAILS)})`;
+  }
 }
 
 type Plan = Exclude<Tier, "visitor">;
@@ -144,22 +154,34 @@ type UserRow = {
   id: string; email: string; username: string | null; plan: StoredPlan; premium_until: Date | null; email_verified_at: Date | null;
   stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null; subscription_interval?: string | null;
 };
+function isAdminRow(r: UserRow): boolean {
+  return ADMIN_EMAILS.includes(r.email.trim().toLowerCase()) && (r.email_verified_at !== null || !emailConfigured());
+}
+
+/** Forgets the usage events of one browser (used when the owner signs in, so his visits never count). */
+export async function forgetVisitor(visitorId: string): Promise<void> {
+  const sql = await accountsSql();
+  await sql`delete from app.events where visitor_id = ${visitorId}`;
+}
+
 const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
+  const admin = isAdminRow(r);
   const trial = r.premium_until !== null && new Date(r.premium_until).getTime() > now;
   const emailVerified = r.email_verified_at !== null;
   return {
     id: Number(r.id),
     email: r.email,
     username: r.username,
-    plan: trial || r.plan === "pro" ? "premium" : r.plan,
+    // The admin has every plan's features and is never charged.
+    plan: admin || trial || r.plan === "pro" ? "premium" : r.plan,
     storedPlan: r.plan,
     premiumUntil: r.premium_until ? new Date(r.premium_until).toISOString() : null,
     emailVerified,
     // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
     // account holding the admin address is admin (an address can be used by one account only).
-    isAdmin: ADMIN_EMAILS.includes(r.email) && (emailVerified || !emailConfigured()),
+    isAdmin: admin,
     stripeCustomerId: r.stripe_customer_id ?? null,
     subscription: r.subscription_status
       ? { status: r.subscription_status, renewsAt: r.subscription_renews_at ? new Date(r.subscription_renews_at).toISOString() : null, cancelAtEnd: r.subscription_cancel_at_end === true, interval: r.subscription_interval === "year" ? "year" : r.subscription_interval === "month" ? "month" : null }
@@ -208,6 +230,17 @@ export async function findUserByLogin(login: string) {
     where email = ${login.toLowerCase()} or lower(username) = lower(${login}) limit 1`;
   const r = rows[0];
   return r ? { ...toUser(r), passwordHash: r.password_hash } : null;
+}
+
+/** Sets a new password only if the stored one is still the one the reset link was made for (so a link works once). */
+export async function replacePassword(userId: number, oldTag: (hash: string) => boolean, newHash: string): Promise<boolean> {
+  const sql = await accountsSql();
+  const rows = await sql<{ password_hash: string }[]>`select password_hash from app.users where id = ${userId} limit 1`;
+  const cur = rows[0]?.password_hash;
+  if (!cur || !oldTag(cur)) return false;
+  const r = await sql`update app.users set password_hash = ${newHash}, email_verified_at = coalesce(email_verified_at, now())
+    where id = ${userId} and password_hash = ${cur}`;
+  return r.count === 1;
 }
 
 export async function findUserById(id: number): Promise<User | null> {

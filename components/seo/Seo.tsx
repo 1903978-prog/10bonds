@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ComparisonData, ComparisonRow } from "@/lib/seo/comparisons";
 import { pathOf, T, type Locale } from "@/lib/seo/locales";
 import { fmtDate, fmtNum } from "@/lib/seo/site";
+import { RiskBadge } from "@/components/RiskBadge";
 
 // Building blocks for the public SEO pages (server components: everything is in the HTML search engines read).
 
@@ -69,7 +70,7 @@ function Table({ locale, rows, curve }: { locale: Locale; rows: ComparisonRow[];
             <th scope="col" className="py-2 pr-3 font-medium">{curve ? t.year : t.issuer}</th>
             <th scope="col" className="py-2 pr-3 text-right font-medium">{t.ytm}</th>
             <th scope="col" className="py-2 pr-3 text-right font-medium">{t.duration}</th>
-            <th scope="col" className="py-2 pr-3 font-medium">{t.rating}</th>
+            <th scope="col" className="py-2 pr-3 font-medium">{t.riskCol}</th>
             {!curve && <th scope="col" className="py-2 font-medium">{t.maturity}</th>}
           </tr>
         </thead>
@@ -79,7 +80,7 @@ function Table({ locale, rows, curve }: { locale: Locale; rows: ComparisonRow[];
               <td className="py-2.5 pr-3 font-medium">{curve ? r.maturityYear : r.issuer}</td>
               <td className="py-2.5 pr-3 text-right tabular-nums">{fmtNum(locale, r.ytm)}%</td>
               <td className="py-2.5 pr-3 text-right tabular-nums">{fmtNum(locale, r.duration, 1)}</td>
-              <td className="py-2.5 pr-3">{r.rating ?? "–"}</td>
+              <td className="py-2.5 pr-3"><RiskBadge risk={r.risk} /></td>
               {!curve && <td className="py-2.5 tabular-nums">{r.maturityYear ?? "–"}</td>}
             </tr>
           ))}
