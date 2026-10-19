@@ -13,10 +13,13 @@ import SingleBond from "./SingleBond";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
+import { MC_PATHS } from "@/lib/monteCarlo";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
   source: "live" | "sample";
+  scanned?: number;
+  monteCarlo?: { paths: number; expYield: number | null; p5: number | null };
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
@@ -226,7 +229,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </Link>
         )}
 
-        <div className={`mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+        <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+          <ScanBar data={data} lang={lang} />
           {limit ? (
             <LimitReached quota={limit} />
           ) : error ? (
@@ -250,6 +254,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {data?.asOf ? `${t.asOf} ${plainDate(data.asOf, lang)}. ` : ""}{t.gross}
         </p>
         <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
+        <MonteCarloNote data={data} lang={lang} />
       </section>
       )}
     </div>
@@ -331,6 +336,65 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
       )}
       <div className="text-[11px] text-mute">{label}</div>
     </div>
+  );
+}
+
+/** A short "Scanning bond 1 … N" bar over the results each time they arrive; N is the real number of bonds searched. Overlays the box, so nothing moves. */
+function ScanBar({ data, lang }: { data: Response | null; lang: FinderLang }) {
+  const t = useFinderText();
+  const [i, setI] = useState<number | null>(null);
+  const [s, setS] = useState(0);
+  const lastEnd = useRef(0);
+  const n = data?.scanned ?? 0;
+  const sims = data?.monteCarlo?.paths ?? 0;
+  useEffect(() => {
+    if (!n || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const start = performance.now();
+    // Quicker when the sliders are being moved, so it never gets in the way.
+    const ms = start - lastEnd.current < 4000 ? 400 : 1000;
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, Math.max(0, (now - start) / ms));
+      const eased = 1 - (1 - p) * (1 - p);
+      setI(Math.max(1, Math.round(eased * n)));
+      setS(Math.round(eased * sims));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else {
+        lastEnd.current = performance.now();
+        setI(null);
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      lastEnd.current = performance.now();
+      setI(null);
+    };
+  }, [data, n, sims]);
+  if (i === null) return null;
+  const fmt = new Intl.NumberFormat(lang);
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/90" aria-hidden="true" data-testid="scan-bar">
+      <div className="w-64 max-w-[80%]">
+        <p className="text-center text-[13px] tabular-nums text-mute">{t.scanning(fmt.format(i), fmt.format(n))}</p>
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-canvas">
+          <div className="h-full rounded-full bg-accent" style={{ width: `${(i / n) * 100}%` }} />
+        </div>
+        {sims > 0 && <p className="mt-2 text-center text-[11px] tabular-nums text-mute">{t.scanSims(fmt.format(s), fmt.format(sims))}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
+function MonteCarloNote({ data, lang }: { data: Response | null; lang: FinderLang }) {
+  const t = useFinderText();
+  const mc = data?.monteCarlo;
+  const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
+  return (
+    <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="monte-carlo">
+      {mc?.expYield != null && mc.p5 != null ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
+    </p>
   );
 }
 

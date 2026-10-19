@@ -4,6 +4,8 @@ import { loadBondsFor } from "@/lib/bonds";
 import { parseFilter } from "@/lib/bondFilter";
 import { rankBonds } from "@/lib/ranking";
 import { shapeForTier } from "@/lib/tiers";
+import { simulateCached } from "@/lib/monteCarlo";
+import { bondRisk } from "@/lib/ratings";
 import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
@@ -45,8 +47,12 @@ export async function GET(req: Request) {
   if (usage && !usage.allowed)
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   const { results, band } = rankBonds(data.bonds, duration, ytm, undefined, risk);
+  // A real Monte Carlo run of defaults on this top 10 over the chosen horizon. Its averages are a paid feature like the others.
+  const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b) })), duration);
+  const paid = tier === "plus" || tier === "premium";
+  const monteCarlo = paid ? sim : { paths: sim.paths, expYield: null, p5: null };
   return NextResponse.json(
-    { ...shapeForTier(results, tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk } },
+    { ...shapeForTier(results, tier), monteCarlo, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
