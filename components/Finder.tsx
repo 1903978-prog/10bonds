@@ -120,7 +120,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   return (
     <FinderLangContext.Provider value={lang}>
-    <div className="finder-wide grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
+    <div className="finder-wide grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
       {/* Inputs */}
       <section className="rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6 lg:sticky lg:top-20 lg:self-start">
         <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
@@ -244,7 +244,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {t.none}
             </p>
           ) : (
-            <Results data={data} paid={paid} signedIn={signedIn} />
+            <Results data={data} paid={paid} signedIn={signedIn} currency={currency} />
           )}
           {!limit && <QuotaNote quota={data?.quota} />}
         </div>
@@ -336,7 +336,7 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
   );
 }
 
-function Results({ data, paid, signedIn }: { data: Response | null; paid: boolean; signedIn: boolean }) {
+function Results({ data, paid, signedIn, currency }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string }) {
   const t = useFinderText();
   const rows = data?.rows ?? [];
   const locked = data?.lockedCount ?? 0;
@@ -349,10 +349,11 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
             <th className="py-1.5 pl-2 font-medium">#</th>
             <th className="whitespace-nowrap py-1.5 pr-3 font-medium">{t.issuer}</th>
             <th className="whitespace-nowrap py-1.5 pr-3 font-medium">{t.bond}</th>
-            <th className="whitespace-nowrap py-1.5 pr-3 text-right font-medium">{t.yield}</th>
-            <th className="whitespace-nowrap py-1.5 pr-3 text-right font-medium">{t.duration}</th>
-            <th className="whitespace-nowrap py-1.5 pr-3 text-right font-medium">{t.minInvest}</th>
-            <th className="whitespace-nowrap py-1.5 pr-2 text-right font-medium" title={t.riskNote}>{t.risk}</th>
+            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium">{t.yield}</th>
+            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium">{t.duration}</th>
+            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium">{t.minInvest}</th>
+            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium" title={t.riskNote}>{t.risk}</th>
+            <th className="w-full" aria-hidden />
           </tr>
         </thead>
         <tbody>
@@ -360,7 +361,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
             <tr key={r.rank} className="border-b border-line/60 last:border-0">
               <td className="py-1.5 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="max-w-[220px] truncate py-1.5 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
-              <td className="max-w-0 w-full py-1.5 pr-3">
+              <td className="max-w-[460px] py-1.5 pr-3">
                 {paid ? (
                   <>
                     <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
@@ -371,10 +372,11 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
                   <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="py-1.5 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
-              <td className="py-1.5 text-right tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
-              <td className="py-1.5 text-right tabular-nums">{signedIn ? fmtMin(r.minInvestment) : <Dim />}</td>
-              <td className="py-1.5 pr-2 text-right">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              <td className="px-3 py-1.5 text-center font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="px-3 py-1.5 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
+              <td className="px-3 py-1.5 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
+              <td className="px-3 py-1.5 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              <td aria-hidden />
             </tr>
           ))}
         </tbody>
@@ -387,9 +389,9 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.issuer}</div>
-              <div className="truncate text-xs text-mute">
+              <div className="text-xs leading-relaxed text-mute">
                 {paid
-                  ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} />{r.minInvestment != null && <> · min {fmtMin(r.minInvestment)}</>}</>
+                  ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} />{r.minInvestment != null && <> · min {fmtMin(r.minInvestment, currency)}</>}</>
                   : signedIn
                     ? <>{r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} /> · {t.isinPlus}</>
                     : t.detailsFree}
