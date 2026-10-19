@@ -8,6 +8,7 @@ import { SEED_GUIDES_FR } from "./guidesSeedFr";
 import { SEED_GUIDES_LIVIO } from "./guidesSeedLivio";
 import { landingFor } from "./landingLivio";
 import { SEED_GUIDES_WAVE } from "./guidesSeedWave";
+import { SEED_GUIDES_WAVE2 } from "./guidesSeedWave2";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 import { EXTRA_IT } from "./guidesExtraIt";
@@ -296,6 +297,6 @@ function withExtra(g: SeedGuide): SeedGuide {
   return { ...g, ...META_IT[g.slug], bodyHtml: extra ? g.bodyHtml + extra : g.bodyHtml };
 }
 
-export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO, ...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2, ...SEED_GUIDES_LIVIO_FR]
+export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_WAVE2, ...SEED_GUIDES_LIVIO, ...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2, ...SEED_GUIDES_LIVIO_FR]
   .map(withLanding)
   .map(withExtra);
