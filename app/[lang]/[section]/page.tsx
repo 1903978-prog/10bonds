@@ -12,6 +12,7 @@ import { FIRST_WAVE } from "@/lib/seo/knowledge";
 import { curvePath, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { insightsPath, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import { enPath, hubLangs, withEnglish } from "@/lib/seo/knowledgeEn";
+import KnowledgeTools, { FINDER } from "@/components/seo/KnowledgeTools";
 import { comparisonSection, guideSection, KC_ORDER, KC_TEXT, type HubItem } from "@/lib/seo/knowledgeHub";
 import { comparisonPages, fmtDate, publicPeople, publishedGuides, sectionAlternates, shown } from "@/lib/seo/site";
 
@@ -69,14 +70,26 @@ export default async function SectionPage({ params }: Props) {
     // First-wave pages that are not public yet (guide in review, broker page unpublished, too few bonds today).
     const linked = new Set(Object.values(items).flat().map((i) => i.href));
     for (const p of FIRST_WAVE.filter((x) => x.market === l && x.path && !linked.has(x.path))) items[p.section].push({ title: p.title, href: null, note: k.soon });
+    const defaultGuide = guides.find((g) => g.translationGroup === "default-rates");
     body = (
+      <>
+      <KnowledgeTools
+        locale={l}
+        defaultHref={defaultGuide ? pathOf(l, "guides", defaultGuide.slug) : enPath("bond-default-rates-by-rating")}
+        tools={[
+          { title: FINDER[l], href: `/${l}` },
+          { title: c.h1, href: pathOf(l, "tools", c.slug) },
+          { title: INSIGHTS_TEXT[l].h1, href: insightsPath(l) },
+          { title: CURVE_TEXT[l].h1, href: curvePath(l) },
+        ]}
+      />
       <div className="mt-8 space-y-6">
         {KC_ORDER.map((sec) => (
           <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
             <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
             <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
             {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (
-              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items[sec].map((i) => (
                   <li key={i.title + (i.href ?? "")}>
                     {i.href ? (
@@ -97,6 +110,7 @@ export default async function SectionPage({ params }: Props) {
           </section>
         ))}
       </div>
+      </>
     );
     ld = { "@context": "https://schema.org", "@type": "CollectionPage", name: k.h1, inLanguage: LOCALE[l].hreflang, url: SITE_URL + pathOf(l, s), hasPart: Object.values(items).flat().filter((i) => i.href).map((i) => ({ "@type": "WebPage", name: i.title, url: SITE_URL + i.href })) };
   } else if (s === "guides") {
@@ -193,7 +207,7 @@ export default async function SectionPage({ params }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className={s === "knowledge" ? "" : "mx-auto max-w-3xl"}>
       <Breadcrumbs locale={l} siteUrl={SITE_URL} items={crumbs} />
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{x.h1}</h1>
       <p className="mt-3 text-[17px] text-mute">{x.lead}</p>

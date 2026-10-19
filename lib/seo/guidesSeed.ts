@@ -8,6 +8,8 @@ import { SEED_GUIDES_FR } from "./guidesSeedFr";
 import { SEED_GUIDES_LIVIO } from "./guidesSeedLivio";
 import { landingFor } from "./landingLivio";
 import { SEED_GUIDES_WAVE } from "./guidesSeedWave";
+import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
+import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 
 export type SeedGuide = {
   locale: Locale;
@@ -278,4 +280,4 @@ function withLanding(g: SeedGuide): SeedGuide {
   return { ...g, title: x.h1, seoTitle: x.seoTitle, metaDescription: x.metaDescription, bodyHtml: x.bodyHtml, relatedSlugs: related, status: "published" };
 }
 
-export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO].map(withLanding);
+export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO, ...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2].map(withLanding);

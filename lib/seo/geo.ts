@@ -22,39 +22,14 @@ export const AI_SOURCES: { id: string; name: string; re: RegExp }[] = [
 ];
 const AI_SQL = "(^|\\.)(chatgpt\\.com|chat\\.openai\\.com|claude\\.ai|perplexity\\.ai|copilot\\.microsoft\\.com|copilot\\.cloud\\.microsoft|gemini\\.google\\.com)$";
 
-/** The fixed question set for the weekly citation test (10 per language), from Livio's plan. */
-export const TEST_QUESTIONS: { market: "it" | "fr" | "de"; q: string }[] = [
-  { market: "it", q: "Quali titoli di Stato italiani hanno il rendimento più alto a cinque anni?" },
-  { market: "it", q: "Qual è il rendimento netto di un BTP a 5 anni?" },
-  { market: "it", q: "Quali obbligazioni BBB hanno scadenza nel 2031?" },
-  { market: "it", q: "Quali broker hanno le commissioni più basse sui BTP?" },
-  { market: "it", q: "Qual è la probabilità storica di default di un rating BBB?" },
-  { market: "it", q: "Qual è la differenza tra rendimento e cedola?" },
-  { market: "it", q: "Quanto costa acquistare 10.000 euro di obbligazioni?" },
-  { market: "it", q: "Come si calcola il rendimento a scadenza di un'obbligazione?" },
-  { market: "it", q: "Meglio BTP o ETF obbligazionari?" },
-  { market: "it", q: "Cos'è la duration di un'obbligazione?" },
-  { market: "fr", q: "Comment calculer le rendement d'une OAT ?" },
-  { market: "fr", q: "Quel est le rendement de l'OAT 10 ans aujourd'hui ?" },
-  { market: "fr", q: "Quelles obligations d'entreprise en euros rapportent le plus ?" },
-  { market: "fr", q: "Quel courtier choisir pour acheter des obligations ?" },
-  { market: "fr", q: "Quelle est la probabilité de défaut d'une obligation notée BBB ?" },
-  { market: "fr", q: "Obligations d'État ou obligations d'entreprise : que choisir ?" },
-  { market: "fr", q: "Qu'est-ce que le rendement actuariel d'une obligation ?" },
-  { market: "fr", q: "Comment acheter des OAT en direct ?" },
-  { market: "fr", q: "Obligations ou ETF obligataires ?" },
-  { market: "fr", q: "Qu'est-ce que la duration d'une obligation ?" },
-  { market: "de", q: "Wie hoch ist die Rendite einer Bundesanleihe?" },
-  { market: "de", q: "Welche Anleihen haben die höchste Rendite bei 5 Jahren Laufzeit?" },
-  { market: "de", q: "Wie berechnet man die Rendite einer Anleihe?" },
-  { market: "de", q: "Welcher Broker ist am günstigsten für Anleihen?" },
-  { market: "de", q: "Wie hoch ist die Ausfallwahrscheinlichkeit bei einem BBB-Rating?" },
-  { market: "de", q: "Staatsanleihen oder Unternehmensanleihen?" },
-  { market: "de", q: "Anleihen oder Festgeld: was lohnt sich mehr?" },
-  { market: "de", q: "Anleihen-ETF oder Einzelanleihen?" },
-  { market: "de", q: "Was sind Hochzinsanleihen?" },
-  { market: "de", q: "Was ist das Kreditrisiko einer Anleihe?" },
-];
+export { TEST_QUESTIONS } from "./testQuestions";
+
+/** Result of the weekly AI citation test (scripts/ai-citations.mjs), stored in app.settings as seo_citation_test. */
+export type CitationTest = {
+  at: string;
+  assistants: { id: string; name: string; asked: number; answered: number; cited: number; answers: { market: string; q: string; cited: boolean; domains: string[]; error?: string }[] }[];
+  competitors: { domain: string; n: number }[];
+};
 
 /** Whether robots rules let a user agent read the site root. A group naming the agent wins over "*". */
 export function robotsAllows(robots: MetadataRoute.Robots, agent: string): boolean {

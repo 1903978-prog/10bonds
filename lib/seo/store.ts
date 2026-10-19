@@ -1,6 +1,8 @@
 import { accountsSql } from "../accounts";
 import type { CriterionResult, Points, Status } from "./rubric";
 import { SEED_GUIDES } from "./guidesSeed";
+import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
+import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { landingFor } from "./landingLivio";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import type { Potential } from "./knowledge";
@@ -205,6 +207,18 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
           related_slugs = ${g.relatedSlugs}, status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = 'it' and slug = ${g.slug} returning id`;
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Replaced with Livio's landing text (19 Oct 2026)."})`;
+    }
+  }
+  // French and German versions of six topics (19 Oct 2026, Livio asked for every topic in every language): they replace
+  // the earlier outline drafts of the same slug, once. A guide already published by hand is left alone.
+  const [l10n] = await s`insert into app.settings (key, value) values ('seo_l10n_guides_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (l10n) {
+    for (const g of [...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2]) {
+      const [row] = await s`update app.seo_guides set title = ${g.title}, seo_title = ${g.seoTitle}, meta_description = ${g.metaDescription}, body_html = ${g.bodyHtml},
+          primary_keyword = ${g.primaryKeyword}, related_keywords = ${g.relatedKeywords}, related_slugs = ${g.relatedSlugs}, translation_group = ${g.group ?? g.topic},
+          status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
+        where locale = ${g.locale} and slug = ${g.slug} and status <> 'published' returning id`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Full localized version published (19 Oct 2026)."})`;
     }
   }
   for (const k of SEED_KEYWORDS) {

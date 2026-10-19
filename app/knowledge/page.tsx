@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { isPublished as brokersPublished } from "@/components/brokers/Pages";
+import KnowledgeTools, { FINDER } from "@/components/seo/KnowledgeTools";
 import { JsonLd } from "@/components/seo/Seo";
 import { sectionPath } from "@/lib/brokers/content";
 import { SITE_URL } from "@/lib/seo/crawl";
@@ -37,16 +38,26 @@ export default async function KnowledgePage() {
   const published = await Promise.all(LOCALES.map((l) => brokersPublished(l).catch(() => false)));
   LOCALES.forEach((l, i) => published[i] && items.brokers.push({ title: k.brokersIn[l], href: sectionPath(l) }));
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{k.h1}</h1>
-      <p className="mt-3 text-[17px] text-mute">{k.lead}</p>
+      <p className="mt-3 max-w-3xl text-[17px] text-mute">{k.lead}</p>
+      <KnowledgeTools
+        locale="en"
+        defaultHref={enPath("bond-default-rates-by-rating")}
+        tools={[
+          { title: FINDER.en, href: "/" },
+          { title: CALCULATOR_EN.h1, href: enPath(CALCULATOR_EN.slug) },
+          { title: INSIGHTS_TEXT.en.h1, href: insightsPath("en") },
+          { title: CURVE_TEXT.en.h1, href: curvePath("en") },
+        ]}
+      />
       <div className="mt-8 space-y-6">
         {KC_ORDER.map((sec) => (
           <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
             <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
             <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
             {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (
-              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items[sec].map((i) => (
                   <li key={i.href}>
                     <Link href={i.href} className="block h-full rounded-2xl bg-canvas px-4 py-3 text-[15px] font-medium hover:text-accent">{i.title}</Link>
@@ -57,7 +68,7 @@ export default async function KnowledgePage() {
           </section>
         ))}
       </div>
-      <p className="mt-8 text-xs leading-relaxed text-mute">Information and education only, not investment advice or an offer to buy or sell. Yields are gross and indicative and can change. Bonds can lose value and issuers can default.</p>
+      <p className="mt-8 max-w-3xl text-xs leading-relaxed text-mute">Information and education only, not investment advice or an offer to buy or sell. Yields are gross and indicative and can change. Bonds can lose value and issuers can default.</p>
       <JsonLd data={{ "@context": "https://schema.org", "@type": "CollectionPage", name: k.h1, inLanguage: "en", url: SITE_URL + enPath(), hasPart: Object.values(items).flat().map((i) => ({ "@type": "WebPage", name: i.title, url: SITE_URL + i.href })) }} />
     </div>
   );
