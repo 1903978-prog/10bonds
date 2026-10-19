@@ -297,3 +297,18 @@ describe("Knowledge Center sections", () => {
     expect(comparisonSection("high-yield")).toBe("risk");
   });
 });
+
+describe("Livio's articles", () => {
+  it("keeps the CTA button class and reads the FAQ for structured data", async () => {
+    const { sanitizeHtml, faqFromHtml, wordCount } = await import("./sanitize");
+    const { SEED_GUIDES_LIVIO } = await import("./guidesSeedLivio");
+    const html = sanitizeHtml(SEED_GUIDES_LIVIO[0].bodyHtml);
+    expect(html).toContain('<a href="/it" class="cta">');
+    expect(sanitizeHtml('<a class="evil" href="/x">x</a>')).toBe('<a href="/x">x</a>');
+    expect(faqFromHtml(html)).toHaveLength(4);
+    expect(wordCount(html)).toBeGreaterThan(600);
+    expect(SEED_GUIDES_LIVIO[0].seoTitle.length).toBeLessThanOrEqual(60);
+    const { guideSection } = await import("./knowledgeHub");
+    expect(guideSection(SEED_GUIDES_LIVIO[0])).toBe("best");
+  });
+});

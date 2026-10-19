@@ -5,6 +5,7 @@ import type { Topic } from "./comparisons";
 import type { Locale } from "./locales";
 import { SEED_GUIDES_DE } from "./guidesSeedDe";
 import { SEED_GUIDES_FR } from "./guidesSeedFr";
+import { SEED_GUIDES_LIVIO } from "./guidesSeedLivio";
 import { SEED_GUIDES_WAVE } from "./guidesSeedWave";
 
 export type SeedGuide = {
@@ -19,7 +20,7 @@ export type SeedGuide = {
   relatedSlugs: string[];
   bodyHtml: string;
   group?: string; // translation group when it differs from the topic
-  status?: "draft"; // outline drafts; default "review"
+  status?: "draft" | "published"; // outline drafts, or Livio's own approved articles; default "review"
 };
 
 const cta = (text: string) => `<p><strong>Prova subito:</strong> <a href="/it">${text}</a>. Due cursori, dieci obbligazioni, nessun impegno.</p>`;
@@ -265,4 +266,4 @@ ${cta("imposta durata e rendimento obiettivo e confronta Stati e aziende nella s
   },
 ];
 
-export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE];
+export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO];

@@ -60,6 +60,7 @@ export function sanitizeHtml(html: string): string {
       const href = safeHref(attr(m[3], "href") ?? "");
       if (href) attrs += ` href="${escapeAttr(href)}"`;
       if (href && /^https?:/i.test(href)) attrs += ` rel="noopener nofollow"`;
+      if (attr(m[3], "class") === "cta") attrs += ` class="cta"`; // the one allowed class: a call-to-action button
     }
     if (tag === "h2" || tag === "h3") {
       const id = attr(m[3], "id");
@@ -72,6 +73,16 @@ export function sanitizeHtml(html: string): string {
   if (!dropping) out.push(escapeText(src.slice(last)));
   while (open.length) out.push(`</${open.pop()}>`);
   return out.join("");
+}
+
+/** Question/answer pairs of a guide's FAQ: each h3 after an h2 named "FAQ" (in any of our languages) and its first paragraph. */
+export function faqFromHtml(html: string): { q: string; a: string }[] {
+  const start = html.search(/<h2[^>]*>\s*(domande frequenti|questions fréquentes|faq|häufige fragen)[^<]*<\/h2>/i);
+  if (start === -1) return [];
+  const rest = html.slice(start).replace(/^<h2[\s\S]*?<\/h2>/i, "");
+  const section = rest.split(/<h2|<hr/i)[0];
+  const plain = (s: string) => s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
+  return [...section.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/gi)].map((m) => ({ q: plain(m[1]), a: plain(m[2]) })).filter((x) => x.q && x.a);
 }
 
 /** Visible words in an HTML fragment. */
