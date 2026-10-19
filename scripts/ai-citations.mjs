@@ -12,7 +12,7 @@ const uniq = (xs) => [...new Set(xs.filter(Boolean))];
 async function post(url, headers, body) {
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(120_000) });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j?.error?.message ?? `HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${String(j?.error?.message ?? j?.detail ?? j?.message ?? JSON.stringify(j)).slice(0, 140)}`);
   return j;
 }
 
@@ -72,7 +72,11 @@ for (const a of ASSISTANTS.filter((x) => x.key)) {
   const ok = answers.filter((x) => !x.error);
   results.push({ id: a.id, name: a.name, asked: answers.length, answered: ok.length, cited: ok.filter((x) => x.cited).length, answers });
   console.log(`${a.name}: cited in ${ok.filter((x) => x.cited).length} of ${ok.length} answers (${answers.length - ok.length} errors)`);
+  const firstError = answers.find((x) => x.error);
+  if (firstError) console.log(`${a.name} error example: ${firstError.error}`);
 }
+// A run where every question failed (wrong key, no credit) is not a test: keep the previous result.
+if (results.every((r) => r.answered === 0)) { console.log(results.length ? "Every question failed: nothing stored." : "No AI API key set: nothing tested."); await sql.end(); process.exit(results.length ? 1 : 0); }
 if (!results.length) { console.log("No AI API key set: nothing tested."); await sql.end(); process.exit(0); }
 
 // Which other sites the assistants cite most: the competitors to beat.

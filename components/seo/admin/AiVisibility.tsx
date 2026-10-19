@@ -7,6 +7,7 @@ import { api, Badge, card, ErrorNote, num } from "./ui";
 
 type Data = {
   score: number; dimensions: Dimension[]; funnel: AiFunnel | null; questions: { market: string; q: string }[]; citations: CitationTest | null;
+  manual: { prompt: string; week: string; assistants: readonly { id: string; name: string; open: string }[]; saved: string[] };
   bing: { state: "connected" | "error" | "not_connected"; error: string | null; data: BingStats | null; links: { overview: string; performance: string; ai: string } };
 };
 
@@ -14,7 +15,8 @@ type Data = {
 export default function AiVisibility() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { api<Data>("/api/admin/seo/geo").then(setData, (e: Error) => setError(e.message)); }, []);
+  const load = () => api<Data>("/api/admin/seo/geo").then(setData, (e: Error) => setError(e.message));
+  useEffect(() => { load(); }, []);
   if (error) return <ErrorNote error={error} />;
   if (!data) return <p className="text-sm text-mute">Loading…</p>;
   const f = data.funnel;
@@ -89,6 +91,8 @@ export default function AiVisibility() {
         </details>
       </section>
 
+      <ManualCheck manual={data.manual} onSaved={load} />
+
       <section className={card}>
         <h2 className="text-lg font-semibold">Bing and Copilot</h2>
         <p className="mt-1 text-sm text-mute">Bing search traffic for the last 28 days. Bing&apos;s AI Performance report (when Copilot and Bing AI cite the site) has no API, so open it with the button.</p>
@@ -122,4 +126,57 @@ export default function AiVisibility() {
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return <div className="rounded-2xl bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p>{sub && <p className="text-xs text-mute">{sub}</p>}</div>;
+}
+
+/** Free weekly check by hand: copy one prompt into ChatGPT and Claude, paste the answers back. */
+function ManualCheck({ manual, onSaved }: { manual: Data["manual"]; onSaved: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const [text, setText] = useState<Record<string, string>>({});
+  const [msg, setMsg] = useState<Record<string, string>>({});
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(manual.prompt); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); }
+  };
+  const save = async (id: string) => {
+    setMsg((m) => ({ ...m, [id]: "Saving…" }));
+    try {
+      const r = await api<{ answered: number; cited: number; week: string }>("/api/admin/seo/geo", { assistant: id, text: text[id] ?? "" });
+      setMsg((m) => ({ ...m, [id]: `Saved for ${r.week}: 10BONDS cited in ${r.cited} of ${r.answered} answers.` }));
+      setText((t) => ({ ...t, [id]: "" }));
+      onSaved();
+    } catch (e) {
+      setMsg((m) => ({ ...m, [id]: (e as Error).message }));
+    }
+  };
+  return (
+    <section className={card}>
+      <h2 className="text-lg font-semibold">Manual check (free, every Monday)</h2>
+      <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-mute">
+        <li>Copy the prompt below.</li>
+        <li>Paste it into ChatGPT and into Claude, with web search on.</li>
+        <li>Copy each full answer back into its box and press Save. It counts in the citation score for this week ({manual.week}).</li>
+      </ol>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={copy} className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">{copied ? "Copied ✓" : "Copy prompt"}</button>
+        {manual.assistants.map((a) => (
+          <a key={a.id} href={a.open} target="_blank" rel="noopener noreferrer" className="rounded-full bg-canvas px-4 py-2 text-sm font-medium">Open {a.name} ↗</a>
+        ))}
+      </div>
+      <textarea readOnly value={manual.prompt} rows={6} className="mt-3 w-full rounded-xl border border-line bg-canvas p-3 font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        {manual.assistants.map((a) => (
+          <div key={a.id}>
+            <label className="text-sm font-medium" htmlFor={`paste-${a.id}`}>
+              {a.name} answers {manual.saved.includes(a.id) && <Badge tone="green">saved this week</Badge>}
+            </label>
+            <textarea id={`paste-${a.id}`} rows={8} value={text[a.id] ?? ""} onChange={(e) => setText((t) => ({ ...t, [a.id]: e.target.value }))}
+              placeholder={`Paste the whole ${a.name} answer here (Q1: … Q30: …)`} className="mt-1 w-full rounded-xl border border-line p-3 text-sm" />
+            <div className="mt-1 flex items-center gap-3">
+              <button type="button" onClick={() => save(a.id)} disabled={!(text[a.id] ?? "").trim()} className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40">Save</button>
+              {msg[a.id] && <span className="text-sm text-mute">{msg[a.id]}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
