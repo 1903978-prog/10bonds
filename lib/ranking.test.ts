@@ -138,11 +138,14 @@ describe("ytmCaps", () => {
 });
 
 describe("highest yield with the lowest risk", () => {
-  it("more risk wins only when the extra yield pays for the expected losses", () => {
-    // 5 years: BBB+ (risk 4) loses 0.118 a year, BBB (risk 5) 0.173: risk 5 needs about 0.055 points more.
-    const safe = { ...bond("R4", 4.30, 5, "BBB+"), issuer: "Four" };
-    expect(rankBonds([safe, { ...bond("R5", 4.31, 5, "BBB"), issuer: "Five" }], 5, 3, 1).results[0].isin).toBe("R4");
-    expect(rankBonds([safe, { ...bond("R5", 4.40, 5, "BBB"), issuer: "Five" }], 5, 3, 1).results[0].isin).toBe("R5");
+  it("the target sets the risk: a low target picks the safer bond, a high one the riskier", () => {
+    const bonds = [{ ...bond("R4", 4.30, 5, "BBB+"), issuer: "Four" }, { ...bond("R5", 4.60, 5, "BBB"), issuer: "Five" }];
+    expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("R4");
+    expect(rankBonds(bonds, 5, 4.5, 1).results[0].isin).toBe("R5");
+  });
+  it("same risk: the higher yield after losses wins", () => {
+    const bonds = [{ ...bond("LO", 4.0, 5, "A"), issuer: "Lo" }, { ...bond("HI", 4.4, 5, "A-"), issuer: "Hi" }];
+    expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("HI");
   });
   it("takes on more risk only when that is needed to reach the target yield", () => {
     const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
