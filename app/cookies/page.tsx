@@ -11,7 +11,6 @@ const ROWS: [string, string, string, string, string][] = [
   ["tb_session", "Cookie", "Necessary", "Keeps you signed in", "30 days or until you sign out"],
   ["tb_cookie_consent", "Local storage", "Necessary", "Remembers your cookie choice", "Until you clear it"],
   ["tb_lang", "Cookie", "Preferences", "Remembers the language you chose", "1 year"],
-  ["tb_lang_dismissed", "Session storage", "Preferences", "Remembers that you closed the language suggestion", "Until you close the tab"],
   ["tb_vid", "Local storage", "Statistics", "A random visitor id for usage statistics, only if you allow them", "Until you clear it or withdraw consent"],
 ];
 

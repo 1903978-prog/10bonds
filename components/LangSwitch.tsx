@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LANG_COOKIE, LOCALE, LOCALES, suggestLocale, type Locale } from "@/lib/seo/locales";
+import { LANG_COOKIE, LOCALE, LOCALES, type Locale } from "@/lib/seo/locales";
 
-// Language switcher in the header, plus a one-time suggestion on the international home page.
-// Nothing ever redirects: the visitor chooses, and the choice is remembered in a small necessary cookie.
+// Language switcher in the header. The page shown is always in the language the visitor picked here; nothing
+// redirects and no other language is ever suggested.
 
 const remember = (l: Locale | "en") => {
   document.cookie = `${LANG_COOKIE}=${l}; Path=/; Max-Age=31536000; SameSite=Lax`;
 };
-const saved = () => document.cookie.match(new RegExp(`(?:^|; )${LANG_COOKIE}=([a-z]{2})`))?.[1] ?? null;
 
 /** The English (international) version: the page's x-default alternate when it has one, the home page otherwise. */
 function englishTarget(): string {
@@ -38,16 +37,12 @@ export default function LangSwitch() {
   const pathname = usePathname();
   const current = LOCALES.find((l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`)) ?? null;
   const [hrefs, setHrefs] = useState<Record<Locale, string>>({ it: "/it", fr: "/fr", de: "/de" });
-  const [suggest, setSuggest] = useState<Locale | null>(null);
   const [enHref, setEnHref] = useState("/");
 
   useEffect(() => {
     setHrefs({ it: targetFor("it"), fr: targetFor("fr"), de: targetFor("de") });
     setEnHref(current ? englishTarget() : pathname);
-    if (current) remember(current);
-    // Someone who picked English is not offered another language again.
-    if (pathname === "/" && saved() !== "en" && !sessionStorageGet("tb_lang_dismissed")) setSuggest(suggestLocale(saved(), navigator.languages?.join(",") ?? navigator.language, null));
-    else setSuggest(null);
+    remember(current ?? "en");
   }, [pathname, current]);
 
   return (
@@ -62,28 +57,7 @@ export default function LangSwitch() {
           </Link>
         ))}
       </span>
-      {suggest && (
-        <div className="fixed inset-x-3 top-16 z-30 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-sm text-ink shadow-[0_8px_30px_rgba(0,0,0,0.12)]" data-testid="lang-suggest">
-          <span>{{ it: "Questo sito è disponibile in italiano.", fr: "Ce site est disponible en français.", de: "Diese Seite gibt es auch auf Deutsch." }[suggest]}</span>
-          <span className="flex shrink-0 gap-2">
-            <Link href={`/${suggest}`} onClick={() => remember(suggest)} className="rounded-full bg-accent px-3 py-1.5 text-white">{LOCALE[suggest].name}</Link>
-            <button onClick={() => { sessionStorageSet("tb_lang_dismissed", "1"); setSuggest(null); }} className="px-1 text-mute" aria-label="Close">✕</button>
-          </span>
-        </div>
-      )}
     </>
   );
 }
 
-function sessionStorageGet(k: string) {
-  try {
-    return window.sessionStorage.getItem(k);
-  } catch {
-    return null;
-  }
-}
-function sessionStorageSet(k: string, v: string) {
-  try {
-    window.sessionStorage.setItem(k, v);
-  } catch {}
-}
