@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd, prose } from "@/components/seo/Seo";
 import CurveSection from "@/components/seo/CurveSection";
+import InsightsSection from "@/components/seo/InsightsSection";
+import { insightsAlternates, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import YieldCalculator from "@/components/seo/YieldCalculator";
 import { curveAlternates, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { SITE_URL } from "@/lib/seo/crawl";
@@ -26,6 +28,10 @@ async function languageVersions(group: string): Promise<Partial<Record<Locale, s
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (slug === INSIGHTS_TEXT.en.slug) {
+    const c = INSIGHTS_TEXT.en;
+    return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+  }
   if (slug === CURVE_TEXT.en.slug) {
     const c = CURVE_TEXT.en;
     return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
@@ -56,6 +62,17 @@ const risk = <p className="mt-8 text-xs leading-relaxed text-mute">Information a
 
 export default async function EnglishKnowledgePage({ params }: Props) {
   const { slug } = await params;
+  if (slug === INSIGHTS_TEXT.en.slug) {
+    const c = INSIGHTS_TEXT.en;
+    return (
+      <div className="mx-auto max-w-3xl">
+        {crumbs(c.h1, enPath(c.slug))}
+        <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+        <InsightsSection locale="en" text={c} curveHref={enPath(CURVE_TEXT.en.slug)} methodHref="/it/metodologia" />
+        {risk}
+      </div>
+    );
+  }
   if (slug === CURVE_TEXT.en.slug) {
     const c = CURVE_TEXT.en;
     return (

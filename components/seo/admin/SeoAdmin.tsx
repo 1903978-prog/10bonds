@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Locale } from "@/lib/seo/locales";
+import { bingLinks } from "@/lib/seo/bing";
 import AiVisibility from "./AiVisibility";
 import Backlinks from "./Backlinks";
 import Countries from "./Countries";
@@ -28,6 +29,16 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
+const bing = bingLinks();
+/** Google and Bing webmaster reports for the site, in one place. */
+const REPORTS: [string, string][] = [
+  ["Google Search Console", "https://search.google.com/search-console?resource_id=https%3A%2F%2F10bonds.com%2F"],
+  ["Google: search performance", "https://search.google.com/search-console/performance/search-analytics?resource_id=https%3A%2F%2F10bonds.com%2F&num_of_days=28"],
+  ["Bing overview", bing.overview],
+  ["Bing: search performance", bing.performance],
+  ["Bing: AI Performance", bing.ai],
+];
+
 /** Admin -> SEO Management. Only the admin reaches it (the page and every API route check). */
 export default function SeoAdmin() {
   const [market, setMarket] = useState<Locale>("it");
@@ -40,6 +51,12 @@ export default function SeoAdmin() {
         <p className="mt-1 text-sm text-mute">
           Only you can see this page. · <a href="/admin" className="text-accent">Back to Admin</a>
         </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 rounded-[20px] bg-white px-4 py-3" aria-label="Reports">
+        <span className="text-xs text-mute">Open the reports:</span>
+        {REPORTS.map(([label, href]) => (
+          <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="rounded-full bg-canvas px-3 py-1.5 text-sm hover:bg-line">{label} ↗</a>
+        ))}
       </div>
       <nav className="flex flex-wrap gap-2" aria-label="Sections">
         {TABS.map(([id, label]) => (

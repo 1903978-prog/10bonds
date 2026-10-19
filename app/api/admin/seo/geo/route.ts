@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import robots from "@/app/robots";
 import { isPublished } from "@/components/brokers/Pages";
+import { bingLinks, bingStats, type BingStats } from "@/lib/seo/bing";
 import { aiFunnel, aiVisibility, TEST_QUESTIONS } from "@/lib/seo/geo";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { notFound, seoAdmin } from "@/lib/seo/input";
@@ -21,6 +22,12 @@ export async function GET() {
     aiFunnel(28).catch(() => null),
     getSeoSetting("bing_ai_performance").catch(() => null),
   ]);
+  const key = process.env.BING_WEBMASTER_API_KEY;
+  let bingData: BingStats | null = null;
+  let bingError: string | null = null;
+  if (key) {
+    try { bingData = await bingStats(key); } catch (e) { bingError = (e as Error).message; }
+  }
   const live = pages.filter((p) => shown(p, source)).length;
   const domains = new Set(backlinks.filter((b) => b.status === "active").map((b) => b.sourceDomain)).size;
   const facts = {
@@ -39,7 +46,7 @@ export async function GET() {
     methodology: true,
     aiReferralTracking: funnel !== null,
     citationTest: false,
-    bingConnected: !!bing,
+    bingConnected: !!bing || !!bingData,
   };
-  return NextResponse.json({ ...aiVisibility(facts), funnel, questions: TEST_QUESTIONS }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ...aiVisibility(facts), funnel, questions: TEST_QUESTIONS, bing: { state: key ? (bingData ? "connected" : "error") : "not_connected", error: bingError, data: bingData, links: bingLinks() } }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -34,6 +34,7 @@ jobs:
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
       PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+      BING_WEBMASTER_API_KEY: ${{ secrets.BING_WEBMASTER_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -95,6 +96,10 @@ jobs:
           fi
           if [ -n "$PAGESPEED_API_KEY" ]; then
             printf 'PAGESPEED_API_KEY=%s\n' "$PAGESPEED_API_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
+          fi
+          if [ -n "$BING_WEBMASTER_API_KEY" ]; then
+            printf 'BING_WEBMASTER_API_KEY=%s\n' "$BING_WEBMASTER_API_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
+            echo "Bing Webmaster Tools: key set."
           fi
       - name: "Own domain: 10bonds.com and www (certificates, site address)"
         if: env.ok == '1'

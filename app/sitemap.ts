@@ -7,6 +7,7 @@ import { CALCULATORS } from "@/lib/seo/calculators";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { CALCULATOR_EN, enPath } from "@/lib/seo/knowledgeEn";
 import { curvePath } from "@/lib/seo/yieldCurves";
+import { insightsPath } from "@/lib/seo/insights";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { LOCALE, LOCALES, pathOf, type Locale, type Section } from "@/lib/seo/locales";
 import { comparisonPages, indexable, publishedGuides } from "@/lib/seo/site";
@@ -28,6 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   out.push({ url: SITE_URL + enPath(CALCULATOR_EN.slug), changeFrequency: "monthly", priority: 0.8, alternates: { languages: { ...langs((x) => pathOf(x, "tools", CALCULATORS[x].slug)), en: SITE_URL + enPath(CALCULATOR_EN.slug) } } });
   out.push({ url: SITE_URL + curvePath("en"), changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => curvePath(x)), en: SITE_URL + curvePath("en") } } });
   for (const l of LOCALES) out.push({ url: SITE_URL + curvePath(l), changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => curvePath(x)), en: SITE_URL + curvePath("en") } } });
+  for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + insightsPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => insightsPath(x)), en: SITE_URL + insightsPath("en") } } });
   for (const g of EN_GUIDES) out.push({ url: SITE_URL + enPath(g.slug), changeFrequency: "monthly", priority: 0.7 });
   for (const l of LOCALES) {
     out.push({ url: `${SITE_URL}/${l}`, changeFrequency: "daily", priority: 1, alternates: { languages: langs((x) => `/${x}`) } });

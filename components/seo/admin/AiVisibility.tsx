@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { BingStats } from "@/lib/seo/bing";
 import type { AiFunnel, Dimension } from "@/lib/seo/geo";
 import { api, Badge, card, ErrorNote, num } from "./ui";
 
-type Data = { score: number; dimensions: Dimension[]; funnel: AiFunnel | null; questions: { market: string; q: string }[] };
+type Data = {
+  score: number; dimensions: Dimension[]; funnel: AiFunnel | null; questions: { market: string; q: string }[];
+  bing: { state: "connected" | "error" | "not_connected"; error: string | null; data: BingStats | null; links: { overview: string; performance: string; ai: string } };
+};
 
 /** AI Visibility (GEO): readiness to be found and cited by AI assistants, kept apart from the SEO score. */
 export default function AiVisibility() {
@@ -62,13 +66,31 @@ export default function AiVisibility() {
       </section>
 
       <section className={card}>
-        <h2 className="text-lg font-semibold">Bing Webmaster Tools: AI Performance</h2>
-        <p className="mt-1 text-sm text-mute">Shows when Microsoft Copilot and Bing AI cite the site and for which searches. It does not cover ChatGPT or Claude.</p>
-        <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm">
-          <li>Sign in at <a href="https://www.bing.com/webmasters" target="_blank" rel="noopener noreferrer" className="text-accent">https://www.bing.com/webmasters</a> with your Microsoft account.</li>
-          <li>Choose &quot;Import from Google Search Console&quot; to add 10bonds.com in one click.</li>
-          <li>Open AI Performance from the left menu.</li>
-        </ol>
+        <h2 className="text-lg font-semibold">Bing and Copilot</h2>
+        <p className="mt-1 text-sm text-mute">Bing search traffic for the last 28 days. Bing&apos;s AI Performance report (when Copilot and Bing AI cite the site) has no API, so open it with the button.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a href={data.bing.links.ai} target="_blank" rel="noopener noreferrer" className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">AI Performance ↗</a>
+          <a href={data.bing.links.performance} target="_blank" rel="noopener noreferrer" className="rounded-full bg-canvas px-4 py-2 text-sm font-medium">Search performance ↗</a>
+          <a href={data.bing.links.overview} target="_blank" rel="noopener noreferrer" className="rounded-full bg-canvas px-4 py-2 text-sm font-medium">Bing overview ↗</a>
+        </div>
+        {data.bing.state === "not_connected" && (
+          <p className="mt-3 text-sm"><Badge tone="gray">Not connected</Badge> <span className="text-mute">Add the Bing API key as the GitHub secret BING_WEBMASTER_API_KEY at <a className="text-accent" href="https://github.com/1903978-prog/10bonds/settings/secrets/actions/new" target="_blank" rel="noopener noreferrer">https://github.com/1903978-prog/10bonds/settings/secrets/actions/new</a>. It is used from the next update of the site.</span></p>
+        )}
+        {data.bing.state === "error" && <ErrorNote error={`Bing did not answer: ${data.bing.error}. Check that the key is right and that https://www.10bonds.com/ is verified in Bing.`} />}
+        {data.bing.data && (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Kpi label="Bing clicks, 28 days" value={num(data.bing.data.clicks)} />
+              <Kpi label="Bing impressions, 28 days" value={num(data.bing.data.impressions)} />
+            </div>
+            {data.bing.data.queries.length > 0 && (
+              <table className="mt-4 w-full text-sm">
+                <thead><tr className="text-left text-mute"><th className="py-1 pr-3 font-normal">Search</th><th className="py-1 pr-3 text-right font-normal">Clicks</th><th className="py-1 pr-3 text-right font-normal">Impressions</th><th className="py-1 text-right font-normal">Position</th></tr></thead>
+                <tbody>{data.bing.data.queries.map((q) => <tr key={q.query} className="border-t border-line"><td className="py-1 pr-3">{q.query}</td><td className="py-1 pr-3 text-right">{num(q.clicks)}</td><td className="py-1 pr-3 text-right">{num(q.impressions)}</td><td className="py-1 text-right">{num(q.position, 1)}</td></tr>)}</tbody>
+              </table>
+            )}
+          </>
+        )}
       </section>
     </div>
   );
