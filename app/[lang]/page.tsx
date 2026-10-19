@@ -78,11 +78,11 @@ export default async function LocaleHome({ params }: Props) {
       </section>
       <section className="mx-auto max-w-3xl">
         <h2 className="text-[22px] font-semibold tracking-tight">{h.plansTitle}</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {h.plans.map((p) => (
             <div key={p.name} className="rounded-2xl bg-white p-5">
               <p className="font-semibold">{p.name}</p>
-              <p className="mt-1 text-lg font-semibold">{p.price}</p>
+              <p className="mt-1 font-semibold">{p.price}</p>
               <p className="mt-2 text-sm text-mute">{p.text}</p>
             </div>
           ))}

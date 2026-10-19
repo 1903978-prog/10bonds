@@ -28,6 +28,7 @@ export default function AccountNotices() {
 
   const confirmMsg =
     confirmed === "1" ? "Thank you, your e-mail address is confirmed." :
+    confirmed === "deleted" ? "Your account and all its data have been deleted." :
     confirmed === "invalid" ? "This confirmation link is not valid or has expired. Use “Send again” to get a new one." :
     confirmed === "error" ? "We could not confirm your address just now. Please try the link again later." : null;
 

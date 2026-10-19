@@ -14,10 +14,10 @@ const hook = async (event, secret, sigOverride) => {
   return fetch(BASE + "/api/stripe/webhook", { method: "POST", body, headers: { "stripe-signature": sig, "Content-Type": "application/json" } });
 };
 const health = await (await fetch(BASE + "/api/health/billing")).json();
-ok(health.configured && health.prices === 2 && health.portal && health.webhook, `billing health ${JSON.stringify(health)}`);
+ok(health.configured && health.prices === 6 && health.portal && health.webhook, `billing health ${JSON.stringify(health)}`);
 let st = await mock();
-ok(st.prices.length === 2 && st.prices.every((p) => p.currency === "eur" && p.interval === "month"), "two EUR monthly prices created");
-ok(st.prices.map((p) => p.unit_amount).sort((a, b) => a - b).join() === "900,1900", "amounts 9 and 19 euro");
+ok(st.prices.length === 6 && st.prices.every((p) => p.currency === "eur"), "six EUR prices created");
+ok(st.prices.map((p) => p.unit_amount).sort((a, b) => a - b).join() === "900,1900,8640,8900,18240,85440", "amounts: 9, 19, 89 a month and 86.40, 182.40, 854.40 a year");
 ok(st.webhooks.length === 1 && st.webhooks[0].url.endsWith("/api/stripe/webhook"), "one webhook endpoint created");
 const secret = st.webhooks[0].secret;
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
@@ -57,8 +57,9 @@ for (const w of [1440, 390]) {
   let u = await me();
   ok(u.storedPlan === "plus" && u.subscription?.status === "active", `${w} plan stored as plus (${u.storedPlan})`);
   await p.goto(BASE + "/pricing?paid=1");
-  ok(await p.isVisible('[data-testid="paid-msg"]') && await p.isVisible('[data-testid="manage-subscription"]'), `${w} thank-you and Manage subscription shown`);
+  ok(await p.isVisible('[data-testid="paid-msg"]'), `${w} thank-you shown`);
   await p.screenshot({ path: `${SHOTS}/pricing-paid-${w}.png`, fullPage: true });
+  await p.goto(BASE + "/account");
   await Promise.all([p.waitForURL(/3312\/portal\//), p.click('[data-testid="manage-subscription"]')]);
   ok((await mock()).portalSessions.at(-1).customer === sess.customer, `${w} portal opened for the same customer`);
   await p.goto(BASE + "/pricing");

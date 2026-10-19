@@ -7,11 +7,20 @@ import { siteUrl } from "./email";
  * products, monthly prices, the customer portal set-up and the webhook (with its signing key) are
  * created by the app itself the first time they are needed, and found again afterwards.
  */
-export type PaidPlan = "plus" | "premium";
-export const PLANS: Record<PaidPlan, { name: string; cents: number; lookupKey: string }> = {
-  plus: { name: "10BONDS Plus", cents: 900, lookupKey: "tenbonds_plus_monthly_eur" },
-  premium: { name: "10BONDS Premium", cents: 1900, lookupKey: "tenbonds_premium_monthly_eur" },
-};
+export type { PaidPlan, Interval } from "./plans";
+import { PAID_PLANS, PLAN_NAMES, priceCents, type Interval, type PaidPlan } from "./plans";
+
+/** One Stripe price per plan and billing period, found again by its lookup key. */
+export type PriceKey = `${PaidPlan}_${Interval}`;
+export const priceKey = (plan: PaidPlan, interval: Interval): PriceKey => `${plan}_${interval}`;
+const lookupKey = (plan: PaidPlan, interval: Interval) => `tenbonds_${plan}_${interval === "month" ? "monthly" : "yearly"}_eur`;
+export const PRICES: Record<PriceKey, { plan: PaidPlan; interval: Interval; cents: number; lookupKey: string }> = Object.fromEntries(
+  PAID_PLANS.flatMap((plan) => (["month", "year"] as Interval[]).map((interval) => [priceKey(plan, interval), { plan, interval, cents: priceCents(plan, interval), lookupKey: lookupKey(plan, interval) }])),
+) as Record<PriceKey, { plan: PaidPlan; interval: Interval; cents: number; lookupKey: string }>;
+/** Kept for the tests and old callers: the monthly price of each plan. */
+export const PLANS: Record<PaidPlan, { name: string; cents: number; lookupKey: string }> = Object.fromEntries(
+  PAID_PLANS.map((p) => [p, { name: `10BONDS ${PLAN_NAMES[p]}`, cents: PRICES[priceKey(p, "month")].cents, lookupKey: PRICES[priceKey(p, "month")].lookupKey }]),
+) as Record<PaidPlan, { name: string; cents: number; lookupKey: string }>;
 export const WEBHOOK_EVENTS = ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"];
 
 export function stripeConfigured(): boolean {
@@ -53,7 +62,7 @@ export async function stripe<T = Record<string, any>>(method: "GET" | "POST" | "
   return json as T;
 }
 
-type Setup = { prices: Record<PaidPlan, string>; portalConfig: string; webhookSecret: string };
+type Setup = { prices: Record<PriceKey, string>; portalConfig: string; webhookSecret: string };
 let setupPromise: Promise<Setup> | null = null;
 
 /** Find or create everything Stripe needs. Safe to call many times; work is done once per server start. */
@@ -67,32 +76,39 @@ export function ensureStripeSetup(): Promise<Setup> {
 
 async function doSetup(): Promise<Setup> {
   const mode = stripeMode();
-  // 1. Prices, found by their lookup key.
-  const found = await stripe<{ data: { id: string; lookup_key: string }[] }>("GET", "/prices", {
-    lookup_keys: Object.values(PLANS).map((p) => p.lookupKey),
-    active: true,
-    limit: 10,
-  });
-  const prices = {} as Record<PaidPlan, string>;
-  for (const [plan, p] of Object.entries(PLANS) as [PaidPlan, (typeof PLANS)[PaidPlan]][]) {
-    const hit = found.data.find((x) => x.lookup_key === p.lookupKey);
-    if (hit) prices[plan] = hit.id;
-    else {
-      const product = await stripe("POST", "/products", { name: p.name, metadata: { app: "10bonds", plan } });
-      const price = await stripe("POST", "/prices", {
-        product: product.id, currency: "eur", unit_amount: p.cents, recurring: { interval: "month" },
-        lookup_key: p.lookupKey, tax_behavior: "inclusive", metadata: { app: "10bonds", plan },
-      });
-      prices[plan] = price.id;
+  // 1. Prices, found by their lookup key (Stripe takes at most 10 keys per call). One product per plan.
+  const all = Object.values(PRICES);
+  const found: { id: string; lookup_key: string; product: string }[] = [];
+  for (let i = 0; i < all.length; i += 10) {
+    const r = await stripe<{ data: { id: string; lookup_key: string; product: string }[] }>("GET", "/prices", { lookup_keys: all.slice(i, i + 10).map((p) => p.lookupKey), active: true, limit: 10 });
+    found.push(...r.data);
+  }
+  const prices = {} as Record<PriceKey, string>;
+  const products = {} as Record<PaidPlan, string>;
+  for (const f of found) {
+    const p = all.find((x) => x.lookupKey === f.lookup_key);
+    if (p) products[p.plan] ??= typeof f.product === "string" ? f.product : (f.product as any)?.id;
+  }
+  for (const [key, p] of Object.entries(PRICES) as [PriceKey, (typeof PRICES)[PriceKey]][]) {
+    const hit = found.find((x) => x.lookup_key === p.lookupKey);
+    if (hit) {
+      prices[key] = hit.id;
+      continue;
     }
+    if (!products[p.plan]) products[p.plan] = (await stripe("POST", "/products", { name: PLANS[p.plan].name, metadata: { app: "10bonds", plan: p.plan } })).id;
+    const price = await stripe("POST", "/prices", {
+      product: products[p.plan], currency: "eur", unit_amount: p.cents, recurring: { interval: p.interval },
+      lookup_key: p.lookupKey, tax_behavior: "inclusive", metadata: { app: "10bonds", plan: p.plan, interval: p.interval },
+    });
+    prices[key] = price.id;
   }
   // 2. Customer portal (cancel, change plan, card, invoices).
-  const portalKey = `stripe_portal_config_${mode}`;
+  // v2: monthly and yearly prices. Pro is left out: moving to Pro goes through the profile page, which checks approval.
+  const portalKey = `stripe_portal_config_v2_${mode}`;
   let portalConfig = await getSetting(portalKey);
   if (!portalConfig) {
-    const productOf = async (priceId: string) => (await stripe("GET", `/prices/${priceId}`)).product as string;
     const cfg = await stripe("POST", "/billing_portal/configurations", {
-      business_profile: { headline: "10BONDS subscription", privacy_policy_url: `${siteUrl()}/terms#privacy`, terms_of_service_url: `${siteUrl()}/terms` },
+      business_profile: { headline: "10BONDS subscription", privacy_policy_url: `${siteUrl()}/privacy`, terms_of_service_url: `${siteUrl()}/terms` },
       features: {
         customer_update: { enabled: true, allowed_updates: ["email", "address", "tax_id"] },
         invoice_history: { enabled: true },
@@ -102,7 +118,7 @@ async function doSetup(): Promise<Setup> {
           enabled: true,
           default_allowed_updates: ["price"],
           proration_behavior: "create_prorations",
-          products: await Promise.all((Object.keys(PLANS) as PaidPlan[]).map(async (k) => ({ product: await productOf(prices[k]), prices: [prices[k]] }))),
+          products: (["plus", "premium"] as PaidPlan[]).map((k) => ({ product: products[k], prices: [prices[priceKey(k, "month")], prices[priceKey(k, "year")]] })),
         },
       },
       metadata: { app: "10bonds" },
@@ -140,11 +156,12 @@ export function verifySignature(payload: string, header: string | null, secret: 
 
 /** What a subscription object means for the account: which plan, until when. */
 export function readSubscription(sub: any): {
-  customerId: string; userId: number | null; subscriptionId: string; status: string; plan: "free" | PaidPlan; renewsAt: Date | null; cancelAtEnd: boolean;
+  customerId: string; userId: number | null; subscriptionId: string; status: string; plan: "free" | PaidPlan; interval: Interval | null; renewsAt: Date | null; cancelAtEnd: boolean;
 } {
   const item = sub?.items?.data?.[0];
   const key = item?.price?.lookup_key as string | undefined;
-  const paid = (Object.keys(PLANS) as PaidPlan[]).find((k) => PLANS[k].lookupKey === key) ?? null;
+  const price = Object.values(PRICES).find((p) => p.lookupKey === key) ?? null;
+  const paid = price?.plan ?? null;
   const live = ["active", "trialing", "past_due"].includes(sub?.status);
   const end = sub?.current_period_end ?? item?.current_period_end ?? null;
   const uid = Number(sub?.metadata?.user_id);
@@ -154,6 +171,7 @@ export function readSubscription(sub: any): {
     subscriptionId: sub?.id,
     status: String(sub?.status ?? "unknown"),
     plan: live && paid ? paid : "free",
+    interval: price?.interval ?? null,
     renewsAt: end ? new Date(end * 1000) : null,
     cancelAtEnd: sub?.cancel_at_period_end === true,
   };

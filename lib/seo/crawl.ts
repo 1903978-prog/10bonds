@@ -8,8 +8,8 @@ export const SITE_URL = (process.env.SITE_URL ?? "https://10bonds.fly.dev").repl
 /** Where the crawler fetches from: the server itself, so the check does not leave the machine. */
 export const crawlBase = () => (process.env.SEO_CRAWL_BASE ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`).replace(/\/$/, "");
 
-export const PRIVATE_PATHS = ["/admin", "/admin/seo", "/login", "/signup", "/redeem"];
-const SEEDS = ["/", "/it", "/fr", "/de", "/pricing", "/disclaimer", "/terms"];
+export const PRIVATE_PATHS = ["/admin", "/admin/seo", "/login", "/signup", "/redeem", "/account"];
+const SEEDS = ["/", "/it", "/fr", "/de", "/pricing", "/disclaimer", "/terms", "/privacy", "/cookies"];
 const MAX_PAGES = 150;
 
 export type CrawledPage = PageFacts & {

@@ -19,8 +19,9 @@ export const HOME: Record<Locale, Home> = {
     govId: "gov-it", govTitle: "I BTP oggi", compareTitle: "Confronta le obbligazioni", guidesTitle: "Guide per capire i numeri",
     plansTitle: "Piani", plans: [
       { name: "Gratis", price: "0 €", text: "Con un account: 10 ricerche di singole obbligazioni e 3 di portafoglio a settimana, la top 10 completa con emittente, rendimento, rating e duration." },
-      { name: "Plus", price: "9 € al mese", text: "Codici ISIN visibili, ricerche illimitate, nome, cedola e scadenza di ogni obbligazione, medie della lista." },
-      { name: "Premium", price: "19 € al mese", text: "Avvisi sui cambiamenti, ricerche salvate e analisi del rischio." },
+      { name: "Plus", price: "9 € al mese o 86,40 € all'anno", text: "Codici ISIN visibili, ricerche illimitate, nome, cedola e scadenza di ogni obbligazione, medie della lista." },
+      { name: "Premium", price: "19 € al mese o 182,40 € all'anno", text: "Tutto Plus, più avvisi via e-mail sui cambiamenti, ricerche salvate e analisi del rischio." },
+      { name: "Pro", price: "89 € al mese o 854,40 € all'anno", text: "Solo per professionisti: analisi del portafoglio dei clienti e suggerimenti di sostituzione per aumentare il rendimento." },
     ], plansLink: "Dettagli dei piani",
   },
   fr: {
@@ -32,8 +33,9 @@ export const HOME: Record<Locale, Home> = {
     govId: "gov-fr", govTitle: "Les OAT aujourd'hui", compareTitle: "Comparer les obligations", guidesTitle: "Guides pour comprendre les chiffres",
     plansTitle: "Offres", plans: [
       { name: "Gratuit", price: "0 €", text: "Avec un compte : 10 recherches d'obligation et 3 recherches de portefeuille par semaine, le top 10 complet avec émetteur, rendement, notation et duration." },
-      { name: "Plus", price: "9 € par mois", text: "Codes ISIN visibles, recherches illimitées, nom, coupon et échéance de chaque obligation, moyennes de la liste." },
-      { name: "Premium", price: "19 € par mois", text: "Alertes sur les changements, recherches enregistrées et analyse du risque." },
+      { name: "Plus", price: "9 € par mois ou 86,40 € par an", text: "Codes ISIN visibles, recherches illimitées, nom, coupon et échéance de chaque obligation, moyennes de la liste." },
+      { name: "Premium", price: "19 € par mois ou 182,40 € par an", text: "Tout Plus, avec des alertes par e-mail sur les changements, des recherches enregistrées et l'analyse du risque." },
+      { name: "Pro", price: "89 € par mois ou 854,40 € par an", text: "Réservé aux professionnels : analyse des portefeuilles clients et suggestions d'échanges pour augmenter le rendement." },
     ], plansLink: "Détail des offres",
   },
   de: {
@@ -45,8 +47,9 @@ export const HOME: Record<Locale, Home> = {
     govId: "gov-de", govTitle: "Bundesanleihen heute", compareTitle: "Anleihen vergleichen", guidesTitle: "Ratgeber zu den Kennzahlen",
     plansTitle: "Tarife", plans: [
       { name: "Kostenlos", price: "0 €", text: "Mit Konto: 10 Einzelanleihe- und 3 Portfolio-Suchen pro Woche, die komplette Top 10 mit Emittent, Rendite, Rating und Duration." },
-      { name: "Plus", price: "9 € im Monat", text: "ISIN sichtbar, unbegrenzte Suchen, Name, Kupon und Fälligkeit jeder Anleihe, Durchschnittswerte der Liste." },
-      { name: "Premium", price: "19 € im Monat", text: "Hinweise bei Änderungen, gespeicherte Suchen und Risikoanalysen." },
+      { name: "Plus", price: "9 € im Monat oder 86,40 € im Jahr", text: "ISIN sichtbar, unbegrenzte Suchen, Name, Kupon und Fälligkeit jeder Anleihe, Durchschnittswerte der Liste." },
+      { name: "Premium", price: "19 € im Monat oder 182,40 € im Jahr", text: "Alles aus Plus, dazu E-Mail-Hinweise bei Änderungen, gespeicherte Suchen und Risikoanalysen." },
+      { name: "Pro", price: "89 € im Monat oder 854,40 € im Jahr", text: "Nur für Profis: Analyse von Kundenportfolios und Tauschvorschläge für mehr Rendite." },
     ], plansLink: "Tarife im Detail",
   },
 };

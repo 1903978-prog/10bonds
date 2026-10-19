@@ -3,7 +3,9 @@ import { setStripeCustomer } from "@/lib/accounts";
 import { currentUser } from "@/lib/currentUser";
 import { siteUrl } from "@/lib/email";
 import { allow } from "@/lib/rateLimit";
-import { ensureStripeSetup, PLANS, stripe, stripeConfigured, type PaidPlan } from "@/lib/stripe";
+import { isInterval, isPaidPlan } from "@/lib/plans";
+import { proStatus } from "@/lib/pro";
+import { ensureStripeSetup, priceKey, stripe, stripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +14,18 @@ export async function POST(req: Request) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Please create a free account or sign in first." }, { status: 401 });
   const b = await req.json().catch(() => ({}));
-  const plan = b?.plan as PaidPlan;
-  if (!(plan in PLANS)) return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
+  const plan = b?.plan;
+  const interval = b?.interval ?? "month";
+  if (!isPaidPlan(plan) || !isInterval(interval)) return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
+  // Pro is for approved professionals only.
+  if (plan === "pro" && !user.isAdmin && (await proStatus(user).catch(() => "none")) !== "approved")
+    return NextResponse.json({ error: "The Pro plan is for approved professionals. Please request access first." }, { status: 403 });
   // EU consumers: a digital service that starts at once needs this express request (Directive 2011/83/EU, art. 16(m)).
   if (b?.startNow !== true) return NextResponse.json({ error: "Please tick the box to start your plan straight away." }, { status: 400 });
   if (!allow(`checkout:${user.id}`, 10)) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   // Someone who already pays changes plan in the portal, so nobody ends up with two subscriptions.
   if (user.subscription && ["active", "trialing", "past_due"].includes(user.subscription.status))
-    return NextResponse.json({ error: "You already have a subscription. Use “Manage subscription” to change plan." }, { status: 409 });
+    return NextResponse.json({ error: "You already have a subscription. Change plan on your profile page." }, { status: 409 });
   try {
     const { prices } = await ensureStripeSetup();
     let customer = user.stripeCustomerId;
@@ -32,8 +38,8 @@ export async function POST(req: Request) {
       mode: "subscription",
       customer,
       client_reference_id: String(user.id),
-      line_items: [{ price: prices[plan], quantity: 1 }],
-      subscription_data: { metadata: { user_id: user.id, plan, start_now_requested: "yes" } },
+      line_items: [{ price: prices[priceKey(plan, interval)], quantity: 1 }],
+      subscription_data: { metadata: { user_id: user.id, plan, interval, start_now_requested: "yes" } },
       metadata: { user_id: user.id, plan },
       allow_promotion_codes: true,
       billing_address_collection: "auto",

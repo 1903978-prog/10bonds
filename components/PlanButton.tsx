@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
 
-type Props = { plan: "plus" | "premium"; highlight: boolean; label: string };
+import type { Interval, PaidPlan } from "@/lib/plans";
+
+type Props = { plan: PaidPlan; interval?: Interval; highlight: boolean; label: string };
 
 /** Starts Stripe checkout for a paid plan, after the EU "start now" request. */
-export function PlanButton({ plan, highlight, label }: Props) {
+export function PlanButton({ plan, interval = "month", highlight, label }: Props) {
   const [startNow, setStartNow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -12,7 +14,7 @@ export function PlanButton({ plan, highlight, label }: Props) {
     setBusy(true);
     setError("");
     try {
-      const r = await fetch("/api/billing/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, startNow }) });
+      const r = await fetch("/api/billing/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, interval, startNow }) });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.url) {
         window.location.href = j.url;
@@ -44,7 +46,7 @@ export function PlanButton({ plan, highlight, label }: Props) {
 }
 
 /** Opens Stripe's own page to change plan, update the card, see invoices or cancel. */
-export function ManageButton() {
+export function ManageButton({ label = "Manage subscription" }: { label?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function go() {
@@ -62,7 +64,7 @@ export function ManageButton() {
   return (
     <div className="mt-7">
       <button onClick={go} disabled={busy} data-testid="manage-subscription" className="w-full rounded-full bg-canvas px-5 py-3 text-[15px] font-medium text-ink disabled:opacity-60">
-        {busy ? "Opening…" : "Manage subscription"}
+        {busy ? "Opening…" : label}
       </button>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>

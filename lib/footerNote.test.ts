@@ -18,3 +18,12 @@ describe("footer note", () => {
     expect(FOOTER_NOTE.en.match(/investment advice/g)).toHaveLength(1);
   });
 });
+
+import { FOOTER_LINKS } from "./footerNote";
+describe("legal menu", () => {
+  it("has every link in all four languages", () => {
+    for (const l of ["en", "it", "fr", "de"] as const) {
+      for (const k of ["disclaimer", "terms", "privacy", "cookies", "settings", "pro"] as const) expect(FOOTER_LINKS[l][k].length).toBeGreaterThan(2);
+    }
+  });
+});

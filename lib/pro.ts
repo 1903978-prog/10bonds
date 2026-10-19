@@ -100,3 +100,12 @@ export async function decidePro(userId: number, status: "approved" | "rejected" 
     where user_id = ${userId} returning user_id`;
   return rows.length > 0;
 }
+
+/** Approved professionals use the tool with a paid Pro plan; the admin always can. */
+export type ProAccess = "active" | "needs-plan" | ProStatus;
+export async function proAccess(user: User): Promise<ProAccess> {
+  if (user.isAdmin) return "active";
+  const status = await proStatus(user);
+  if (status !== "approved") return status;
+  return user.storedPlan === "pro" ? "active" : "needs-plan";
+}

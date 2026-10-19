@@ -45,6 +45,10 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists subscription_status text`;
   await sql`alter table app.users add column if not exists subscription_renews_at timestamptz`;
   await sql`alter table app.users add column if not exists subscription_cancel_at_end boolean`;
+  await sql`alter table app.users add column if not exists subscription_interval text`;
+  // Plan 4 (Pro, for approved professionals). Widen the allowed values; existing rows are untouched.
+  await sql`alter table app.users drop constraint if exists users_plan_check`;
+  await sql`alter table app.users add constraint users_plan_check check (plan in ('free','plus','premium','pro'))`.catch(() => {});
   // Small settings the app makes for itself (for example the Stripe webhook signing key).
   await sql`create table if not exists app.settings (key text primary key, value text not null, updated_at timestamptz not null default now())`;
   // One-month Premium trial codes made by the admin. A code is used once.
@@ -112,18 +116,20 @@ async function setup(sql: ReturnType<typeof postgres>) {
 }
 
 type Plan = Exclude<Tier, "visitor">;
+/** What the account pays for. Pro gives everything Premium gives in the bond search, plus the professional tool. */
+export type StoredPlan = Plan | "pro";
 /** `plan` is what the user gets now: Premium while a trial runs, otherwise the plan they hold. */
 export type User = {
   id: number;
   email: string;
   username: string | null;
   plan: Plan;
-  storedPlan: Plan;
+  storedPlan: StoredPlan;
   premiumUntil: string | null;
   emailVerified: boolean;
   isAdmin: boolean;
   stripeCustomerId: string | null;
-  subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean } | null;
+  subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean; interval: "month" | "year" | null } | null;
 };
 
 /** Days of free Premium every new account gets. */
@@ -135,10 +141,10 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
   .filter(Boolean);
 
 type UserRow = {
-  id: string; email: string; username: string | null; plan: Plan; premium_until: Date | null; email_verified_at: Date | null;
-  stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null;
+  id: string; email: string; username: string | null; plan: StoredPlan; premium_until: Date | null; email_verified_at: Date | null;
+  stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null; subscription_interval?: string | null;
 };
-const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end";
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
   const trial = r.premium_until !== null && new Date(r.premium_until).getTime() > now;
@@ -147,7 +153,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     id: Number(r.id),
     email: r.email,
     username: r.username,
-    plan: trial ? "premium" : r.plan,
+    plan: trial || r.plan === "pro" ? "premium" : r.plan,
     storedPlan: r.plan,
     premiumUntil: r.premium_until ? new Date(r.premium_until).toISOString() : null,
     emailVerified,
@@ -156,7 +162,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     isAdmin: ADMIN_EMAILS.includes(r.email) && (emailVerified || !emailConfigured()),
     stripeCustomerId: r.stripe_customer_id ?? null,
     subscription: r.subscription_status
-      ? { status: r.subscription_status, renewsAt: r.subscription_renews_at ? new Date(r.subscription_renews_at).toISOString() : null, cancelAtEnd: r.subscription_cancel_at_end === true }
+      ? { status: r.subscription_status, renewsAt: r.subscription_renews_at ? new Date(r.subscription_renews_at).toISOString() : null, cancelAtEnd: r.subscription_cancel_at_end === true, interval: r.subscription_interval === "year" ? "year" : r.subscription_interval === "month" ? "month" : null }
       : null,
   };
 }
@@ -386,7 +392,7 @@ export async function setStripeCustomer(userId: number, customerId: string) {
 
 /** Apply a Stripe subscription to the account it belongs to. Returns the user id, or null when none matches. */
 export async function applySubscription(s: {
-  customerId: string; userId: number | null; subscriptionId: string; status: string; plan: Plan; renewsAt: Date | null; cancelAtEnd: boolean;
+  customerId: string; userId: number | null; subscriptionId: string; status: string; plan: StoredPlan; interval?: string | null; renewsAt: Date | null; cancelAtEnd: boolean;
 }): Promise<number | null> {
   const { sql, ready } = db();
   await ready;
@@ -397,6 +403,7 @@ export async function applySubscription(s: {
       subscription_status = ${s.status},
       subscription_renews_at = ${s.renewsAt},
       subscription_cancel_at_end = ${s.cancelAtEnd},
+      subscription_interval = ${s.interval ?? null},
       plan = ${s.plan}
     where (stripe_customer_id = ${s.customerId} or (${s.userId}::bigint is not null and id = ${s.userId}::bigint and stripe_customer_id is null))
       -- an old subscription ending must not cancel a newer one that is live (events can arrive out of order)
@@ -429,4 +436,48 @@ export async function requestRefresh(by: string): Promise<{ request: RefreshRequ
   if (open) return { request: toReq(open), created: false };
   const [row] = await sql`insert into app.refresh_requests (requested_by) values (${by}) returning *`;
   return { request: toReq(row), created: true };
+}
+
+/** Everything the site holds about one account (GDPR access and portability). */
+export async function exportUserData(userId: number) {
+  const { sql, ready } = db();
+  await ready;
+  const [user] = await sql`select id, email, username, plan, created_at, last_login_at, terms_version, terms_accepted_at, email_verified_at, premium_until,
+    stripe_customer_id, subscription_status, subscription_interval, subscription_renews_at, subscription_cancel_at_end from app.users where id = ${userId}`;
+  const searches = await sql`select kind, at from app.search_usage where user_id = ${userId} order by at`;
+  const events = await sql`select at, kind, path, detail from app.events where user_id = ${userId} order by at`;
+  const codes = await sql`select code, days, redeemed_at from app.trial_codes where redeemed_by = ${userId}`;
+  const pro = await sql`select firm, role, country, regulator, licence, website, status, requested_at, decided_at from app.pro_access where user_id = ${userId}`.catch(() => []);
+  return { exportedAt: new Date().toISOString(), account: user ?? null, searchCounts: searches, usageStats: events, codesUsed: codes, professionalAccess: pro };
+}
+
+/** Erase usage history (stats events and weekly search counts). The account itself stays. */
+export async function eraseActivity(userId: number): Promise<{ events: number; searches: number }> {
+  const { sql, ready } = db();
+  await ready;
+  const e = await sql`delete from app.events where user_id = ${userId}`;
+  const q = await sql`delete from app.search_usage where user_id = ${userId}`;
+  return { events: e.count, searches: q.count };
+}
+
+/** Delete the account and every row about it. Usage stats, search counts and the professional request go with it;
+ *  a used code stays used but no longer points at anyone. Invoices are kept by Stripe, not here. */
+export async function deleteUser(userId: number): Promise<boolean> {
+  const { sql, ready } = db();
+  await ready;
+  return sql.begin(async (tx) => {
+    await tx`delete from app.events where user_id = ${userId}`;
+    await tx`delete from app.search_usage where user_id = ${userId}`;
+    await tx`update app.trial_codes set redeemed_by = null where redeemed_by = ${userId}`;
+    await tx`update app.trial_codes set created_by = null where created_by = ${userId}`;
+    const r = await tx`delete from app.users where id = ${userId}`;
+    return r.count === 1;
+  });
+}
+
+export async function subscriptionIdOf(userId: number): Promise<string | null> {
+  const { sql, ready } = db();
+  await ready;
+  const r = await sql<{ s: string | null }[]>`select stripe_subscription_id s from app.users where id = ${userId}`;
+  return r[0]?.s ?? null;
 }

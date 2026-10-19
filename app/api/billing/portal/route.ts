@@ -12,7 +12,7 @@ export async function POST() {
   if (!user.stripeCustomerId) return NextResponse.json({ error: "You have no subscription yet." }, { status: 404 });
   try {
     const { portalConfig } = await ensureStripeSetup();
-    const s = await stripe("POST", "/billing_portal/sessions", { customer: user.stripeCustomerId, configuration: portalConfig, return_url: `${siteUrl()}/pricing` });
+    const s = await stripe("POST", "/billing_portal/sessions", { customer: user.stripeCustomerId, configuration: portalConfig, return_url: `${siteUrl()}/account` });
     return NextResponse.json({ url: s.url });
   } catch (e) {
     console.error("[portal] failed:", (e as Error).message);

@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { formEncode, PLANS, readSubscription, verifySignature } from "./stripe";
+import { formEncode, PLANS, PRICES, readSubscription, verifySignature } from "./stripe";
 
 const sign = (payload: string, secret: string, t: number) => `t=${t},v1=${createHmac("sha256", secret).update(`${t}.${payload}`).digest("hex")}`;
 
@@ -44,4 +44,20 @@ describe("readSubscription", () => {
     expect(r.renewsAt?.toISOString()).toBe(new Date(1_800_000_000_000).toISOString());
   });
   it("ignores a bad user id", () => expect(readSubscription(sub("active", PLANS.plus.lookupKey, { metadata: { user_id: "x" } })).userId).toBeNull());
+});
+
+describe("prices", () => {
+  it("keeps the existing monthly lookup keys, so current subscribers stay recognised", () => {
+    expect(PRICES.plus_month.lookupKey).toBe("tenbonds_plus_monthly_eur");
+    expect(PRICES.premium_month.lookupKey).toBe("tenbonds_premium_monthly_eur");
+  });
+  it("has six prices with the right amounts", () => {
+    expect(Object.fromEntries(Object.entries(PRICES).map(([k, v]) => [k, v.cents]))).toEqual({
+      plus_month: 900, plus_year: 8640, premium_month: 1900, premium_year: 18240, pro_month: 8900, pro_year: 85440,
+    });
+  });
+  it("reads a yearly Pro subscription", () => {
+    const r = readSubscription({ id: "s", customer: "c", status: "active", items: { data: [{ price: { lookup_key: PRICES.pro_year.lookupKey } }] } });
+    expect(r).toMatchObject({ plan: "pro", interval: "year" });
+  });
 });

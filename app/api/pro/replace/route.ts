@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { loadBonds } from "@/lib/bonds";
 import { currentUser } from "@/lib/currentUser";
 import { parsePortfolio } from "@/lib/portfolioCsv";
-import { proStatus } from "@/lib/pro";
+import { proAccess } from "@/lib/pro";
 import { allow } from "@/lib/rateLimit";
 import { cleanSettings, runEngine } from "@/lib/replacement";
 
@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
-  if ((await proStatus(user)) !== "approved") return NextResponse.json({ error: "This tool is for approved professional accounts only." }, { status: 403 });
+  const access = await proAccess(user);
+  if (access !== "active") return NextResponse.json({ error: access === "needs-plan" ? "Your professional access is approved. Subscribe to the Pro plan to use the tool." : "This tool is for approved professional accounts only." }, { status: 403 });
   if (!allow(`pro-replace:${user.id}`, 60, 60 * 60_000)) return NextResponse.json({ error: "Too many runs this hour. Please try again later." }, { status: 429 });
 
   const body = (await req.json().catch(() => null)) as { portfolio?: unknown; settings?: unknown } | null;

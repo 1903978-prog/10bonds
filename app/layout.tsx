@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import FooterNote from "@/components/FooterNote";
+import FooterNote, { FooterLegal } from "@/components/FooterNote";
 import "./globals.css";
 import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import LangSwitch from "@/components/LangSwitch";
 import ProNavLink from "@/components/ProNavLink";
-import UsageStats, { UsageStatsSetting } from "@/components/UsageStats";
+import UsageStats from "@/components/UsageStats";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
@@ -38,7 +38,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <KnowledgeNavLink />
               <ProNavLink />
               <Link href="/pricing" className="hover:text-ink">Pricing</Link>
-              <Link href="/disclaimer" className="hidden hover:text-ink sm:inline">Disclaimer</Link>
               <AccountNav />
             </div>
           </nav>
@@ -49,12 +48,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <footer className="border-t border-line/70 py-8 text-center text-xs leading-relaxed text-mute">
           <FooterNote />
-          <p className="mt-2">
-            © {new Date().getFullYear()} 10BONDS · <Link href="/terms" className="underline hover:text-ink">Terms</Link> · <Link href="/pro" className="underline hover:text-ink">For wealth managers</Link> · <UsageStatsSetting />
-          </p>
-          <p className="mt-2">
+          <p className="mt-3">
             <Link href="/it" hrefLang="it-IT" className="underline hover:text-ink">Italiano</Link> · <Link href="/fr" hrefLang="fr-FR" className="underline hover:text-ink">Français</Link> · <Link href="/de" hrefLang="de-DE" className="underline hover:text-ink">Deutsch</Link>
           </p>
+          <FooterLegal />
+          <p className="mt-2 text-[11px] text-[#a1a1a6]">© {new Date().getFullYear()} 10BONDS</p>
         </footer>
         <UsageStats />
       </body>

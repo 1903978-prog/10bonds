@@ -121,10 +121,10 @@ export default function UsageStats() {
   );
 }
 
-export function UsageStatsSetting() {
+export function UsageStatsSetting({ label = "Cookie settings", className = "underline hover:text-ink" }: { label?: string; className?: string }) {
   return (
-    <button onClick={reopenCookieBanner} className="underline hover:text-ink">
-      Cookie settings
+    <button onClick={reopenCookieBanner} className={className}>
+      {label}
     </button>
   );
 }

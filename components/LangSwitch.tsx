@@ -39,7 +39,7 @@ export default function LangSwitch() {
 
   return (
     <>
-      <span className="flex items-center gap-1.5 text-xs" aria-label="Language">
+      <span className="hidden items-center gap-1.5 text-xs sm:flex" aria-label="Language">
         {LOCALES.map((l) => (
           <Link key={l} href={hrefs[l]} hrefLang={LOCALE[l].hreflang} onClick={() => remember(l)} className={l === current ? "font-semibold text-ink" : "hover:text-ink"} title={LOCALE[l].name}>
             {l.toUpperCase()}
