@@ -59,11 +59,11 @@ export const CALCULATORS: Record<Locale, CalculatorText> = {
     h1: "Calcul du rendement actuariel d'une obligation",
     intro: [
       "Saisissez le prix, le coupon et l'échéance : le calculateur donne le rendement actuariel brut et, si vous indiquez un taux d'imposition, le rendement net.",
-      "Le taux d'imposition n'est pas prérempli : vérifiez le taux en vigueur (prélèvement forfaitaire unique ou barème) sur impots.gouv.fr.",
+      "Pour un résident fiscal français en compte-titres, le prélèvement forfaitaire unique est de 31,4 % en 2026 (12,8 % d'impôt sur le revenu et 18,6 % de prélèvements sociaux). Choisissez 0 % pour le rendement brut ou saisissez votre propre taux si vous optez pour le barème.",
     ],
-    presets: [{ label: "Brut 0 %", rate: 0 }],
-    defaultRate: 0,
-    taxNote: "Taux non prérempli : le prélèvement forfaitaire unique a changé récemment. Vérifiez le taux applicable sur impots.gouv.fr ou auprès d'un conseiller.",
+    presets: [{ label: "PFU 31,4 %", rate: 31.4 }, { label: "Brut 0 %", rate: 0 }],
+    defaultRate: 31.4,
+    taxNote: "Taux : prélèvement forfaitaire unique de 12,8 % plus 18,6 % de prélèvements sociaux depuis le 1er janvier 2026, soit 31,4 % (impots.gouv.fr, « Les revenus mobiliers », mis à jour le 8 avril 2026). Certains revenus restent à 17,2 % de prélèvements sociaux et l'option pour le barème progressif est possible : vérifiez votre situation.",
     labels: {
       price: "Prix (pied de coupon, pour 100)", coupon: "Coupon annuel (%)", frequency: "Paiement du coupon", annual: "Annuel", semi: "Semestriel", quarterly: "Trimestriel",
       maturity: "Échéance", settlement: "Date d'achat", tax: "Imposition", custom: "Taux (%)", gross: "Rendement actuariel brut", net: "Rendement actuariel net",

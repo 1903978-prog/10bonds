@@ -221,9 +221,26 @@ async function ComparisonPage({ l, def }: { l: Locale; def: ComparisonDef }) {
   );
 }
 
+// A paragraph [[10bonds:calculator]] or [[10bonds:bonds:<comparison id>]] in a guide is replaced by that live block.
+const EMBED = /<p>\[\[10bonds:([a-z0-9:-]+)\]\]<\/p>/g;
+
+type Live = Awaited<ReturnType<typeof comparisonPages>>;
+
+function GuideEmbed({ id, l, pages, asOf, source }: { id: string; l: Locale; pages: Live["pages"]; asOf: Live["asOf"]; source: Live["source"] }) {
+  if (id === "calculator") return <YieldCalculator locale={l} text={CALCULATORS[l]} />;
+  const c = id.startsWith("bonds:") ? pages.find((p) => p.def.id === id.slice(6)) : undefined;
+  if (!c) return null;
+  return (
+    <div className="mt-6">
+      <ComparisonBody locale={l} c={c} asOf={asOf} source={source} />
+      <p className="mt-2 text-sm"><Link href={pathOf(l, "bonds", c.def.text[l].slug)} className="text-accent">{c.def.text[l].h1} ›</Link></p>
+    </div>
+  );
+}
+
 async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
   const t = T[l];
-  const [people, all, { pages, source }] = await Promise.all([listPeople(true).catch(() => []), listGuides(true, l).catch(() => []), comparisonPages()]);
+  const [people, all, { pages, source, asOf }] = await Promise.all([listPeople(true).catch(() => []), listGuides(true, l).catch(() => []), comparisonPages()]);
   const live = pages.filter((p) => shown(p, source));
   const body = unlinkMissing(sanitizeHtml(g.bodyHtml), l, new Set(all.map((x) => x.slug)), new Set(live.map((p) => p.def.text[l].slug)));
   const faq = faqFromHtml(body);
@@ -249,7 +266,9 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
           {g.publishedAt && <>{t.published} <time dateTime={g.publishedAt}>{fmtDate(l, g.publishedAt)}</time></>}
           {g.reviewedAt && <> · {t.reviewed} <time dateTime={g.reviewedAt}>{fmtDate(l, g.reviewedAt)}</time></>}
         </p>
-        <div className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: body }} />
+        {body.split(EMBED).map((part, i) =>
+          i % 2 === 0 ? <div key={i} className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: part }} /> : <GuideEmbed key={i} id={part} l={l} pages={live} asOf={asOf} source={source} />,
+        )}
       </div>
       {comps.length > 0 && (
         <section className="mt-8">

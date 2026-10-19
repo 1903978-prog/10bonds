@@ -484,7 +484,7 @@ export const CONTENT_SCORES: ContentScore[] = [
  {
   "market": "fr",
   "keyword": "oat rendement",
-  "landingPath": "/fr/guides/oat-obligations-etat-francaises",
+  "landingPath": "/fr/guides/oat-obligations-etat",
   "checkedAt": "2026-10-19",
   "status": "scored",
   "score": 4,
@@ -536,7 +536,7 @@ export const CONTENT_SCORES: ContentScore[] = [
  {
   "market": "fr",
   "keyword": "rendement à l'échéance",
-  "landingPath": "/fr/guides/rendement-a-l-echeance",
+  "landingPath": "/fr/guides/calcul-rendement-obligation",
   "checkedAt": "2026-10-19",
   "status": "scored",
   "score": 7,
@@ -796,7 +796,7 @@ export const CONTENT_SCORES: ContentScore[] = [
  {
   "market": "fr",
   "keyword": "obligations ou etf",
-  "landingPath": "/fr/guides/obligations-ou-etf",
+  "landingPath": "/fr/guides/obligations-ou-etf-obligataires",
   "checkedAt": "2026-10-19",
   "status": "draft",
   "score": null,
