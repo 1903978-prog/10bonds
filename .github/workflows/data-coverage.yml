@@ -1,0 +1,21 @@
+name: Bond data coverage
+# Manual: counts what the shared bond table holds (columns, currencies, how many bonds have each field). Counts only.
+on: workflow_dispatch
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - run: |
+          sudo apt-get install -y -qq postgresql-client >/dev/null 2>&1 || true
+          q() { psql "$DATABASE_URL" -X -A -t -F ' | ' -c "$1"; }
+          echo "== columns"; q "select column_name from information_schema.columns where table_name='public_bonds' order by ordinal_position"
+          echo "== by currency (all / with yield)"; q "select currency, count(*), count(gross_ytm) from public_bonds group by 1 order by 2 desc"
+          for c in min_denomination min_lot minimum_investment denomination; do
+            if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
+              echo "== $c filled"; q "select currency, count(*), count($c) from public_bonds group by 1 order by 2 desc"
+              echo "== $c values"; q "select $c, count(*) from public_bonds group by 1 order by 2 desc limit 15"
+            fi
+          done
