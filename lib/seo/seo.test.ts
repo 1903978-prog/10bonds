@@ -399,6 +399,8 @@ describe("country of a bond", () => {
     expect(sovereignOf(b("French Republic Government Bond OAT", "FR"))).toBe("FR");
     expect(sovereignOf(b("Bundesrepublik Deutschland", "Germany"))).toBe("DE");
     expect(sovereignOf(b("Air France-KLM", "FR"))).toBeNull();
+    expect(sovereignOf(b("Italy Buoni Poliennali Del Tesoro", "IT"))).toBe("IT");
+    expect(sovereignOf(b("Intesa Sanpaolo", "IT"))).toBeNull();
     expect(issuerClass(b("Kingdom of Spain", "Spain"))).toBe("sovereign");
   });
   it("puts a government bond with an unknown country on its ISIN's country", () => {

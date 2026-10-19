@@ -6,8 +6,8 @@ import { issuerKey } from "../ranking";
 // Agencies, supranationals and regions are neither, so they never land in "corporate" pages.
 
 const SOVEREIGN: Record<"IT" | "FR" | "DE", RegExp> = {
-  IT: /^(the )?(republic of italy|italian republic|repubblica italiana|italy|italia)( republic( of)?)?( (government|govt|treasury|btp|oat|bund|finanzagentur|bonds?|international|notes?))*$|^buoni (poliennali|ordinari) del tesoro|^btp( |$)/,
-  FR: /^(the )?(french republic|republique francaise|france|government of france)( republic( of)?)?( (government|govt|treasury|btp|oat|bund|finanzagentur|bonds?|international|notes?))*$|^(agence france tresor|obligations assimilables du tresor|oat( |$))/,
+  IT: /^(the )?(republic of italy|italian republic|repubblica italiana|italy|italia)( republic( of)?)?( (government|govt|treasury|btp|oat|bund|finanzagentur|bonds?|international|notes?))*$|\bbuoni (poliennali|ordinari) del tesoro\b|^btp( |$)|^(italy|italia|republic of italy) (buoni|btp|bot|cct)\b|\bministero dell economia e delle finanze\b/,
+  FR: /^(the )?(french republic|republique francaise|france|government of france)( republic( of)?)?( (government|govt|treasury|btp|oat|bund|finanzagentur|bonds?|international|notes?))*$|^(agence france tresor|obligations assimilables du tresor|oat( |$))|^(france|french republic) (oat|obligations?)\b/,
   DE: /^(the )?(federal republic of germany|bundesrepublik deutschland|germany|deutschland)( republic( of)?)?( (government|govt|treasury|btp|oat|bund|finanzagentur|bonds?|international|notes?))*$|^(bundesrepublik|bundesschatzanweisung|bundesobligation|bundesanleihe)/,
 };
 
