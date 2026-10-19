@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadBonds } from "@/lib/bonds";
 import { currentUser } from "@/lib/currentUser";
+import { analysePortfolio } from "@/lib/portfolioAnalysis";
 import { parsePortfolio } from "@/lib/portfolioCsv";
 import { proAccess } from "@/lib/pro";
 import { allow } from "@/lib/rateLimit";
@@ -28,5 +29,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
   const result = runEngine(holdings, data.bonds, cleanSettings(body?.settings));
-  return NextResponse.json({ ...result, skipped, source: data.source, asOf: data.asOf }, { headers: { "Cache-Control": "no-store" } });
+  const analysis = analysePortfolio(holdings, data.bonds);
+  return NextResponse.json({ ...result, analysis, skipped, source: data.source, asOf: data.asOf }, { headers: { "Cache-Control": "no-store" } });
 }

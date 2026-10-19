@@ -3,14 +3,22 @@
 import { useState } from "react";
 import { DEFAULT_SETTINGS, type EngineResult, type EngineSettings, type Line, type PortfolioStats } from "@/lib/replacement";
 import { downloadXlsx } from "@/lib/xlsx";
+import { browserInflate, readXlsxRows } from "@/lib/xlsxRead";
+import type { PortfolioAnalysis } from "@/lib/portfolioAnalysis";
+import PortfolioCheck from "./PortfolioCheck";
 
-type Response = EngineResult & { skipped: { line: number; text: string; why: string }[]; source: "live" | "sample"; asOf: string | null };
+type Response = EngineResult & { analysis?: PortfolioAnalysis; skipped: { line: number; text: string; why: string }[]; source: "live" | "sample"; asOf: string | null };
 
 const card = "rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8";
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 const yrs = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(1)} yrs`);
 const eur = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
-const TEMPLATE = "ISIN;Amount EUR\nXS0000000000;250000\nDE0000000000;100000\n";
+const TEMPLATE = "ISIN;Bond name;Quantity\nXS0000000000;Example issuer 3% 2030;250000\nDE0000000000;Example issuer 2.5% 2033;100000\n";
+const XLSX_TEMPLATE = [
+  ["ISIN", "Bond name", "Quantity (nominal)"],
+  ["XS0000000000", "Example issuer 3% 2030", 250000],
+  ["DE0000000000", "Example issuer 2.5% 2033", 100000],
+];
 
 export default function ReplacementEngine() {
   const [text, setText] = useState("");
@@ -40,8 +48,19 @@ export default function ReplacementEngine() {
 
   function readFile(f: File | undefined) {
     if (!f) return;
-    if (/\.xlsx?$/i.test(f.name)) {
-      setError("Please save the spreadsheet as CSV first (File → Save as → CSV), then upload that file.");
+    if (/\.xlsx$/i.test(f.name)) {
+      f.arrayBuffer()
+        .then((buf) => readXlsxRows(new Uint8Array(buf), browserInflate))
+        .then((rows) => {
+          setText(rows.map((r) => r.join("\t")).join("\n"));
+          setFileName(f.name);
+          setError(null);
+        })
+        .catch(() => setError("We could not read this Excel file. Please use our template, or save it as CSV."));
+      return;
+    }
+    if (/\.xls$/i.test(f.name)) {
+      setError("This is an old Excel format. Please save it as .xlsx (or CSV) and upload it again.");
       return;
     }
     const reader = new FileReader();
@@ -74,9 +93,9 @@ export default function ReplacementEngine() {
               readFile(e.dataTransfer.files[0]);
             }}
           >
-            <span className="text-[15px] font-medium">{fileName ? `Loaded: ${fileName}` : "Drop a CSV file here, or tap to choose one"}</span>
-            <span className="mt-1 text-xs text-mute">One line per bond: ISIN and amount held (EUR). Any column order.</span>
-            <input type="file" accept=".csv,.txt,text/csv,text/plain" className="hidden" onChange={(e) => readFile(e.target.files?.[0])} data-testid="pro-file" />
+            <span className="text-[15px] font-medium">{fileName ? `Loaded: ${fileName}` : "Drop an Excel or CSV file here, or tap to choose one"}</span>
+            <span className="mt-1 text-xs text-mute">One line per bond: ISIN, bond name and quantity (nominal). Any column order.</span>
+            <input type="file" accept=".xlsx,.csv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={(e) => readFile(e.target.files?.[0])} data-testid="pro-file" />
           </label>
 
           <details className="group">
@@ -95,8 +114,11 @@ export default function ReplacementEngine() {
           </details>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <button type="button" onClick={() => downloadXlsx(XLSX_TEMPLATE, "10bonds-portfolio-template.xlsx", "Portfolio")} className="text-accent" data-testid="pro-template-xlsx">
+              Excel template
+            </button>
             <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATE)}`} download="10bonds-portfolio-template.csv" className="text-accent">
-              Download a template
+              CSV template
             </a>
             <button type="button" onClick={() => setShowSettings((v) => !v)} className="text-accent">
               {showSettings ? "Hide settings" : "Settings"}
@@ -150,6 +172,7 @@ function Results({ data }: { data: Response }) {
   return (
     <section id="results" className="space-y-4" data-testid="pro-results">
       {data.source === "sample" && <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Sample data: these bonds are invented, for testing only.</p>}
+      {data.analysis && <PortfolioCheck a={data.analysis} />}
 
       <div className={card}>
         <h2 className="text-xl font-semibold tracking-tight">
