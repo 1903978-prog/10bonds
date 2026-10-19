@@ -74,13 +74,11 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         <span className="text-xs text-mute">{t.tapDot}</span>
       </div>
       <Chart points={points} axis={data?.points ?? []} selected={level} onPick={(l) => { setLevel(l); setIndex(0); }} />
-      {points.some((p) => p.far) && <p className="text-[11px] text-mute" data-testid="far-note">{t.farNote}</p>}
 
       {point && bond ? (
         <BondBox
           currency={currency}
           label={point.label}
-          far={point.far}
           bond={bond}
           tier={tier}
           canChange={index + 1 < point.options.length}
@@ -145,9 +143,6 @@ function Chart({ points, axis, selected, onPick }: { points: CurvePoint[]; axis:
           <circle cx={x(p.level)} cy={y(p.ytm!)} r="16" fill="transparent" />
           <circle cx={x(p.level)} cy={y(p.ytm!)} r={selected === p.level ? 7 : 5} fill={selected === p.level ? "#0071e3" : "#fff"} stroke="#0071e3" strokeWidth="2.5" />
           <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontSize="13" fontWeight="600" fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>
-          {p.far && p.duration !== undefined && (
-            <text x={x(p.level)} y={y(p.ytm!) + 20} textAnchor="middle" fontSize="10" fill="#86868b" data-testid={`far-${p.level}`}>~{p.duration.toFixed(1)} {t.yrs}</text>
-          )}
         </g>
       ))}
       {ys.length > 0 && points.filter((p) => p.ytm === null).map((p) => (
@@ -166,7 +161,6 @@ function Chart({ points, axis, selected, onPick }: { points: CurvePoint[]; axis:
 function BondBox(props: {
   currency: string;
   label: string;
-  far?: boolean;
   bond: CurvePoint["options"][number];
   tier: Tier;
   canChange: boolean;
@@ -196,7 +190,6 @@ function BondBox(props: {
         </div>
         <div className="shrink-0 text-right text-lg font-semibold tabular-nums">{pct(bond.ytm)} <span className="text-xs font-normal text-mute">{t.yieldLower}</span></div>
       </div>
-      {props.far && <p className="text-xs text-mute">{t.farBox}</p>}
       <dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
         {row("ISIN", paid ? bond.isin : lock)}
         {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} /> : lock)}

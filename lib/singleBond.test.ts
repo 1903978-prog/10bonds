@@ -41,14 +41,12 @@ describe("single bond curve", () => {
 });
 
 describe("every risk score gets a point", () => {
-  it("falls back to the nearest bond when none is within 3 years, and flags it as far", () => {
-    const c = curveByLevel([bond("H1", 9, 2, "BB"), bond("H2", 8, 2.5, "BB", "H2co"), bond("H3", 12, 0.5, "BB", "H3co"), bond("A1", 3, 7, "A")], 7);
-    const s7 = c.find((p) => p.level === 7)!;
-    expect(s7.bonds.map((b) => b.isin)).toEqual(["H1", "H2"]);
-    const shaped = shapeCurve(c, "free", 7);
-    expect(shaped.find((p) => p.level === 7)).toMatchObject({ ytm: 9, far: true, duration: 2 });
-    expect(shaped.find((p) => p.level === 3)!.far).toBeUndefined();
-    expect(shaped.find((p) => p.level === 9)).toMatchObject({ ytm: null, options: [] });
+  it("keeps only bonds within ±20% of the horizon; a step without one shows no bond", () => {
+    const c = curveByLevel([bond("H1", 9, 2, "BB"), bond("H2", 8, 4, "BB", "H2co"), bond("H3", 12, 6.1, "BB", "H3co"), bond("A1", 3, 6, "A"), bond("B1", 11, 1.6, "B")], 5);
+    expect(c.find((p) => p.level === 7)!.bonds.map((b) => b.isin)).toEqual(["H2"]);
+    expect(c.find((p) => p.level === 3)!.bonds.map((b) => b.isin)).toEqual(["A1"]);
+    const shaped = shapeCurve(c, "free");
+    expect(shaped.find((p) => p.level === 8)).toMatchObject({ ytm: null, options: [] });
   });
   it("never shows unrated bonds", () => {
     const c = curveByLevel([bond("N1", 15, 7, null)], 7);
