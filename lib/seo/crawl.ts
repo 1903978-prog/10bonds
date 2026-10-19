@@ -10,7 +10,8 @@ export const crawlBase = () => (process.env.SEO_CRAWL_BASE ?? `http://127.0.0.1:
 
 export const PRIVATE_PATHS = ["/admin", "/admin/seo", "/login", "/signup", "/redeem", "/account"];
 const SEEDS = ["/", "/it", "/fr", "/de", "/pricing", "/disclaimer", "/terms", "/privacy", "/cookies"];
-const MAX_PAGES = 150;
+const MAX_PAGES = 600;
+const CONCURRENCY = 6;
 
 export type CrawledPage = PageFacts & {
   path: string;
@@ -91,23 +92,33 @@ export async function crawlSite(base = crawlBase()): Promise<CrawlResult> {
     const seen = new Set(queue);
     const pages: CrawledPage[] = [];
     const statusOf = new Map<string, number>();
-    while (queue.length && pages.length < MAX_PAGES) {
-      const path = queue.shift()!;
-      if (PRIVATE_PATHS.some((p) => path === p || path.startsWith(p + "/"))) continue;
+    // A few pages at a time, so the whole sitemap (all languages) fits well within the request.
+    const visit = async (path: string) => {
       const r = await get(base, path).catch(() => ({ status: 0, body: "", redirects: 0, finalPath: path }));
       statusOf.set(path, r.status);
       const facts = parsePage(r.body);
       const linksOut = [...new Set(facts.links.map((h) => internalPath(h, path)).filter((p): p is string => !!p))];
       const noindex = /noindex/i.test(facts.robots ?? "");
       pages.push({ ...facts, path, status: r.status, redirects: r.redirects, finalPath: r.finalPath, inSitemap: inSitemap.has(path), noindex, linksOut });
-      if (r.status !== 200) continue;
+      if (r.status !== 200) return;
       for (const l of linksOut) {
         if (!seen.has(l) && !PRIVATE_PATHS.some((p) => l === p || l.startsWith(p + "/"))) {
           seen.add(l);
           queue.push(l);
         }
       }
-    }
+    };
+    let started = 0;
+    const worker = async () => {
+      while (queue.length && started < MAX_PAGES) {
+        const path = queue.shift()!;
+        if (PRIVATE_PATHS.some((p) => path === p || path.startsWith(p + "/"))) continue;
+        started++;
+        await visit(path);
+      }
+    };
+    // Workers stop when the queue is momentarily empty; run rounds until nothing new was queued.
+    while (queue.length && started < MAX_PAGES) await Promise.all(Array.from({ length: CONCURRENCY }, worker));
     const privatePages = [];
     for (const path of PRIVATE_PATHS) {
       const r = await get(base, path).catch(() => ({ status: 0, body: "", redirects: 0, finalPath: path }));

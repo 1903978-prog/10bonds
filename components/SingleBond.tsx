@@ -75,6 +75,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
 
       {point && bond ? (
         <BondBox
+          currency={currency}
           label={point.label}
           bond={bond}
           tier={tier}
@@ -136,6 +137,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
 }
 
 function BondBox(props: {
+  currency: string;
   label: string;
   bond: CurvePoint["options"][number];
   tier: Tier;
@@ -175,7 +177,7 @@ function BondBox(props: {
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}
-        {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment) : lock)}
+        {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment, props.currency) : lock)}
         {(!signedIn || bond.country) && row(t.country, signedIn ? bond.country : lock)}
       </dl>
       <div className="mt-3 flex flex-wrap items-center gap-3">
