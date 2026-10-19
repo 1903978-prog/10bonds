@@ -12,6 +12,7 @@ import Keywords from "./Keywords";
 import Overview from "./Overview";
 import Performance from "./Performance";
 import Rankings from "./Rankings";
+import SearchKpis from "./SearchKpis";
 
 const MARKETS: { id: SeoMarket; label: string }[] = [
   { id: "it", label: "🇮🇹 Italy" },
@@ -57,6 +58,7 @@ export default function SeoAdmin() {
           Only you can see this page. · <Link href="/admin" className="text-accent">Back to Admin</Link>
         </p>
       </div>
+      <SearchKpis />
       <div className="flex flex-wrap items-center gap-2 rounded-[20px] bg-white px-4 py-3" aria-label="Reports">
         <span className="text-xs text-mute">Open the reports:</span>
         {REPORTS.map(([label, href]) => (
