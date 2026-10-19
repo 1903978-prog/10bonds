@@ -11,6 +11,7 @@ import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
 import WhereToTrade from "./brokers/WhereToTrade";
+import { DEFAULT_FILTERS, type Currency, type OrderSize } from "@/lib/filters";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -37,22 +38,26 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_FILTERS.currency);
+  const [orderSize, setOrderSize] = useState<OrderSize>(DEFAULT_FILTERS.orderSize);
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
 
+  // The limits depend on which bonds the toggles allow, so they are loaded again when a toggle changes.
   useEffect(() => {
-    fetch("/api/bonds/caps")
+    fetch(`/api/bonds/caps?${new URLSearchParams({ currency, order: orderSize })}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((b) => {
         if (!b?.caps) return;
         setCaps(b.caps);
-        const cap = b.caps[String(LIMITS.risk.initial)]?.[String(LIMITS.duration.initial)];
+        const cap = b.caps[String(risk)]?.[String(Math.round(duration * 100) / 100)];
         if (typeof cap === "number") setYtm((y) => Math.min(y, cap));
       })
       .catch(() => {});
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency, orderSize]);
 
   const changeDuration = (d: number) => {
     setDuration(d);
@@ -76,7 +81,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk) });
+        const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, order: orderSize });
         if (preview.current) qs.set("preview", preview.current);
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
@@ -89,7 +94,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         setData(body);
         setLimit(null);
         setError(null);
-        track("search", { duration, ytm, risk, tier: body.tier, results: body.rows.length + body.lockedCount });
+        track("search", { duration, ytm, risk, currency, order: orderSize, tier: body.tier, results: body.rows.length + body.lockedCount });
       } catch (e) {
         if ((e as Error).name !== "AbortError") setError((e as Error).message);
       } finally {
@@ -100,7 +105,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode]);
+  }, [duration, ytm, risk, mode, currency, orderSize]);
 
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
@@ -133,6 +138,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             </button>
           ))}
         </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Toggle label={t.currencyLabel} value={currency} options={["EUR", "USD"]} labels={{ EUR: "EUR", USD: "USD" }} onChange={setCurrency} />
+          <Toggle label={t.orderLabel} value={orderSize} options={["1k", "100k"]} labels={{ "1k": "1k", "100k": "100k" }} onChange={setOrderSize} />
+        </div>
+        <p className="mt-1.5 text-xs leading-snug text-mute">{orderSize === "1k" ? t.orderHintSmall : t.orderHintLarge}</p>
 
         <Slider
           label={t.horizon}
@@ -185,7 +196,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {/* Results */}
       {mode === "single" ? (
         <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
-          <SingleBond duration={duration} preview={preview.current} />
+          <SingleBond duration={duration} preview={preview.current} currency={currency} orderSize={orderSize} />
           <p className="mt-5 flex gap-2 rounded-2xl bg-canvas px-4 py-3 text-xs leading-relaxed text-mute">
             <span aria-hidden>ⓘ</span>
             <span>{t.info} {t.gross}</span>
@@ -213,7 +224,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>
           ) : data && data.rows.length === 0 ? (
             <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">
-              {t.none}
+              {currency !== DEFAULT_FILTERS.currency || orderSize !== DEFAULT_FILTERS.orderSize ? t.noneToggles : t.none}
             </p>
           ) : (
             <Results data={data} paid={paid} signedIn={signedIn} />
@@ -232,6 +243,29 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       )}
     </div>
     </FinderLangContext.Provider>
+  );
+}
+
+/** Two-choice switch (currency, minimum order), drawn like the mode switch. */
+function Toggle<T extends string>({ label, value, options, labels, onChange }: { label: string; value: T; options: readonly T[]; labels: Record<T, string>; onChange: (v: T) => void }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-mute">{label}</p>
+      <div role="radiogroup" aria-label={label} className="mt-1.5 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            role="radio"
+            aria-checked={value === o}
+            onClick={() => onChange(o)}
+            className={`rounded-full px-3 py-1.5 transition ${value === o ? "bg-white shadow-sm" : "text-mute"}`}
+          >
+            {labels[o]}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -59,12 +59,26 @@ const ROWS: Row[] = [
   ["Daimler Truck", "DE", 3.375, "2028-09-23", "A-", 2.8, 1.9],
 ];
 
-export const SAMPLE_BONDS: PublicBond[] = ROWS.map(([issuer, country, coupon, maturity, rating, ytm, duration], i) => ({
-  isin: `SAMPLE${String(i + 1).padStart(6, "0")}`,
+// A few invented dollar bonds, so the currency toggle has something to show on sample data.
+const USD_ROWS: Row[] = [
+  ["United States", "US", 4.0, "2030-02-15", "AA+", 3.9, 3.8],
+  ["United States", "US", 4.25, "2035-05-15", "AA+", 4.3, 7.9],
+  ["Apple", "US", 4.1, "2032-08-08", "AA+", 4.45, 5.5],
+  ["Microsoft", "US", 3.9, "2031-03-17", "AAA", 4.3, 4.6],
+  ["JPMorgan", "US", 4.9, "2034-07-25", "A", 5.1, 7.0],
+  ["Ford", "US", 6.1, "2032-08-19", "BB+", 6.3, 5.2],
+];
+
+// Minimum order (nominal): governments and some issues sell in 1,000s; many company bonds only in 100,000s.
+const minOrderOf = (i: number, issuer: string): number =>
+  /Germany|France|Italy|Spain|Portugal|Austria|European Union|United States/.test(issuer) ? 1_000 : i % 3 === 0 ? 100_000 : 1_000;
+
+const toBond = (currency: string, offset: number) => ([issuer, country, coupon, maturity, rating, ytm, duration]: Row, i: number): PublicBond => ({
+  isin: `SAMPLE${String(offset + i + 1).padStart(6, "0")}`,
   name: `${issuer} ${coupon}% ${maturity.slice(0, 4)}`,
   issuer,
   country,
-  currency: "EUR",
+  currency,
   coupon,
   maturity,
   ratingSp: rating,
@@ -74,4 +88,7 @@ export const SAMPLE_BONDS: PublicBond[] = ROWS.map(([issuer, country, coupon, ma
   grossYtm: ytm,
   modifiedDuration: duration,
   ytmAsOf: null,
-}));
+  minOrder: minOrderOf(offset + i, issuer),
+});
+
+export const SAMPLE_BONDS: PublicBond[] = [...ROWS.map(toBond("EUR", 0)), ...USD_ROWS.map(toBond("USD", ROWS.length))];

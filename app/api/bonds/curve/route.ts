@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
-import { loadBonds } from "@/lib/bonds";
 import { shapeCurve } from "@/lib/singleBond";
-import { bestTable, curveAt } from "@/lib/bestTable";
+import { curveAt } from "@/lib/bestTable";
+import { searchSource, searchTable } from "@/lib/searchData";
+import { parseFilters } from "@/lib/filters";
 import { RISK_LEVELS } from "@/lib/limits";
 import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
@@ -21,9 +22,10 @@ export async function GET(req: Request) {
   const { min, max, initial } = LIMITS.duration;
   const duration = Number.isFinite(raw) && url.searchParams.get("duration") !== null ? Math.min(max, Math.max(min, raw)) : initial;
 
+  const filters = parseFilters(url.searchParams);
   let data, table;
   try {
-    [data, table] = await Promise.all([loadBonds(), bestTable()]);
+    [data, table] = await Promise.all([searchSource(filters), searchTable(filters)]);
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
@@ -37,7 +39,7 @@ export async function GET(req: Request) {
   if (usage && !usage.allowed)
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   return NextResponse.json(
-    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
+    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration, currency: filters.currency, order: filters.orderSize } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
