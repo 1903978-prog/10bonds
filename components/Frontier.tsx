@@ -35,8 +35,8 @@ export default function Frontier({ currency }: { currency: string }) {
   // The axis follows the bulk of the bonds (a few distressed yields would flatten everything else) and always the red line.
   const sorted = dots.map((d) => d[1]).sort((a, b) => a - b);
   const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
-  const top = Math.max(sorted.length ? q(0.98) : 5, ...line.map((p) => p.ytm));
-  const bottom = Math.min(sorted.length ? q(0.01) : 0, ...line.map((p) => p.ytm));
+  const top = Math.max(sorted.length ? q(0.99) : 5, ...line.map((p) => p.ytm));
+  const bottom = Math.min(sorted.length ? q(0.005) : 0, ...line.map((p) => p.ytm));
   const lo = Math.max(0, Math.floor(bottom * 2) / 2 - 0.5);
   const hi = Math.ceil(top + 0.5);
   // Risk 1 (lowest) on the right edge, risk 10 on the left, like the 1-bond chart.
@@ -69,8 +69,8 @@ export default function Frontier({ currency }: { currency: string }) {
             <text key={l} x={x(l)} y={H - B + 17} textAnchor="middle" fontSize="13" fill="#86868b">{l}</text>
           ))}
           <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="13" fill="#86868b">{t.riskAxis}</text>
-          <g fill="#aeaeb2" fillOpacity="0.55">
-            {dots.map(([r, v], i) => (v < lo || v > hi ? null : <circle key={i} cx={x(r) + jitter(i) * col * 0.6} cy={y(v)} r="2.6" />))}
+          <g fill="#aeaeb2" fillOpacity="0.45">
+            {dots.map(([r, v], i) => (v < lo || v > hi ? null : <circle key={i} cx={Math.min(W - R + 4, Math.max(L + 4, x(r) + jitter(i) * col * 0.6))} cy={y(v)} r="2" />))}
           </g>
           <path d={path} fill="none" stroke={RED} strokeWidth="2.5" strokeLinejoin="round" />
           {line.map((p) => (
