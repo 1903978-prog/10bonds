@@ -29,7 +29,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen font-sans">
+      <body className="font-sans">
         <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
           <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight">10BONDS</Link>
@@ -42,17 +42,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </nav>
         </header>
-        <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-10">
+        <main className="mx-auto max-w-6xl px-4 pb-8 pt-5 sm:px-6 sm:pt-7">
           <AccountNotices />
           {children}
         </main>
-        <footer className="border-t border-line/70 py-8 text-center text-xs leading-relaxed text-mute">
+        <footer className="border-t border-line/70 py-4 text-center text-[11px] leading-snug text-mute">
           <FooterNote />
-          <p className="mt-3">
-            <Link href="/it" hrefLang="it-IT" className="underline hover:text-ink">Italiano</Link> · <Link href="/fr" hrefLang="fr-FR" className="underline hover:text-ink">Français</Link> · <Link href="/de" hrefLang="de-DE" className="underline hover:text-ink">Deutsch</Link>
-          </p>
           <FooterLegal />
-          <p className="mt-2 text-[11px] text-[#a1a1a6]">© {new Date().getFullYear()} 10BONDS</p>
         </footer>
         <UsageStats />
       </body>

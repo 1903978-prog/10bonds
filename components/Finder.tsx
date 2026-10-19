@@ -111,15 +111,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     <FinderLangContext.Provider value={lang}>
     <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-6">
       {/* Inputs */}
-      <section className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8 lg:sticky lg:top-20 lg:self-start">
-        <Title className="text-[32px] font-semibold leading-[1.1] tracking-tight sm:text-[40px]">
+      <section className="rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6 lg:sticky lg:top-20 lg:self-start">
+        <Title className="text-[28px] font-semibold leading-[1.1] tracking-tight sm:text-[32px]">
           {t.h1}
         </Title>
-        <p className="mt-3 text-[15px] leading-relaxed text-mute sm:text-base">
+        <p className="mt-2 text-[14px] leading-snug text-mute sm:text-[15px]">
           {t.intro}
         </p>
 
-        <div role="tablist" aria-label={t.mode} className="mt-6 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
+        <div role="tablist" aria-label={t.mode} className="mt-4 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
           {([["single", t.single], ["portfolio", t.portfolio]] as const).map(([m, label]) => (
             <button
               key={m}
@@ -173,7 +173,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         />
         </>)}
 
-        <p className="mt-8 text-xs leading-relaxed text-mute">
+        <p className="mt-5 text-xs leading-snug text-mute">
           {mode === "portfolio"
             ? t.howPortfolio
             : t.howSingle}

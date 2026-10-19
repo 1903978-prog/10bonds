@@ -51,12 +51,12 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   }
 
   return (
-    <div className="mx-auto max-w-md rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-9">
-      <h1 className="text-[28px] font-semibold tracking-tight">{signup ? "Create your free account" : "Sign in"}</h1>
+    <div className="mx-auto max-w-md rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7">
+      <h1 className="text-[24px] font-semibold tracking-tight">{signup ? "Create your free account" : "Sign in"}</h1>
       <p className="mt-2 text-[15px] text-mute">
         {signup ? "See the full top 10 bonds for your goals. Free, no card needed." : "Welcome back."}
       </p>
-      <form onSubmit={submit} className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-4 space-y-3">
         <label className="block">
           <span className="text-sm font-medium">{signup ? "Email" : "Email or username"}</span>
           <input
@@ -65,7 +65,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
             autoComplete={signup ? "email" : "username"}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-[15px] outline-none focus:border-accent"
+            className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
           />
         </label>
         {signup && (
@@ -80,7 +80,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-[15px] outline-none focus:border-accent"
+              className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
             />
             <span className="mt-1 block text-xs text-mute">3 to 24 letters, digits, dots, dashes or underscores.</span>
           </label>
@@ -94,7 +94,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
             autoComplete={signup ? "new-password" : "current-password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-[15px] outline-none focus:border-accent"
+            className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
           />
           {signup && <span className="mt-1 block text-xs text-mute">At least 8 characters.</span>}
           {!signup && (
@@ -138,7 +138,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
         )}
         {signup && (
           <div>
-            <div className="max-h-56 overflow-y-auto rounded-xl border border-line bg-canvas p-4" data-testid="terms-box">
+            <div className="max-h-32 overflow-y-auto rounded-xl border border-line bg-canvas p-4" data-testid="terms-box">
               <p className="mb-3 text-sm font-semibold">Terms of Use and Risk Disclosure</p>
               <TermsText compact />
             </div>

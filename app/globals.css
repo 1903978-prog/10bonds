@@ -3,6 +3,13 @@
 @tailwind utilities;
 
 html { -webkit-font-smoothing: antialiased; }
+/* Laptops and desktops: everything about 15% smaller, so pages fit without scrolling. Phones keep full size. */
+html { --z: 1; }
+@media (min-width: 768px) { html { --z: 0.85; zoom: var(--z); } }
+@media (min-width: 768px) and (max-height: 820px) { html { --z: 0.8; } }
+/* Under zoom, 100vh is drawn smaller: divide it back so the footer sits at the bottom of the window. */
+body { min-height: calc(100vh / var(--z)); display: flex; flex-direction: column; }
+body > main { flex: 1 0 auto; width: 100%; }
 body { @apply bg-canvas text-ink; }
 
 /* Apple-style slider */

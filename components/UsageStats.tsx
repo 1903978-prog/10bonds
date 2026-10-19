@@ -69,9 +69,9 @@ export default function UsageStats() {
       data-testid="cookie-banner"
       role="dialog"
       aria-label="Cookie settings"
-      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 text-sm shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:p-6"
+      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 text-[13px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:p-6"
     >
-      <p className="text-base font-semibold">This website uses cookies</p>
+      <p className="text-[15px] font-semibold">This website uses cookies</p>
       <p className="mt-2 leading-relaxed text-mute">
         We use cookies to keep you signed in and, if you allow it, to count how the site is used. You choose which kinds below.
         You can change your choice at any time with “Cookie settings” at the bottom of every page.{" "}
