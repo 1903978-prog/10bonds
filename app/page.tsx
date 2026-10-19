@@ -4,6 +4,9 @@ import { JsonLd } from "@/components/seo/Seo";
 import { ORGANIZATION } from "@/lib/seo/org";
 import { getSeoSetting } from "@/lib/seo/store";
 import { accountsConfigured } from "@/lib/accounts";
+import { redirect } from "next/navigation";
+import { currentUser } from "@/lib/currentUser";
+import { landsInPro } from "@/lib/proView";
 
 // The international home page: links its Italian, French and German versions, and carries the Google Search
 // Console verification code the admin saves in Admin -> SEO.
@@ -15,7 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function Home() {
+export default async function Home() {
+  if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
   return (
     <>
       <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />

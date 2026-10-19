@@ -8,7 +8,6 @@ import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import LangSwitch from "@/components/LangSwitch";
-import ProNavLink from "@/components/ProNavLink";
 import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
 import CopyGuard from "@/components/CopyGuard";
@@ -44,7 +43,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
               <LangSwitch />
               <KnowledgeNavLink />
-              <ProNavLink />
               <NavLink href="/pricing">Pricing</NavLink>
               <AccountNav />
             </div>
