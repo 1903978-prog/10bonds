@@ -10,7 +10,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     title: "1. Who we are and what this agreement covers",
     paragraphs: [
-      "These Terms of Use and Risk Disclosure (the \"Terms\") form a binding agreement between you and the operator of the 10BONDS website and service (\"10BONDS\", \"we\", \"us\", \"our\"). They govern your access to and use of the website at 10bonds.fly.dev and any successor domain, every page, tool, list, ranking, figure, e-mail and feature offered under the 10BONDS name (together, the \"Service\").",
+      "These Terms of Use and Risk Disclosure (the \"Terms\") form a binding agreement between you and the operator of the 10BONDS website and service (\"10BONDS\", \"we\", \"us\", \"our\"). They govern your access to and use of the website at 10bonds.com and any successor domain, every page, tool, list, ranking, figure, e-mail and feature offered under the 10BONDS name (together, the \"Service\").",
       "By ticking the acceptance box, creating an account, or otherwise using the Service, you confirm that you have read, understood and agree to be bound by these Terms in full. If you do not agree, you must not create an account and must not use the Service.",
       "If you use the Service on behalf of a company or other organisation, you confirm that you have authority to bind it, and \"you\" includes that organisation.",
     ],

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Backlink, Opportunity } from "@/lib/seo/store";
 import { api, Badge, btn, btnLight, card, day, ErrorNote, Field, input, Table, when } from "./ui";
 
-const LINK = { id: 0, sourceUrl: "", targetUrl: "https://10bonds.fly.dev/", linkType: "editorial", rel: "follow", status: "active", relevance: "", quality: "", verifiedAt: new Date().toISOString().slice(0, 10), notes: "" };
+const LINK = { id: 0, sourceUrl: "", targetUrl: "https://10bonds.com/", linkType: "editorial", rel: "follow", status: "active", relevance: "", quality: "", verifiedAt: new Date().toISOString().slice(0, 10), notes: "" };
 const OPP = { id: 0, kind: "publisher", name: "", url: "", status: "idea", notes: "" };
 
 /** Backlinks are site-wide (one domain for all three languages); targets show which language they point to. */

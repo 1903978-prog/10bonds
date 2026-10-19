@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminData from "./AdminData";
+import EmailDomainCard from "./EmailDomainCard";
 
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
 type Stats = { users: number; verified: number; onTrial: number; newThisWeek: number; events30d: { kind: string; n: number }[]; topPages30d: { path: string; n: number }[] };
@@ -57,6 +58,8 @@ export default function AdminPanel() {
       <h1 className="text-[32px] font-semibold tracking-tight">Admin</h1>
       <p className="-mt-4 text-sm text-mute">Only you can see this page. · <a href="/admin/pro" className="text-accent">Professional access requests</a> · <a href="/admin/brokers" className="text-accent">Broker management</a> · <a href="/admin/seo" className="text-accent">SEO Management</a></p>
 
+      <EmailDomainCard />
+
       {s && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="admin-stats">
           {[["Accounts", s.users], ["E-mail confirmed", s.verified], ["On Premium trial", s.onTrial], ["New in 7 days", s.newThisWeek]].map(([k, v]) => (
@@ -98,7 +101,7 @@ export default function AdminPanel() {
               <button onClick={() => copy(fresh.join("\n"), "all")} className="text-sm text-accent">{copied === "all" ? "Copied" : "Copy all"}</button>
             </div>
             <p className="mt-2 font-mono text-[15px] leading-7">{fresh.map((c) => <span key={c} className="block">{c}</span>)}</p>
-            <p className="mt-2 text-xs text-mute">New users enter them when they sign up; existing users under “Have a code?” at https://10bonds.fly.dev/pricing.</p>
+            <p className="mt-2 text-xs text-mute">New users enter them when they sign up; existing users under “Have a code?” at https://10bonds.com/pricing.</p>
           </div>
         )}
         <div className="mt-5 overflow-x-auto">

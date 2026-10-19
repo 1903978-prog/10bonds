@@ -73,11 +73,12 @@ jobs:
             echo "SESSION_SECRET created."
           fi
           # Confirmation e-mails switch on when both secrets exist; until then sign-up works without them.
-          if [ -n "$RESEND_API_KEY" ] && [ -n "$EMAIL_FROM" ]; then
-            printf 'RESEND_API_KEY=%s\nEMAIL_FROM=%s\n' "$RESEND_API_KEY" "$EMAIL_FROM" | flyctl secrets import -a 10bonds --stage >/dev/null
-            echo "Confirmation e-mails: on."
+          # They actually start only once Resend shows 10bonds.com as verified (the app checks; /admin lists the DNS records).
+          if [ -n "$RESEND_API_KEY" ]; then
+            printf 'RESEND_API_KEY=%s\nEMAIL_FROM=%s\n' "$RESEND_API_KEY" "${EMAIL_FROM:-10BONDS <noreply@10bonds.com>}" | flyctl secrets import -a 10bonds --stage >/dev/null
+            echo "Confirmation e-mails: key set (on once the domain is verified)."
           else
-            echo "Confirmation e-mails: off (no RESEND_API_KEY / EMAIL_FROM secret)."
+            echo "Confirmation e-mails: off (no RESEND_API_KEY secret)."
           fi
           # Paid plans switch on when the Stripe key exists; the app creates prices and the webhook itself.
           if [ -n "$STRIPE_SECRET_KEY" ]; then
@@ -94,6 +95,23 @@ jobs:
           fi
           if [ -n "$PAGESPEED_API_KEY" ]; then
             printf 'PAGESPEED_API_KEY=%s\n' "$PAGESPEED_API_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
+          fi
+      - name: "Own domain: 10bonds.com and www (certificates, site address)"
+        if: env.ok == '1'
+        run: |
+          flyctl ips list -a 10bonds | grep -q 'v4' || flyctl ips allocate-v4 --shared -a 10bonds
+          flyctl ips list -a 10bonds | grep -q 'v6' || flyctl ips allocate-v6 -a 10bonds
+          for h in 10bonds.com www.10bonds.com; do
+            flyctl certs show "$h" -a 10bonds >/dev/null 2>&1 || flyctl certs add "$h" -a 10bonds
+          done
+          echo "---- IP addresses"; flyctl ips list -a 10bonds
+          for h in 10bonds.com www.10bonds.com; do echo "---- $h"; flyctl certs show "$h" -a 10bonds || true; done
+          # Switch the site's own address only when https://10bonds.com really answers.
+          if curl -fsS -o /dev/null --max-time 15 https://10bonds.com/api/health; then
+            printf 'SITE_URL=https://10bonds.com\nCANONICAL_HOST=10bonds.com\n' | flyctl secrets import -a 10bonds --stage >/dev/null
+            echo "10bonds.com answers: site address is https://10bonds.com; fly.dev and www pages redirect there."
+          else
+            echo "10bonds.com does not answer yet: the site stays on 10bonds.fly.dev."
           fi
       - name: Deploy
         if: env.ok == '1'

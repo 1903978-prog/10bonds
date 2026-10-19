@@ -6,8 +6,43 @@ export function siteUrl(): string {
   return (process.env.SITE_URL ?? "https://10bonds.fly.dev").replace(/\/$/, "");
 }
 
+// E-mails count as "on" only once Resend says the sending domain is verified: until then a confirmation
+// e-mail would never arrive and new accounts (and the admin) would wait for a link that cannot come.
+let domainVerified = false;
+let checkedAt = 0;
+let checking: Promise<void> | null = null;
+
+/** The domain part of EMAIL_FROM ("10BONDS <noreply@10bonds.com>" -> "10bonds.com"). */
+export function fromDomain(from = process.env.EMAIL_FROM ?? ""): string | null {
+  const m = from.match(/@([a-z0-9.-]+)>?\s*$/i);
+  return m ? m[1].toLowerCase() : null;
+}
+
+export function markEmailDomainVerified(v: boolean) {
+  domainVerified = v;
+  checkedAt = Date.now();
+}
+
+async function refreshDomain() {
+  const domain = fromDomain();
+  if (!domain || !process.env.RESEND_API_KEY) return;
+  if (domain === "resend.dev") return markEmailDomainVerified(true);
+  try {
+    const r = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return;
+    const b = (await r.json()) as { data?: { name: string; status: string }[] };
+    markEmailDomainVerified(Boolean(b.data?.some((d) => d.name === domain && d.status === "verified")));
+  } catch {
+    /* keep the last answer */
+  }
+}
+
 export function emailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+  if (!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)) return false;
+  if (Date.now() - checkedAt > (domainVerified ? 3_600_000 : 300_000) && !checking) {
+    checking = refreshDomain().finally(() => { checking = null; });
+  }
+  return domainVerified;
 }
 
 export async function sendEmail(to: string, subject: string, html: string, text: string): Promise<"sent" | "not-configured" | "failed"> {

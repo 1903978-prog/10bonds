@@ -134,7 +134,9 @@ async function doSetup(): Promise<Setup> {
   const endpoints = await stripe<{ data: { id: string; url: string; status: string }[] }>("GET", "/webhook_endpoints", { limit: 100 });
   const mine = endpoints.data.filter((e) => e.url === url);
   if (storedSecret && storedId && mine.some((e) => e.id === storedId)) return { prices, portalConfig, webhookSecret: storedSecret };
-  for (const e of mine) await stripe("DELETE", `/webhook_endpoints/${e.id}`);
+  // Also remove this app's endpoint at an older address (e.g. 10bonds.fly.dev after the move to 10bonds.com).
+  const stale = endpoints.data.filter((e: any) => e.url !== url && e.url.endsWith("/api/stripe/webhook") && e.metadata?.app === "10bonds");
+  for (const e of [...mine, ...stale]) await stripe("DELETE", `/webhook_endpoints/${e.id}`);
   const created = await stripe("POST", "/webhook_endpoints", { url, enabled_events: WEBHOOK_EVENTS, description: "10BONDS plan updates", metadata: { app: "10bonds" } });
   await setSetting(secretKey, created.secret);
   await setSetting(idKey, created.id);

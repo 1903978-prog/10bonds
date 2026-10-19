@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { toUser } from "./accounts";
+import { markEmailDomainVerified } from "./email";
 
 const row = (o: Partial<Parameters<typeof toUser>[0]> = {}) => ({
   id: "1", email: "1903978@gmail.com", username: "livio", plan: "free" as const, premium_until: null, email_verified_at: null, ...o,
@@ -15,6 +16,9 @@ describe("toUser", () => {
   it("admin needs a confirmed address once e-mails are on", () => {
     expect(toUser(row()).isAdmin).toBe(true);
     process.env.RESEND_API_KEY = "x"; process.env.EMAIL_FROM = "a@b.c";
+    markEmailDomainVerified(false);
+    expect(toUser(row()).isAdmin).toBe(true); // domain not verified yet: e-mails still off
+    markEmailDomainVerified(true);
     expect(toUser(row()).isAdmin).toBe(false);
     expect(toUser(row({ email_verified_at: new Date() })).isAdmin).toBe(true);
     expect(toUser(row({ email: "other@x.com", email_verified_at: new Date() })).isAdmin).toBe(false);

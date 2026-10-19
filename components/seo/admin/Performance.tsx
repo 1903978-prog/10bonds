@@ -154,7 +154,7 @@ export default function Performance({ market }: { market: Locale }) {
       <section className={card}>
         <h2 className="text-lg font-semibold">Connection settings</h2>
         <form onSubmit={saveSettings} className="mt-3 grid gap-3 sm:grid-cols-3">
-          <Field label="Search Console property" hint="https://10bonds.fly.dev/ (with final slash) or sc-domain:…"><input value={form.gscSite} onChange={(e) => setForm({ ...form, gscSite: e.target.value })} className={input} /></Field>
+          <Field label="Search Console property" hint="sc-domain:10bonds.com (recommended) or https://10bonds.com/"><input value={form.gscSite} onChange={(e) => setForm({ ...form, gscSite: e.target.value })} className={input} /></Field>
           <Field label="GA4 property ID" hint="A number, from GA4 Admin → Property details"><input value={form.ga4Property} onChange={(e) => setForm({ ...form, ga4Property: e.target.value })} className={input} /></Field>
           <Field label="Google verification code" hint="Only the content value of the meta tag"><input value={form.verification} onChange={(e) => setForm({ ...form, verification: e.target.value })} className={input} /></Field>
           <div className="sm:col-span-3"><button disabled={busy} className={btn}>Save settings</button></div>
@@ -175,14 +175,14 @@ function SetupGoogle({ email }: { email: string | null }) {
       <p className="text-sm font-medium">How to connect (once, about 15 minutes)</p>
       <Steps
         steps={[
-          { text: "Add the site to Search Console (choose “URL prefix” and enter https://10bonds.fly.dev/):", url: "https://search.google.com/search-console/welcome" },
+          { text: "Add the site to Search Console (choose “URL prefix” and enter https://10bonds.com/):", url: "https://search.google.com/search-console/welcome" },
           { text: "Pick the “HTML tag” check, copy only the content=\"…\" value and paste it in “Google verification code” below, Save, then press Verify in Search Console." },
           { text: "Create a Google Cloud service account (any name) and a JSON key for it:", url: "https://console.cloud.google.com/iam-admin/serviceaccounts" },
           { text: "Turn on the Search Console API:", url: "https://console.cloud.google.com/apis/library/searchconsole.googleapis.com" },
           { text: "Turn on the Analytics Data API (for GA4):", url: "https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com" },
           { text: "Save the whole JSON key as a GitHub secret named GOOGLE_SERVICE_ACCOUNT_JSON:", url: "https://github.com/1903978-prog/10bonds/settings/secrets/actions/new" },
           { text: email ? `In Search Console → Settings → Users, add ${email} as a user.` : "In Search Console → Settings → Users, add the service account's e-mail as a user:", url: "https://search.google.com/search-console/users" },
-          { text: "Enter the property below (https://10bonds.fly.dev/) and Save." },
+          { text: "Enter the property below (https://10bonds.com/) and Save." },
         ]}
       />
     </div>
