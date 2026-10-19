@@ -20,8 +20,16 @@ const ASSISTANTS = [
   {
     id: "perplexity", name: "Perplexity", key: process.env.PERPLEXITY_API_KEY,
     ask: async (key, q) => {
-      const j = await post("https://api.perplexity.ai/chat/completions", { Authorization: `Bearer ${key}` }, { model: "sonar", messages: [{ role: "user", content: q }] });
-      return { text: j.choices?.[0]?.message?.content ?? "", urls: [...(j.citations ?? []), ...(j.search_results ?? []).map((s) => s.url)] };
+      // Perplexity's Agent API (Sonar chat completions were retired); /v1/responses is the OpenAI-style alias.
+      const body = { preset: "fast", input: q };
+      const auth = { Authorization: `Bearer ${key}` };
+      const j = await post("https://api.perplexity.ai/v1/agent", auth, body).catch((e) => (/HTTP 404/.test(e.message) ? post("https://api.perplexity.ai/v1/responses", auth, body) : Promise.reject(e)));
+      const out = j.output ?? [];
+      const parts = out.filter((o) => o.type === "message").flatMap((o) => o.content ?? []);
+      return {
+        text: parts.map((p) => p.text ?? "").join("\n"),
+        urls: [...out.filter((o) => o.type === "search_results").flatMap((o) => (o.results ?? []).map((r) => r.url)), ...parts.flatMap((p) => (p.annotations ?? []).map((a) => a.url))],
+      };
     },
   },
   {
