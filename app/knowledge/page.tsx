@@ -9,6 +9,7 @@ import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { KC_ORDER } from "@/lib/seo/knowledgeHub";
 import { curvePath, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { insightsPath, INSIGHTS_TEXT } from "@/lib/seo/insights";
+import { bondMapPath, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import { CALCULATOR_EN, enPath, hubLangs, KC_TEXT_EN, withEnglish } from "@/lib/seo/knowledgeEn";
 import { LOCALES } from "@/lib/seo/locales";
 import type { KcSection } from "@/lib/seo/knowledge";
@@ -34,7 +35,7 @@ export default async function KnowledgePage() {
   items.best.push({ title: k.finder, href: "/" });
   items.calculators.push({ title: CALCULATOR_EN.h1, href: enPath(CALCULATOR_EN.slug) });
   items.government.unshift({ title: CURVE_TEXT.en.h1, href: curvePath("en") });
-  items.best.unshift({ title: INSIGHTS_TEXT.en.h1, href: insightsPath("en") });
+  items.best.unshift({ title: INSIGHTS_TEXT.en.h1, href: insightsPath("en") }, { title: BOND_MAP_TEXT.en.h1, href: bondMapPath("en") });
   const published = await Promise.all(LOCALES.map((l) => brokersPublished(l).catch(() => false)));
   LOCALES.forEach((l, i) => published[i] && items.brokers.push({ title: k.brokersIn[l], href: sectionPath(l) }));
   return (
