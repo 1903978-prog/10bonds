@@ -1,0 +1,42 @@
+name: E-mail domain check
+# Manual: shows the DNS records of the sending domain, asks Resend to verify it, and prints each record's status
+# (names and statuses only, never the key). With send_test, it then requests a password-reset e-mail for the owner.
+on:
+  workflow_dispatch:
+    inputs:
+      send_test:
+        description: "Send a test reset e-mail to the owner when the domain is verified"
+        type: boolean
+        default: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      DOMAIN: 10bonds.com
+    steps:
+      - name: DNS as the world sees it
+        run: |
+          for r in "TXT resend._domainkey" "MX send" "TXT send" "CNAME send" "CNAME rsend" "TXT _dmarc"; do
+            set -- $r
+            printf '%-6s %-22s -> %s\n' "$1" "$2.$DOMAIN" "$(dig +short "$1" "$2.$DOMAIN" @1.1.1.1 | tr '\n' ' ' | cut -c1-120)"
+          done
+      - name: Resend verification
+        id: resend
+        run: |
+          [ -n "$RESEND_API_KEY" ] || { echo "RESEND_API_KEY is not set"; exit 1; }
+          H="Authorization: Bearer $RESEND_API_KEY"
+          id=$(curl -sS -H "$H" https://api.resend.com/domains | jq -r --arg d "$DOMAIN" '.data[] | select(.name==$d) | .id')
+          [ -n "$id" ] || { echo "Domain $DOMAIN is not in Resend"; exit 1; }
+          curl -sS -o /dev/null -X POST -H "$H" "https://api.resend.com/domains/$id/verify"
+          sleep 20
+          d=$(curl -sS -H "$H" "https://api.resend.com/domains/$id")
+          echo "domain status: $(echo "$d" | jq -r .status)"
+          echo "$d" | jq -r '.records[] | "\(.record) \(.type) \(.name) -> \(.status)   wants: \(.value[0:60])"'
+          echo "status=$(echo "$d" | jq -r .status)" >> "$GITHUB_OUTPUT"
+      - name: Test reset e-mail
+        if: inputs.send_test && steps.resend.outputs.status == 'verified'
+        run: |
+          curl -sS -w ' HTTP %{http_code}\n' https://10bonds.fly.dev/api/health/email
+          curl -sS -w ' HTTP %{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"login":"1903978@gmail.com","lang":"en"}' https://10bonds.fly.dev/api/auth/forgot
