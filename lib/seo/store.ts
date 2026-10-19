@@ -1,3 +1,4 @@
+import type { SeoMarket } from "./input";
 import { accountsSql } from "../accounts";
 import type { CriterionResult, Points, Status } from "./rubric";
 import { SEED_GUIDES } from "./guidesSeed";
@@ -165,6 +166,9 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       updated_at timestamptz not null default now(),
       unique (market, keyword)
     )`;
+  // The US and UK were added as keyword-tracking markets (19 Oct 2026); widening the check keeps every row.
+  await s`alter table app.seo_keywords drop constraint if exists seo_keywords_market_check`;
+  await s`alter table app.seo_keywords add constraint seo_keywords_market_check check (market in ('it','fr','de','us','uk'))`;
   // Knowledge Center fields (added after the first version of the table).
   await s`alter table app.seo_keywords add column if not exists kc_section text`;
   await s`alter table app.seo_keywords add column if not exists potential text check (potential in ('high','medium','low'))`;
@@ -537,7 +541,7 @@ export async function setSeoSetting(key: string, value: string | null) {
 
 // ---------- Keywords ----------
 export type Keyword = {
-  id: number; market: Locale; keyword: string; intent: string; landingPath: string | null; volume: number | null; volumeSource: string | null;
+  id: number; market: SeoMarket; keyword: string; intent: string; landingPath: string | null; volume: number | null; volumeSource: string | null;
   difficulty: number | null; position: number | null; clicks: number | null; impressions: number | null; metricsAt: string | null;
   status: string; nextAction: string | null; updatedAt: string; section: string | null; potential: Potential | null; verifiedAt: string | null;
 };
@@ -549,7 +553,7 @@ const toKeyword = (r: Record<string, unknown>): Keyword => ({
   section: (r.kc_section as string) ?? null, potential: (r.potential as Potential) ?? null, verifiedAt: day(r.verified_at),
 });
 
-export async function listKeywords(market: Locale | null = null): Promise<Keyword[]> {
+export async function listKeywords(market: SeoMarket | null = null): Promise<Keyword[]> {
   const s = await seoSql();
   return (await s`select * from app.seo_keywords where (${market}::text is null or market = ${market}) order by market, keyword`).map(toKeyword);
 }
@@ -570,7 +574,7 @@ export async function saveKeyword(k: KeywordInput) {
 }
 
 /** Volume and difficulty from a keyword-research export; only the keywords already in the list are updated. */
-export async function importKeywordData(market: Locale, rows: { keyword: string; volume: number | null; difficulty: number | null }[], source: string): Promise<number> {
+export async function importKeywordData(market: SeoMarket, rows: { keyword: string; volume: number | null; difficulty: number | null }[], source: string): Promise<number> {
   const s = await seoSql();
   let n = 0;
   for (const r of rows) {
@@ -590,7 +594,7 @@ export async function setKeywordMetrics(id: number, m: { position: number | null
 }
 
 /** Search Console positions of a market's keywords, newest first, for the trend. */
-export async function keywordHistory(market: Locale): Promise<{ keywordId: number; at: string; position: number | null }[]> {
+export async function keywordHistory(market: SeoMarket): Promise<{ keywordId: number; at: string; position: number | null }[]> {
   const s = await seoSql();
   const rows = await s`select h.keyword_id, h.at, h.position from app.seo_keyword_history h join app.seo_keywords k on k.id = h.keyword_id
     where k.market = ${market} and h.at > now() - interval '180 days' order by h.at desc`;

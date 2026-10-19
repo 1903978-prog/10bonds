@@ -1,18 +1,21 @@
 import type { KcSection, Potential } from "./knowledge";
-import type { Locale } from "./locales";
+import type { SeoMarket } from "./input";
 
 // Starting target keywords per market, from Livio's briefs. Volumes are only set where Livio's research cited a
 // third-party figure, always with its source and date; everything else (volume, difficulty, ranking) stays empty
 // until imported from a keyword tool or read from Search Console.
 
 type Seed = {
-  market: Locale; keyword: string; intent: "informational" | "commercial"; landingPath: string | null;
+  market: SeoMarket; keyword: string; intent: "informational" | "commercial"; landingPath: string | null;
   section?: KcSection; potential?: Potential; volume?: number; volumeSource?: string;
 };
 
 const it = (keyword: string, landingPath: string | null, intent: Seed["intent"] = "informational"): Seed => ({ market: "it", keyword, intent, landingPath });
 const fr = (keyword: string, landingPath: string | null, intent: Seed["intent"] = "informational"): Seed => ({ market: "fr", keyword, intent, landingPath });
 const de = (keyword: string, landingPath: string | null, intent: Seed["intent"] = "informational"): Seed => ({ market: "de", keyword, intent, landingPath });
+
+const us = (keyword: string, landingPath: string | null, intent: Seed["intent"] = "informational"): Seed => ({ market: "us", keyword, intent, landingPath });
+const uk = (keyword: string, landingPath: string | null, intent: Seed["intent"] = "informational"): Seed => ({ market: "uk", keyword, intent, landingPath });
 
 const BRIEF = "2026-10-18";
 /** Volumes cited in Livio's SEO market research brief (third-party estimates, not Google data). */
@@ -87,6 +90,63 @@ const BTP_SUGGESTIONS: Seed[] = [
   it("migliori btp scadenza 3 anni", "/it/obbligazioni/btp", "commercial"),
 ].map((k) => ({ ...k, section: "government" as const }));
 
+/** US and UK searches (research 19 Oct 2026). Volumes only where a public Google Ads figure was found (US); UK volumes
+ *  stay empty until a keyword tool or Search Console gives them. Pages are the English Knowledge guides, or none yet. */
+const USUK: Seed[] = [
+  { ...us("i bonds", null), volume: 22_200, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/i-bonds", potential: "high" },
+  { ...us("series i bonds", null), volume: 5_400, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/i-bonds", potential: "high" },
+  { ...us("bond yields", "/knowledge/yield-to-maturity"), volume: 22_200, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/government-bonds-rates", potential: "high" },
+  { ...us("treasury bond rates", null), volume: 14_800, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/government-bonds-rates", potential: "high" },
+  { ...us("10 year treasury yield", null) },
+  { ...us("treasury yield curve", null) },
+  { ...us("government bonds rates", null), volume: 3_600, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/government-bonds-rates" },
+  { ...us("high yield bonds", "/knowledge/high-yield-bonds"), volume: 9_900, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/high-yield-corporate-bonds", potential: "high" },
+  { ...us("investment grade vs high yield bonds", "/knowledge/investment-grade-bonds") },
+  { ...us("bond ratings", "/knowledge/bond-credit-risk"), volume: 4_400, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/bond-ratings" },
+  { ...us("bond default rates by rating", "/knowledge/bond-default-rates-by-rating") },
+  { ...us("municipal bonds", null) },
+  { ...us("t-bills vs cds", null) },
+  { ...us("bond etfs vs individual bonds", "/knowledge/government-bonds-or-bond-etfs") },
+  { ...us("how to buy treasury bonds", null, "commercial"), volume: 4_400, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/how-to-buy-treasury-bonds" },
+  { ...us("how to buy t-bills", null, "commercial"), volume: 8_100, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/how-to-buy-treasury-bonds", potential: "high" },
+  { ...us("how to buy bonds", "/knowledge/how-to-compare-bonds-2026", "commercial"), volume: 6_600, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/how-to-buy-bonds", potential: "high" },
+  { ...us("how to buy corporate bonds", null, "commercial") },
+  { ...us("best bonds to buy", "/knowledge/how-to-compare-bonds-2026", "commercial"), volume: 3_600, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/best-bonds-to-buy" },
+  { ...us("best bonds to invest in", "/knowledge/how-to-compare-bonds-2026", "commercial"), volume: 1_900, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/best-bonds-to-buy" },
+  { ...us("highest yield corporate bonds", "/knowledge/high-yield-bonds", "commercial"), volume: 1_300, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/highest-corporate-bond-yields" },
+  { ...us("best bond etfs", "/knowledge/government-bonds-or-bond-etfs", "commercial"), volume: 6_600, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/exchange-traded-funds-bonds", potential: "high" },
+  { ...us("best brokers for bonds", null, "commercial") },
+  { ...us("bond calculator", "/knowledge/bond-yield-calculator", "commercial"), section: "calculators", volume: 8_100, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/bond-calculator", potential: "high" },
+  { ...us("yield to maturity calculator", "/knowledge/bond-yield-calculator", "commercial"), section: "calculators", volume: 2_400, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/bond-yield-calculator" },
+  { ...us("bond yield calculator", "/knowledge/bond-yield-calculator", "commercial"), section: "calculators", volume: 1_600, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/bond-yield-calculator" },
+  { ...us("i bond calculator", null, "commercial"), section: "calculators", volume: 3_600, volumeSource: "seodata.dev (Google Ads API, US monthly average, Jun 2026), third-party estimate — https://www.seodata.dev/keyword/bond-calculator" },
+  { ...uk("gilts", null) },
+  { ...uk("what are gilts", null) },
+  { ...uk("gilt yields", null) },
+  { ...uk("10 year gilt yield", null) },
+  { ...uk("uk yield curve", null) },
+  { ...uk("gilt prices", null) },
+  { ...uk("index-linked gilts", null) },
+  { ...uk("gilts tax", null) },
+  { ...uk("low coupon gilts", null) },
+  { ...uk("premium bonds", null) },
+  { ...uk("premium bonds vs gilts or savings", null) },
+  { ...uk("uk government bonds", null) },
+  { ...uk("how to buy gilts", null, "commercial") },
+  { ...uk("buy gilts direct dmo", null, "commercial") },
+  { ...uk("best gilts to buy", null, "commercial") },
+  { ...uk("best bonds uk", "/knowledge/how-to-compare-bonds-2026", "commercial") },
+  { ...uk("best bond etfs uk", "/knowledge/government-bonds-or-bond-etfs", "commercial") },
+  { ...uk("corporate bonds uk", "/knowledge/government-vs-corporate-bonds", "commercial") },
+  { ...uk("retail bonds uk", null, "commercial") },
+  { ...uk("gilts isa", null, "commercial") },
+  { ...uk("best platform to buy gilts", null, "commercial") },
+  { ...uk("bond brokers uk", null, "commercial") },
+  { ...uk("hargreaves lansdown gilts", null, "commercial") },
+  { ...uk("gilt yield calculator", "/knowledge/bond-yield-calculator", "commercial"), section: "calculators" },
+  { ...uk("gilt vs savings calculator", null, "commercial"), section: "calculators" },
+];
+
 /** Section and potential for base keywords that the brief places in the Knowledge Center. */
 const EXTRA: Record<string, Partial<Seed>> = {
   "it:migliori obbligazioni 2026": { section: "best", potential: "high" },
@@ -104,4 +164,4 @@ const EXTRA: Record<string, Partial<Seed>> = {
   "de:kreditrisiko anleihen": { section: "risk" },
 };
 
-export const SEED_KEYWORDS: Seed[] = [...BASE.map((k) => ({ ...k, ...EXTRA[`${k.market}:${k.keyword}`] })), ...RESEARCH, ...BTP_SUGGESTIONS];
+export const SEED_KEYWORDS: Seed[] = [...BASE.map((k) => ({ ...k, ...EXTRA[`${k.market}:${k.keyword}`] })), ...RESEARCH, ...BTP_SUGGESTIONS, ...USUK];
