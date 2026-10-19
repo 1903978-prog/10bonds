@@ -5,6 +5,7 @@ import { computeBestTable, durationSteps } from "@/lib/bestTable";
 import { rankBonds } from "@/lib/ranking";
 import { LIMITS } from "@/lib/limits";
 import postgres from "postgres";
+import { accountsUrl } from "@/lib/pgUrl";
 
 const data = await loadBonds();
 const table = computeBestTable(data);
@@ -22,7 +23,7 @@ for (let risk = LIMITS.risk.min; risk <= LIMITS.risk.max; risk++) for (const d o
 console.log("source", data.source, "bonds", data.bonds.length, "signature", table.signature.slice(0, 40));
 console.log("fresh caps: checked", checked, "failures at max", fails, JSON.stringify(sample));
 if (process.env.ACCOUNTS_DATABASE_URL) {
-  const sql = postgres(process.env.ACCOUNTS_DATABASE_URL, { max: 1 });
+  const sql = postgres(accountsUrl(process.env.ACCOUNTS_DATABASE_URL, process.env.DATABASE_URL), { ssl: "require", max: 1, prepare: false });
   const rows = await sql`select key, value, updated_at from app.settings where key in ('best_bonds_signature','best_bonds_caps')`;
   const sig = rows.find((r) => r.key === "best_bonds_signature");
   const caps = rows.find((r) => r.key === "best_bonds_caps");
