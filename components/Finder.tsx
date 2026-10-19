@@ -204,11 +204,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {mode === "single" ? (
         <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
-          <p className="mt-2 flex gap-2 rounded-xl bg-canvas px-3 py-1.5 text-[11px] leading-snug text-mute">
-            <span aria-hidden>ⓘ</span>
-            <span>{t.info} {t.gross}</span>
-          </p>
-          <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote}</p>
+          <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
         </section>
       ) : (
       <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
