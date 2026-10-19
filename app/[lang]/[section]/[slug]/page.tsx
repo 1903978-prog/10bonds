@@ -10,7 +10,7 @@ import { comparisonById, comparisonBySlug, type ComparisonDef } from "@/lib/seo/
 import { SITE_URL } from "@/lib/seo/crawl";
 import { isLocale, LOCALE, pathOf, sectionOf, T, type Locale } from "@/lib/seo/locales";
 import { unlinkMissing } from "@/lib/seo/links";
-import { sanitizeHtml } from "@/lib/seo/sanitize";
+import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
 import { alternates, comparisonAlternates, comparisonPages, fmtDate, guideAlternates, indexable, shown } from "@/lib/seo/site";
 import { guideBySlug, listGuides, listPeople, type Guide } from "@/lib/seo/store";
 
@@ -163,6 +163,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
   const [people, all, { pages, source }] = await Promise.all([listPeople(true).catch(() => []), listGuides(true, l).catch(() => []), comparisonPages()]);
   const live = pages.filter((p) => shown(p, source));
   const body = unlinkMissing(sanitizeHtml(g.bodyHtml), l, new Set(all.map((x) => x.slug)), new Set(live.map((p) => p.def.text[l].slug)));
+  const faq = faqFromHtml(body);
   const author = people.find((p) => p.id === g.authorId) ?? null;
   const reviewer = people.find((p) => p.id === g.reviewerId) ?? null;
   const related = g.relatedSlugs.map((s) => all.find((x) => x.slug === s)).filter((x): x is Guide => !!x && x.slug !== g.slug);
@@ -222,6 +223,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
           keywords: [g.primaryKeyword, ...g.relatedKeywords].join(", "),
         }}
       />
+      {faq.length > 0 && <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />}
     </article>
   );
 }

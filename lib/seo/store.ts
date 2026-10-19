@@ -169,8 +169,9 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
   // The seed guides go in once, in "review" (outlines in "draft"), for the admin to read and approve. They are never re-added.
   for (const g of SEED_GUIDES) {
     await s`
-      insert into app.seo_guides (locale, slug, translation_group, title, seo_title, meta_description, primary_keyword, related_keywords, body_html, related_slugs, status)
-      values (${g.locale}, ${g.slug}, ${g.group ?? g.topic}, ${g.title}, ${g.seoTitle}, ${g.metaDescription}, ${g.primaryKeyword}, ${g.relatedKeywords}, ${g.bodyHtml}, ${g.relatedSlugs}, ${g.status ?? "review"})
+      insert into app.seo_guides (locale, slug, translation_group, title, seo_title, meta_description, primary_keyword, related_keywords, body_html, related_slugs, status, published_at)
+      values (${g.locale}, ${g.slug}, ${g.group ?? g.topic}, ${g.title}, ${g.seoTitle}, ${g.metaDescription}, ${g.primaryKeyword}, ${g.relatedKeywords}, ${g.bodyHtml}, ${g.relatedSlugs}, ${g.status ?? "review"},
+              ${g.status === "published" ? new Date() : null})
       on conflict (locale, slug) do nothing`;
   }
   // Livio asked on 2026-10-19 for the guides written from his material to go public. Runs once (marker in

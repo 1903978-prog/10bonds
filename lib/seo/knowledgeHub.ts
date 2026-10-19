@@ -63,6 +63,7 @@ export const KC_TEXT: Record<Locale, HubText> = {
 /** English names, for the international page and the admin. */
 export const KC_EN = KC_SECTIONS;
 
+const BEST = /miglior|meilleur|beste|confront|compar|vergleich/i;
 const RISK = /rating|rischi|risque|risiko|default|duration|spread|insolv|ausfall/i;
 const GOV = /btp|\boat\b|-oat|bund|stato|etat|état|staat|government|sovereign/i;
 
@@ -71,7 +72,7 @@ export function guideSection(g: Pick<Guide, "locale" | "slug" | "primaryKeyword"
   const planned = FIRST_WAVE.find((p) => p.kind === "guide" && p.market === g.locale && p.ref === g.slug);
   if (planned) return planned.section;
   const text = `${g.slug} ${g.primaryKeyword}`;
-  return RISK.test(text) ? "risk" : GOV.test(text) ? "government" : "academy";
+  return BEST.test(g.primaryKeyword) ? "best" : RISK.test(text) ? "risk" : GOV.test(text) ? "government" : "academy";
 }
 
 /** Section of a comparison page by its id. */
