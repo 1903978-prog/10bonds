@@ -265,7 +265,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {t.stale(ageDays(data.asOf) ?? 0)}
             </p>
           ) : data?.source === "sample" ? (
-            <p className="truncate text-[11px] leading-snug text-amber-800" role="status">{t.sample}</p>
+            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-date">{t.sample} {t.gross}</p>
           ) : (
             <p className="text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}

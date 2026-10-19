@@ -2,13 +2,10 @@ import type { PublicBond, RankedBond } from "./types";
 import { cleanIssuer } from "./issuer";
 import { bondNotch } from "./ratings";
 import { riskLevel, LIMITS } from "./limits";
+import { lossAdjustedYield } from "./expectedLoss";
 
 export const RESULT_COUNT = 10;
 
-// How much one rating notch weighs against one percentage point of yield. Kept small so yield comes first and the
-// rating only settles near-ties: a higher "highest risk accepted" must give a higher yield, never a safer, poorer list.
-// AAA = 0, BBB- = 9: a BBB- bond needs 0.18 points more yield than an AAA one to rank level with it.
-export const NOTCH_PENALTY = 0.02;
 // Bonds with no rating are treated as just below investment grade.
 export const UNRATED_NOTCH = 10;
 
@@ -22,10 +19,11 @@ const AVG_DURATION_PENALTY = 0.5;
 /**
  * Top bonds for a target duration and yield (Portfolio mode).
  * 1. Pool: rated bonds within the risk level, duration within ±20% of the target, one bond per issuer.
- * 2. Each bond scores its yield minus a small NOTCH_PENALTY per rating notch: highest yield first, lower risk on near-ties.
+ * 2. Each bond scores its yield after expected losses (lib/expectedLoss.ts): yield minus the yearly historical default
+ *    rate for its rating over its duration times a 60% loss. More yield wins unless it does not pay for the extra risk.
  * 3. Pick the 10 with the best total score whose average yield reaches the target yield and whose average duration
  *    stays close to the target. A low target never lowers the yield: the target is a minimum.
- *    Accepting more risk only adds bonds to the pool, so the yield can only go up.
+ *    Accepting more risk only adds bonds to the pool, so the yield after losses can only go up.
  * 4. At (or above) the slider maximum the answer is exactly the 10 highest-yielding issuers the maximum is computed from.
  * Shown best score first.
  */
@@ -34,7 +32,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, key: issuerKey(b), score: b.grossYtm! - NOTCH_PENALTY * notch };
+    return { ...b, ratingNotch, notch, key: issuerKey(b), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };
