@@ -146,6 +146,8 @@ export type User = {
   storedPlan: StoredPlan;
   premiumUntil: string | null;
   emailVerified: boolean;
+  /** Signed up more than CONFIRM_GRACE_MS ago and the address is still not confirmed: no access until it is. */
+  confirmBlocked: boolean;
   isAdmin: boolean;
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
   adminState?: "ok" | "setup" | "needed";
@@ -161,6 +163,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
 
 type UserRow = {
   id: string; email: string; username: string | null; plan: StoredPlan; premium_until: Date | null; email_verified_at: Date | null;
+  created_at?: Date | null;
   totp_enabled_at?: Date | null;
   stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null; subscription_interval?: string | null;
 };
@@ -177,7 +180,10 @@ export async function forgetVisitor(visitorId: string): Promise<void> {
 /** Cookie set on every device that opens the admin page: events from that browser are never recorded, even signed out. */
 export const OWNER_COOKIE = "tb_owner";
 
-const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, totp_enabled_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
+/** How long a new account may be used before its e-mail address must be confirmed. */
+export const CONFIRM_GRACE_MS = 3 * 3600_000;
+
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
   const admin = isAdminRow(r);
@@ -192,6 +198,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     storedPlan: r.plan,
     premiumUntil: r.premium_until ? new Date(r.premium_until).toISOString() : null,
     emailVerified,
+    confirmBlocked: !emailVerified && emailConfigured() && !!r.created_at && now - new Date(r.created_at).getTime() > CONFIRM_GRACE_MS,
     // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: admin,
