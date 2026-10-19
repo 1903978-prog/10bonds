@@ -75,7 +75,7 @@ jobs:
           # Confirmation e-mails switch on when both secrets exist; until then sign-up works without them.
           # They actually start only once Resend shows 10bonds.com as verified (the app checks; /admin lists the DNS records).
           if [ -n "$RESEND_API_KEY" ]; then
-            printf 'RESEND_API_KEY=%s\nEMAIL_FROM=%s\n' "$RESEND_API_KEY" "${EMAIL_FROM:-10BONDS <noreply@10bonds.com>}" | flyctl secrets import -a 10bonds --stage >/dev/null
+            printf 'RESEND_API_KEY=%s\nEMAIL_FROM=%s\n' "$RESEND_API_KEY" "10BONDS <no-reply@10bonds.com>" | flyctl secrets import -a 10bonds --stage >/dev/null
             echo "Confirmation e-mails: key set (on once the domain is verified)."
           else
             echo "Confirmation e-mails: off (no RESEND_API_KEY secret)."
