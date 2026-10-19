@@ -46,6 +46,12 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists subscription_renews_at timestamptz`;
   await sql`alter table app.users add column if not exists subscription_cancel_at_end boolean`;
   await sql`alter table app.users add column if not exists subscription_interval text`;
+  // Two-factor login (authenticator app), used by the admin account.
+  await sql`alter table app.users add column if not exists totp_secret text`;
+  await sql`alter table app.users add column if not exists totp_pending_secret text`;
+  await sql`alter table app.users add column if not exists totp_backup text`;
+  await sql`alter table app.users add column if not exists totp_last_step bigint`;
+  await sql`alter table app.users add column if not exists totp_enabled_at timestamptz`;
   // Plan 4 (Pro, for approved professionals). Widen the allowed values; existing rows are untouched.
   await sql`alter table app.users drop constraint if exists users_plan_check`;
   await sql`alter table app.users add constraint users_plan_check check (plan in ('free','plus','premium','pro'))`.catch(() => {});
@@ -138,6 +144,9 @@ export type User = {
   premiumUntil: string | null;
   emailVerified: boolean;
   isAdmin: boolean;
+  /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
+  adminState?: "ok" | "setup" | "needed";
+  twoFactorOn: boolean;
   stripeCustomerId: string | null;
   subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean; interval: "month" | "year" | null } | null;
 };
@@ -152,6 +161,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
 
 type UserRow = {
   id: string; email: string; username: string | null; plan: StoredPlan; premium_until: Date | null; email_verified_at: Date | null;
+  totp_enabled_at?: Date | null;
   stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null; subscription_interval?: string | null;
 };
 function isAdminRow(r: UserRow): boolean {
@@ -164,7 +174,7 @@ export async function forgetVisitor(visitorId: string): Promise<void> {
   await sql`delete from app.events where visitor_id = ${visitorId}`;
 }
 
-const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, totp_enabled_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
   const admin = isAdminRow(r);
@@ -182,6 +192,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: admin,
+    twoFactorOn: Boolean(r.totp_enabled_at),
     stripeCustomerId: r.stripe_customer_id ?? null,
     subscription: r.subscription_status
       ? { status: r.subscription_status, renewsAt: r.subscription_renews_at ? new Date(r.subscription_renews_at).toISOString() : null, cancelAtEnd: r.subscription_cancel_at_end === true, interval: r.subscription_interval === "year" ? "year" : r.subscription_interval === "month" ? "month" : null }

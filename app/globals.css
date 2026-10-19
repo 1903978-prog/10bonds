@@ -31,4 +31,4 @@ input[type="range"].slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0
 
 /* Page text cannot be selected (see components/CopyGuard.tsx); form fields still can. */
 html.no-copy body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-html.no-copy input, html.no-copy textarea, html.no-copy select, html.no-copy [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+html.no-copy input, html.no-copy textarea, html.no-copy select, html.no-copy [contenteditable="true"], html.no-copy [data-allow-copy] { -webkit-user-select: text; user-select: text; }

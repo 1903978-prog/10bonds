@@ -6,7 +6,7 @@ import { loadMe } from "@/lib/me";
 /** Fields where typing, pasting and copying must keep working. */
 export function isEditable(el: EventTarget | null): boolean {
   if (!(el instanceof Element)) return false;
-  return Boolean(el.closest("input, textarea, select, [contenteditable=''], [contenteditable='true']"));
+  return Boolean(el.closest("input, textarea, select, [contenteditable=''], [contenteditable='true'], [data-allow-copy]"));
 }
 
 /**

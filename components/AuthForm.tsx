@@ -17,7 +17,32 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [website, setWebsite] = useState("");
   const [code, setCode] = useState("");
   const [showCode, setShowCode] = useState(false);
+  const [ticket, setTicket] = useState<string | null>(null);
+  const [otp, setOtp] = useState("");
   const signup = mode === "signup";
+  // After sign-in, back to the page that asked for it (same site only).
+  const after = () => {
+    const n = new URLSearchParams(window.location.search).get("next");
+    return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/";
+  };
+
+  async function submitCode(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/2fa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket, code: otp }) });
+      const body = await res.json().catch(() => ({}));
+      if (body.expired) setTicket(null);
+      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+      track("login", null);
+      flushNow();
+      window.location.href = after();
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,16 +64,44 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+      if (body.twoFactor) {
+        setTicket(body.ticket);
+        setBusy(false);
+        return;
+      }
       track(signup ? "signup" : "login", null);
       flushNow();
       if (body.codeError) alert(body.codeError);
-      window.location.href = signup ? (body.codeApplied ? "/?welcome=code" : "/?welcome=1") : "/";
+      window.location.href = signup ? (body.codeApplied ? "/?welcome=code" : "/?welcome=1") : after();
     } catch (err) {
       setStep(null);
       setError((err as Error).message);
       setBusy(false);
     }
   }
+
+  if (ticket)
+    return (
+      <div className="mx-auto max-w-md rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7" data-testid="twofa-step">
+        <h1 className="text-[24px] font-semibold tracking-tight">Enter your code</h1>
+        <p className="mt-2 text-[15px] text-mute">Open your authenticator app and type the 6-digit code for 10BONDS. No phone? Use one of your backup codes.</p>
+        <form onSubmit={submitCode} className="mt-4 space-y-3">
+          <input
+            autoFocus
+            required
+            inputMode="text"
+            autoComplete="one-time-code"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            placeholder="123456"
+            data-testid="twofa-code"
+            className="w-full rounded-xl border border-line px-3.5 py-2.5 text-center font-mono text-[20px] tracking-[0.3em] outline-none focus:border-accent"
+          />
+          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
+          <button type="submit" disabled={busy} className="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-medium text-white transition hover:bg-[#0077ed] disabled:opacity-60">{busy ? "Checking…" : "Sign in"}</button>
+        </form>
+      </div>
+    );
 
   return (
     <div className="mx-auto max-w-md rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7">

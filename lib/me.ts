@@ -8,6 +8,7 @@ export type Me = {
   premiumUntil: string | null;
   emailVerified: boolean;
   isAdmin: boolean;
+  adminState?: "ok" | "setup" | "needed" | null;
   confirmationOn: boolean;
 } | null;
 
