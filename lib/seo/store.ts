@@ -1,6 +1,7 @@
 import { accountsSql } from "../accounts";
 import type { CriterionResult, Points, Status } from "./rubric";
 import { SEED_GUIDES } from "./guidesSeed";
+import { landingFor } from "./landingLivio";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import type { Potential } from "./knowledge";
 import type { Locale } from "./locales";
@@ -194,6 +195,16 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       const [row] = await s`update app.seo_guides set status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = ${g.locale} and slug = ${g.slug} and status = 'review' and not machine_translated returning id`;
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at Livio's request (19 Oct 2026)."})`;
+    }
+  }
+  // Livio's 16 Italian landing pages (19 Oct 2026): his text replaces the earlier text of the same guides, once.
+  const [landings] = await s`insert into app.settings (key, value) values ('seo_livio_landings_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (landings) {
+    for (const g of SEED_GUIDES.filter((x) => x.locale === "it" && landingFor(`/it/guide/${x.slug}`))) {
+      const [row] = await s`update app.seo_guides set title = ${g.title}, seo_title = ${g.seoTitle}, meta_description = ${g.metaDescription}, body_html = ${g.bodyHtml},
+          related_slugs = ${g.relatedSlugs}, status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
+        where locale = 'it' and slug = ${g.slug} returning id`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Replaced with Livio's landing text (19 Oct 2026)."})`;
     }
   }
   for (const k of SEED_KEYWORDS) {

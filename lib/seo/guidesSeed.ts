@@ -6,6 +6,7 @@ import type { Locale } from "./locales";
 import { SEED_GUIDES_DE } from "./guidesSeedDe";
 import { SEED_GUIDES_FR } from "./guidesSeedFr";
 import { SEED_GUIDES_LIVIO } from "./guidesSeedLivio";
+import { landingFor } from "./landingLivio";
 import { SEED_GUIDES_WAVE } from "./guidesSeedWave";
 
 export type SeedGuide = {
@@ -266,4 +267,15 @@ ${cta("imposta durata e rendimento obiettivo e confronta Stati e aziende nella s
   },
 ];
 
-export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO];
+/** Guides that link to the default-rate table among their related pages. */
+const LINKS_DEFAULT_RATES = ["rischio-di-credito-obbligazioni", "obbligazioni-investment-grade"];
+
+/** Livio's landing text (19 Oct 2026) replaces the earlier text of the same Italian guide and publishes it. */
+function withLanding(g: SeedGuide): SeedGuide {
+  const x = g.locale === "it" ? landingFor(`/it/guide/${g.slug}`) : null;
+  if (!x) return g;
+  const related = LINKS_DEFAULT_RATES.includes(g.slug) ? [...g.relatedSlugs, "probabilita-default-rating"] : g.relatedSlugs;
+  return { ...g, title: x.h1, seoTitle: x.seoTitle, metaDescription: x.metaDescription, bodyHtml: x.bodyHtml, relatedSlugs: related, status: "published" };
+}
+
+export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_LIVIO].map(withLanding);

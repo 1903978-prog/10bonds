@@ -8,6 +8,7 @@ import { evaluate, type Facts } from "./evaluate";
 import { SEED_GUIDES } from "./guidesSeed";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import { FIRST_WAVE, opportunity } from "./knowledge";
+import { landingFor, LIVIO_LANDINGS } from "./landingLivio";
 import { LOCALE, LOCALES, localeFromAcceptLanguage, pathOf, sectionOf, suggestLocale, T } from "./locales";
 import { findIsins, isValidIsin, parsePage, similarity } from "./page";
 import { DIMENSIONS, mergeManual, overallScore, recommendations, type CriterionResult } from "./rubric";
@@ -94,7 +95,8 @@ describe("sanitizer", () => {
   it("every seed guide survives sanitising unchanged in substance and has a tool link", () => {
     for (const g of SEED_GUIDES) {
       const clean = sanitizeHtml(g.bodyHtml);
-      expect(wordCount(clean)).toBeGreaterThan(g.status === "draft" ? 60 : 250);
+      // Livio's landing pages are deliberately short (his own approved text).
+      expect(wordCount(clean)).toBeGreaterThan(g.status === "draft" ? 60 : landingFor(`/${g.locale}/guide/${g.slug}`) ? 180 : 250);
       expect(clean).toMatch(new RegExp(`href="/${g.locale}[/"]`));
       expect(findIsins(clean)).toEqual([]);
     }
@@ -326,5 +328,28 @@ describe("Google rankings KPIs", () => {
     const r = rankings([kw(1, 4, 50, "2026-10-17"), kw(2, 15, 20, "2026-10-17"), kw(3, null, 0, "2026-10-17")], [{ keywordId: 1, at: "2026-10-10", position: 7 }]);
     expect(r.kpi).toMatchObject({ tracked: 3, page1: 1, page2: 1, ranking: 2 });
     expect(r.rows[0]).toMatchObject({ keyword: "k1", previous: 7 });
+  });
+});
+
+describe("Livio's Italian landing pages", () => {
+  it("has all 16 pages, each with its own URL, title and a call-to-action, and none of his notes to us", () => {
+    expect(LIVIO_LANDINGS.map((x) => x.n)).toEqual(Array.from({ length: 16 }, (_, i) => i + 1));
+    expect(new Set(LIVIO_LANDINGS.map((x) => x.path)).size).toBe(16);
+    for (const x of LIVIO_LANDINGS) {
+      expect(x.seoTitle && x.metaDescription && x.h1).toBeTruthy();
+      expect(x.bodyHtml).toContain('class="cta"');
+      expect(x.bodyHtml).not.toMatch(/Elemento SEO|Nota tecnica|SEO title|Target:/);
+    }
+  });
+  it("replaces the guides at the same address and publishes them", () => {
+    const g = SEED_GUIDES.find((x) => x.locale === "it" && x.slug === "btp-o-etf-obbligazionari")!;
+    expect(g.status).toBe("published");
+    expect(g.title).toBe("BTP o ETF obbligazionari: quali sono le differenze?");
+    expect(SEED_GUIDES.find((x) => x.slug === "rischio-di-credito-obbligazioni")!.relatedSlugs).toContain("probabilita-default-rating");
+  });
+  it("default-rate page answers BBB first and maps every notch to a risk score", () => {
+    const g = SEED_GUIDES.find((x) => x.slug === "probabilita-default-rating")!;
+    expect(g.bodyHtml).toMatch(/^<p><strong>Risposta breve:<\/strong>.*1,44%.*3,52%/);
+    expect((g.bodyHtml.match(/<tr>/g) ?? []).length).toBe(19);
   });
 });
