@@ -225,7 +225,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
-          <Stat value={paid ? (data?.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} /> : "—") : null} label={t.avgRisk} lock={lockTo} />
+          <Stat value={paid ? (data?.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
           <Stat value={paid ? yrs(data?.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
         </div>
         {!paid && (
@@ -322,7 +322,7 @@ function Toggle({ label, value, options, onChange, testId, disabled = [] }: { la
 
 function Stat({ value, label, lock }: { value: ReactNode | null; label: string; lock?: { href: string; label: string } }) {
   return (
-    <div className="rounded-xl border border-line/70 px-3 py-2">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center">
       {value === null ? (
         // Locked: a grey lock and a dash; the one sign-up link sits under the row.
         <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute/60" aria-label={lock?.label}>
@@ -343,25 +343,34 @@ function Results({ data, paid, signedIn, currency }: { data: Response | null; pa
   return (
     <div>
       {/* Desktop table */}
-      <table className="hidden w-full text-sm sm:table">
+      {/* Fixed layout: column widths never change when the results do. */}
+      <table className="hidden w-full table-fixed text-sm sm:table">
+        <colgroup>
+          <col className="w-9" />
+          <col className="w-[24%]" />
+          <col />
+          <col className="w-[6.5rem]" />
+          <col className="w-[6.5rem]" />
+          <col className="w-[9rem]" />
+          <col className="w-[5rem]" />
+        </colgroup>
         <thead>
           <tr className="border-b border-line text-left text-xs text-mute">
             <th className="py-1.5 pl-2 font-medium">#</th>
-            <th className="whitespace-nowrap py-1.5 pr-3 font-medium">{t.issuer}</th>
-            <th className="whitespace-nowrap py-1.5 pr-3 font-medium">{t.bond}</th>
-            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium">{t.yield}</th>
-            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium">{t.duration}</th>
-            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium">{t.minInvest}</th>
-            <th className="whitespace-nowrap px-3 py-1.5 text-center font-medium" title={t.riskNote}>{t.risk}</th>
-            <th className="w-full" aria-hidden />
+            <th className="truncate py-1.5 pr-3 font-medium">{t.issuer}</th>
+            <th className="truncate py-1.5 pr-3 font-medium">{t.bond}</th>
+            <th className="truncate px-3 py-1.5 text-center font-medium">{t.yield}</th>
+            <th className="truncate px-3 py-1.5 text-center font-medium">{t.duration}</th>
+            <th className="truncate px-3 py-1.5 text-center font-medium">{t.minInvest}</th>
+            <th className="truncate px-3 py-1.5 text-center font-medium" title={t.riskNote}>{t.risk}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.rank} className="border-b border-line/60 last:border-0">
               <td className="py-1.5 pl-2 text-mute tabular-nums">{r.rank}</td>
-              <td className="max-w-[220px] truncate py-1.5 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
-              <td className="max-w-[460px] py-1.5 pr-3">
+              <td className="truncate py-1.5 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
+              <td className="overflow-hidden py-1.5 pr-3">
                 {paid ? (
                   <>
                     <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
@@ -376,7 +385,6 @@ function Results({ data, paid, signedIn, currency }: { data: Response | null; pa
               <td className="px-3 py-1.5 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               <td className="px-3 py-1.5 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
               <td className="px-3 py-1.5 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
-              <td aria-hidden />
             </tr>
           ))}
         </tbody>
