@@ -13,7 +13,8 @@ export function notchOf(grade: string | null | undefined): number | null {
   const g = grade.trim();
   const sp = SP_SCALE.indexOf(g);
   if (sp >= 0) return sp;
-  const m = MOODYS_SCALE.indexOf(g);
+  // Moody's grades sometimes arrive upper-cased ("BAA2"); S&P grades have no digits, so this cannot clash.
+  const m = MOODYS_SCALE.findIndex((x) => x.toLowerCase() === g.toLowerCase());
   if (m >= 0) return m;
   return null;
 }
