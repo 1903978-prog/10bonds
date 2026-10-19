@@ -3,6 +3,7 @@ import { cleanPgUrl } from "./pgUrl";
 import type { PublicBond } from "./types";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import { bondNotch } from "./ratings";
+import { correctedMin } from "./minOverrides";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
 
 // The public site only ever READS one table, with a read-only login.
@@ -65,7 +66,7 @@ async function loadAllBonds(): Promise<BondSource> {
     grossYtm: num(r.gross_ytm),
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
-    minInvestment: minInvestmentOf(num(r.min_denomination), num(r.min_lot)),
+    minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot))),
   }));
   // Unrated bonds never appear on the site (Livio, 18/10/2026).
   const fresh = dropStale(bonds).filter((b) => bondNotch(b) !== null);
