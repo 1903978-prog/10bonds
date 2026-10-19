@@ -76,8 +76,8 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
       </div>
       <div className="mt-3 flex justify-center">
         <div className="inline-flex rounded-full bg-canvas p-1 text-sm" data-testid="billing-toggle">
-          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 ${interval === "month" ? "bg-white font-medium shadow-sm" : "text-mute"}`} data-testid="billing-month">Monthly</Link>
-          <Link href="/pricing?billing=year" scroll={false} className={`rounded-full px-4 py-1 ${interval === "year" ? "bg-white font-medium shadow-sm" : "text-mute"}`} data-testid="billing-year">
+          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "month" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-month">Monthly</Link>
+          <Link href="/pricing?billing=year" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "year" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-year">
             Yearly <span className="text-accent">−{Math.round(YEARLY_DISCOUNT * 100)}%</span>
           </Link>
         </div>
@@ -97,9 +97,10 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
               <span className="text-[28px] font-semibold tracking-tight">{p.key === "free" ? "€0" : euro(priceCents(p.key as PaidPlan, interval))}</span>
               {p.key !== "free" && <span className="text-sm text-mute">{interval === "year" ? "/year" : "/month"}</span>}
             </p>
-            {p.key !== "free" && interval === "year" && (
-              <p className="text-[11px] text-mute">= {euro(Math.round(priceCents(p.key as PaidPlan, "year") / 12))}/month, 20% less than monthly</p>
-            )}
+            {/* Always one line here, so Monthly/Yearly never moves the features or buttons. */}
+            <p className="h-4 text-[11px] text-mute">
+              {p.key === "free" ? "" : interval === "year" ? `= ${euro(Math.round(priceCents(p.key as PaidPlan, "year") / 12))}/month, 20% less than monthly` : "Billed monthly"}
+            </p>
             <ul className="mt-3 flex-1 space-y-1 text-[13px] leading-snug">
               {p.features.map((f) => (
                 <li key={f} className="flex gap-2">

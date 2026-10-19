@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { SESSION_COOKIE } from "@/lib/session";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import FooterNote, { FooterLegal } from "@/components/FooterNote";
@@ -9,6 +10,7 @@ import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import LangSwitch from "@/components/LangSwitch";
 import ProNavLink from "@/components/ProNavLink";
+import SearchNavLink from "@/components/SearchNavLink";
 import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
 import CopyGuard from "@/components/CopyGuard";
@@ -35,18 +37,25 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Builds every page per request, so each one gets the fresh script nonce from middleware.ts.
   await headers();
+  // Whether a sign-in cookie is present, so the header draws the right links straight away instead of popping them in.
+  const hasSession = Boolean((await cookies()).get(SESSION_COOKIE)?.value);
   return (
     <html lang="en">
       <body className="font-sans">
         <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
-          <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-            <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /><span className="hidden min-[380px]:inline">10BONDS</span></Link>
+          <nav className="header-wide mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+            <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
-              <LangSwitch />
+              <SearchNavLink />
               <KnowledgeNavLink />
-              <ProNavLink />
               <NavLink href="/pricing">Pricing</NavLink>
-              <AccountNav />
+              {/* Fixed-width slot for the links that load after the page (Pro, Admin, Sign in, profile), so the menu never shifts. */}
+              <div className="flex min-w-[128px] items-center justify-end gap-1.5 sm:min-w-[232px] sm:gap-5">
+                <ProNavLink />
+                {/* Language sits right before the account links (profile icon), as Livio asked. */}
+                <LangSwitch />
+                <AccountNav hasSession={hasSession} />
+              </div>
             </div>
           </nav>
         </header>
