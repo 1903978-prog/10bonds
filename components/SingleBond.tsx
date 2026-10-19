@@ -115,7 +115,7 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const admin = axis.some((p) => p.options[0]?.sp !== undefined);
+  const admin = axis.some((p) => p.band !== undefined);
   const H = (W < 500 ? 240 : 300) + (admin ? 14 : 0), L = 44, R = 22, T = 26, B = admin ? 54 : 40, PAD = 22;
   const ys = [...points, ...ghosts].map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
@@ -143,7 +143,7 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
       {axis.map((p) => (
         <text key={p.level} x={x(p.level)} y={H - B + 17} textAnchor="middle" fontSize="13" fill="#86868b">
           {p.label}
-          {admin && <tspan x={x(p.level)} dy={14} fontSize="10" data-testid={`sp-${p.level}`}>{p.options[0] ? p.options[0].sp ?? "–" : ""}</tspan>}
+          {admin && <tspan x={x(p.level)} dy={14} fontSize="10" data-testid={`sp-${p.level}`}>{p.band}</tspan>}
         </text>
       ))}
       {ghosts.map((p) => (

@@ -29,5 +29,9 @@ jobs:
           q "select width_bucket(modified_duration, 0, 25, 5)*5 as dur_to, count(*) $U and $R in ('BBB-','Baa3','BB+','BB','BB-','Ba1','Ba2','Ba3','B+','B','B-','B1','B2','B3') group by 1 order by 1"
           echo "== EUR rows dropped: no yield / no duration / matured / not modelled"
           q "select count(*) filter (where gross_ytm is null), count(*) filter (where modified_duration is null), count(*) filter (where maturity <= current_date), count(*) filter (where structure_modelled is false) from public_bonds where currency='EUR'"
-          echo "== rating fields with values the site cannot read (top 15)"
+          for c in rating_sp rating_moodys rating_fitch rating_resolved; do
+            echo "== distinct $c values, all currencies (value | bonds | with yield+duration)"
+            q "select '[' || coalesce($c,'∅') || ']', count(*), count(*) filter (where gross_ytm is not null and modified_duration is not null) from public_bonds group by 1 order by 2 desc"
+          done
+          echo "== rating combinations (top 40)"
           q "select coalesce(rating_resolved,'∅'), coalesce(rating_sp,'∅'), coalesce(rating_moodys,'∅'), coalesce(rating_fitch,'∅'), count(*) from public_bonds where currency='EUR' group by 1,2,3,4 order by 5 desc limit 40"
