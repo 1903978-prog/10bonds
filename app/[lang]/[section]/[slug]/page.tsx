@@ -5,6 +5,7 @@ import { Breadcrumbs, ComparisonBody, JsonLd, prose, RiskNote, ToolCta } from "@
 import { accountsConfigured } from "@/lib/accounts";
 import { currentUser } from "@/lib/currentUser";
 import CurveSection from "@/components/seo/CurveSection";
+import InsightsSection from "@/components/seo/InsightsSection";
 import YieldCalculator from "@/components/seo/YieldCalculator";
 import { CALCULATORS } from "@/lib/seo/calculators";
 import { comparisonById, comparisonBySlug, type ComparisonDef } from "@/lib/seo/comparisons";
@@ -14,6 +15,7 @@ import { calcLangs, CALCULATOR_EN, enGuideByGroup, enPath, withEnglish } from "@
 import { unlinkMissing } from "@/lib/seo/links";
 import { landingFor, splitLead } from "@/lib/seo/landingLivio";
 import { curveAlternates, curvePath, CURVE_TEXT } from "@/lib/seo/yieldCurves";
+import { insightsAlternates, insightsPath, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
 import { alternates, comparisonAlternates, comparisonPages, fmtDate, guideAlternates, indexable, shown } from "@/lib/seo/site";
 import { guideBySlug, listGuides, listPeople, type Guide } from "@/lib/seo/store";
@@ -22,7 +24,7 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ lang: string; section: string; slug: string }>; searchParams: Promise<{ preview?: string }> };
 
-type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | null;
+type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | { l: Locale; kind: "insights" } | null;
 
 /** A published guide (any guide for the admin with ?preview=1), or a comparison page. */
 async function resolve(props: Props): Promise<Resolved> {
@@ -33,7 +35,7 @@ async function resolve(props: Props): Promise<Resolved> {
     const def = comparisonBySlug(lang, slug);
     return def ? { l: lang, kind: "bonds", def } : null;
   }
-  if (s === "tools") return CALCULATORS[lang].slug === slug ? { l: lang, kind: "tool" } : CURVE_TEXT[lang].slug === slug ? { l: lang, kind: "curve" } : null;
+  if (s === "tools") return CALCULATORS[lang].slug === slug ? { l: lang, kind: "tool" } : CURVE_TEXT[lang].slug === slug ? { l: lang, kind: "curve" } : INSIGHTS_TEXT[lang].slug === slug ? { l: lang, kind: "insights" } : null;
   if (s !== "guides" || !accountsConfigured()) return null;
   const g = await guideBySlug(lang, slug).catch(() => null);
   if (!g) return null;
@@ -53,6 +55,10 @@ function guideWithEnglish(g: Guide, siblings: Guide[]): Metadata["alternates"] {
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const r = await resolve(props);
   if (!r) return { robots: { index: false } };
+  if (r.kind === "insights") {
+    const c = INSIGHTS_TEXT[r.l];
+    return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
+  }
   if (r.kind === "curve") {
     const c = CURVE_TEXT[r.l];
     return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
@@ -97,7 +103,22 @@ export default async function Detail(props: Props) {
   if (!r) notFound();
   if (r.kind === "tool") return <ToolPage l={r.l} />;
   if (r.kind === "curve") return <CurvePage l={r.l} />;
+  if (r.kind === "insights") return <InsightsPage l={r.l} />;
   return r.kind === "bonds" ? <ComparisonPage l={r.l} def={r.def} /> : <GuidePage l={r.l} g={r.guide} />;
+}
+
+function InsightsPage({ l }: { l: Locale }) {
+  const t = T[l];
+  const c = INSIGHTS_TEXT[l];
+  return (
+    <div className="mx-auto max-w-3xl">
+      <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.knowledge, href: pathOf(l, "knowledge") }, { name: c.h1, href: insightsPath(l) }]} />
+      <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+      <InsightsSection locale={l} text={c} curveHref={curvePath(l)} methodHref={pathOf(l, "method")} />
+      <ToolCta locale={l} />
+      <RiskNote locale={l} />
+    </div>
+  );
 }
 
 function CurvePage({ l }: { l: Locale }) {
