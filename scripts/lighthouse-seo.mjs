@@ -4,12 +4,15 @@
 // Usage: node scripts/lighthouse-seo.mjs <dir with it-1.json, it-2.json, ...>
 import { readFileSync, readdirSync } from "node:fs";
 import postgres from "postgres";
+import { accountsUrl } from "../lib/pgUrl.ts";
 
 const dir = process.argv[2];
 const SITE = process.env.SITE_URL ?? "https://10bonds.com";
 const median = (xs) => { const s = xs.filter((x) => typeof x === "number").sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
 
-const sql = postgres(process.env.ACCOUNTS_DATABASE_URL, { max: 1 });
+// Same login rules as the site: the secret may be a full URL or only the password of the app role.
+const url = accountsUrl(process.env.ACCOUNTS_DATABASE_URL, process.env.DATABASE_URL);
+const sql = postgres(url, { max: 1, ssl: url.includes("localhost") || url.includes("127.0.0.1") ? false : "require", prepare: false });
 for (const market of ["it", "fr", "de"]) {
   const runs = readdirSync(dir).filter((f) => f.startsWith(`${market}-`)).map((f) => JSON.parse(readFileSync(`${dir}/${f}`, "utf8"))).filter((r) => !r.runtimeError);
   if (!runs.length) { console.log(`${market}: no Lighthouse run`); continue; }
