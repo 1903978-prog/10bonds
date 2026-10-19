@@ -65,7 +65,8 @@ export async function emailStatus() {
 }
 
 export async function sendEmail(to: string, subject: string, html: string, text: string): Promise<"sent" | "not-configured" | "failed"> {
-  if (!(await emailReady())) return "not-configured";
+  // Sending needs only the key and the sender; the domain check never blocks a send (a sending-only key cannot read domains).
+  if (!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)) return "not-configured";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -80,6 +81,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
       lastRefusedAt = Date.now();
       markEmailDomainVerified(false);
     }
+    if (res.ok) markEmailDomainVerified(true);
     return res.ok ? "sent" : "failed";
   } catch (e) {
     console.error("[email] send failed:", (e as Error).name);

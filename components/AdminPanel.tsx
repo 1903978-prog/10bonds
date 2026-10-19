@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminData from "./AdminData";
-import EmailDomainCard from "./EmailDomainCard";
 
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
 type Stats = { users: number; verified: number; onTrial: number; newThisWeek: number; events30d: { kind: string; n: number }[]; topPages30d: { path: string; n: number }[] };
@@ -59,7 +58,6 @@ export default function AdminPanel() {
       <h1 className="text-[32px] font-semibold tracking-tight">Admin</h1>
       <p className="-mt-4 text-sm text-mute">Only you can see this page. · <a href="/admin/pro" className="text-accent">Professional access requests</a> · <a href="/admin/brokers" className="text-accent">Broker management</a> · <a href="/admin/seo" className="text-accent">SEO Management</a></p>
 
-      <EmailDomainCard />
 
       {s && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="admin-stats">
