@@ -70,7 +70,8 @@ export default function Frontier({ currency }: { currency: string }) {
           ))}
           <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="13" fill="#86868b">{t.riskAxis}</text>
           <g fill="#aeaeb2" fillOpacity="0.45">
-            {dots.map(([r, v], i) => (v < lo || v > hi ? null : <circle key={i} cx={Math.min(W - R + 4, Math.max(L + 4, x(r) + jitter(i) * col * 0.6))} cy={y(v)} r="2" />))}
+            {/* Every bond is drawn; the rare yields beyond the axis sit on its edge. */}
+            {dots.map(([r, v], i) => <circle key={i} cx={Math.min(W - R + 4, Math.max(L + 4, x(r) + jitter(i) * col * 0.6))} cy={y(Math.min(hi, Math.max(lo, v)))} r="2" />)}
           </g>
           <path d={path} fill="none" stroke={RED} strokeWidth="2.5" strokeLinejoin="round" />
           {line.map((p) => (
