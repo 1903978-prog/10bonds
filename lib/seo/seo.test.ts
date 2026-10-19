@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SAMPLE_BONDS } from "../sample-bonds";
 import { linksFromCsv, parseCsv } from "./backlinkCsv";
-import { issuerClass, sovereignOf } from "./classify";
+import { countryCode, issuerClass, sovereignOf } from "./classify";
 import { allComparisons, buildComparison, comparisonById, comparisonBySlug, COMPARISONS, hasEnough } from "./comparisons";
 import { disallowed, internalPath, type CrawlResult, type CrawledPage } from "./crawl";
 import { evaluate, type Facts } from "./evaluate";
@@ -9,7 +9,7 @@ import { SEED_GUIDES } from "./guidesSeed";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import { FIRST_WAVE, opportunity } from "./knowledge";
 import { landingFor, LIVIO_LANDINGS } from "./landingLivio";
-import { govCurves } from "./yieldCurves";
+import { countryName, govCurves } from "./yieldCurves";
 import { aiVisibility, guideShape, REQUIRED_CRAWLERS, robotsAllows } from "./geo";
 import robots from "../../app/robots";
 import { LOCALE, LOCALES, localeFromAcceptLanguage, pathOf, sectionOf, suggestLocale, T } from "./locales";
@@ -386,5 +386,24 @@ describe("AI visibility", () => {
   it("recognises an answer-first guide with question headings", () => {
     const g = guideShape({ bodyHtml: "<p><strong>Risposta breve:</strong> un BBB è andato in default nell'1,44% dei casi entro 5 anni secondo le medie storiche.</p><h2>Perché?</h2><p>x</p><h2>Come si legge?</h2><table></table>" });
     expect(g).toMatchObject({ answerFirst: true, questionHeadings: 2, table: true });
+  });
+});
+
+describe("country of a bond", () => {
+  const b = (issuer: string, country: string | null, isin = "XX0000000000") => ({ issuer, country, isin });
+  it("reads codes and names, and recognises governments written in several ways", () => {
+    expect(countryCode({ country: "Italy" })).toBe("IT");
+    expect(countryCode({ country: "fr" })).toBe("FR");
+    expect(countryCode({ country: "Atlantis" })).toBeNull();
+    expect(sovereignOf(b("Italy, Republic of", "Italy"))).toBe("IT");
+    expect(sovereignOf(b("French Republic Government Bond OAT", "FR"))).toBe("FR");
+    expect(sovereignOf(b("Bundesrepublik Deutschland", "Germany"))).toBe("DE");
+    expect(sovereignOf(b("Air France-KLM", "FR"))).toBeNull();
+    expect(issuerClass(b("Kingdom of Spain", "Spain"))).toBe("sovereign");
+  });
+  it("puts a government bond with an unknown country on its ISIN's country", () => {
+    const x = { isin: "AT0000A1XML2", name: "", issuer: "Republic of Austria", country: null, currency: "EUR", coupon: 2, maturity: "2030-01-01", ratingSp: "AA+", ratingMoodys: null, ratingFitch: null, ratingResolved: null, grossYtm: 2.5, modifiedDuration: 3, ytmAsOf: null };
+    expect(govCurves([x], 2027).map((c) => c.country)).toEqual(["AT"]);
+    expect(countryName("ZZZ", "it-IT")).toBe("ZZZ");
   });
 });

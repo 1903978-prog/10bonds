@@ -1,5 +1,5 @@
 import type { PublicBond } from "../types";
-import { issuerClass } from "./classify";
+import { countryCode, issuerClass } from "./classify";
 import { pathOf, type Locale } from "./locales";
 
 // Government yield curves by country for the Knowledge Center: the average gross yield to maturity of each
@@ -12,12 +12,15 @@ export type Curve = { country: string; points: CurvePoint[] };
 export function govCurves(bonds: PublicBond[], fromYear = new Date().getUTCFullYear()): Curve[] {
   const by = new Map<string, Map<number, number[]>>();
   for (const b of bonds) {
-    if (b.currency !== "EUR" || b.grossYtm === null || !b.maturity || !b.country || issuerClass(b) !== "sovereign") continue;
+    if (b.currency !== "EUR" || b.grossYtm === null || !b.maturity || issuerClass(b) !== "sovereign") continue;
+    // A government bond's ISIN starts with its country's code, which covers rows without a usable country.
+    const country = countryCode(b) ?? (/^[A-Z]{2}/.test(b.isin) && !/^(XS|EU)/.test(b.isin) ? b.isin.slice(0, 2) : null);
+    if (!country) continue;
     const year = Number(b.maturity.slice(0, 4));
     if (year < fromYear) continue;
-    const years = by.get(b.country) ?? new Map<number, number[]>();
+    const years = by.get(country) ?? new Map<number, number[]>();
     years.set(year, [...(years.get(year) ?? []), b.grossYtm]);
-    by.set(b.country, years);
+    by.set(country, years);
   }
   return [...by.entries()]
     .map(([country, years]) => ({
@@ -87,4 +90,13 @@ export const curvePath = (l: Locale | "en") => (l === "en" ? `/knowledge/${CURVE
 export function curveAlternates(self: Locale | "en") {
   const languages = { "it-IT": curvePath("it"), "fr-FR": curvePath("fr"), "de-DE": curvePath("de"), en: curvePath("en"), "x-default": curvePath("en") };
   return { canonical: curvePath(self), languages };
+}
+
+/** A country's name in the reader's language; the code itself when the browser does not know it. */
+export function countryName(code: string, locale: string): string {
+  try {
+    return new Intl.DisplayNames([locale], { type: "region" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
 }

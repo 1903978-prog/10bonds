@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Curve, CurveText } from "@/lib/seo/yieldCurves";
+import { countryName, type Curve, type CurveText } from "@/lib/seo/yieldCurves";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#ea580c", "#9333ea", "#0891b2", "#ca8a04", "#db2777", "#4f46e5", "#65a30d", "#0d9488", "#b45309", "#7c3aed", "#e11d48", "#0284c7", "#15803d"];
@@ -10,8 +10,7 @@ const W = 760, H = 340, L = 44, R = 14, T = 14, B = 30;
 /** Government yield curves by country: pick countries and a horizon. Everything is drawn in the browser. */
 export default function YieldCurveChart({ locale, text, curves, initial }: { locale: string; text: CurveText; curves: Curve[]; initial: string[] }) {
   const names = useMemo(() => {
-    const dn = new Intl.DisplayNames([NUM[locale] ?? "en-GB"], { type: "region" });
-    return Object.fromEntries(curves.map((c) => [c.country, dn.of(c.country) ?? c.country]));
+    return Object.fromEntries(curves.map((c) => [c.country, countryName(c.country, NUM[locale] ?? "en-GB")]));
   }, [curves, locale]);
   const order = useMemo(() => [...curves].sort((a, b) => names[a.country].localeCompare(names[b.country], locale)), [curves, names, locale]);
   const color = (code: string) => COLORS[curves.findIndex((c) => c.country === code) % COLORS.length];
