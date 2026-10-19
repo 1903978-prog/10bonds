@@ -479,10 +479,10 @@ export const EN_GUIDES: EnGuide[] = [
 <p>Interest earned on Treasury bills, notes and bonds is generally subject to <strong>federal income tax</strong>, but it is exempt from state and local income taxes.</p>
 <p>That distinction can matter considerably for investors living in states with relatively high income-tax rates.</p>
 <p>A Treasury security and a corporate bond with identical headline yields may produce different after-tax outcomes because their interest income may be treated differently.</p>
-<p>U.S. investors should also distinguish Treasury securities from municipal bonds, whose interest may qualify for federal and sometimes state tax exemptions, depending on the security and the investor's circumstances.</p>
+<p>U.S. investors should also distinguish Treasury securities from <a href="/knowledge/municipal-bonds-vs-treasuries">municipal bonds</a>, whose interest may qualify for federal and sometimes state tax exemptions, depending on the security and the investor's circumstances.</p>
 <p>The tax consequences of buying a Treasury above or below par can involve additional rules, so a simple comparison of coupon rates after tax is not always sufficient.</p>
 <h2 id="what-to-compare">What should investors compare?</h2>
-<p>Consider two securities with approximately five years remaining until maturity: a Treasury note and an investment-grade corporate bond.</p>
+<p>Consider two securities with approximately five years remaining until maturity: a Treasury note and an <a href="/knowledge/corporate-bonds-vs-treasuries">investment-grade corporate bond</a>.</p>
 <p>If the corporate bond offers a higher yield, that additional return is not free. It may compensate the investor for corporate credit risk, reduced liquidity or particular contractual features.</p>
 <p>The Treasury's yield provides a useful reference point. The difference between the yields is one way of examining the additional compensation demanded by the market.</p>
 <p>A meaningful comparison therefore starts with the remaining maturity and duration, then considers yield, credit quality and trading costs.</p>
@@ -500,6 +500,291 @@ export const EN_GUIDES: EnGuide[] = [
 <li>Internal Revenue Service — Topic 403, Interest Received: <a href="https://www.irs.gov/taxtopics/tc403">https://www.irs.gov/taxtopics/tc403</a></li>
 </ul>
 <p><em>This article is intended for general financial education. It does not constitute personalized investment advice or a recommendation to purchase a particular security.</em></p>
+`,
+  },
+  {
+    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    slug: "corporate-bonds-vs-treasuries",
+    group: "us-corporate-vs-treasuries",
+    section: "government",
+    title: "Corporate Bonds vs. Treasury Bonds: What Are You Really Being Paid For?",
+    seoTitle: "Corporate Bonds vs. Treasury Bonds: Yield and Risk",
+    metaDescription: "Why do corporate bonds pay more than Treasuries? Compare credit spreads, duration, liquidity, taxes and the risks behind higher yields.",
+    primaryKeyword: "corporate bonds vs treasury bonds",
+    published: "2026-10-19",
+    bodyHtml: `
+<p><em>Two bonds can mature on the same date and offer very different yields. The gap between them tells a story about risk, liquidity and what investors are willing to pay for certainty.</em></p>
+<p>Imagine opening your brokerage account and finding two bonds with approximately five years remaining until maturity. One is issued by the U.S. Treasury and yields 4%. The other is issued by a large American corporation and yields 5.2%.</p>
+<p>Both securities promise periodic interest payments and the return of principal at maturity. Both are denominated in dollars. Both have similar durations.</p>
+<p>The corporate bond offers an additional 1.2 percentage points of annualized yield. On a $100,000 position, that difference might appear to represent $1,200 a year.</p>
+<p>The arithmetic is straightforward. Understanding what the additional yield compensates you for is considerably more interesting.</p>
+<p>The corporate bond's yield is higher because investors are not buying the same financial promise.</p>
+<h2 id="the-treasury-yield-as-a-starting-point">The Treasury yield as a starting point</h2>
+<p><a href="/knowledge/treasury-bills-notes-bonds">U.S. Treasury securities</a> are backed by the full faith and credit of the federal government. They play a central role in global financial markets, and their yields are widely used as reference rates for valuing other debt securities.</p>
+<p>A Treasury yield reflects several forces, including expected interest rates, inflation, the maturity of the obligation and the balance between supply and demand.</p>
+<p>Corporate bond investors face those same broad market forces, but they also need to assess whether an individual business will continue to generate sufficient cash to repay its debt.</p>
+<p>This difference produces what financial markets call a <em>credit spread</em>.</p>
+<p>In its simplest form, the spread is the difference between the yield on a corporate bond and the yield on a comparable Treasury security.</p>
+<p>If a corporate bond yields 5.2% while a comparable Treasury yields 4%, the quoted difference is 120 basis points, since one basis point represents 0.01 percentage points.</p>
+<p>That spread is a starting point for understanding the market's compensation for taking risks beyond those of a Treasury. It is not, however, a direct measure of the probability that the corporate issuer will default.</p>
+<h2 id="what-the-credit-spread-really-contains">What the credit spread really contains</h2>
+<p>The most obvious component is credit risk.</p>
+<p>A corporation may encounter falling revenues, rising borrowing costs, competitive pressure or financial difficulties that impair its ability to meet debt obligations. Investors generally demand additional yield to assume that uncertainty.</p>
+<p>But credit risk does not explain the entire spread.</p>
+<p>Corporate bonds may trade less frequently than Treasury securities. If an investor needs to sell quickly, finding a buyer at a satisfactory price can be difficult. Part of the higher yield may therefore compensate for reduced liquidity.</p>
+<p>The structure of the security also matters. A senior unsecured bond, a subordinated bond and a callable bond issued by the same company can have materially different risk characteristics.</p>
+<p>Finally, spreads reflect market sentiment. During periods of financial stress, investors often demand higher compensation for corporate credit exposure, even when individual companies have not materially changed.</p>
+<p>This is why a credit spread should be interpreted as a market price for several forms of risk, not simply as an expected default-loss calculation.</p>
+<h2 id="why-a-credit-rating-doesn-t-tell-the-whole-story">Why a credit rating doesn't tell the whole story</h2>
+<p>Credit rating agencies attempt to evaluate the relative creditworthiness of issuers and financial instruments.</p>
+<p>Investment-grade ratings generally range from AAA to BBB− on the S&amp;P scale. Ratings below BBB− fall into the speculative-grade category.</p>
+<p>These distinctions are useful, but they should not be confused with a precise forecast of returns.</p>
+<p>Consider two hypothetical BBB-rated companies. One operates a stable business with recurring revenues and relatively modest financial leverage. The other operates in a cyclical industry, where earnings fluctuate considerably.</p>
+<p>Their ratings may fall within the same category while their bonds trade at different spreads.</p>
+<p>Bond-specific features create further differences. Debt seniority, guarantees, covenants and recovery prospects all influence the consequences of financial distress.</p>
+<p>For investors comparing corporate bonds, the relevant question is not merely whether a security carries an investment-grade rating. It is whether its yield adequately reflects the particular combination of risks present in that issue.</p>
+<h2 id="a-worked-example-how-much-additional-yield-is-enough">A worked example: how much additional yield is enough?</h2>
+<p>Let's return to the hypothetical five-year bonds.</p>
+<table>
+<thead><tr><th>Characteristic</th><th>Treasury</th><th>Corporate bond</th></tr></thead>
+<tbody>
+<tr><td>Yield to maturity</td><td>4.00%</td><td>5.20%</td></tr>
+<tr><td>Remaining maturity</td><td>5 years</td><td>5 years</td></tr>
+<tr><td>Credit issuer</td><td>U.S. government</td><td>Corporation</td></tr>
+<tr><td>Additional yield</td><td>—</td><td>1.20 percentage points</td></tr>
+</tbody>
+</table>
+<p>Suppose, solely for illustration, that the corporate issuer has a cumulative five-year default probability of 3% and that a default would cause a loss of 60% of the investment's exposure.</p>
+<p>The simplified expected credit loss over the five-year horizon would be 1.8% of exposure.</p>
+<p>That calculation is not an accurate forecast of the bond's annual return. It ignores when a possible default occurs, how much the investor has already received in coupons, changes in recovery assumptions and the time value of money.</p>
+<p>It does, however, illustrate why gross yield cannot be viewed independently of potential credit losses.</p>
+<p>The additional 1.2 percentage points of quoted annual yield is not a guaranteed excess return. Some of the spread compensates investors for bearing uncertainty, including losses that may be rare but substantial.</p>
+<p>A more rigorous comparison would examine annualized default assumptions, recovery estimates, the bond's cash-flow schedule and the market value of both securities.</p>
+<h2 id="interest-rate-risk-still-matters">Interest-rate risk still matters</h2>
+<p>It is tempting to describe Treasuries as safe and corporate bonds as risky. That distinction is too simplistic.</p>
+<p>A long-duration Treasury bond can experience substantial price fluctuations when market interest rates change. A short-duration investment-grade corporate bond may be less sensitive to general interest-rate movements, even though it introduces additional credit risk.</p>
+<p>When comparing securities, maturity alone is not always sufficient. Duration provides a more useful measure of price sensitivity.</p>
+<p>For example, a bond with modified duration of six years might decline approximately 6% in price if its required yield rises by one percentage point, before accounting for convexity and other effects.</p>
+<p>For a corporate bond, that required yield can rise because Treasury yields increase, because its credit spread widens, or because both occur simultaneously.</p>
+<p>The separation between interest-rate exposure and credit-spread exposure is therefore essential.</p>
+<h2 id="liquidity-and-transaction-costs">Liquidity and transaction costs</h2>
+<p>The U.S. Treasury market is exceptionally large and generally liquid, particularly for recently issued benchmark securities.</p>
+<p>Corporate bond liquidity is much more fragmented.</p>
+<p>Two corporate issues from the same company can trade with very different frequency and bid-ask spreads. Smaller positions may also face less favorable execution terms than institutional trades.</p>
+<p>The yield visible on a financial website is not necessarily the yield an individual investor can obtain.</p>
+<p>The actual execution price, dealer markup or markdown, and transaction charges may change the effective return.</p>
+<p>This is especially important when comparing securities whose quoted yields differ by only a few basis points.</p>
+<h2 id="taxes-can-change-the-comparison">Taxes can change the comparison</h2>
+<p>Interest on Treasury securities is generally subject to federal income tax but exempt from state and local income taxes.</p>
+<p>Corporate bond interest is generally subject to federal income tax and may also be subject to state and local income taxes.</p>
+<p>For an investor subject to significant state income taxes, this difference can narrow the corporate bond's apparent advantage.</p>
+<p>The correct calculation depends on the investor's tax circumstances and the characteristics of the securities. Quoted pre-tax yields alone cannot establish which provides the greater after-tax return.</p>
+<h2 id="comparing-bonds-rather-than-headlines">Comparing bonds rather than headlines</h2>
+<p>The central lesson is that the highest quoted yield does not necessarily represent the most attractive risk-adjusted outcome.</p>
+<p>An informative comparison considers yield, duration, credit quality, seniority, liquidity and costs together.</p>
+<p>That is the principle behind 10BONDS. Rather than treating bonds as interchangeable products, the platform organizes available euro-denominated government and corporate securities by their financial characteristics.</p>
+<p>Users can explore how bonds with similar durations differ in yield and credit risk, without treating the resulting shortlist as a personalized investment recommendation.</p>
+<p><a class="cta" href="/">Explore bond yields, duration and risk on 10BONDS.</a></p>
+<h3 id="sources-and-further-reading">Sources and further reading</h3>
+<ul>
+<li>SEC Investor.gov — Corporate Bonds: <a href="https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products">https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products</a></li>
+<li>SEC Investor.gov — What Are Corporate Bonds?: <a href="https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins/what-are">https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins/what-are</a></li>
+<li>U.S. Treasury — Understanding Pricing and Interest Rates: <a href="https://www.treasurydirect.gov/marketable-securities/understanding-pricing/">https://www.treasurydirect.gov/marketable-securities/understanding-pricing/</a></li>
+<li>IRS — Publication 550, Investment Income and Expenses: <a href="https://www.irs.gov/publications/p550">https://www.irs.gov/publications/p550</a></li>
+</ul>
+<p><em>This article is provided for general financial education. Numerical examples are hypothetical and do not represent available investment opportunities or recommendations.</em></p>
+`,
+  },
+  {
+    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    slug: "tips-vs-treasury-bonds",
+    group: "us-tips-vs-treasuries",
+    section: "government",
+    title: "TIPS vs. Treasury Bonds: What Inflation Protection Really Means",
+    seoTitle: "TIPS vs. Treasury Bonds: Inflation and Real Returns",
+    metaDescription: "How do TIPS protect against inflation? Compare inflation-protected Treasuries with conventional Treasury bonds using worked examples and real yields.",
+    primaryKeyword: "TIPS vs treasury bonds",
+    published: "2026-10-19",
+    bodyHtml: `
+<p><em>An ordinary Treasury pays fixed nominal amounts. An inflation-protected Treasury adjusts its principal. That difference can have a substantial effect on purchasing power.</em></p>
+<p>The most important number on a bond statement is not always the yield. Sometimes it is what that yield will be worth when the money is eventually spent.</p>
+<p>Consider an investor who purchases a conventional Treasury security yielding 4%. Over the following five years, inflation averages 2%. The nominal interest payments may look satisfactory, and the investor receives the amounts specified by the security. But the purchasing power of those dollars has declined as prices have risen.</p>
+<p>Now imagine that inflation averages 6% instead.</p>
+<p>The same Treasury still pays its contractual nominal coupons and principal. The investment has not necessarily suffered a default or a nominal loss. Yet its purchasing power has been eroded much more severely.</p>
+<p>Treasury Inflation-Protected Securities, commonly called TIPS, were designed to address precisely this distinction between nominal money and real purchasing power.</p>
+<p>Understanding them requires looking beyond their coupon rates.</p>
+<h2 id="how-tips-work">How TIPS work</h2>
+<p>TIPS are securities issued by the U.S. Treasury whose principal is adjusted in accordance with changes in the Consumer Price Index for All Urban Consumers, or CPI-U, using the Treasury's applicable indexation methodology.</p>
+<p>Unlike a conventional <a href="/knowledge/treasury-bills-notes-bonds">Treasury note or bond</a>, which has a fixed face value payable at maturity, a TIPS security has an inflation-adjusted principal amount.</p>
+<p>As the relevant inflation index rises, the adjusted principal generally increases. During deflationary periods, it may decrease.</p>
+<p>TIPS pay interest twice a year. Their stated coupon rate is fixed when issued, but the dollar amount of each payment changes because the rate is applied to the adjusted principal.</p>
+<p>At maturity, the Treasury pays the greater of the inflation-adjusted principal or the security's original principal amount, under the applicable terms. An investor who purchases a TIPS in the secondary market at a premium should not assume this floor guarantees recovery of the price they personally paid.</p>
+<p>The structure is different from a savings bond. TIPS are marketable securities, which means investors can buy and sell them before maturity at prices determined by the market.</p>
+<h2 id="a-simple-illustration">A simple illustration</h2>
+<p>Suppose an investor purchases $10,000 of original principal in a hypothetical TIPS issue with a fixed coupon rate of 1.5%.</p>
+<p>For clarity, assume that the inflation adjustment over the first year is exactly 3%.</p>
+<p>The adjusted principal would rise from $10,000 to approximately $10,300. The annualized coupon rate remains 1.5%, but it is now applied to the higher adjusted principal.</p>
+<p>If the adjusted principal subsequently rises again, the dollar amount of the interest payments rises with it.</p>
+<p>Now suppose a period of deflation follows. The adjusted principal could decline, reducing the coupon payments calculated from it.</p>
+<p>The principal adjustment is therefore not a one-way increase. The protection is linked to inflation over the life of the security and to the contractual principal floor at maturity.</p>
+<p>The important distinction is that the TIPS mechanism adjusts nominal cash flows to reflect changes in the inflation index. It does not guarantee that the investor will earn a positive real return after taxes, trading costs or changes in market value.</p>
+<h2 id="nominal-yields-versus-real-yields">Nominal yields versus real yields</h2>
+<p>Conventional Treasury yields are generally described as nominal yields. They reflect returns in dollars that are not automatically adjusted for future inflation.</p>
+<p>TIPS yields are quoted as real yields, because their principal is linked to inflation.</p>
+<p>This difference creates a useful comparison.</p>
+<p>Suppose a conventional five-year Treasury yields 4%, while a comparable five-year TIPS yields 1.6% on a real basis.</p>
+<p>The difference of 2.4 percentage points is a commonly used approximation of the market's five-year breakeven inflation rate.</p>
+<p>If realized inflation turns out higher than the market's breakeven level, TIPS may outperform comparable nominal Treasuries on an appropriately measured basis. If realized inflation is lower, conventional Treasuries may perform better.</p>
+<p>The relationship is not exact. Inflation risk premiums, liquidity differences, indexation lags and other market factors can affect the observed spread between nominal and real yields.</p>
+<p>Nevertheless, comparing the two yields is a valuable way to understand the price investors are paying for inflation protection.</p>
+<h2 id="inflation-protection-does-not-eliminate-interest-rate-risk">Inflation protection does not eliminate interest-rate risk</h2>
+<p>One of the most common misconceptions about TIPS is that their prices cannot decline when inflation increases.</p>
+<p>In reality, TIPS are sensitive to changes in real interest rates.</p>
+<p>Consider a long-maturity TIPS issue purchased when real yields are relatively low. If real market yields increase substantially, the security's price can decline—even during a period of elevated inflation.</p>
+<p>The inflation adjustment protects the contractual principal mechanism, but it does not insulate the market price from changes in discount rates.</p>
+<p>Duration matters here just as it does for conventional bonds.</p>
+<p>A long-duration TIPS security can experience significant price volatility. An investor who needs to sell before maturity may realize a loss, notwithstanding the inflation adjustments accumulated over the holding period.</p>
+<p>This is why two questions should be considered separately: How does the bond protect purchasing power over time, and how might its price behave if the investor sells before maturity?</p>
+<h2 id="the-tax-complication-for-u-s-investors">The tax complication for U.S. investors</h2>
+<p>TIPS introduce a tax issue that is particularly important in taxable brokerage accounts.</p>
+<p>Under U.S. federal tax rules, an increase in a TIPS security's inflation-adjusted principal can generally create taxable income for a holder before that principal increase is actually received in cash.</p>
+<p>In other words, an investor may owe federal income tax on an inflation adjustment even though the corresponding increase in principal remains invested in the security.</p>
+<p>This effect is sometimes described informally as phantom income.</p>
+<p>Interest and inflation adjustments on TIPS are generally subject to federal income tax, while Treasury interest receives favorable treatment under state and local income-tax rules.</p>
+<p>The precise tax consequences depend on the holder's circumstances and the security's acquisition details.</p>
+<p>For investors evaluating TIPS in taxable accounts, the timing of tax liabilities deserves as much attention as the advertised real yield.</p>
+<h2 id="when-conventional-treasuries-and-tips-behave-differently">When conventional Treasuries and TIPS behave differently</h2>
+<p>A conventional Treasury offers predictable nominal contractual payments. For someone comparing future cash flows in dollars, that structure is relatively straightforward.</p>
+<p>A TIPS security offers cash flows that change according to the inflation adjustment. Its nominal payments are less predictable, but the structure is designed to provide protection against changes in the general price level.</p>
+<p>Neither structure is universally superior.</p>
+<p>If inflation turns out unexpectedly low, the premium associated with inflation protection may make conventional Treasuries more rewarding.</p>
+<p>If inflation rises substantially beyond market expectations, TIPS may offer a relative advantage.</p>
+<p>The outcome also depends on purchase price, duration, the realized path of inflation and whether the security is held to maturity.</p>
+<h2 id="a-meaningful-comparison-begins-with-matching-maturities">A meaningful comparison begins with matching maturities</h2>
+<p>It makes little sense to compare the nominal yield of a short Treasury bill with the real yield of a 30-year TIPS without accounting for duration.</p>
+<p>A more informative approach is to compare securities with similar remaining maturities and understand how their sensitivity to interest rates differs.</p>
+<p>A five-year conventional Treasury and a five-year TIPS provide a useful conceptual pairing, although their precise durations and cash-flow structures may still differ.</p>
+<p>The analysis becomes especially useful when inflation expectations change, because prices reflect not only the level of inflation but also how future inflation compares with what markets previously anticipated.</p>
+<h2 id="understanding-the-broader-bond-market">Understanding the broader bond market</h2>
+<p>TIPS illustrate a wider lesson about fixed-income investing: a single yield figure never tells the complete story.</p>
+<p>Nominal yield, real yield, duration and inflation exposure measure different aspects of a financial instrument.</p>
+<p>10BONDS applies a comparable analytical approach to euro-denominated government and corporate bonds, helping users explore securities by duration and yield while examining their credit-risk characteristics.</p>
+<p>The current bond finder does not claim to offer a dedicated TIPS comparison service. Its value lies in making fixed-income comparisons more transparent.</p>
+<p><a class="cta" href="/">Explore government and corporate bond comparisons on 10BONDS.</a></p>
+<h3 id="sources-and-further-reading">Sources and further reading</h3>
+<ul>
+<li>U.S. Treasury — Treasury Inflation-Protected Securities: <a href="https://www.treasurydirect.gov/marketable-securities/tips/">https://www.treasurydirect.gov/marketable-securities/tips/</a></li>
+<li>U.S. Treasury — Inflation-Protected Securities Regulations: <a href="https://www.treasurydirect.gov/laws-and-regulations/auction-regulations-uoc/inflation-protected-securities/">https://www.treasurydirect.gov/laws-and-regulations/auction-regulations-uoc/inflation-protected-securities/</a></li>
+<li>Internal Revenue Service — Publication 550: <a href="https://www.irs.gov/publications/p550">https://www.irs.gov/publications/p550</a></li>
+</ul>
+<p><em>This material is educational. Hypothetical yield and inflation assumptions are not current market quotations or investment recommendations.</em></p>
+`,
+  },
+  {
+    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    slug: "municipal-bonds-vs-treasuries",
+    group: "us-municipal-vs-treasuries",
+    section: "government",
+    title: "Municipal Bonds vs. Treasury Bonds: Why the Highest Yield May Not Be the Best Comparison",
+    seoTitle: "Municipal Bonds vs. Treasuries: Taxes and Yields",
+    metaDescription: "Are municipal bonds better than Treasuries after taxes? Understand tax-equivalent yield, municipal credit risk and costs with practical examples.",
+    primaryKeyword: "municipal bonds vs treasury bonds",
+    published: "2026-10-19",
+    bodyHtml: `
+<p><em>For American bond investors, taxes can change the economics of a trade. A municipal bond yielding less than a Treasury may produce more spendable income, depending on the investor's circumstances.</em></p>
+<p>Imagine comparing two bonds with similar maturities. A U.S. Treasury yields 4.2%, while a municipal bond yields 3.2%.</p>
+<p>The Treasury appears more attractive. Its stated yield is a full percentage point higher, and its credit is backed by the U.S. government.</p>
+<p>But an investor who pays a relatively high marginal federal income-tax rate may reach a different conclusion after taxes.</p>
+<p>If the municipal bond's interest is exempt from federal income tax, its lower stated yield can translate into a higher after-tax income stream.</p>
+<p>That is one reason the municipal bond market occupies a distinctive place in American fixed-income investing.</p>
+<p>Unlike conventional <a href="/knowledge/corporate-bonds-vs-treasuries">corporate bond comparisons</a>, the central question is not only how much income the security generates, but how much of that income the investor keeps.</p>
+<h2 id="what-are-municipal-bonds">What are municipal bonds?</h2>
+<p>Municipal bonds are debt securities issued by state and local governments and by certain public authorities or related entities.</p>
+<p>Their proceeds may finance infrastructure, transportation, schools, water systems and other public purposes. Some municipal bonds support the general financial obligations of a government, while others depend on revenue generated by a particular facility or project.</p>
+<p>This distinction is important.</p>
+<p>A general obligation bond may be supported by specified taxing powers or other general resources of the issuer. A revenue bond may rely primarily on the revenue produced by the financed project, subject to its governing documents.</p>
+<p>The two securities can have different credit characteristics even when issued within the same jurisdiction.</p>
+<p>Municipal bonds may pay fixed or variable interest, and their terms can include call provisions, sinking funds or other features affecting the timing of principal repayment.</p>
+<p>For investors, the legal security behind the debt is at least as important as the identity of the issuing municipality.</p>
+<h2 id="why-municipal-bond-yields-are-often-lower">Why municipal bond yields are often lower</h2>
+<p>Many municipal bonds benefit from favorable federal income-tax treatment.</p>
+<p>Under the applicable U.S. tax rules, interest on qualifying state and local government obligations is generally excluded from federal gross income.</p>
+<p>That benefit changes the market price investors are willing to pay.</p>
+<p>A taxpayer facing a high marginal federal income-tax rate may accept a lower nominal yield on a tax-exempt municipal bond because the income received is not reduced by federal income tax in the same way as taxable interest.</p>
+<p>Investors in lower tax brackets may find the tax advantage less economically significant.</p>
+<p>The relevant comparison therefore depends partly on the investor's tax circumstances.</p>
+<p>However, not every municipal security is tax-exempt. Certain municipal issues produce taxable interest, and some bonds may have additional federal or state tax consequences.</p>
+<p>The bond's tax status must be verified from its official documents rather than inferred from its name.</p>
+<h2 id="tax-equivalent-yield-a-more-useful-comparison">Tax-equivalent yield: a more useful comparison</h2>
+<p>Tax-equivalent yield translates the interest rate on a tax-exempt bond into the yield a fully taxable security would need to offer to produce equivalent after-tax income, under simplified assumptions.</p>
+<p>The formula is:</p>
+<p><strong>Tax-equivalent yield = Tax-exempt yield ÷ (1 − Marginal tax rate)</strong></p>
+<p>Suppose a qualifying municipal bond yields 3.2% and the investor faces a 32% federal marginal tax rate.</p>
+<p>Its simplified federal tax-equivalent yield is:</p>
+<p><strong>3.2% ÷ (1 − 0.32) = 4.71%</strong></p>
+<p>Under these assumptions, a fully federally taxable bond would need to yield approximately 4.71% to provide the same after-federal-tax income.</p>
+<p>A Treasury yielding 4.2% would produce approximately 2.86% after a 32% federal income tax, while the qualifying municipal bond would retain its 3.2% federally tax-exempt yield.</p>
+<table>
+<thead><tr><th>Hypothetical investment</th><th>Yield before federal tax</th><th>Yield after 32% federal tax</th></tr></thead>
+<tbody>
+<tr><td>U.S. Treasury</td><td>4.20%</td><td>2.86%</td></tr>
+<tr><td>Qualifying tax-exempt municipal bond</td><td>3.20%</td><td>3.20%</td></tr>
+</tbody>
+</table>
+<p>In this simplified example, the municipal bond produces a higher after-federal-tax yield.</p>
+<p>That calculation does not establish which security is preferable overall. It leaves out credit differences, state taxes, transaction costs and possible changes in the investor's tax circumstances.</p>
+<h2 id="state-taxes-make-the-calculation-more-complicated">State taxes make the calculation more complicated</h2>
+<p>Treasury interest is generally exempt from state and local income taxes, even though it is subject to federal income tax.</p>
+<p>Municipal bond tax treatment varies.</p>
+<p>In many circumstances, interest on municipal bonds issued within the investor's state of residence may receive favorable state income-tax treatment. Interest on obligations issued by other states may not receive the same exemption.</p>
+<p>For a resident of a state with substantial income taxes, these differences can influence the after-tax comparison.</p>
+<p>An investor comparing a home-state municipal bond with a Treasury therefore needs to examine the relevant federal and state rules, not merely apply one national tax rate.</p>
+<p>Some municipal bonds may also have alternative minimum tax implications, depending on the nature of the issue and the applicable tax law.</p>
+<p>This makes tax-equivalent yield a useful starting point rather than a complete answer.</p>
+<h2 id="municipal-credit-risk-is-not-the-same-as-treasury-credit-risk">Municipal credit risk is not the same as Treasury credit risk</h2>
+<p>The tax advantage of municipal bonds does not eliminate their credit risk.</p>
+<p>Municipal issuers have different revenue sources, financial obligations, debt burdens and legal protections.</p>
+<p>A financially strong municipality with diversified revenues is not economically identical to a single-purpose authority dependent on one revenue-generating facility.</p>
+<p>A municipal bond's security may involve taxes, fees, utility revenues, project cash flows or other legally specified sources.</p>
+<p>Credit ratings can help organize this information, but they do not substitute for understanding the issuer's financial condition and the structure of the obligation.</p>
+<p><a href="/knowledge/treasury-bills-notes-bonds">U.S. Treasury securities</a>, by contrast, are backed by the federal government's full faith and credit.</p>
+<p>Even when two securities have similar yields and duration, their credit risks should not be assumed to be equivalent.</p>
+<h2 id="trading-costs-can-be-overlooked">Trading costs can be overlooked</h2>
+<p>Individual municipal bonds may trade relatively infrequently.</p>
+<p>Unlike widely traded benchmark Treasury securities, certain municipal issues can have limited secondary-market activity.</p>
+<p>That affects the price an investor can obtain when buying or selling.</p>
+<p>A quoted municipal yield may therefore not correspond exactly to the yield available to a retail investor executing a particular trade.</p>
+<p>Dealer markups, markdowns and the difference between bid and ask prices can materially affect returns, especially for smaller transactions.</p>
+<p>The relationship between tax savings and transaction costs deserves attention. A small annual tax advantage can lose much of its value when acquisition or sale expenses are unusually high.</p>
+<p>The sensible comparison is therefore between executable prices and net cash flows, rather than headline yields viewed in isolation.</p>
+<h2 id="duration-and-call-provisions-matter-too">Duration and call provisions matter too</h2>
+<p>Municipal bonds are exposed to changes in market interest rates, just like Treasury and corporate bonds.</p>
+<p>When required yields rise, the market prices of existing fixed-rate securities generally decline.</p>
+<p>Duration measures the approximate sensitivity of those prices to changes in yields.</p>
+<p>Some municipal bonds are also callable, allowing the issuer to redeem the securities before their stated maturity.</p>
+<p>That option can become particularly relevant when interest rates fall. The issuer may choose to refinance existing debt, potentially shortening the investor's period of receiving the original coupon.</p>
+<p>For callable bonds, yield to maturity alone can be insufficient. Yield to call and yield to worst may provide more useful additional information.</p>
+<p>A high coupon is not automatically an attractive feature if the bond is trading at a premium and could be redeemed early.</p>
+<h2 id="what-should-a-fair-comparison-include">What should a fair comparison include?</h2>
+<p>Consider a municipal bond and a Treasury security with approximately five years remaining until maturity.</p>
+<p>Start with their yields and after-tax treatment. Then examine duration, credit risk, liquidity and any embedded call options.</p>
+<p>Only when those differences are visible can the extra income offered by one security be interpreted meaningfully.</p>
+<p>An investor subject to a low marginal federal tax rate may see relatively little value in municipal tax exemptions. Another investor facing a much higher rate may find the after-tax yield comparison considerably different.</p>
+<p>That is why simplified claims that municipal bonds are better or worse than Treasuries miss the central economic point.</p>
+<p>The tax-equivalent calculation measures one dimension of value. The credit, maturity and liquidity analysis measures others.</p>
+<h2 id="putting-bond-yields-in-context">Putting bond yields in context</h2>
+<p>Municipal bonds illustrate a broader principle: the most informative bond comparison is rarely the one based on the highest advertised yield.</p>
+<p>10BONDS focuses on making bond characteristics easier to compare. Its current bond finder covers euro-denominated government and corporate bonds, presenting a shortlist based on the duration and target yield selected by the user.</p>
+<p>Although the platform does not currently offer a dedicated U.S. municipal bond database, its comparative approach reflects the same underlying principle: yield should be evaluated in the context of risk, maturity and market conditions.</p>
+<p><a class="cta" href="/">Explore bond comparisons on 10BONDS.</a></p>
+<h3 id="sources-and-further-reading">Sources and further reading</h3>
+<ul>
+<li>IRS — Publication 550, Investment Income and Expenses: <a href="https://www.irs.gov/publications/p550">https://www.irs.gov/publications/p550</a></li>
+<li>SEC Investor.gov — Bonds and Fixed-Income Securities: <a href="https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products">https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products</a></li>
+<li>Municipal Securities Rulemaking Board: <a href="https://www.msrb.org/">https://www.msrb.org/</a></li>
+<li>EMMA Municipal Securities Disclosure Platform: <a href="https://emma.msrb.org/">https://emma.msrb.org/</a></li>
+</ul>
+<p><em>This article provides general educational information. Tax examples are simplified, and actual treatment depends on applicable laws and the investor's circumstances. No particular security is recommended.</em></p>
 `,
   },
 ];
