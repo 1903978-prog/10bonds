@@ -1,36 +1,60 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KC_EN, KC_ORDER, KC_TEXT } from "@/lib/seo/knowledgeHub";
-import { LOCALE, LOCALES, pathOf } from "@/lib/seo/locales";
+import { isPublished as brokersPublished } from "@/components/brokers/Pages";
+import { JsonLd } from "@/components/seo/Seo";
+import { sectionPath } from "@/lib/brokers/content";
+import { SITE_URL } from "@/lib/seo/crawl";
+import { EN_GUIDES } from "@/lib/seo/guidesEn";
+import { KC_ORDER } from "@/lib/seo/knowledgeHub";
+import { CALCULATOR_EN, enPath, hubLangs, KC_TEXT_EN, withEnglish } from "@/lib/seo/knowledgeEn";
+import { LOCALES } from "@/lib/seo/locales";
+import type { KcSection } from "@/lib/seo/knowledge";
 
-// The international entry to the Knowledge Center: the content is written for Italy, France and Germany, so this
-// page sends visitors to the language they read. Nothing redirects.
+// The English Knowledge Center. Same six sections as /it/sapere, /fr/savoir and /de/wissen, all in English.
+
+export const dynamic = "force-dynamic";
+
+const k = KC_TEXT_EN;
 
 export const metadata: Metadata = {
-  title: "Knowledge Center · 10BONDS",
-  description: "Bond guides, live comparisons, yield calculators and broker fees, in Italian, French and German.",
-  alternates: { canonical: "/knowledge", languages: { ...Object.fromEntries(LOCALES.map((l) => [LOCALE[l].hreflang, pathOf(l, "knowledge")])), "x-default": "/knowledge" } },
+  title: { absolute: k.title },
+  description: k.description,
+  alternates: withEnglish(enPath(), enPath(), hubLangs()),
+  openGraph: { locale: "en_GB", title: k.title, description: k.description },
 };
 
-export default function KnowledgePage() {
+type Item = { title: string; href: string };
+
+export default async function KnowledgePage() {
+  const items = Object.fromEntries(KC_ORDER.map((s) => [s, [] as Item[]])) as Record<KcSection, Item[]>;
+  for (const g of EN_GUIDES) items[g.section].push({ title: g.title, href: enPath(g.slug) });
+  items.best.push({ title: k.finder, href: "/" });
+  items.calculators.push({ title: CALCULATOR_EN.h1, href: enPath(CALCULATOR_EN.slug) });
+  const published = await Promise.all(LOCALES.map((l) => brokersPublished(l).catch(() => false)));
+  LOCALES.forEach((l, i) => published[i] && items.brokers.push({ title: k.brokersIn[l], href: sectionPath(l) }));
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-[34px] font-semibold leading-tight tracking-tight">Knowledge Center</h1>
-      <p className="mt-3 text-[17px] text-mute">Live bond comparisons, yield calculators, broker fees and plain-language guides. Pick your language.</p>
-      <ul className="mt-8 grid gap-3 sm:grid-cols-3">
-        {LOCALES.map((l) => (
-          <li key={l}>
-            <Link href={pathOf(l, "knowledge")} hrefLang={LOCALE[l].hreflang} className="block h-full rounded-[20px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] hover:text-accent">
-              <span className="block text-lg font-semibold">{LOCALE[l].name}</span>
-              <span className="mt-1 block text-sm text-mute">{KC_TEXT[l].h1}</span>
-            </Link>
-          </li>
+      <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{k.h1}</h1>
+      <p className="mt-3 text-[17px] text-mute">{k.lead}</p>
+      <div className="mt-8 space-y-6">
+        {KC_ORDER.map((sec) => (
+          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+            <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
+            <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
+            {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {items[sec].map((i) => (
+                  <li key={i.href}>
+                    <Link href={i.href} className="block h-full rounded-2xl bg-canvas px-4 py-3 text-[15px] font-medium hover:text-accent">{i.title}</Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         ))}
-      </ul>
-      <h2 className="mt-10 text-[22px] font-semibold tracking-tight">What you'll find</h2>
-      <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-        {KC_ORDER.map((s) => <li key={s} className="rounded-2xl bg-white px-4 py-3 text-[15px]">{KC_EN[s]}</li>)}
-      </ul>
+      </div>
+      <p className="mt-8 text-xs leading-relaxed text-mute">Information and education only, not investment advice or an offer to buy or sell. Yields are gross and indicative and can change. Bonds can lose value and issuers can default.</p>
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "CollectionPage", name: k.h1, inLanguage: "en", url: SITE_URL + enPath(), hasPart: Object.values(items).flat().map((i) => ({ "@type": "WebPage", name: i.title, url: SITE_URL + i.href })) }} />
     </div>
   );
 }
