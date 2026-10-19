@@ -173,6 +173,18 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       values (${g.locale}, ${g.slug}, ${g.group ?? g.topic}, ${g.title}, ${g.seoTitle}, ${g.metaDescription}, ${g.primaryKeyword}, ${g.relatedKeywords}, ${g.bodyHtml}, ${g.relatedSlugs}, ${g.status ?? "review"})
       on conflict (locale, slug) do nothing`;
   }
+  // Livio asked on 2026-10-19 for the guides written from his material to go public. Runs once (marker in
+  // app.settings), so a guide he later moves back to review stays there. Outlines and translated drafts are untouched.
+  await s`create table if not exists app.settings (key text primary key, value text not null, updated_at timestamptz not null default now())`;
+  const [marker] = await s`insert into app.settings (key, value) values ('seo_seed_guides_published', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (marker) {
+    const seedReview = SEED_GUIDES.filter((g) => (g.status ?? "review") === "review");
+    for (const g of seedReview) {
+      const [row] = await s`update app.seo_guides set status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
+        where locale = ${g.locale} and slug = ${g.slug} and status = 'review' and not machine_translated returning id`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at Livio's request (19 Oct 2026)."})`;
+    }
+  }
   for (const k of SEED_KEYWORDS) {
     // New keywords go in whole; for existing ones only empty fields are filled, so admin edits are never overwritten.
     await s`insert into app.seo_keywords (market, keyword, intent, landing_path, kc_section, potential, volume, volume_source, verified_at)

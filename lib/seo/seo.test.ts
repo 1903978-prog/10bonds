@@ -285,3 +285,15 @@ describe("broker pages link", () => {
     for (const w of FIRST_WAVE.filter((x) => x.kind === "broker")) expect(w.path).toBe(sectionPath(w.market));
   });
 });
+
+describe("Knowledge Center sections", () => {
+  it("files first-wave guides where the plan puts them and others by topic", async () => {
+    const { guideSection, comparisonSection } = await import("./knowledgeHub");
+    expect(guideSection({ locale: "fr", slug: "acheter-des-oat", primaryKeyword: "acheter des oat" })).toBe("government");
+    expect(guideSection({ locale: "it", slug: "cosa-e-il-rating", primaryKeyword: "rating obbligazioni" })).toBe("risk");
+    expect(guideSection({ locale: "de", slug: "was-ist-eine-anleihe", primaryKeyword: "was ist eine anleihe" })).toBe("academy");
+    expect(comparisonSection("gov-it")).toBe("government");
+    expect(comparisonSection("maturity-2031")).toBe("best");
+    expect(comparisonSection("high-yield")).toBe("risk");
+  });
+});

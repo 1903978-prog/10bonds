@@ -18,11 +18,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ pages, asOf, source }, guides, brokers] = await Promise.all([comparisonPages(), publishedGuides(), loadPublicData()]);
   const out: MetadataRoute.Sitemap = [
     { url: SITE_URL + "/", changeFrequency: "daily", priority: 1, alternates: { languages: { ...langs((l) => `/${l}`), "x-default": SITE_URL + "/" } } },
-    ...["/pricing", "/disclaimer", "/terms"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
+    ...["/knowledge", "/pricing", "/disclaimer", "/terms"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
   ];
   for (const l of LOCALES) {
     out.push({ url: `${SITE_URL}/${l}`, changeFrequency: "daily", priority: 1, alternates: { languages: langs((x) => `/${x}`) } });
-    for (const s of ["guides", "bonds", "tools", "method", "team"] as Section[]) {
+    for (const s of ["knowledge", "guides", "bonds", "tools", "method", "team"] as Section[]) {
       out.push({ url: SITE_URL + pathOf(l, s), changeFrequency: s === "bonds" ? "daily" : "weekly", priority: 0.7, alternates: { languages: langs((x) => pathOf(x, s)) } });
     }
     out.push({ url: SITE_URL + pathOf(l, "tools", CALCULATORS[l].slug), changeFrequency: "monthly", priority: 0.8, alternates: { languages: langs((x) => pathOf(x, "tools", CALCULATORS[x].slug)) } });
