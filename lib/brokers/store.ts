@@ -250,3 +250,6 @@ export async function brokerTraffic() {
   ]);
   return { pages: pages.map((p) => ({ path: p.path, n: Number(p.n) })), clicks: clicks.map((c) => ({ label: c.label, n: Number(c.n) })) };
 }
+
+/** Creates the broker tables if needed (used by the schema check in lib/schema.db.test.ts). */
+export const brokerTablesReady = () => db().then(() => undefined);

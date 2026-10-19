@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BrokerProfile, Country, Methodology, TariffData } from "@/lib/brokers/types";
@@ -74,7 +75,7 @@ export default function BrokerAdmin() {
       <div>
         <h1 className="text-[32px] font-semibold tracking-tight">Broker management</h1>
         <p className="text-sm text-mute">
-          Knowledge Management · <a href="/admin" className="text-accent">Admin</a> · Changes are drafts until you approve them.
+          Knowledge Management · <Link href="/admin" className="text-accent">Admin</Link> · Changes are drafts until you approve them.
         </p>
       </div>
 

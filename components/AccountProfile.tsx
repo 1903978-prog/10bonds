@@ -148,6 +148,8 @@ export default function AccountProfile(p: Props) {
         <p className="mt-1 text-sm text-mute">
           Your rights under the GDPR are explained in the <Link href="/privacy" className="text-accent">privacy policy</Link>.
         </p>
+        {/* A file download from an API route, not a page: a plain link is right here. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/api/account/export" data-testid="profile-export" className="mt-4 block w-full rounded-full bg-canvas px-5 py-3 text-center text-[15px] font-medium text-ink">
           Download my data
         </a>

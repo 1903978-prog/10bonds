@@ -1,5 +1,6 @@
 # One-click rollback: Actions > "Roll back to the previous release" > Run workflow.
 # Puts the image of the release before the current one back on Fly. Nothing is rebuilt and no data is touched.
+# The deploy workflow runs the same script by itself when the checks after a deploy fail.
 name: Roll back to the previous release
 on:
   workflow_dispatch:
@@ -11,19 +12,9 @@ jobs:
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Find the previous image
-        run: |
-          image=$(flyctl releases -a 10bonds --image --json | jq -r '[.[] | select(.Status == "complete" or .Status == "succeeded")][1].ImageRef // empty')
-          if [ -z "$image" ]; then echo "No earlier release found."; exit 1; fi
-          echo "Rolling back to $image"
-          echo "IMAGE=$image" >> "$GITHUB_ENV"
-      - name: Deploy the previous image
-        run: flyctl deploy -a 10bonds --image "$IMAGE" --ha=false
-      - name: Wait for the site to answer
-        run: |
-          for i in $(seq 1 20); do
-            curl -fsS -o /dev/null https://10bonds.fly.dev/api/health && exit 0
-            sleep 6
-          done
-          exit 1
+      - uses: actions/checkout@v4
+      # Pinned: the same tool version every run, changed on purpose only.
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
+        with:
+          version: 0.4.118
+      - run: bash scripts/fly-rollback.sh

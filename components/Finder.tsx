@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
-import { LIMITS, riskLevel } from "@/lib/limits";
+import { LIMITS } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
@@ -12,6 +12,7 @@ import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
 import { fmtMin } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
+import { ageDays, isStale } from "@/lib/dataHealth";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -249,6 +250,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {!limit && <QuotaNote quota={data?.quota} />}
         </div>
 
+        {data?.source === "live" && isStale(data.asOf) && (
+          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status" data-testid="yields-stale">
+            {t.stale(ageDays(data.asOf) ?? 0)}
+          </p>
+        )}
         <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="yields-date">
           {data?.asOf ? `${t.asOf} ${plainDate(data.asOf, lang)}. ` : ""}{t.gross}
         </p>

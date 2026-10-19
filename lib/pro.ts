@@ -109,3 +109,6 @@ export async function proAccess(user: User): Promise<ProAccess> {
   if (status !== "approved") return status;
   return user.storedPlan === "pro" ? "active" : "needs-plan";
 }
+
+/** Creates the table if needed (used by the schema check in lib/schema.db.test.ts). */
+export const proTableReady = () => sql().then(() => undefined);

@@ -1,0 +1,50 @@
+name: Nightly accounts backup
+# Every night: copy the accounts database (schema "app": accounts, plans, codes, stats, guides) out of Neon,
+# encrypt it, restore that encrypted copy into an empty database and check every table came back.
+# The encrypted file is kept 30 days under this run's Artifacts. A red run means no good backup tonight.
+# Key: secret BACKUP_KEY if set, otherwise the accounts database secret itself (whoever can open the backup could
+# already open the database). Restore steps: docs/OPERATIONS.md > Backups.
+on:
+  schedule:
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+concurrency: backup
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      restore:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: restore-test
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BACKUP_KEY: ${{ secrets.BACKUP_KEY || secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop if the accounts database is not connected
+        run: |
+          if [ -z "$ACCOUNTS_DATABASE_URL" ]; then echo "No ACCOUNTS_DATABASE_URL secret: nothing to back up."; exit 1; fi
+      - name: Back up and test the restore
+        run: |
+          export SOURCE_URL="$(node scripts/accounts-url.mjs)"
+          echo "::add-mask::$SOURCE_URL"
+          export RESTORE_URL="postgres://postgres:restore-test@localhost:5432/postgres"
+          export PG_RUN="docker run --rm -i --network host postgres:18"
+          export OUT="accounts-$(date -u +%Y-%m-%d).dump.enc"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+          bash scripts/backup-accounts.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: accounts-backup-${{ github.run_id }}
+          path: |
+            ${{ env.OUT }}
+            ${{ env.OUT }}.sha256
+          retention-days: 30
+          if-no-files-found: error

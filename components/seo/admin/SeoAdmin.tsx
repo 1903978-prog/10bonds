@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useState } from "react";
 import type { SeoMarket } from "@/lib/seo/input";
@@ -53,7 +54,7 @@ export default function SeoAdmin() {
       <div>
         <h1 className="text-[32px] font-semibold tracking-tight">SEO Management</h1>
         <p className="mt-1 text-sm text-mute">
-          Only you can see this page. · <a href="/admin" className="text-accent">Back to Admin</a>
+          Only you can see this page. · <Link href="/admin" className="text-accent">Back to Admin</Link>
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2 rounded-[20px] bg-white px-4 py-3" aria-label="Reports">

@@ -42,3 +42,10 @@ html.no-copy input, html.no-copy textarea, html.no-copy select, html.no-copy [co
     transform: translateX(-50%);
   }
 }
+
+/* Links inside running text are underlined, not only coloured, so they stand out without relying on colour (WCAG 1.4.1). */
+p a.text-accent:not([class*="rounded"]), li a.text-accent:not([class*="rounded"]) {
+  text-decoration-line: underline;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 2px;
+}

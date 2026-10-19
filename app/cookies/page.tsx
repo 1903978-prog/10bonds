@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import LegalDraft from "@/components/LegalDraft";
 import { UsageStatsSetting } from "@/components/UsageStats";
 import { COMPANY } from "@/lib/legal";
 
@@ -19,7 +18,6 @@ export default function Cookies() {
     <article className="mx-auto max-w-3xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="cookies-page">
       <h1 className="text-3xl font-semibold tracking-tight">Cookie policy</h1>
       <p className="mt-2 text-mute">Which cookies and similar storage 10BONDS uses, and how to change your choice.</p>
-      <LegalDraft />
       <h2 className="mt-8 text-lg font-semibold">Categories</h2>
       <ul className="mt-2 list-disc space-y-1.5 pl-5">
         <li><strong>Necessary:</strong> needed for the site to work, such as signing in. Always on; no consent is needed (ePrivacy Directive art. 5(3)).</li>
@@ -28,7 +26,7 @@ export default function Cookies() {
         <li><strong>Marketing:</strong> none are used today.</li>
       </ul>
       <h2 className="mt-8 text-lg font-semibold">What we use</h2>
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 overflow-x-auto" tabIndex={0} role="region" aria-label="Table (scrolls sideways on small screens)">
         <table className="w-full min-w-[560px] text-left text-sm" data-testid="cookie-table">
           <thead><tr><th className="px-3 py-2">Name</th><th className="px-3 py-2">Type</th><th className="px-3 py-2">Category</th><th className="px-3 py-2">Purpose</th><th className="px-3 py-2">Kept</th></tr></thead>
           <tbody>

@@ -1,6 +1,7 @@
 import type { NextResponse } from "next/server";
 import { accountsSql, type User } from "./accounts";
 import { readToken, signToken } from "./session";
+import { open, seal, isSealed } from "./secretBox";
 import { hashBackup, matchCode, newBackupCodes, newSecret, otpauthUrl } from "./totp";
 
 // Two-factor login for the admin account: password, then a 6-digit code from an authenticator app (or a backup code).
@@ -30,7 +31,7 @@ export function adminStateOf(user: User, mfaCookie: string | undefined): User["a
 export async function startSetup(user: User): Promise<{ secret: string; url: string }> {
   const secret = newSecret();
   const sql = await accountsSql();
-  await sql`update app.users set totp_pending_secret = ${secret} where id = ${user.id} and totp_enabled_at is null`;
+  await sql`update app.users set totp_pending_secret = ${seal(secret)} where id = ${user.id} and totp_enabled_at is null`;
   return { secret, url: otpauthUrl(secret, user.email) };
 }
 
@@ -39,13 +40,14 @@ export async function confirmSetup(userId: number, code: string, now = Date.now(
   const sql = await accountsSql();
   const [row] = await sql<{ totp_pending_secret: string | null }[]>`
     select totp_pending_secret from app.users where id = ${userId} and totp_enabled_at is null`;
-  const secret = row?.totp_pending_secret;
-  if (!secret) return null;
+  const stored = row?.totp_pending_secret;
+  const secret = stored ? open(stored) : null;
+  if (!stored || !secret) return null;
   const step = matchCode(secret, code, now);
   if (step === null) return null;
   const { codes, hashes } = newBackupCodes();
-  const r = await sql`update app.users set totp_secret = ${secret}, totp_pending_secret = null, totp_backup = ${JSON.stringify(hashes)},
-    totp_last_step = ${step}, totp_enabled_at = now() where id = ${userId} and totp_enabled_at is null and totp_pending_secret = ${secret}`;
+  const r = await sql`update app.users set totp_secret = ${seal(secret)}, totp_pending_secret = null, totp_backup = ${JSON.stringify(hashes)},
+    totp_last_step = ${step}, totp_enabled_at = now() where id = ${userId} and totp_enabled_at is null and totp_pending_secret = ${stored}`;
   return r.count === 1 ? codes : null;
 }
 
@@ -58,9 +60,14 @@ export async function verifySecondFactor(userId: number, input: string, now = Da
   const code = input.trim();
   if (/^\d{3}\s?\d{3}$/.test(code)) {
     const last = row.totp_last_step === null ? -1 : Number(row.totp_last_step);
-    const step = matchCode(row.totp_secret, code, now, last);
+    const secret = open(row.totp_secret);
+    if (!secret) return false;
+    const step = matchCode(secret, code, now, last);
     if (step === null) return false;
-    const r = await sql`update app.users set totp_last_step = ${step} where id = ${userId} and coalesce(totp_last_step, -1) < ${step}`;
+    // A key saved before encryption existed is sealed on its first successful use.
+    const r = isSealed(row.totp_secret)
+      ? await sql`update app.users set totp_last_step = ${step} where id = ${userId} and coalesce(totp_last_step, -1) < ${step}`
+      : await sql`update app.users set totp_last_step = ${step}, totp_secret = ${seal(secret)} where id = ${userId} and coalesce(totp_last_step, -1) < ${step}`;
     return r.count === 1;
   }
   const hashes: string[] = JSON.parse(row.totp_backup ?? "[]");

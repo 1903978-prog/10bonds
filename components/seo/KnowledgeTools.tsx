@@ -33,14 +33,14 @@ export default async function KnowledgeTools({ locale, defaultHref, tools }: { l
   return (
     <section aria-label={t.tools} className="mt-6">
       <h2 className="sr-only">{t.tools}</h2>
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-6 lg:grid-cols-5 [&>*]:min-w-0">
         <div className="lg:col-span-3 [&>section:first-child]:mt-0">
           <YieldCurveChart locale={locale} text={{ ...CURVE_TEXT[locale], chartTitle: t.curve }} curves={curves} initial={DEFAULT_COUNTRIES} />
           <p className="mt-2 text-right text-sm"><Link href={curvePath(locale)} className="text-accent">{t.fullCurve} ›</Link></p>
         </div>
         <div className={`${card} lg:col-span-2 lg:self-start`}>
           <h3 className="text-[18px] font-semibold">{t.def}</h3>
-          <div className="mt-3 overflow-x-auto">
+          <div className="mt-3 overflow-x-auto" tabIndex={0} role="region" aria-label={t.def}>
             <table className="w-full text-[14px]">
               <thead>
                 <tr className="text-left text-mute">

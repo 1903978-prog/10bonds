@@ -1,0 +1,47 @@
+name: Checks
+# Runs on every pull request and before every deploy (deploy.yml calls it). Nothing reaches the live site unless
+# all of these pass: types, lint, unit tests, the tracked database design on a real Postgres, and a browser check
+# of the public pages on desktop and phone (sample data, no secrets needed).
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      TEST_ACCOUNTS_DATABASE_URL: postgres://postgres:ci@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests and database design (docs/database-schema.txt)
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Browser check of the public pages (desktop and phone)
+        run: |
+          cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
+          (cd .next/standalone && PORT=3311 HOSTNAME=127.0.0.1 ALLOW_SAMPLE_DATA=1 NODE_ENV=production node server.js > ../../server.log 2>&1 &)
+          for i in $(seq 1 30); do curl -fsS -o /dev/null http://127.0.0.1:3311/api/health && break; sleep 1; done
+          BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/page-check.mjs
+      - name: Server log (on failure)
+        if: failure()
+        run: tail -100 server.log || true

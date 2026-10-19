@@ -58,7 +58,7 @@ function Crumbs({ t, items }: { t: CountryContent; items: { name: string; href: 
 }
 
 function Preview({ t, on }: { t: CountryContent; on: boolean }) {
-  return on ? <p className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.ui.draftBanner} <a href="/admin/brokers" className="underline">Admin</a></p> : null;
+  return on ? <p className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.ui.draftBanner} <Link href="/admin/brokers" className="underline">Admin</Link></p> : null;
 }
 
 function Markets({ t, here }: { t: CountryContent; here: Country }) {
