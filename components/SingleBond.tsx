@@ -8,7 +8,7 @@ import type { Tier } from "@/lib/types";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
 import { downloadXlsx } from "@/lib/xlsx";
-import { fmtMin } from "@/lib/fmtMin";
+import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import { dropDominated } from "@/lib/curveFilter";
 
 type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
@@ -225,7 +225,7 @@ function BondBox(props: {
               downloadXlsx(
                 [
                   [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.risk, t.duration, `${t.coupon} %`, t.maturity, t.country, t.minInvest],
-                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.risk, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null, bond.minInvestment ?? null],
+                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.risk, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null, minForExcel(bond.minInvestment)],
                 ],
                 `10bonds-${bond.isin ?? "bond"}.xlsx`,
                 "Bond",

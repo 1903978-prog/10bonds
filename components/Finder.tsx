@@ -10,7 +10,7 @@ import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
-import { fmtMin } from "@/lib/fmtMin";
+import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
 
@@ -414,7 +414,7 @@ function Results({ data, paid, signedIn, currency }: { data: Response | null; pa
           data-testid="excel-download"
           onClick={() =>
             downloadXlsx(
-              [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk, r.minInvestment ?? null])],
+              [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk, minForExcel(r.minInvestment)])],
               "10bonds-top10.xlsx",
               "Top 10",
             )
