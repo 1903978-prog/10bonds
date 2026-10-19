@@ -1,0 +1,22 @@
+import { COMPANY } from "@/lib/legal";
+import { SITE_URL } from "@/lib/seo/crawl";
+
+// The one Organization block every page's structured data uses: name, logo and the legal entity behind the
+// site with its registered address (from lib/legal.ts, the same text as the privacy page). No social profiles
+// (`sameAs`) are listed because the site has none yet; add them here when they exist.
+export const ORGANIZATION = {
+  "@type": "Organization",
+  name: "10BONDS",
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon.svg`,
+  legalName: COMPANY.legalName,
+  email: COMPANY.privacyEmail,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Männimäe/1, Pudisoo küla",
+    addressLocality: "Kuusalu vald",
+    addressRegion: "Harju maakond",
+    postalCode: "74626",
+    addressCountry: "EE",
+  },
+} as const;

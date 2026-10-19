@@ -1,3 +1,4 @@
+import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -82,7 +83,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         {c.intro.map((p) => <p key={p} className="mt-3 text-[17px] text-mute">{p}</p>)}
         <CurveSection locale="en" text={c} />
         {risk}
-        <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + enPath(c.slug), inLanguage: "en", creator: { "@type": "Organization", name: "10BONDS", url: SITE_URL } }} />
+        <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + enPath(c.slug), inLanguage: "en", creator: ORGANIZATION }} />
       </div>
     );
   }
@@ -128,7 +129,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
       )}
       <p className="mt-6 text-sm"><Link href={enPath()} className="text-accent">{KC_TEXT_EN.h1} ›</Link></p>
       {risk}
-      <JsonLd data={{ "@context": "https://schema.org", "@type": "Article", headline: g.title, description: g.metaDescription, inLanguage: "en", mainEntityOfPage: url, url, ...(g.published ? { datePublished: g.published } : {}), author: { "@type": "Organization", name: "10BONDS", url: SITE_URL }, publisher: { "@type": "Organization", name: "10BONDS", url: SITE_URL }, keywords: g.primaryKeyword }} />
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "Article", headline: g.title, description: g.metaDescription, inLanguage: "en", mainEntityOfPage: url, url, ...(g.published ? { datePublished: g.published } : {}), author: ORGANIZATION, publisher: ORGANIZATION, keywords: g.primaryKeyword }} />
       {faq.length > 0 && <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />}
     </article>
   );

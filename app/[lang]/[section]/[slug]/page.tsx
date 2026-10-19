@@ -1,3 +1,4 @@
+import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -132,7 +133,7 @@ function CurvePage({ l }: { l: Locale }) {
       <CurveSection locale={l} text={c} />
       <ToolCta locale={l} />
       <RiskNote locale={l} />
-      <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + curvePath(l), inLanguage: LOCALE[l].hreflang, creator: { "@type": "Organization", name: "10BONDS", url: SITE_URL } }} />
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + curvePath(l), inLanguage: LOCALE[l].hreflang, creator: ORGANIZATION }} />
     </div>
   );
 }
@@ -250,7 +251,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
   const bondsBase = `href="/${l}/${LOCALE[l].seg.bonds}/`;
   const comps = [...new Set(g.bodyHtml.split(bondsBase).slice(1).map((s) => s.split('"')[0]))].map((s) => comparisonBySlug(l, s)).filter((d): d is ComparisonDef => !!d && live.some((p) => p.def.id === d.id)).slice(0, 4);
   const url = SITE_URL + pathOf(l, "guides", g.slug);
-  const org = { "@type": "Organization", name: "10BONDS", url: SITE_URL };
+  const org = ORGANIZATION;
   const team = pathOf(l, "team");
   return (
     <article className="mx-auto max-w-3xl">
