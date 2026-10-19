@@ -2,7 +2,7 @@
  * Terms of Use and Risk Disclosure that every user accepts before an account is created.
  * Changing the text means raising TERMS_VERSION, so each account records which version it accepted.
  */
-export const TERMS_VERSION = "2026-10-19.4";
+export const TERMS_VERSION = "2026-10-19.5";
 
 export type TermsSection = { title: string; paragraphs: string[] };
 
@@ -23,6 +23,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
       "Rankings, lists, \"top 10\" results, scores, averages and any other output are produced mechanically from data and your inputs. They do not take into account your personal circumstances, financial situation, knowledge and experience, investment objectives, time horizon, liquidity needs, tax position or tolerance for risk. A bond appearing in a list, or ranking highly, is not a statement that it is suitable, appropriate, safe, good value or likely to perform well for you or anyone else.",
       "No suitability or appropriateness assessment is performed under the EU Markets in Financial Instruments Directive (MiFID II, Directive 2014/65/EU), the UK Financial Services and Markets Act 2000, the US Investment Advisers Act of 1940, the US Securities Exchange Act of 1934, or any similar law anywhere in the world. You will not receive the protections that such laws give to clients of regulated firms.",
       "Before making any investment decision you should obtain independent advice from a professional who is properly licensed in your country and who knows your circumstances, and you should read the official offering documents (prospectus, base prospectus, final terms, key information document) for any instrument you consider.",
+      "The Service is not designed for trading. SQUARE ONE OÜ expresses no opinion on whether any investment is advisable or suitable, and the mention of any bond, issuer or financial product is not an endorsement of it. You should not use the Service as the only basis for any investment decision.",
     ],
   },
   {
@@ -45,8 +46,10 @@ export const TERMS_SECTIONS: TermsSection[] = [
     paragraphs: [
       "Prices, yields, yields to maturity, durations, coupons, maturity dates, risk scores, issuer names, country information and all other figures are indicative only. They come from third-party and public sources and from calculations that rely on assumptions. They may be delayed, stale, incomplete, approximate, rounded, estimated or simply wrong, and they may differ from the prices at which you can actually trade.",
       "Yields are calculated under simplifying assumptions (for example, that the bond is held to maturity, that all payments are made in full and on time, that coupons are reinvested at the same yield, and without taxes, fees, commissions, spreads or currency effects). Your actual return can be materially lower and can be negative.",
-      "The risk score shown (from 1, lowest, to 10, highest) is 10BONDS' own internal assessment, provided for information only. It is not a credit rating, may be out of date, may refer to the issuer rather than the specific bond, and is not a guarantee of creditworthiness. You must check official credit ratings with the rating agencies, the issuer and your financial adviser, and you must not rely on the 10BONDS risk score. 10BONDS is not a credit rating agency within the meaning of the EU Credit Rating Agencies Regulation (Regulation (EC) No 1060/2009) and does not issue ratings.",
+      "The risk score shown (from 1, lowest, to 10, highest) is 10BONDS' own internal assessment, provided for information only. It is not a credit rating and not an aggregate of ratings assigned by third parties, it does not suggest any investment strategy, may be out of date, may refer to the issuer rather than the specific bond, and is not a guarantee of creditworthiness. You must check official credit ratings with the rating agencies, the issuer and your financial adviser, and you must not rely on the 10BONDS risk score. 10BONDS is not a credit rating agency within the meaning of the EU Credit Rating Agencies Regulation (Regulation (EC) No 1060/2009) and does not issue ratings.",
       "We do not guarantee the accuracy, completeness, timeliness, availability or fitness for any purpose of any data or output. You must verify every figure independently with your bank, broker or the official documentation before relying on it.",
+      "The data is refreshed once a night and is not updated in real time: it usually reflects prices at the close of the previous trading day, or earlier. We do not verify the data received from third parties and have no obligation to do so. We are not liable for any errors, omissions, delays or interruptions in the data, or for any action taken in reliance on it. Always confirm the price with your broker or bank before executing any trade.",
+      "Filters and search results are provided \"as is\" for information only. 10BONDS is not affiliated with, and receives no payment from, any broker, bank or trading platform mentioned in the Service, and gives no warranty, express or implied, that any listed bond is available through any particular broker.",
     ],
   },
   {
