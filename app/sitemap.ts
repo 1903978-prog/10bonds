@@ -4,6 +4,8 @@ import { loadPublicData } from "@/lib/brokers/store";
 import { COUNTRIES, type Country } from "@/lib/brokers/types";
 import { countryView } from "@/lib/brokers/view";
 import { CALCULATORS } from "@/lib/seo/calculators";
+import { EN_GUIDES } from "@/lib/seo/guidesEn";
+import { CALCULATOR_EN, enPath } from "@/lib/seo/knowledgeEn";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { LOCALE, LOCALES, pathOf, type Locale, type Section } from "@/lib/seo/locales";
 import { comparisonPages, indexable, publishedGuides } from "@/lib/seo/site";
@@ -18,8 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ pages, asOf, source }, guides, brokers] = await Promise.all([comparisonPages(), publishedGuides(), loadPublicData()]);
   const out: MetadataRoute.Sitemap = [
     { url: SITE_URL + "/", changeFrequency: "daily", priority: 1, alternates: { languages: { ...langs((l) => `/${l}`), "x-default": SITE_URL + "/" } } },
-    ...["/knowledge", "/pricing", "/disclaimer", "/terms", "/privacy", "/cookies"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
+    ...["/pricing", "/disclaimer", "/terms", "/privacy", "/cookies"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
   ];
+  // English Knowledge Center.
+  out.push({ url: SITE_URL + enPath(), changeFrequency: "weekly", priority: 0.7, alternates: { languages: { ...langs((x) => pathOf(x, "knowledge")), en: SITE_URL + enPath() } } });
+  out.push({ url: SITE_URL + enPath(CALCULATOR_EN.slug), changeFrequency: "monthly", priority: 0.8, alternates: { languages: { ...langs((x) => pathOf(x, "tools", CALCULATORS[x].slug)), en: SITE_URL + enPath(CALCULATOR_EN.slug) } } });
+  for (const g of EN_GUIDES) out.push({ url: SITE_URL + enPath(g.slug), changeFrequency: "monthly", priority: 0.7 });
   for (const l of LOCALES) {
     out.push({ url: `${SITE_URL}/${l}`, changeFrequency: "daily", priority: 1, alternates: { languages: langs((x) => `/${x}`) } });
     for (const s of ["knowledge", "guides", "bonds", "tools", "method", "team"] as Section[]) {

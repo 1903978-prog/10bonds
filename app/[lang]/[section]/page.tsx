@@ -9,6 +9,7 @@ import { BONDS_HUB, GUIDES_HUB, METHOD, TEAM } from "@/lib/seo/pagesText";
 import { isPublished as brokersPublished } from "@/components/brokers/Pages";
 import { methodologyPath, sectionPath } from "@/lib/brokers/content";
 import { FIRST_WAVE } from "@/lib/seo/knowledge";
+import { enPath, hubLangs, withEnglish } from "@/lib/seo/knowledgeEn";
 import { comparisonSection, guideSection, KC_ORDER, KC_TEXT, type HubItem } from "@/lib/seo/knowledgeHub";
 import { comparisonPages, fmtDate, publicPeople, publishedGuides, sectionAlternates, shown } from "@/lib/seo/site";
 
@@ -29,7 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const r = await resolve(params);
   if (!r) return {};
   const x = TEXT[r.s][r.l];
-  return { title: { absolute: x.title }, description: x.description, alternates: sectionAlternates(r.l, r.s), openGraph: { locale: LOCALE[r.l].ogLocale, title: x.title, description: x.description } };
+  const alt = r.s === "knowledge" ? withEnglish(pathOf(r.l, "knowledge"), enPath(), hubLangs()) : sectionAlternates(r.l, r.s);
+  return { title: { absolute: x.title }, description: x.description, alternates: alt, openGraph: { locale: LOCALE[r.l].ogLocale, title: x.title, description: x.description } };
 }
 
 export default async function SectionPage({ params }: Props) {

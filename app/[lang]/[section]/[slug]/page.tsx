@@ -9,6 +9,7 @@ import { CALCULATORS } from "@/lib/seo/calculators";
 import { comparisonById, comparisonBySlug, type ComparisonDef } from "@/lib/seo/comparisons";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { isLocale, LOCALE, pathOf, sectionOf, T, type Locale } from "@/lib/seo/locales";
+import { calcLangs, CALCULATOR_EN, enGuideByGroup, enPath, withEnglish } from "@/lib/seo/knowledgeEn";
 import { unlinkMissing } from "@/lib/seo/links";
 import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
 import { alternates, comparisonAlternates, comparisonPages, fmtDate, guideAlternates, indexable, shown } from "@/lib/seo/site";
@@ -38,6 +39,14 @@ async function resolve(props: Props): Promise<Resolved> {
   return preview && (await currentUser())?.isAdmin ? { l: lang, kind: "guide", guide: g } : null;
 }
 
+/** Language versions of a guide, plus its English version on /knowledge when there is one. */
+function guideWithEnglish(g: Guide, siblings: Guide[]): Metadata["alternates"] {
+  const base = guideAlternates(g, siblings);
+  const en = enGuideByGroup(g.translationGroup);
+  if (!en || g.noindex) return base;
+  return { ...base, languages: { ...(base?.languages ?? { [LOCALE[g.locale].hreflang]: pathOf(g.locale, "guides", g.slug) }), en: enPath(en.slug), "x-default": enPath(en.slug) } };
+}
+
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const r = await resolve(props);
   if (!r) return { robots: { index: false } };
@@ -46,7 +55,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     return {
       title: { absolute: c.title },
       description: c.description,
-      alternates: alternates(r.l, (l) => pathOf(l, "tools", CALCULATORS[l].slug)),
+      alternates: withEnglish(pathOf(r.l, "tools", c.slug), enPath(CALCULATOR_EN.slug), calcLangs()),
       openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description },
     };
   }
@@ -68,7 +77,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     title: { absolute: g.seoTitle },
     description: g.metaDescription,
     keywords: [g.primaryKeyword, ...g.relatedKeywords],
-    alternates: guideAlternates(g, siblings),
+    alternates: guideWithEnglish(g, siblings),
     robots: g.noindex || g.status !== "published" ? { index: false, follow: true } : undefined,
     openGraph: { type: "article", locale: LOCALE[r.l].ogLocale, title: g.seoTitle, description: g.metaDescription, publishedTime: g.publishedAt ?? undefined, modifiedTime: g.reviewedAt ?? g.updatedAt },
   };

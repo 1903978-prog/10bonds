@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { bondYield, checkBond, type BondInput } from "@/lib/seo/calc";
 import type { CalculatorText } from "@/lib/seo/calculators";
 
-const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE" };
+const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 const field = "mt-1 w-full rounded-xl border border-line bg-white px-3 py-2 text-[16px]";
 
 /** Gross and after-tax yield to maturity. Everything is computed in the browser; nothing is sent anywhere. */
