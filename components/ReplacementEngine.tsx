@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DEFAULT_SETTINGS, type EngineResult, type EngineSettings, type Line, type PortfolioStats } from "@/lib/replacement";
+import { downloadXlsx } from "@/lib/xlsx";
 
 type Response = EngineResult & { skipped: { line: number; text: string; why: string }[]; source: "live" | "sample"; asOf: string | null };
 
@@ -168,7 +169,7 @@ function Results({ data }: { data: Response }) {
             About <strong>{eur(data.extraIncomePerYear)}</strong> more yield a year, for a one-off trading cost of about <strong>{eur(data.tradingCost)}</strong>.
           </p>
         )}
-        <button onClick={() => downloadCsv(data)} className="mt-4 text-sm text-accent">Download as CSV</button>
+        <div className="mt-4 flex gap-4"><button onClick={() => downloadExcel(data)} className="text-sm text-accent" data-testid="pro-excel">Download Excel</button><button onClick={() => downloadCsv(data)} className="text-sm text-accent">Download as CSV</button></div>
       </div>
 
       {data.lines.map((l, i) => <LineCard key={i} line={l} />)}
@@ -270,7 +271,7 @@ export function ProNotice() {
   );
 }
 
-function downloadCsv(data: Response) {
+function swapRows(data: Response): string[][] {
   const rows = [["Action", "Type", "Amount EUR", "Sell ISIN", "Sell bond", "Sell YTM", "Sell duration", "Sell risk", "Buy ISIN", "Buy bond", "Buy YTM", "Buy duration", "Buy risk", "Net yield change % a year", "Reason"]];
   for (const l of data.lines) {
     if (l.action === "swap")
@@ -278,6 +279,17 @@ function downloadCsv(data: Response) {
     else if (l.action === "keep") rows.push(["Keep", "", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.risk === null ? "" : String(l.sell.risk), "", "", "", "", "", "", l.reason]);
     else rows.push(["Not covered", "", String(l.amount), l.isin, "", "", "", "", "", "", "", "", "", "", l.reason]);
   }
+  return rows;
+}
+
+function downloadExcel(data: Response) {
+  const [head, ...body] = swapRows(data);
+  const num = (c: string) => (c !== "" && /^-?\d+(\.\d+)?$/.test(c) ? Number(c) : c);
+  downloadXlsx([head, ...body.map((r) => r.map(num))], "10bonds-replacement.xlsx", "Swaps");
+}
+
+function downloadCsv(data: Response) {
+  const rows = swapRows(data);
   const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));

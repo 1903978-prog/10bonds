@@ -8,6 +8,7 @@ import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import LangSwitch from "@/components/LangSwitch";
 import ProNavLink from "@/components/ProNavLink";
 import UsageStats from "@/components/UsageStats";
+import CopyGuard from "@/components/CopyGuard";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <FooterLegal />
         </footer>
         <UsageStats />
+        <CopyGuard />
       </body>
     </html>
   );

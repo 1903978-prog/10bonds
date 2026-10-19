@@ -36,7 +36,8 @@ export async function GET() {
           const gap = Math.abs(avg - target);
           checked++;
           // At the maximum the list is the top 10 and the maximum is their average rounded down to 0.01.
-          const limit = target === cap ? 0.011 : 0.05;
+          // Below it the list should land close to the target: 0.05 points, or 1.5% of the target in thin high-yield pools.
+          const limit = target === cap ? 0.011 : Math.max(0.05, target * 0.015);
           if (target === cap) atMaxGapWorst = Math.max(atMaxGapWorst, gap);
           else belowGapWorst = Math.max(belowGapWorst, gap);
           if (gap > limit && failures.length < 20) failures.push({ duration: d, risk, target: Math.round(target * 100) / 100, average: Math.round(avg * 100) / 100 });

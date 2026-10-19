@@ -7,6 +7,7 @@ import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
+import { downloadXlsx } from "@/lib/xlsx";
 
 type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
@@ -186,6 +187,25 @@ function BondBox(props: {
           <span className="text-sm text-mute">{props.isLast ? t.noOther : ""}</span>
         )}
         {props.onBack && <button onClick={props.onBack} className="text-sm text-accent">{t.backBest}</button>}
+        {paid && (
+          <button
+            type="button"
+            data-testid="excel-download-bond"
+            onClick={() =>
+              downloadXlsx(
+                [
+                  [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.risk, t.duration, `${t.coupon} %`, t.maturity, t.country],
+                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.risk, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null],
+                ],
+                `10bonds-${bond.isin ?? "bond"}.xlsx`,
+                "Bond",
+              )
+            }
+            className="rounded-full border border-line px-3.5 py-1.5 text-xs font-medium text-ink hover:bg-canvas"
+          >
+            ⬇ {t.excel}
+          </button>
+        )}
         <span className="text-xs text-mute">{t.changeHint}</span>
       </div>
     </div>

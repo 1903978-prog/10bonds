@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { LIMITS, riskLevel } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
@@ -350,6 +351,22 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
         ))}
       </ul>
 
+      {paid && rows.length > 0 && (
+        <button
+          type="button"
+          data-testid="excel-download"
+          onClick={() =>
+            downloadXlsx(
+              [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk])],
+              "10bonds-top10.xlsx",
+              "Top 10",
+            )
+          }
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line px-3.5 py-1.5 text-xs font-medium text-ink hover:bg-canvas"
+        >
+          ⬇ {t.excel}
+        </button>
+      )}
       {locked > 0 && <LockedRows count={locked} />}
       {rows.length > 0 && <WhereToTrade />}
       {signedIn && !paid && rows.length > 0 && (
