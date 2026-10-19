@@ -44,12 +44,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
               <SearchNavLink />
-              <LangSwitch />
               <KnowledgeNavLink />
               <NavLink href="/pricing">Pricing</NavLink>
               {/* Fixed-width slot for the links that load after the page (Pro, Admin, Sign in, profile), so the menu never shifts. */}
-              <div className="flex min-w-[128px] items-center justify-end gap-1.5 sm:min-w-[180px] sm:gap-5">
+              <div className="flex min-w-[128px] items-center justify-end gap-1.5 sm:min-w-[222px] sm:gap-5">
                 <ProNavLink />
+                {/* Language sits right before the account links (profile icon), as Livio asked. */}
+                <LangSwitch />
                 <AccountNav />
               </div>
             </div>
