@@ -7,12 +7,14 @@ import { fmtDate, loadMe, type Me } from "@/lib/me";
 export default function AccountNotices() {
   const [me, setMe] = useState<Me | undefined>(undefined);
   const [welcome, setWelcome] = useState(false);
+  const [withCode, setWithCode] = useState(false);
   const [confirmed, setConfirmed] = useState<string | null>(null);
   const [resend, setResend] = useState<string | null>(null);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    setWelcome(q.get("welcome") === "1");
+    setWelcome(q.get("welcome") === "1" || q.get("welcome") === "code");
+    setWithCode(q.get("welcome") === "code");
     setConfirmed(q.get("confirmed"));
     loadMe().then(setMe);
   }, []);
@@ -58,13 +60,15 @@ export default function AccountNotices() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" data-testid="welcome-modal">
           <div className="w-full max-w-md rounded-[28px] bg-white p-7 text-center shadow-[0_8px_40px_rgba(0,0,0,0.2)] sm:p-9">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl">🎉</div>
-            <h2 className="mt-4 text-[24px] font-semibold leading-tight tracking-tight">Experience 10BONDS without limits for 7 days!</h2>
+            <h2 className="mt-4 text-[24px] font-semibold leading-tight tracking-tight">
+              {withCode ? "Your code is active!" : "Experience 10BONDS without limits for 7 days!"}
+            </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-mute">
-              You’re now on a free 7-day Premium trial: ISIN codes, full bond details and every feature
+              {withCode ? "You have Premium free: ISIN codes, full bond details and every feature" : "You’re now on a free 7-day Premium trial: ISIN codes, full bond details and every feature"}
               {me.premiumUntil ? `, until ${fmtDate(me.premiumUntil)}` : ""}.
             </p>
             <p className="mt-3 text-[15px] leading-relaxed text-mute">
-              After your trial, you’ll switch to our Free plan and will not be charged. No card needed.
+              After {withCode ? "that" : "your trial"}, you’ll switch to our Free plan and will not be charged. No card needed.
             </p>
             {me.confirmationOn && !me.emailVerified && (
               <p className="mt-3 text-sm text-mute">We also sent you an e-mail: click the button in it to confirm your account.</p>

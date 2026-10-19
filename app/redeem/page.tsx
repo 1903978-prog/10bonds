@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import RedeemForm from "@/components/RedeemForm";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Redeem a code · 10BONDS", robots: { index: false, follow: true } };
-
+// The separate page was removed: codes are entered at sign-up, or under "Have a code?" on the pricing page.
 export default function Redeem() {
-  return <RedeemForm />;
+  redirect("/pricing");
 }

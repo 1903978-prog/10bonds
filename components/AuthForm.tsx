@@ -15,6 +15,8 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
+  const [code, setCode] = useState("");
+  const [showCode, setShowCode] = useState(false);
   const signup = mode === "signup";
 
   async function submit(e: React.FormEvent) {
@@ -33,13 +35,14 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       const res = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signup ? { email, username, password, acceptTerms: accept, website, ...check } : { email, password }),
+        body: JSON.stringify(signup ? { email, username, password, acceptTerms: accept, website, code: code.trim() || undefined, ...check } : { email, password }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
       track(signup ? "signup" : "login", null);
       flushNow();
-      window.location.href = signup ? "/?welcome=1" : "/";
+      if (body.codeError) alert(body.codeError);
+      window.location.href = signup ? (body.codeApplied ? "/?welcome=code" : "/?welcome=1") : "/";
     } catch (err) {
       setStep(null);
       setError((err as Error).message);
@@ -95,6 +98,29 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
           />
           {signup && <span className="mt-1 block text-xs text-mute">At least 8 characters.</span>}
         </label>
+        {signup && (
+          <div>
+            {showCode ? (
+              <label className="block">
+                <span className="text-sm font-medium">10BONDS code <span className="font-normal text-mute">(optional)</span></span>
+                <input
+                  type="text"
+                  placeholder="10B-XXXX-XXXX"
+                  autoComplete="off"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 font-mono text-[15px] uppercase outline-none focus:border-accent"
+                  data-testid="signup-code"
+                />
+                <span className="mt-1 block text-xs text-mute">A code gives you Premium free for the time stated with it.</span>
+              </label>
+            ) : (
+              <button type="button" onClick={() => setShowCode(true)} className="text-sm text-accent" data-testid="signup-code-toggle">
+                Have a code?
+              </button>
+            )}
+          </div>
+        )}
         {signup && (
           <input
             type="text"

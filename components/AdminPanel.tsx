@@ -98,7 +98,7 @@ export default function AdminPanel() {
               <button onClick={() => copy(fresh.join("\n"), "all")} className="text-sm text-accent">{copied === "all" ? "Copied" : "Copy all"}</button>
             </div>
             <p className="mt-2 font-mono text-[15px] leading-7">{fresh.map((c) => <span key={c} className="block">{c}</span>)}</p>
-            <p className="mt-2 text-xs text-mute">They are used at https://10bonds.fly.dev/redeem after signing in.</p>
+            <p className="mt-2 text-xs text-mute">New users enter them when they sign up; existing users under “Have a code?” at https://10bonds.fly.dev/pricing.</p>
           </div>
         )}
         <div className="mt-5 overflow-x-auto">

@@ -253,6 +253,15 @@ export async function listTrialCodes(limit = 200): Promise<TrialCode[]> {
   }));
 }
 
+/** Whether a code can still be used, checked before an account is created so a typo is caught first. */
+export async function trialCodeStatus(code: string): Promise<"ok" | "unknown" | "used"> {
+  const { sql, ready } = db();
+  await ready;
+  const c = await sql<{ redeemed_by: string | null }[]>`select redeemed_by from app.trial_codes where code = ${code}`;
+  if (!c[0]) return "unknown";
+  return c[0].redeemed_by === null ? "ok" : "used";
+}
+
 /** Use a code once: Premium is extended by its days from today, or from the end of a running trial. */
 export async function redeemTrialCode(userId: number, code: string): Promise<{ premiumUntil: string } | "unknown" | "used"> {
   const { sql, ready } = db();

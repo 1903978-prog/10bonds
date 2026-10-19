@@ -21,7 +21,6 @@ export default function AccountNav() {
   return (
     <>
       {me.isAdmin && <Link href="/admin" className="hover:text-ink" data-testid="nav-admin">Admin</Link>}
-      <Link href="/redeem" className="hidden hover:text-ink sm:inline">Redeem code</Link>
       {days !== null && (
         <Link href="/pricing" className="whitespace-nowrap rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent" data-testid="trial-badge" title={`Premium trial: ${days} ${days === 1 ? "day" : "days"} left`}>
           <span className="sm:hidden">Premium {days}d</span>

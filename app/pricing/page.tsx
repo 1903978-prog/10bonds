@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import RedeemForm from "@/components/RedeemForm";
 import { ManageButton, PlanButton } from "@/components/PlanButton";
 import { currentUser } from "@/lib/currentUser";
 import { stripeConfigured } from "@/lib/stripe";
@@ -116,9 +117,8 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
           </div>
         ))}
       </div>
-      <p className="mx-auto mt-8 max-w-xl text-center text-xs text-mute">
-        Prices include VAT where applicable. Monthly, cancel anytime: the plan then runs to the end of the month already paid. Payments are handled by Stripe. 10BONDS is an information service and does not give investment advice.
-      </p>
+      {user && !sub && <RedeemForm />}
+      {!user && <p className="mt-6 text-center text-sm text-mute">Have a code? Enter it when you create your free account.</p>}
     </div>
   );
 }

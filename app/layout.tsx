@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import FooterNote from "@/components/FooterNote";
 import "./globals.css";
 import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
@@ -32,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
           <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight">10BONDS</Link>
-            <div className="ml-3 flex items-center gap-3 text-sm text-mute sm:gap-5">
+            <div className="ml-3 flex items-center gap-2 text-sm text-mute sm:gap-5">
               <LangSwitch />
               <KnowledgeNavLink />
               <ProNavLink />
@@ -47,10 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <footer className="border-t border-line/70 py-8 text-center text-xs leading-relaxed text-mute">
-          <p className="mx-auto max-w-2xl px-4">
-            10BONDS is a bond discovery tool. Information only, not investment advice, not an offer to buy or sell.
-            Yields are indicative and can change. Past performance does not guarantee future results.
-          </p>
+          <FooterNote />
           <p className="mt-2">
             © {new Date().getFullYear()} 10BONDS · <Link href="/terms" className="underline hover:text-ink">Terms</Link> · <Link href="/pro" className="underline hover:text-ink">For wealth managers</Link> · <UsageStatsSetting />
           </p>
