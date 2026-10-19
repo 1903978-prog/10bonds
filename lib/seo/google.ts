@@ -105,6 +105,16 @@ export async function searchConsoleQueries(siteUrl: string, days = 28): Promise<
   return { end: ymd(end), rows: (j.rows ?? []).map((r: Row) => ({ query: r.keys?.[0] ?? "", page: r.keys?.[1] ?? "", clicks: r.clicks, impressions: r.impressions, position: r.position })) };
 }
 
+/** Search Console totals for pages whose address contains `pathPart` (e.g. "/it/"), over the last `days` days. */
+export async function searchConsoleTotals(siteUrl: string, pathPart: string, days = 28): Promise<{ clicks: number; impressions: number; position: number }> {
+  const end = new Date(Date.now() - 2 * 86_400_000);
+  const start = new Date(end.getTime() - (days - 1) * 86_400_000);
+  const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
+  const j = await googleJson(url, { startDate: ymd(start), endDate: ymd(end), type: "web", dimensionFilterGroups: [{ filters: [{ dimension: "page", operator: "contains", expression: pathPart }] }] });
+  const t = j.rows?.[0];
+  return t ? { clicks: t.clicks, impressions: t.impressions, position: t.position } : { clicks: 0, impressions: 0, position: 0 };
+}
+
 export type Ga4Data = { range: { start: string; end: string }; organicUsers: number; organicSessions: number; organicConversions: { event: string; count: number }[] };
 
 /** Analytics 4: organic-search users and key events, last 28 days. Needs the GA4 tag on the site to have any data. */

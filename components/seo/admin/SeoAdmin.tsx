@@ -8,6 +8,7 @@ import Guides from "./Guides";
 import Keywords from "./Keywords";
 import Overview from "./Overview";
 import Performance from "./Performance";
+import Rankings from "./Rankings";
 
 const MARKETS: { id: Locale; label: string }[] = [
   { id: "it", label: "🇮🇹 Italy" },
@@ -16,6 +17,7 @@ const MARKETS: { id: Locale; label: string }[] = [
 ];
 const TABS = [
   ["overview", "Score & roadmap"],
+  ["rankings", "Google rankings"],
   ["countries", "Countries & Languages"],
   ["keywords", "Keywords & Knowledge Center"],
   ["guides", "Guides & authors"],
@@ -55,6 +57,7 @@ export default function SeoAdmin() {
         </div>
       )}
       {tab === "overview" && <Overview market={market} />}
+      {tab === "rankings" && <Rankings market={market} />}
       {tab === "countries" && <Countries />}
       {tab === "keywords" && <Keywords market={market} />}
       {tab === "guides" && <Guides market={market} />}
