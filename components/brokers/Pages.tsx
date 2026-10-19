@@ -111,6 +111,7 @@ function tableRows(rows: Row[], c: Country, t: CountryContent): TableRow[] {
     id: r.profile.id,
     name: r.profile.name,
     profileHref: brokerPath(c, r.profile.id),
+    site: { href: r.link.href, rel: r.link.rel, kind: r.link.kind },
     overall: r.score.overall,
     custody: r.tariff.data.custodyFee.text ?? t.ui.notDisclosed,
     verifiedAt: f.date(r.tariff.verifiedAt),

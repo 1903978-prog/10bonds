@@ -8,7 +8,7 @@ Country pages comparing what it costs to buy bonds at each broker, from official
 | France | `/fr/courtiers-obligations` | `/fr/courtiers-obligations/<id>` | `/fr/courtiers-obligations/methodologie` |
 | Germany | `/de/anleihen-broker` | `/de/anleihen-broker/<id>` | `/de/anleihen-broker/methodik` |
 
-A page is visible to everyone (and in `sitemap.xml`, indexable) only after the admin presses **Publish** at `/admin/brokers`.
+All three markets are public (and in `sitemap.xml`) by default since 2026-10-19. The admin can hide one with **Unpublish** at `/admin/brokers`.
 Until then only the admin sees it, with a preview banner.
 
 ## Data
@@ -44,5 +44,5 @@ Banca Sella (undated PDF contradicts the web page), Saxo France (two official pa
 Scalable Capital (no direct bonds in Italy/France; only two notes in Germany), onvista bank (closed), Widiba (site unreachable).
 Add them in the admin once their tariffs are checked.
 
-## Local preview without a database
-`BROKER_PAGES_PREVIEW=1 npm run dev` shows the seed pages (ignored in production).
+## Local runs without a database
+`npm run dev` shows the seed pages.

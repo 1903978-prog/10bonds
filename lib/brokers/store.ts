@@ -17,7 +17,8 @@ export type CountrySettings = {
   intro: string[] | null;
 };
 
-const DEFAULT_COUNTRY: CountrySettings = { published: false, excluded: [], intro: null };
+// Markets are public unless the admin unpublishes one (Livio asked to publish all three on 2026-10-19).
+const DEFAULT_COUNTRY: CountrySettings = { published: true, excluded: [], intro: null };
 
 let ready: Promise<void> | null = null;
 async function db(): Promise<Sql> {
@@ -105,9 +106,6 @@ const SEED: PublicData = {
   countries: { it: DEFAULT_COUNTRY, fr: DEFAULT_COUNTRY, de: DEFAULT_COUNTRY },
   source: "seed",
 };
-// Local runs without a database: BROKER_PAGES_PREVIEW=1 shows the seed pages (never set in production).
-if (process.env.BROKER_PAGES_PREVIEW === "1" && process.env.NODE_ENV !== "production")
-  SEED.countries = { it: { ...DEFAULT_COUNTRY, published: true }, fr: { ...DEFAULT_COUNTRY, published: true }, de: { ...DEFAULT_COUNTRY, published: true } };
 
 function cleanMethodology(v: unknown): Methodology {
   const m = (v ?? {}) as Partial<Methodology>;
@@ -120,7 +118,7 @@ function cleanMethodology(v: unknown): Methodology {
 function cleanCountry(v: unknown): CountrySettings {
   const c = (v ?? {}) as Partial<CountrySettings>;
   return {
-    published: c.published === true,
+    published: c.published !== false,
     excluded: Array.isArray(c.excluded) ? c.excluded.filter((e) => e && typeof e.id === "string").map((e) => ({ id: e.id, reason: String(e.reason ?? "").slice(0, 300) })) : [],
     intro: Array.isArray(c.intro) ? c.intro.map((p) => String(p).slice(0, 2000)).filter(Boolean).slice(0, 6) : null,
   };
