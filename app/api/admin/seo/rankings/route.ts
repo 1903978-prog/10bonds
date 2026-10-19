@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { searchConsoleTotals, serviceAccount } from "@/lib/seo/google";
-import { marketOf, notFound, seoAdmin } from "@/lib/seo/input";
+import { GSC_COUNTRY, notFound, seoAdmin, seoMarketOf } from "@/lib/seo/input";
 import { contentScoreFor } from "@/lib/seo/contentScores";
 import { rankings, syncKeywords } from "@/lib/seo/rankings";
 import { getSeoSetting, keywordHistory, listKeywords } from "@/lib/seo/store";
@@ -11,7 +11,7 @@ export const maxDuration = 60;
 /** Google rankings of one market's target keywords. Refreshes from Search Console at most once a day. */
 export async function GET(req: Request) {
   if (!(await seoAdmin())) return notFound();
-  const market = marketOf(new URL(req.url).searchParams.get("market"));
+  const market = seoMarketOf(new URL(req.url).searchParams.get("market"));
   const site = await getSeoSetting("gsc_site");
   const sa = serviceAccount();
   const state = !sa ? "not_connected" : !site ? "needs_setting" : "connected";
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     const stale = !last || Date.now() - Date.parse(last) > 3 * 86_400_000; // Search Console data lags 2-3 days
     try {
       if (stale && kws.length) await syncKeywords(market, site!);
-      site28 = await searchConsoleTotals(site!, `/${market}/`);
+      site28 = GSC_COUNTRY[market] ? await searchConsoleTotals(site!, "/", 28, GSC_COUNTRY[market]) : await searchConsoleTotals(site!, `/${market}/`);
     } catch (e) {
       error = (e as Error).message;
     }

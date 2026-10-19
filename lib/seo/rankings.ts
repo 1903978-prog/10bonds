@@ -1,3 +1,4 @@
+import { GSC_COUNTRY, type SeoMarket } from "./input";
 import { searchConsoleQueries } from "./google";
 import type { Locale } from "./locales";
 import { listKeywords, setKeywordMetrics, type Keyword } from "./store";
@@ -7,11 +8,14 @@ import { listKeywords, setKeywordMetrics, type Keyword } from "./store";
 // keyword without impressions is "not ranking yet".
 
 /** Search Console figures for each keyword of a market: exact query match, summed over the market's pages. */
-export async function syncKeywords(market: Locale, site: string) {
-  const { end, rows } = await searchConsoleQueries(site);
+export async function syncKeywords(market: SeoMarket, site: string) {
+  // US and UK: searches from that country on the English pages (everything outside /it, /fr and /de).
+  const country = GSC_COUNTRY[market];
+  const { end, rows } = await searchConsoleQueries(site, 28, country);
   const mine = rows.filter((r) => {
     try {
       const p = new URL(r.page).pathname;
+      if (country) return !/^\/(it|fr|de)(\/|$)/.test(p);
       return p === `/${market}` || p.startsWith(`/${market}/`);
     } catch {
       return false;

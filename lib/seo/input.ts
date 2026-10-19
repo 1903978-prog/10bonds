@@ -40,3 +40,11 @@ export const canonical = (v: unknown): string | null => {
 };
 /** The market (language site) a request is about; Italian when missing. */
 export const marketOf = (v: unknown): Locale => (isLocale(v) ? v : "it");
+
+/** Keyword-tracking markets: the three language sites plus the US and UK, which use the English pages. */
+export type SeoMarket = Locale | "us" | "uk";
+export const SEO_MARKETS: SeoMarket[] = ["it", "fr", "de", "us", "uk"];
+export const seoMarketOf = (v: unknown): SeoMarket => (v === "us" || v === "uk" ? v : marketOf(v));
+/** Search Console country code (ISO 3166-1 alpha-3) for the English-language markets. */
+export const isEuMarket = (m: SeoMarket): m is Locale => m === "it" || m === "fr" || m === "de";
+export const GSC_COUNTRY: Partial<Record<SeoMarket, string>> = { us: "usa", uk: "gbr" };

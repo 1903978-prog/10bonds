@@ -2,11 +2,12 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import type { Opportunity } from "@/lib/seo/knowledge";
+import type { SeoMarket } from "@/lib/seo/input";
 import type { Locale } from "@/lib/seo/locales";
 import { api, Badge, btn, btnLight, card, day, ErrorNote, Field, input, num, Table } from "./ui";
 
 type Kw = {
-  id: number; market: Locale; keyword: string; intent: string; landingPath: string | null; volume: number | null; volumeSource: string | null; difficulty: number | null;
+  id: number; market: SeoMarket; keyword: string; intent: string; landingPath: string | null; volume: number | null; volumeSource: string | null; difficulty: number | null;
   position: number | null; clicks: number | null; impressions: number | null; metricsAt: string | null; status: string; nextAction: string | null;
   section: string | null; potential: string | null; verifiedAt: string | null; opportunity: Opportunity;
 };
@@ -19,7 +20,7 @@ const STATE: Record<string, [string, "green" | "amber" | "gray" | "blue" | "red"
 };
 const EMPTY = { id: 0, keyword: "", intent: "informational", landingPath: "", volume: "", volumeSource: "", difficulty: "", status: "target", nextAction: "", section: "", potential: "", verifiedAt: "" };
 
-export default function Keywords({ market }: { market: Locale }) {
+export default function Keywords({ market }: { market: SeoMarket }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<typeof EMPTY | null>(null);

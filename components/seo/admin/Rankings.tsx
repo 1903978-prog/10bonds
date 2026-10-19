@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Locale } from "@/lib/seo/locales";
+import type { SeoMarket } from "@/lib/seo/input";
 import type { ContentScore } from "@/lib/seo/contentScores";
 import type { Bucket, RankingRow } from "@/lib/seo/rankings";
 import { api, Badge, card, day, ErrorNote, num, Steps, Table } from "./ui";
 
 type Data = {
-  market: Locale; state: "not_connected" | "needs_setting" | "connected"; site: string | null; serviceAccount: string | null; error: string | null;
+  market: SeoMarket; state: "not_connected" | "needs_setting" | "connected"; site: string | null; serviceAccount: string | null; error: string | null;
   site28: { clicks: number; impressions: number; position: number } | null;
   rows: (RankingRow & { content: ContentScore | null })[];
   kpi: { tracked: number; ranking: number; top3: number; page1: number; page1Share: number; page2: number; clicks: number; impressions: number; at: string | null } | null;
@@ -22,7 +22,7 @@ const gscLink = (site: string | null, query?: string) =>
 const pct = (x: number | null) => (x === null ? "—" : `${(x * 100).toLocaleString("en-GB", { maximumFractionDigits: 1 })}%`);
 
 /** Google rankings: where the target keywords appear in Google, from Search Console. Real numbers only. */
-export default function Rankings({ market }: { market: Locale }) {
+export default function Rankings({ market }: { market: SeoMarket }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async () => {

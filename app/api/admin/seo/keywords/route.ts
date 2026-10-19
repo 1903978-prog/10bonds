@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { parseCsv } from "@/lib/seo/backlinkCsv";
 import { serviceAccount } from "@/lib/seo/google";
 import { syncKeywords } from "@/lib/seo/rankings";
-import { bad, int, isoDay, marketOf, notFound, oneOf, seoAdmin, str } from "@/lib/seo/input";
+import { bad, int, isoDay, isEuMarket, notFound, oneOf, seoAdmin, seoMarketOf, str } from "@/lib/seo/input";
 import { EFFORT_SPLIT, FIRST_WAVE, isKcSection, KC_SECTIONS, opportunity, OPPORTUNITY_WEIGHTS, BROKERS_OWNER } from "@/lib/seo/knowledge";
 import { loadPublicData } from "@/lib/brokers/store";
 import { CALCULATORS } from "@/lib/seo/calculators";
@@ -20,15 +20,16 @@ const POTENTIALS = ["high", "medium", "low"] as const;
 /** One market's keywords with their Opportunity Score, and the Knowledge Center first-wave plan with live status. */
 export async function GET(req: Request) {
   if (!(await seoAdmin())) return notFound();
-  const market = marketOf(new URL(req.url).searchParams.get("market"));
+  const market = seoMarketOf(new URL(req.url).searchParams.get("market"));
   const [keywords, guides, { pages, source }, gscSite, brokers] = await Promise.all([
-    listKeywords(market), listGuides(false, market), comparisonPages(), getSeoSetting("gsc_site"), loadPublicData().catch(() => null),
+    listKeywords(market), isEuMarket(market) ? listGuides(false, market) : Promise.resolve([]), comparisonPages(), getSeoSetting("gsc_site"), loadPublicData().catch(() => null),
   ]);
   const gsc = !!serviceAccount() && !!gscSite;
   const rows = keywords
     .map((k) => ({ ...k, opportunity: opportunity({ ...k, impressions: gsc && k.metricsAt ? k.impressions : null }) }))
     .sort((a, b) => (b.opportunity.score ?? -1) - (a.opportunity.score ?? -1));
-  const wave = FIRST_WAVE.filter((w) => w.market === market).map((w) => {
+  // US and UK have no first-wave plan yet: their English pages are planned from the keyword list.
+  const wave = !isEuMarket(market) ? [] : FIRST_WAVE.filter((w) => w.market === market).map((w) => {
     let state: "live" | "not_indexable" | "review" | "draft" | "to_write" | "other_thread" = "to_write";
     if (w.kind === "broker") state = brokers?.countries[market].published ? "live" : "other_thread";
     else if (w.kind === "calculator") state = CALCULATORS[market].slug === w.ref ? "live" : "to_write";
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   if (!(await seoAdmin())) return notFound();
   const b = await req.json().catch(() => ({}));
-  const market = marketOf(b?.market);
+  const market = seoMarketOf(b?.market);
   switch (b?.op) {
     case "save": {
       const keyword = str(b.keyword, 120)?.toLowerCase();

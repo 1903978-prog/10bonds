@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Locale } from "@/lib/seo/locales";
+import type { SeoMarket } from "@/lib/seo/input";
 import { bingLinks } from "@/lib/seo/bing";
 import AiVisibility from "./AiVisibility";
 import Backlinks from "./Backlinks";
@@ -12,10 +12,12 @@ import Overview from "./Overview";
 import Performance from "./Performance";
 import Rankings from "./Rankings";
 
-const MARKETS: { id: Locale; label: string }[] = [
+const MARKETS: { id: SeoMarket; label: string }[] = [
   { id: "it", label: "🇮🇹 Italy" },
   { id: "fr", label: "🇫🇷 France" },
   { id: "de", label: "🇩🇪 Germany" },
+  { id: "us", label: "🇺🇸 United States" },
+  { id: "uk", label: "🇬🇧 United Kingdom" },
 ];
 const TABS = [
   ["overview", "Score & roadmap"],
@@ -41,9 +43,11 @@ const REPORTS: [string, string][] = [
 
 /** Admin -> SEO Management. Only the admin reaches it (the page and every API route check). */
 export default function SeoAdmin() {
-  const [market, setMarket] = useState<Locale>("it");
+  const [market, setMarket] = useState<SeoMarket>("it");
   const [tab, setTab] = useState<Tab>("overview");
   const perMarket = tab !== "countries" && tab !== "backlinks" && tab !== "ai";
+  const usUk = market === "us" || market === "uk";
+  const eu = usUk ? null : market;
   return (
     <div className="space-y-5">
       <div>
@@ -75,14 +79,19 @@ export default function SeoAdmin() {
           ))}
         </div>
       )}
-      {tab === "overview" && <Overview market={market} />}
+      {usUk && (tab === "overview" || tab === "guides" || tab === "performance") && (
+        <p className="rounded-[20px] bg-white px-5 py-4 text-sm text-mute">
+          The US and UK are tracked through their keywords and Google rankings (English pages, searches from that country). This tab covers Italy, France and Germany only.
+        </p>
+      )}
+      {tab === "overview" && eu && <Overview market={eu} />}
       {tab === "rankings" && <Rankings market={market} />}
       {tab === "ai" && <AiVisibility />}
       {tab === "countries" && <Countries />}
       {tab === "keywords" && <Keywords market={market} />}
-      {tab === "guides" && <Guides market={market} />}
+      {tab === "guides" && eu && <Guides market={eu} />}
       {tab === "backlinks" && <Backlinks />}
-      {tab === "performance" && <Performance market={market} />}
+      {tab === "performance" && eu && <Performance market={eu} />}
     </div>
   );
 }
