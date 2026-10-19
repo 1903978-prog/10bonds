@@ -16,7 +16,6 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
   await page.locator('input[type=email]').fill(`${u}@example.com`);
   await page.locator('input[autocomplete=username]').fill(u);
   await page.locator('input[type=password]').fill("password123");
-  await page.getByTestId("signup-code-toggle").click();
   await page.getByTestId("signup-code").fill("10B-ZZZZ-ZZZZ");
   await page.locator('input[type=checkbox]').check();
   await page.getByRole("button", { name: "Create free account" }).click();

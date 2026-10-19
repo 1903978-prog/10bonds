@@ -38,10 +38,10 @@ for (const w of [1440, 390]) {
   const ms = await signup(`adm${w}@e2e.local`, `adm${w}`);
   ok(true, `${w} admin signed up with robot check in ${ms} ms`);
   await p.screenshot({ path: `${SHOTS}/welcome-${w}.png` });
-  ok((await p.textContent('[data-testid="welcome-modal"]')).includes("will not be charged"), `${w} welcome text`);
+  ok((await p.textContent('[data-testid="welcome-modal"]')).includes("Welcome to 10BONDS"), `${w} welcome text`);
   await p.click("text=Let’s get started!");
   ok(!(await p.isVisible('[data-testid="welcome-modal"]')), `${w} welcome closes`);
-  ok(/7 days left|Premium 7d/.test(await p.innerText('[data-testid="trial-badge"]')), `${w} trial badge 7 days`);
+  ok(!(await p.isVisible('[data-testid="trial-badge"]')), `${w} no trial badge without a code`);
   await p.screenshot({ path: `${SHOTS}/home-in-${w}.png` });
   await noSide(p, `${w} home signed in`);
   await p.click('[data-testid="nav-admin"]');

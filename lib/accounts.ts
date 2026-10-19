@@ -151,9 +151,6 @@ export type User = {
   subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean; interval: "month" | "year" | null } | null;
 };
 
-/** Days of free Premium every new account gets. */
-export const SIGNUP_TRIAL_DAYS = 7;
-
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
   .split(",")
   .map((e) => e.trim().toLowerCase())
@@ -222,8 +219,8 @@ export async function createUser(email: string, username: string, passwordHash: 
   if (taken.length) return "username-taken";
   try {
     const rows = await sql<UserRow[]>`
-      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at, premium_until)
-      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now(), now() + make_interval(days => ${SIGNUP_TRIAL_DAYS}))
+      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at)
+      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now())
       returning ${sql.unsafe(USER_COLS)}`;
     return toUser(rows[0]);
   } catch (e) {
