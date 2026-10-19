@@ -67,7 +67,8 @@ for (const [w, h] of WIDTHS) {
   await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
   const sliders = p.locator('input[type="range"]');
   ok((await sliders.count()) >= 2, `${w}px home: sliders present`);
-  ok(await p.locator('[data-testid="yields-date"]').isVisible(), `${w}px home: yields date shown`);
+  // With sample data (as here) the same line says the data is a sample instead of giving a date.
+  ok(await p.locator('[data-testid="yields-date"], [data-testid="sample-note"]').first().isVisible(), `${w}px home: yields date shown`);
   const before = await p.locator("main").innerText();
   await sliders.first().focus();
   await p.keyboard.press("ArrowRight");
