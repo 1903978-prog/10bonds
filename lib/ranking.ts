@@ -5,9 +5,10 @@ import { riskLevel, LIMITS } from "./limits";
 
 export const RESULT_COUNT = 10;
 
-// How much one rating notch weighs against one percentage point of yield.
-// AAA = 0, BBB- = 9: a BBB- bond must yield 0.9 points more than an AAA one to rank level with it.
-export const NOTCH_PENALTY = 0.1;
+// How much one rating notch weighs against one percentage point of yield. Kept small so yield comes first and the
+// rating only settles near-ties: a higher "highest risk accepted" must give a higher yield, never a safer, poorer list.
+// AAA = 0, BBB- = 9: a BBB- bond needs 0.18 points more yield than an AAA one to rank level with it.
+export const NOTCH_PENALTY = 0.02;
 // Bonds with no rating are treated as just below investment grade.
 export const UNRATED_NOTCH = 10;
 
@@ -21,9 +22,10 @@ const AVG_DURATION_PENALTY = 0.5;
 /**
  * Top bonds for a target duration and yield (Portfolio mode).
  * 1. Pool: rated bonds within the risk level, duration within ±20% of the target, one bond per issuer.
- * 2. Each bond scores yield minus NOTCH_PENALTY per rating notch: high yield and low risk both count.
+ * 2. Each bond scores its yield minus a small NOTCH_PENALTY per rating notch: highest yield first, lower risk on near-ties.
  * 3. Pick the 10 with the best total score whose average yield reaches the target yield and whose average duration
  *    stays close to the target. A low target never lowers the yield: the target is a minimum.
+ *    Accepting more risk only adds bonds to the pool, so the yield can only go up.
  * 4. At (or above) the slider maximum the answer is exactly the 10 highest-yielding issuers the maximum is computed from.
  * Shown best score first.
  */

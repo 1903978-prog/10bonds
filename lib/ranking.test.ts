@@ -42,7 +42,7 @@ describe("rankBonds", () => {
   });
 
   it("lets a better rating win when yields are equally close", () => {
-    const bonds = [bond("BBB", 4.1, 5, "BBB"), bond("AA", 3.9, 5, "AA")];
+    const bonds = [bond("BBB", 3.95, 5, "BBB"), bond("AA", 3.9, 5, "AA")];
     expect(rankBonds(bonds, 5, 4).results[0].isin).toBe("AA");
   });
 
@@ -135,10 +135,10 @@ describe("ytmCaps", () => {
 });
 
 describe("highest yield with the lowest risk", () => {
-  it("a safer bond with a slightly lower yield beats a riskier one", () => {
-    // AA scores 4.6 - 0.2 = 4.4, A 4.5 - 0.5 = 4.0, BBB- 4.8 - 0.9 = 3.9.
+  it("yield comes first: a riskier bond paying clearly more ranks above a safer one", () => {
+    // BBB- scores 4.8 - 0.18 = 4.62, AA 4.6 - 0.04 = 4.56, A 4.5 - 0.10 = 4.40.
     const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
-    expect(rankBonds(bonds, 13, 3, 2).results.map((r) => r.isin)).toEqual(["AA", "A"]);
+    expect(rankBonds(bonds, 13, 3, 2).results.map((r) => r.isin)).toEqual(["BBB", "AA"]);
   });
   it("takes on more risk only when that is needed to reach the target yield", () => {
     const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
