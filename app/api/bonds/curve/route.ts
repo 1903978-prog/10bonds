@@ -39,7 +39,7 @@ export async function GET(req: Request) {
   if (usage && !usage.allowed)
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   return NextResponse.json(
-    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
+    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier, duration), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

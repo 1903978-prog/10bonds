@@ -39,3 +39,19 @@ describe("single bond curve", () => {
     expect(shapeCurve(c, "plus").find((p) => p.level === 3)!.options[0].isin).toBe("A2");
   });
 });
+
+describe("every risk score gets a point", () => {
+  it("falls back to the nearest bond when none is within 3 years, and flags it as far", () => {
+    const c = curveByLevel([bond("H1", 9, 2, "BB"), bond("H2", 8, 2.5, "BB", "H2co"), bond("H3", 12, 0.5, "BB", "H3co"), bond("A1", 3, 7, "A")], 7);
+    const s7 = c.find((p) => p.level === 7)!;
+    expect(s7.bonds.map((b) => b.isin)).toEqual(["H1", "H2"]);
+    const shaped = shapeCurve(c, "free", 7);
+    expect(shaped.find((p) => p.level === 7)).toMatchObject({ ytm: 9, far: true, duration: 2 });
+    expect(shaped.find((p) => p.level === 3)!.far).toBeUndefined();
+    expect(shaped.find((p) => p.level === 9)).toMatchObject({ ytm: null, options: [] });
+  });
+  it("never shows unrated bonds", () => {
+    const c = curveByLevel([bond("N1", 15, 7, null)], 7);
+    expect(c.every((p) => p.bonds.length === 0)).toBe(true);
+  });
+});
