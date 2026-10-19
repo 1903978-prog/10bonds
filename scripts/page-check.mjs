@@ -67,7 +67,8 @@ for (const [w, h] of WIDTHS) {
   await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
   const sliders = p.locator('input[type="range"]');
   ok((await sliders.count()) >= 2, `${w}px home: sliders present`);
-  ok(await p.locator('[data-testid="yields-date"]').isVisible(), `${w}px home: yields date shown`);
+  // The date line, or the sample-data note that takes its place once sample data has loaded (CI runs on sample data).
+  ok(await p.locator('[data-testid="yields-date"], [data-testid="yields-sample"]').first().isVisible(), `${w}px home: yields date shown`);
   const before = await p.locator("main").innerText();
   await sliders.first().focus();
   await p.keyboard.press("ArrowRight");
