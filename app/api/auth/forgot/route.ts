@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { accountsConfigured, findUserByLogin } from "@/lib/accounts";
-import { emailConfigured } from "@/lib/email";
+import { emailReady } from "@/lib/email";
 import { resetLang, sendReset } from "@/lib/passwordReset";
 import { allow, clientIp } from "@/lib/rateLimit";
 
@@ -13,12 +13,13 @@ export async function POST(req: Request) {
   const login = typeof b?.login === "string" ? b.login.trim().slice(0, 254) : "";
   const lang = resetLang(b?.lang);
   if (!login) return NextResponse.json({ error: "Please enter your e-mail or username." }, { status: 400 });
-  if (!emailConfigured()) return NextResponse.json({ ok: false, off: true });
+  if (!(await emailReady())) return NextResponse.json({ ok: false, off: true });
   if (!allow(`forgot:${clientIp(req)}`, 5) || !allow(`forgot:${login.toLowerCase()}`, 3))
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   try {
     const user = await findUserByLogin(login);
-    if (user) await sendReset(user.id, user.email, user.username ?? user.email, user.passwordHash, lang);
+    if (!user) console.log("[forgot] no account for that login");
+    else console.log("[forgot] reset e-mail:", await sendReset(user.id, user.email, user.username ?? user.email, user.passwordHash, lang));
   } catch (err) {
     console.error("[forgot] failed:", (err as Error).message);
   }

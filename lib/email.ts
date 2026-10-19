@@ -45,8 +45,24 @@ export function emailConfigured(): boolean {
   return domainVerified;
 }
 
+/** Like emailConfigured, but waits for Resend's answer when it has not been asked yet (just after a restart). */
+export async function emailReady(): Promise<boolean> {
+  if (!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)) return false;
+  if (emailConfigured()) return true;
+  if (!checking) checking = refreshDomain().finally(() => { checking = null; });
+  await checking;
+  return domainVerified;
+}
+
+/** What the server knows about e-mail, without secrets (for the deploy check and the admin page). */
+export async function emailStatus() {
+  const keySet = Boolean(process.env.RESEND_API_KEY);
+  const domain = fromDomain();
+  return { keySet, fromSet: Boolean(process.env.EMAIL_FROM), domain, domainVerified: keySet ? await emailReady() : false };
+}
+
 export async function sendEmail(to: string, subject: string, html: string, text: string): Promise<"sent" | "not-configured" | "failed"> {
-  if (!emailConfigured()) return "not-configured";
+  if (!(await emailReady())) return "not-configured";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -54,7 +70,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
       body: JSON.stringify({ from: process.env.EMAIL_FROM, to, subject, html, text }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) console.error("[email] send failed: HTTP", res.status);
+    if (!res.ok) console.error("[email] send failed: HTTP", res.status, (await res.text().catch(() => "")).slice(0, 300));
     return res.ok ? "sent" : "failed";
   } catch (e) {
     console.error("[email] send failed:", (e as Error).name);
