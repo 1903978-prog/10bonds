@@ -54,8 +54,8 @@ export default function Frontier({ currency }: { currency: string }) {
     <div className="flex h-full flex-col" data-testid="frontier">
       <h2 className="text-[17px] font-semibold">{t.frontierTitle}</h2>
       <div className="mt-0.5 flex flex-wrap gap-x-4 text-[11px] text-mute">
-        <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#aeaeb2] align-middle" />{t.frontierDots}</span>
-        <span><span className="mr-1 inline-block h-0.5 w-3 align-middle" style={{ background: RED }} />{t.frontierLine}</span>
+        <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#aeaeb2] align-middle" />{t.frontierDots(data ? dots.length : null)}</span>
+        <span><span className="mr-1 inline-block h-0.5 w-3 align-middle" style={{ background: RED }} />{t.frontierLine(currency)}</span>
       </div>
       <div ref={box} className="mt-1 min-h-0 w-full flex-1 overflow-hidden">
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label={t.frontierTitle} className="block">

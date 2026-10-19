@@ -5,7 +5,7 @@ import { createContext, useContext } from "react";
 export type FinderLang = "en" | "it" | "fr" | "de";
 
 const en = {
-  frontierTitle: "We find the efficient frontier for your investments", frontierDots: "Each grey dot is a bond (all durations)", frontierLine: "Best bond for each risk at 5 years", frontierStart: "Move any control to see your bonds.",
+  frontierTitle: "We find the efficient frontier for your investments", frontierDots: (n: number | null) => `${n === null ? "–" : n.toLocaleString("en-GB")} bonds, one grey dot each (all durations, EUR and USD)`, frontierLine: (c: string) => `Best ${c} bond for each risk at 5 years`, frontierStart: "Move any control to see your bonds.",
   h1: "Find the best bonds for your goals",
   intro: "Choose how long you want to invest, the yield you are after and the highest risk you accept. We show the 10 bonds that match best.",
   mode: "Mode", single: "1 bond", portfolio: "Portfolio",
@@ -37,7 +37,7 @@ const en = {
 export type FinderText = typeof en;
 
 const it: FinderText = {
-  frontierTitle: "Troviamo la frontiera efficiente per i tuoi investimenti", frontierDots: "Ogni punto grigio è un'obbligazione (tutte le duration)", frontierLine: "Migliore obbligazione per ogni rischio a 5 anni", frontierStart: "Muovi un comando per vedere le tue obbligazioni.",
+  frontierTitle: "Troviamo la frontiera efficiente per i tuoi investimenti", frontierDots: (n: number | null) => `${n === null ? "–" : n.toLocaleString("it-IT")} obbligazioni, un punto grigio ciascuna (tutte le duration, EUR e USD)`, frontierLine: (c: string) => `Migliore obbligazione in ${c} per ogni rischio a 5 anni`, frontierStart: "Muovi un comando per vedere le tue obbligazioni.",
   h1: "Trova le obbligazioni giuste per i tuoi obiettivi",
   intro: "Scegli per quanto tempo vuoi investire, il rendimento che cerchi e il rischio massimo che accetti. Ti mostriamo le 10 obbligazioni più vicine.",
   mode: "Modalità", single: "1 obbligazione", portfolio: "Portafoglio",
@@ -68,7 +68,7 @@ const it: FinderText = {
 };
 
 const fr: FinderText = {
-  frontierTitle: "Nous trouvons la frontière efficiente pour vos investissements", frontierDots: "Chaque point gris est une obligation (toutes durations)", frontierLine: "Meilleure obligation par risque à 5 ans", frontierStart: "Déplacez un réglage pour voir vos obligations.",
+  frontierTitle: "Nous trouvons la frontière efficiente pour vos investissements", frontierDots: (n: number | null) => `${n === null ? "–" : n.toLocaleString("fr-FR")} obligations, un point gris chacune (toutes durations, EUR et USD)`, frontierLine: (c: string) => `Meilleure obligation en ${c} par risque à 5 ans`, frontierStart: "Déplacez un réglage pour voir vos obligations.",
   h1: "Trouvez les obligations adaptées à vos objectifs",
   intro: "Choisissez la durée de votre placement, le rendement visé et le risque maximal accepté. Nous affichons les 10 obligations les plus proches.",
   mode: "Mode", single: "1 obligation", portfolio: "Portefeuille",
@@ -99,7 +99,7 @@ const fr: FinderText = {
 };
 
 const de: FinderText = {
-  frontierTitle: "Wir finden die Effizienzkurve für Ihre Anlagen", frontierDots: "Jeder graue Punkt ist eine Anleihe (alle Laufzeiten)", frontierLine: "Beste Anleihe je Risiko bei 5 Jahren", frontierStart: "Bewegen Sie einen Regler, um Ihre Anleihen zu sehen.",
+  frontierTitle: "Wir finden die Effizienzkurve für Ihre Anlagen", frontierDots: (n: number | null) => `${n === null ? "–" : n.toLocaleString("de-DE")} Anleihen, je ein grauer Punkt (alle Laufzeiten, EUR und USD)`, frontierLine: (c: string) => `Beste ${c}-Anleihe je Risiko bei 5 Jahren`, frontierStart: "Bewegen Sie einen Regler, um Ihre Anleihen zu sehen.",
   h1: "Finden Sie die passenden Anleihen für Ihre Ziele",
   intro: "Wählen Sie Anlagedauer, Zielrendite und das höchste akzeptierte Risiko. Wir zeigen die 10 Anleihen, die am besten passen.",
   mode: "Modus", single: "1 Anleihe", portfolio: "Portfolio",
