@@ -168,11 +168,14 @@ function isAdminRow(r: UserRow): boolean {
   return ADMIN_EMAILS.includes(r.email.trim().toLowerCase()) && (r.email_verified_at !== null || !emailConfigured());
 }
 
-/** Forgets the usage events of one browser (used when the owner signs in, so his visits never count). */
+/** Forgets the usage events of one browser (used for the owner's devices, so their visits never count). */
 export async function forgetVisitor(visitorId: string): Promise<void> {
   const sql = await accountsSql();
   await sql`delete from app.events where visitor_id = ${visitorId}`;
 }
+
+/** Cookie set on every device that opens the admin page: events from that browser are never recorded, even signed out. */
+export const OWNER_COOKIE = "tb_owner";
 
 const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, totp_enabled_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
@@ -347,10 +350,13 @@ export async function adminStats() {
            count(*) filter (where premium_until > now()) trial,
            count(*) filter (where created_at > now() - interval '7 days') week
     from app.users`;
+  // Any browser the owner ever used while signed in is left out, signed-out visits from it included.
+  const notOwner = sql`visitor_id not in (
+    select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where lower(u.email) in ${sql(ADMIN_EMAILS.length ? ADMIN_EMAILS : [""])})`;
   const events = await sql<{ kind: string; n: string }[]>`
-    select kind, count(*) n from app.events where at > now() - interval '30 days' group by kind order by n desc`;
+    select kind, count(*) n from app.events where at > now() - interval '30 days' and ${notOwner} group by kind order by n desc`;
   const pages = await sql<{ path: string; n: string }[]>`
-    select path, count(*) n from app.events where kind = 'page_view' and at > now() - interval '30 days' and path is not null
+    select path, count(*) n from app.events where kind = 'page_view' and at > now() - interval '30 days' and path is not null and ${notOwner}
     group by path order by n desc limit 10`;
   return {
     users: Number(u.users),
@@ -360,6 +366,59 @@ export async function adminStats() {
     events30d: events.map((e) => ({ kind: e.kind, n: Number(e.n) })),
     topPages30d: pages.map((p) => ({ path: p.path, n: Number(p.n) })),
   };
+}
+
+export type AdminUserRow = {
+  id: number; email: string; username: string | null; plan: string; premiumUntil: string | null; promoCode: string | null;
+  createdAt: string; emailConfirmed: boolean; lastLoginAt: string | null; lastSeenAt: string | null;
+  /** From usage statistics, so only for people who allowed them; null when nothing was recorded. */
+  secondsOnSite: number | null; searches: number | null; isAdmin: boolean;
+};
+
+/** Every account for the admin page. Time on site and searches come only from consented usage statistics. */
+export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{
+    id: string; email: string; username: string | null; plan: string; premium_until: Date | null; promo: string | null; created_at: Date;
+    email_verified_at: Date | null; last_login_at: Date | null; last_seen: Date | null; secs: string | null; searches: string | null; has_stats: boolean;
+  }[]>`
+    with owner as (
+      -- a browser counts for an account once that account was signed in on it
+      select visitor_id, min(user_id) user_id from app.events where user_id is not null group by visitor_id
+    ), ev as (
+      select o.user_id, e.visitor_id, e.kind, e.at, e.at - lag(e.at) over (partition by e.visitor_id order by e.at) gap
+      from app.events e join owner o on o.visitor_id = e.visitor_id
+    ), per as (
+      -- time on site: gaps between a visitor's events, ignoring pauses over 30 minutes (a new visit)
+      select user_id, max(at) last_seen,
+             coalesce(sum(extract(epoch from gap)) filter (where gap < interval '30 minutes'), 0) secs,
+             count(*) filter (where kind = 'search') searches
+      from ev group by user_id
+    )
+    select u.id, u.email, u.username, u.plan, u.premium_until, u.created_at, u.email_verified_at, u.last_login_at,
+           (select string_agg(c.code, ', ' order by c.redeemed_at) from app.trial_codes c where c.redeemed_by = u.id) promo,
+           p.last_seen, p.secs, p.searches, p.user_id is not null has_stats
+    from app.users u left join per p on p.user_id = u.id
+    order by u.created_at desc`;
+  return rows.map((r) => {
+    const last = [r.last_login_at, r.last_seen].filter((x): x is Date => x !== null).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+    return {
+      id: Number(r.id),
+      email: r.email,
+      username: r.username,
+      plan: r.plan,
+      premiumUntil: r.premium_until && r.premium_until.getTime() > Date.now() ? r.premium_until.toISOString() : null,
+      promoCode: r.promo,
+      createdAt: r.created_at.toISOString(),
+      emailConfirmed: r.email_verified_at !== null,
+      lastLoginAt: r.last_login_at?.toISOString() ?? null,
+      lastSeenAt: last?.toISOString() ?? null,
+      secondsOnSite: r.has_stats ? Math.round(Number(r.secs)) : null,
+      searches: r.has_stats ? Number(r.searches) : null,
+      isAdmin: ADMIN_EMAILS.includes(r.email.trim().toLowerCase()),
+    };
+  });
 }
 
 export async function recordEvents(rows: { visitorId: string; userId: number | null; kind: string; path: string | null; detail: unknown }[]) {

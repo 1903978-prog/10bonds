@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { useCallback, useEffect, useState } from "react";
 import AdminData from "./AdminData";
+import AdminUsers from "./AdminUsers";
 
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
 type Stats = { users: number; verified: number; onTrial: number; newThisWeek: number; events30d: { kind: string; n: number }[]; topPages30d: { path: string; n: number }[] };
@@ -27,6 +28,12 @@ export default function AdminPanel() {
   }, []);
   useEffect(() => {
     load();
+    // This device stops counting in the stats (also when signed out), and its earlier visits are removed.
+    let visitorId: string | null = null;
+    try {
+      visitorId = window.localStorage.getItem("tb_vid");
+    } catch {}
+    fetch("/api/admin/this-device", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ visitorId }) }).catch(() => {});
   }, [load]);
 
   async function generate(e: React.FormEvent) {
@@ -70,6 +77,8 @@ export default function AdminPanel() {
           ))}
         </div>
       )}
+
+      <AdminUsers />
 
       <AdminData />
 
@@ -132,7 +141,7 @@ export default function AdminPanel() {
         <section className="grid gap-4 sm:grid-cols-2">
           <div className={card}>
             <h2 className="font-semibold">What people did (30 days)</h2>
-            <p className="mt-1 text-xs text-mute">Only visitors who allowed Statistics cookies are counted.</p>
+            <p className="mt-1 text-xs text-mute">Only visitors who allowed Statistics cookies are counted. Your own visits are left out on every device where you have opened this page.</p>
             <ul className="mt-3 space-y-1 text-sm">
               {s.events30d.length === 0 && <li className="text-mute">Nothing recorded yet.</li>}
               {s.events30d.map((e) => <li key={e.kind} className="flex justify-between"><span>{e.kind.replace("_", " ")}</span><span>{e.n}</span></li>)}
