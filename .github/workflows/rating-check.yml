@@ -33,5 +33,9 @@ jobs:
             echo "== distinct $c values, all currencies (value | bonds | with yield+duration)"
             q "select '[' || coalesce($c,'∅') || ']', count(*), count(*) filter (where gross_ytm is not null and modified_duration is not null) from public_bonds group by 1 order by 2 desc"
           done
+          echo "== EUR rows: all / usable / no rating at all / usable with no rating"
+          q "select count(*), count(*) filter (where gross_ytm is not null and modified_duration is not null and (maturity is null or maturity > current_date) and structure_modelled is not false), count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is null), count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is null and gross_ytm is not null and modified_duration is not null) from public_bonds where currency='EUR'"
+          echo "== all currencies: rows / usable"
+          q "select currency, count(*), count(*) filter (where gross_ytm is not null and modified_duration is not null and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null) from public_bonds group by 1 order by 2 desc limit 8"
           echo "== rating combinations (top 40)"
           q "select coalesce(rating_resolved,'∅'), coalesce(rating_sp,'∅'), coalesce(rating_moodys,'∅'), coalesce(rating_fitch,'∅'), count(*) from public_bonds where currency='EUR' group by 1,2,3,4 order by 5 desc limit 40"
