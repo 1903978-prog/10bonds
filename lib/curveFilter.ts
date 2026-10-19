@@ -1,5 +1,11 @@
 import type { CurvePoint } from "./singleBond";
 
+/** Risk steps with a bond that are hidden by dropDominated (shown greyed so the gap is explained). */
+export function dominatedLevels(points: CurvePoint[]): CurvePoint[] {
+  const kept = new Set(dropDominated(points).map((p) => p.level));
+  return points.filter((p) => p.ytm !== null && !kept.has(p.level));
+}
+
 /** Keep only risk steps whose best yield beats every lower-risk step (more risk must pay more). Empty steps stay as "no bond". */
 export function dropDominated(points: CurvePoint[]): CurvePoint[] {
   let best = -Infinity;
