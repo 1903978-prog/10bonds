@@ -15,7 +15,7 @@ export function middleware(req: NextRequest) {
 
 // Next.js reads the policy from the request and stamps its nonce on every script it writes into the page.
 function withCsp(req: NextRequest) {
-  const csp = buildCsp(newNonce());
+  const csp = buildCsp(newNonce(), undefined, req.nextUrl.pathname.startsWith("/embed/"));
   const headers = new Headers(req.headers);
   headers.set("content-security-policy", csp);
   const res = NextResponse.next({ request: { headers } });

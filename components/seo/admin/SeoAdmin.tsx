@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SeoMarket } from "@/lib/seo/input";
 import { bingLinks } from "@/lib/seo/bing";
 import AiVisibility from "./AiVisibility";
@@ -12,6 +12,7 @@ import Keywords from "./Keywords";
 import Overview from "./Overview";
 import Performance from "./Performance";
 import Rankings from "./Rankings";
+import Sharing from "./Sharing";
 
 const MARKETS: { id: SeoMarket; label: string }[] = [
   { id: "it", label: "🇮🇹 Italy" },
@@ -29,6 +30,7 @@ const TABS = [
   ["guides", "Guides & authors"],
   ["backlinks", "Backlinks"],
   ["performance", "Search performance"],
+  ["sharing", "Sharing & indexing"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -46,7 +48,12 @@ const REPORTS: [string, string][] = [
 export default function SeoAdmin() {
   const [market, setMarket] = useState<SeoMarket>("it");
   const [tab, setTab] = useState<Tab>("overview");
-  const perMarket = tab !== "countries" && tab !== "backlinks" && tab !== "ai";
+  // A link back from LinkedIn's sign-in opens the Sharing tab (?tab=sharing).
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (TABS.some(([id]) => id === t)) setTab(t as Tab);
+  }, []);
+  const perMarket = tab !== "countries" && tab !== "backlinks" && tab !== "ai" && tab !== "sharing";
   const usUk = market === "us" || market === "uk";
   const eu = usUk ? null : market;
   return (
@@ -93,6 +100,7 @@ export default function SeoAdmin() {
       {tab === "guides" && eu && <Guides market={eu} />}
       {tab === "backlinks" && <Backlinks />}
       {tab === "performance" && eu && <Performance market={eu} />}
+      {tab === "sharing" && <Sharing />}
     </div>
   );
 }

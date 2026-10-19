@@ -2,7 +2,8 @@
 // Everything the site loads comes from its own address; Stripe and Resend are only called from the server.
 // Scripts only run when they carry this request's one-time code (nonce); Next.js adds it to its own scripts.
 // 'strict-dynamic' lets those scripts load the rest of the app's code. Development also needs 'unsafe-eval' for hot reload.
-export function buildCsp(nonce: string, dev = process.env.NODE_ENV !== "production"): string {
+// Embeddable pages (/embed/...) are the one exception to "frame-ancestors 'none'": any website may show them in a frame.
+export function buildCsp(nonce: string, dev = process.env.NODE_ENV !== "production", embeddable = false): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
@@ -13,7 +14,7 @@ export function buildCsp(nonce: string, dev = process.env.NODE_ENV !== "producti
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    embeddable ? "frame-ancestors *" : "frame-ancestors 'none'",
   ].join("; ");
 }
 

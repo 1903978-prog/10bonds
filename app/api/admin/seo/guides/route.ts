@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { bad, canonical, int, notFound, oneOf, SLUG, seoAdmin, str, strList } from "@/lib/seo/input";
 import { isLocale } from "@/lib/seo/locales";
+import { shareGuide } from "@/lib/seo/share";
 import { guideById, guideLog, listGuides, listPeople, markStale, saveGuide } from "@/lib/seo/store";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +74,8 @@ export async function POST(req: Request) {
       u.email,
     );
     await markStale();
+    // Once the answer is sent: tell the search engines, and post a newly published guide on LinkedIn and X.
+    after(() => shareGuide(guide).catch(() => {}));
     return NextResponse.json({ guide });
   } catch (e) {
     if ((e as { code?: string }).code === "23505") return bad("Another guide in this language already uses this URL slug.");

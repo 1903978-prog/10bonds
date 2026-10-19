@@ -20,14 +20,16 @@ export function serviceAccount(): ServiceAccount | null {
 
 const b64url = (s: string | Buffer) => (typeof s === "string" ? Buffer.from(s) : s).toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 
-let token: { value: string; until: number } | null = null;
-async function accessToken(sa: ServiceAccount): Promise<string> {
-  if (token && token.until > Date.now() + 60_000) return token.value;
+const READ_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly";
+const tokens = new Map<string, { value: string; until: number }>();
+async function accessToken(sa: ServiceAccount, scope = READ_SCOPE): Promise<string> {
+  const cached = tokens.get(scope);
+  if (cached && cached.until > Date.now() + 60_000) return cached.value;
   const now = Math.floor(Date.now() / 1000);
   const head = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claims = b64url(JSON.stringify({
     iss: sa.client_email,
-    scope: "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly",
+    scope,
     aud: "https://oauth2.googleapis.com/token",
     iat: now,
     exp: now + 3600,
@@ -43,8 +45,27 @@ async function accessToken(sa: ServiceAccount): Promise<string> {
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || !j.access_token) throw new Error(`Google sign-in failed (${j.error ?? r.status})`);
-  token = { value: j.access_token, until: Date.now() + (Number(j.expires_in) || 3600) * 1000 };
-  return token.value;
+  const t = { value: j.access_token as string, until: Date.now() + (Number(j.expires_in) || 3600) * 1000 };
+  tokens.set(scope, t);
+  return t.value;
+}
+
+/**
+ * Tells Google the sitemap changed (Search Console "Submit sitemap"). Google retired its anonymous sitemap ping in 2023;
+ * this is the supported way. It needs the service account added to the property as a user with "Full" permission.
+ */
+export async function submitSitemap(siteUrl: string, sitemapUrl: string): Promise<void> {
+  const sa = serviceAccount();
+  if (!sa) throw new Error("not connected");
+  const r = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/sitemaps/${encodeURIComponent(sitemapUrl)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${await accessToken(sa, "https://www.googleapis.com/auth/webmasters")}` },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j?.error?.message ? String(j.error.message).slice(0, 200) : `HTTP ${r.status}`);
+  }
 }
 
 async function googleJson(url: string, body: unknown) {

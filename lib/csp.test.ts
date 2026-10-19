@@ -21,3 +21,10 @@ describe("content security policy", () => {
     expect(newNonce()).not.toBe(a);
   });
 });
+
+describe("embeddable pages", () => {
+  it("only /embed pages may be framed by other sites", () => {
+    expect(buildCsp("abc", false, true)).toContain("frame-ancestors *");
+    expect(buildCsp("abc", false)).toContain("frame-ancestors 'none'");
+  });
+});
