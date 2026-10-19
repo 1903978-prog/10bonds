@@ -24,21 +24,6 @@ ${todo("it", ["confrontare TER tipici con fonte", "tassazione ETF (26% su proven
 <p><strong>Prova subito:</strong> <a href="/it">confronta i BTP e le obbligazioni per scadenza</a>.</p>`,
   },
   {
-    locale: "fr", topic: "compare", group: "bonds-vs-etf", status: "draft",
-    slug: "obligations-ou-etf",
-    title: "Obligations ou ETF obligataires : que choisir ?",
-    seoTitle: "Obligations ou ETF obligataires ? Les différences",
-    metaDescription: "Obligation détenue jusqu'à l'échéance ou ETF obligataire : rendement connu, frais, fiscalité et diversification comparés simplement.",
-    primaryKeyword: "obligations ou etf",
-    relatedKeywords: ["etf obligataire", "acheter des obligations"],
-    relatedSlugs: ["rendement-a-l-echeance", "obligations-etat-ou-entreprise"],
-    bodyHtml: `<p>Une obligation a une échéance : conservée jusqu'au bout, son rendement est connu dès l'achat. Un ETF obligataire n'a pas d'échéance : il renouvelle ses titres et sa valeur suit les taux en permanence.</p>
-<h2 id="rendement">Rendement connu ou rendement moyen</h2><p>Le rendement actuariel d'une obligation est fixé au prix payé ; celui d'un ETF est une moyenne qui varie chaque jour.</p>
-<h2 id="frais">Frais</h2><p>L'obligation ne coûte que les frais de courtage ; l'ETF ajoute des frais annuels (TER).</p>
-${todo("fr", ["TER typiques avec source", "fiscalité (PFU, PEA/assurance-vie) à vérifier sur impots.gouv.fr", "exemple chiffré avec données réelles"])}
-<p><strong>Essayez :</strong> <a href="/fr">comparez les obligations par échéance et rendement</a>.</p>`,
-  },
-  {
     locale: "fr", topic: "gov", group: "buy-oat", status: "draft",
     slug: "acheter-des-oat",
     title: "Acheter des OAT en direct : comment faire",
@@ -66,21 +51,6 @@ ${todo("fr", ["lister les courtiers (voir la comparaison des frais en cours)", "
 <h2 id="sicherheit">Sicherheit</h2><p>Festgeld ist im Rahmen der gesetzlichen Einlagensicherung geschützt; eine Anleihe ist so sicher wie ihr Emittent.</p>
 <h2 id="verfuegbarkeit">Verfügbarkeit</h2><p>Festgeld ist bis zum Ende gebunden; Anleihen lassen sich an der Börse verkaufen, eventuell mit Verlust.</p>
 ${todo("de", ["Höhe der Einlagensicherung mit Quelle", "aktuelle Festgeldzinsen nur mit Quelle und Datum", "Steuer (Abgeltungsteuer) mit Quelle"])}
-<p><strong>Jetzt ausprobieren:</strong> <a href="/de">Anleihen nach Rendite und Laufzeit finden</a>.</p>`,
-  },
-  {
-    locale: "de", topic: "compare", group: "bonds-vs-etf", status: "draft",
-    slug: "anleihen-etf-oder-einzelanleihen",
-    title: "Anleihen-ETF oder Einzelanleihen?",
-    seoTitle: "Anleihen-ETF oder Einzelanleihen? Unterschiede",
-    metaDescription: "Einzelanleihe bis zur Fälligkeit oder Anleihen-ETF: planbare Rendite, Kosten, Streuung und Zinsrisiko einfach verglichen.",
-    primaryKeyword: "anleihen etf oder einzelanleihen",
-    relatedKeywords: ["anleihen etf", "einzelanleihen kaufen"],
-    relatedSlugs: ["rendite-bis-faelligkeit", "staatsanleihen-oder-unternehmensanleihen"],
-    bodyHtml: `<p>Eine Einzelanleihe hat ein Fälligkeitsdatum: Wer sie bis zum Ende hält, kennt die Rendite beim Kauf. Ein Anleihen-ETF hat keine Fälligkeit und tauscht laufend Anleihen aus.</p>
-<h2 id="rendite">Planbare Rendite</h2><p>Die Rendite bis Fälligkeit einer Anleihe steht beim Kauf fest; die des ETF ist ein Durchschnitt, der sich täglich ändert.</p>
-<h2 id="kosten">Kosten</h2><p>Bei der Einzelanleihe fallen Ordergebühren an, beim ETF zusätzlich laufende Kosten (TER).</p>
-${todo("de", ["typische TER mit Quelle", "Mindeststückelung von Anleihen", "Zahlenbeispiel mit echten Daten"])}
 <p><strong>Jetzt ausprobieren:</strong> <a href="/de">Anleihen nach Rendite und Laufzeit finden</a>.</p>`,
   },
 ];

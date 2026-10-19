@@ -1,0 +1,30 @@
+name: AI citation test (weekly)
+# Asks AI assistants with web search the fixed question set and records whether they cite 10bonds.com.
+# Each assistant runs only when its key secret exists: PERPLEXITY_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY.
+on:
+  schedule:
+    - cron: "43 6 * * 1"
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy to Fly"]
+    types: [completed]
+jobs:
+  test:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ONLY_IF_STALE: ${{ github.event_name == 'workflow_run' && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts >/dev/null
+      - run: node --experimental-strip-types --no-warnings scripts/ai-citations.mjs

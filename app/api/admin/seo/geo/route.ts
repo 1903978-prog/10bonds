@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import robots from "@/app/robots";
 import { isPublished } from "@/components/brokers/Pages";
 import { bingLinks, bingStats, type BingStats } from "@/lib/seo/bing";
-import { aiFunnel, aiVisibility, TEST_QUESTIONS } from "@/lib/seo/geo";
+import { aiFunnel, aiVisibility, TEST_QUESTIONS, type CitationTest } from "@/lib/seo/geo";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { notFound, seoAdmin } from "@/lib/seo/input";
 import { comparisonPages, shown } from "@/lib/seo/site";
@@ -22,6 +22,9 @@ export async function GET() {
     aiFunnel(28).catch(() => null),
     getSeoSetting("bing_ai_performance").catch(() => null),
   ]);
+  const citationRaw = await getSeoSetting("citation_test").catch(() => null);
+  let citations: CitationTest | null = null;
+  try { citations = citationRaw ? (JSON.parse(citationRaw) as CitationTest) : null; } catch { citations = null; }
   const key = process.env.BING_WEBMASTER_API_KEY;
   let bingData: BingStats | null = null;
   let bingError: string | null = null;
@@ -45,8 +48,9 @@ export async function GET() {
     dataAgeDays: asOf ? Math.floor((Date.now() - Date.parse(asOf)) / 86_400_000) : null,
     methodology: true,
     aiReferralTracking: funnel !== null,
-    citationTest: false,
+    // A test counts as running when one finished in the last 8 days.
+    citationTest: !!citations && Date.now() - Date.parse(citations.at) < 8 * 86_400_000,
     bingConnected: !!bing || !!bingData,
   };
-  return NextResponse.json({ ...aiVisibility(facts), funnel, questions: TEST_QUESTIONS, bing: { state: key ? (bingData ? "connected" : "error") : "not_connected", error: bingError, data: bingData, links: bingLinks() } }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ...aiVisibility(facts), funnel, questions: TEST_QUESTIONS, citations, bing: { state: key ? (bingData ? "connected" : "error") : "not_connected", error: bingError, data: bingData, links: bingLinks() } }, { headers: { "Cache-Control": "no-store" } });
 }
