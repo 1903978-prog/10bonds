@@ -14,7 +14,7 @@ type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source:
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 
 /** One-bond mode: best yield per risk step for the chosen duration; click a dot to see that bond, "Change" for the next one. */
-export default function SingleBond({ duration, preview }: { duration: number; preview: string | null }) {
+export default function SingleBond({ duration, preview, currency = "EUR", orderSize = "100k" }: { duration: number; preview: string | null; currency?: string; orderSize?: string }) {
   const t = useFinderText();
   const errText = t.error;
   const [data, setData] = useState<Payload | null>(null);
@@ -29,7 +29,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const qs = new URLSearchParams({ duration: String(duration) });
+        const qs = new URLSearchParams({ duration: String(duration), currency, order: orderSize });
         if (preview) qs.set("preview", preview);
         const res = await fetch(`/api/bonds/curve?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
@@ -54,7 +54,7 @@ export default function SingleBond({ duration, preview }: { duration: number; pr
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, preview]);
+  }, [duration, preview, currency, orderSize]);
 
   const tier = data?.tier ?? "visitor";
   const points = data?.points ?? [];

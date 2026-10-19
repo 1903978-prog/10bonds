@@ -14,6 +14,9 @@ export type PublicBond = {
   grossYtm: number | null; // percent, e.g. 4.12
   modifiedDuration: number | null; // years
   ytmAsOf: string | null;
+  // Smallest amount (nominal) one order can buy: the larger of the issuer's minimum denomination and the venue lot.
+  // Null = not known. Optional so older copies of the table (before the column existed) still load.
+  minOrder?: number | null;
 };
 
 // visitor = not signed in; free = signed-in free account.

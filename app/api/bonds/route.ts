@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
-import { loadBonds } from "@/lib/bonds";
+import { searchSource } from "@/lib/searchData";
+import { parseFilters } from "@/lib/filters";
 import { rankBonds } from "@/lib/ranking";
 import { shapeForTier } from "@/lib/tiers";
 import type { Tier } from "@/lib/types";
@@ -24,10 +25,11 @@ export async function GET(req: Request) {
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const ytm = clampParam(url.searchParams.get("ytm"), LIMITS.ytm);
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
+  const filters = parseFilters(url.searchParams);
 
   let data;
   try {
-    data = await loadBonds();
+    data = await searchSource(filters);
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
@@ -44,7 +46,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   const { results, band } = rankBonds(data.bonds, duration, ytm, undefined, risk);
   return NextResponse.json(
-    { ...shapeForTier(results, tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk } },
+    { ...shapeForTier(results, tier), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk, currency: filters.currency, order: filters.orderSize } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
