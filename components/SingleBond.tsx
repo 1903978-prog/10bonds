@@ -197,19 +197,22 @@ function BondBox(props: {
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}
         {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment, props.currency) : lock)}
-        {(!signedIn || bond.country) && row(t.country, signedIn ? bond.country : lock)}
+        {row(t.country, signedIn ? bond.country || "—" : lock)}
       </dl>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {props.canChange ? (
-          <button onClick={props.onChange} className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[#0077ed]">
-            {t.change}
-          </button>
-        ) : props.lockedMore ? (
-          <Link href="/signup" className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white">{t.signUpOthers}</Link>
-        ) : (
-          <span className="text-xs text-mute">{props.isLast ? t.noOther : ""}</span>
-        )}
-        {props.onBack && <button onClick={props.onBack} className="text-xs text-accent">{t.backBest}</button>}
+      {/* Fixed slots: every control keeps the same place whichever bond is shown. */}
+      <div className="mt-2 flex flex-wrap items-center gap-2 whitespace-nowrap">
+        <span className="inline-flex h-7 w-48 shrink-0 items-center">
+          {props.canChange ? (
+            <button onClick={props.onChange} className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[#0077ed]">
+              {t.change}
+            </button>
+          ) : props.lockedMore ? (
+            <Link href="/signup" className="truncate rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white">{t.signUpOthers}</Link>
+          ) : (
+            <span className="truncate text-xs text-mute">{props.isLast ? t.noOther : ""}</span>
+          )}
+        </span>
+        <button onClick={props.onBack} disabled={!props.onBack} className={`shrink-0 text-xs text-accent ${props.onBack ? "" : "invisible"}`}>{t.backBest}</button>
         {paid && (
           <button
             type="button"
@@ -224,12 +227,12 @@ function BondBox(props: {
                 "Bond",
               )
             }
-            className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
+            className="shrink-0 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
           >
             ⬇ {t.excel}
           </button>
         )}
-        <span className="text-[11px] text-mute">{t.changeHint}</span>
+        <span className="hidden truncate text-[11px] text-mute sm:inline">{t.changeHint}</span>
       </div>
     </div>
   );
