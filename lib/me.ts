@@ -7,6 +7,7 @@ export type Me = {
   storedPlan: "free" | "plus" | "premium";
   premiumUntil: string | null;
   emailVerified: boolean;
+  confirmBlocked?: boolean;
   isAdmin: boolean;
   adminState?: "ok" | "setup" | "needed" | null;
   confirmationOn: boolean;

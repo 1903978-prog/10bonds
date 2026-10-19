@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
+  if (user.confirmBlocked) return NextResponse.json({ error: "Please confirm your e-mail address first." }, { status: 403 });
   const access = await proAccess(user);
   if (access !== "active") return NextResponse.json({ error: access === "needs-plan" ? "Your professional access is approved. Subscribe to the Pro plan to use the tool." : "This tool is for approved professional accounts only." }, { status: 403 });
   if (!allow(`pro-replace:${user.id}`, 60, 60 * 60_000)) return NextResponse.json({ error: "Too many runs this hour. Please try again later." }, { status: 429 });
