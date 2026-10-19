@@ -38,6 +38,7 @@ export default function AdminPanel() {
     setBusy(false);
     if (!r.ok) return setError(b.error ?? "Could not create the codes.");
     setFresh(b.codes);
+    if (b.codes?.length) void copy(b.codes.join("\n"), "all");
     setNote("");
     load();
   }
@@ -98,9 +99,9 @@ export default function AdminPanel() {
           <div className="mt-4 rounded-xl bg-canvas p-4" data-testid="codes-fresh">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium">New codes</p>
-              <button onClick={() => copy(fresh.join("\n"), "all")} className="text-sm text-accent">{copied === "all" ? "Copied" : "Copy all"}</button>
+              <button onClick={() => copy(fresh.join("\n"), "all")} className="text-sm text-accent">{copied === "all" ? "Copied to clipboard" : "Copy all"}</button>
             </div>
-            <p className="mt-2 font-mono text-[15px] leading-7">{fresh.map((c) => <span key={c} className="block">{c}</span>)}</p>
+            <p className="mt-2 font-mono text-[15px] leading-7">{fresh.map((c) => <span key={c} className="block">{maskCode(c)}</span>)}</p>
             <p className="mt-2 text-xs text-mute">New users enter them when they sign up; existing users under “Have a code?” at https://10bonds.com/pricing.</p>
           </div>
         )}
@@ -114,7 +115,8 @@ export default function AdminPanel() {
               {data?.codes.map((c) => (
                 <tr key={c.code} className="border-t border-line">
                   <td className="py-2 pr-3 font-mono">
-                    <button onClick={() => copy(c.code, c.code)} className="hover:text-accent" title="Copy">{copied === c.code ? "Copied" : c.code}</button>
+                    <span data-testid="code-masked">{maskCode(c.code)}</span>
+                    <button onClick={() => copy(c.code, c.code)} className="ml-2 rounded-full border border-line px-2 py-0.5 font-sans text-xs text-accent hover:bg-canvas" data-testid="code-copy">{copied === c.code ? "Copied" : "Copy"}</button>
                   </td>
                   <td className="pr-3">{c.days}</td>
                   <td className="pr-3 text-mute">{c.note ?? ""}</td>
@@ -148,4 +150,9 @@ export default function AdminPanel() {
       )}
     </div>
   );
+}
+
+/** Codes stay hidden on screen; the copy buttons still copy the real code. */
+function maskCode(code: string): string {
+  return code.replace(/^(10B-)?(.*)$/, (_m, p: string | undefined, rest: string) => (p ?? "") + rest.replace(/[A-Z0-9]/g, "•"));
 }

@@ -110,7 +110,7 @@ function Chart({ points, selected, onPick }: { points: CurvePoint[]; selected: n
   const path = drawn.map((p, i) => `${i ? "L" : "M"}${x(p.level).toFixed(1)},${y(p.ytm!).toFixed(1)}`).join(" ");
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label={t.chartLabel}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 h-[230px] w-full" role="img" aria-label={t.chartLabel}>
       {ticks.map((v) => (
         <g key={v}>
           <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" />

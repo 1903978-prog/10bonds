@@ -20,23 +20,13 @@ export default function WhereToTrade() {
   }, []);
   if (markets.length === 0) return null;
   return (
-    <section className="mt-6 rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="where-to-trade">
-      <h3 className="font-semibold">Where can I trade these bonds?</h3>
-      <p className="mt-1 text-sm text-mute">
-        Compare the cost of buying bonds at brokers in your country. These brokers give access to this kind of bond; check that a specific ISIN is
-        available on the broker&apos;s own platform before you plan a purchase.
-      </p>
-      <ul className="mt-3 grid gap-2 sm:grid-cols-3">
-        {markets.map((m) => (
-          <li key={m.country}>
-            <Link href={m.href} className="block rounded-2xl bg-canvas px-4 py-3 text-sm transition hover:bg-line/60" hrefLang={m.country}>
-              <span className="block text-xs text-mute">{FLAGS[m.country] ?? m.country}</span>
-              <span className="block font-medium text-accent">{m.title}</span>
-              {m.brokers.length > 0 && <span className="block text-xs text-mute">{m.brokers.join(" · ")}</span>}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-mute" data-testid="where-to-trade" title="These brokers give access to this kind of bond; check that a specific ISIN is available on the broker's own platform before you plan a purchase.">
+      <span className="font-medium text-ink">Where can I trade these bonds?</span>
+      {markets.map((m) => (
+        <Link key={m.country} href={m.href} className="text-accent hover:underline" hrefLang={m.country}>
+          {FLAGS[m.country] ?? m.country}{m.brokers.length > 0 ? ` (${m.brokers.slice(0, 3).join(", ")})` : ""}
+        </Link>
+      ))}
+    </p>
   );
 }

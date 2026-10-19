@@ -55,6 +55,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         if (!b?.caps) return;
         setCaps(b.caps);
         setMinKnown(Boolean(b.minKnown));
+        if (!b.minKnown) setSize("100k");
         // Small orders (1k-10k) is the default once the data says which bonds they are.
         if (b.minKnown && !sizeTouched.current && size === "100k") { sizeTouched.current = true; setSize("1k"); }
         const cap = b.caps[String(risk)]?.[String(Math.round(duration * 100) / 100)];
@@ -120,31 +121,31 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   return (
     <FinderLangContext.Provider value={lang}>
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-6">
+    <div className="finder-wide grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
       {/* Inputs */}
       <section className="rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6 lg:sticky lg:top-20 lg:self-start">
-        <Title className="text-[28px] font-semibold leading-[1.1] tracking-tight sm:text-[32px]">
+        <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
           {t.h1}
         </Title>
-        <p className="mt-2 text-[14px] leading-snug text-mute sm:text-[15px]">
+        <p className="mt-1.5 text-[13px] leading-snug text-mute">
           {t.intro}
         </p>
 
-        <div role="tablist" aria-label={t.mode} className="mt-4 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
+        <div role="tablist" aria-label={t.mode} className="mt-3 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
           {([["single", t.single], ["portfolio", t.portfolio]] as const).map(([m, label]) => (
             <button
               key={m}
               role="tab"
               aria-selected={mode === m}
               onClick={() => setMode(m)}
-              className={`rounded-full px-4 py-2 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
+              className={`rounded-full px-4 py-1.5 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
             >
               {label}
             </button>
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-3">
           <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => setCurrency(v as BondFilter["currency"])} testId="toggle-currency" />
           <Toggle
             label={t.minOrder}
@@ -152,6 +153,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             options={[["1k", t.small], ["100k", t.allSizes]]}
             onChange={(v) => { sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
             testId="toggle-size"
+            disabled={minKnown === false ? ["1k"] : []}
           />
         </div>
         {minKnown === false && <p className="mt-1.5 text-[11px] leading-snug text-mute">{t.minNoData}</p>}
@@ -196,19 +198,19 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         />
         </>)}
 
-        <p className="mt-5 text-xs leading-snug text-mute">
+        <p className="mt-4 text-[11px] leading-snug text-mute">
           {mode === "portfolio"
             ? t.howPortfolio
             : t.howSingle}
         </p>
-        <p className="mt-2 text-xs leading-relaxed text-mute">{t.riskNote}</p>
+        <p className="mt-1 text-[11px] leading-snug text-mute">{t.riskNote}</p>
       </section>
 
       {/* Results */}
       {mode === "single" ? (
         <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
-          <p className="mt-3 flex gap-2 rounded-2xl bg-canvas px-4 py-2.5 text-xs leading-relaxed text-mute">
+          <p className="mt-2 flex gap-2 rounded-xl bg-canvas px-3 py-1.5 text-[11px] leading-snug text-mute">
             <span aria-hidden>ⓘ</span>
             <span>{t.info} {t.gross}</span>
           </p>
@@ -221,14 +223,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
           <Stat value={paid ? (data?.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} /> : "—") : null} label={t.avgRisk} lock={lockTo} />
           <Stat value={paid ? yrs(data?.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
         </div>
 
-        <div className={`mt-5 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+        <div className={`mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
           {limit ? (
             <LimitReached quota={limit} />
           ) : error ? (
@@ -243,7 +245,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {!limit && <QuotaNote quota={data?.quota} />}
         </div>
 
-        <p className="mt-3 flex gap-2 rounded-2xl bg-canvas px-4 py-2.5 text-xs leading-relaxed text-mute">
+        <p className="mt-2 flex gap-2 rounded-xl bg-canvas px-3 py-1.5 text-[11px] leading-snug text-mute">
           <span aria-hidden>ⓘ</span>
           <span>
             {t.info}
@@ -271,15 +273,15 @@ function Slider(props: {
 }) {
   const fill = ((props.value - props.min) / (props.max - props.min)) * 100;
   return (
-    <div className="mt-5">
+    <div className="mt-4">
       <div className="flex items-baseline justify-between">
-        <label className="text-[15px] font-semibold">{props.label}</label>
-        <span className="text-[17px] font-semibold tabular-nums">{props.display}</span>
+        <label className="text-[14px] font-semibold">{props.label}</label>
+        <span className="text-[16px] font-semibold tabular-nums">{props.display}</span>
       </div>
       <input
         type="range"
         aria-label={props.label}
-        className="slider mt-3"
+        className="slider mt-2"
         min={props.min}
         max={props.max}
         step={props.step}
@@ -287,7 +289,7 @@ function Slider(props: {
         style={{ ["--fill" as string]: `${fill}%` }}
         onChange={(e) => props.onChange(Number(e.target.value))}
       />
-      <div className="mt-2 flex justify-between text-xs text-mute">
+      <div className="mt-1 flex justify-between text-[11px] text-mute">
         <span>{props.minLabel}</span>
         <span>{props.maxLabel}</span>
       </div>
@@ -295,7 +297,7 @@ function Slider(props: {
   );
 }
 
-function Toggle({ label, value, options, onChange, testId }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; testId: string }) {
+function Toggle({ label, value, options, onChange, testId, disabled = [] }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; testId: string; disabled?: string[] }) {
   return (
     <div>
       <div className="text-xs font-medium text-mute">{label}</div>
@@ -306,8 +308,9 @@ function Toggle({ label, value, options, onChange, testId }: { label: string; va
             type="button"
             role="radio"
             aria-checked={value === v}
+            disabled={disabled.includes(v)}
             onClick={() => onChange(v)}
-            className={`rounded-full px-2 py-1 transition ${value === v ? "bg-white shadow-sm" : "text-mute"}`}
+            className={`rounded-full px-2 py-1 transition disabled:cursor-not-allowed disabled:opacity-40 ${value === v ? "bg-white shadow-sm" : "text-mute"}`}
           >
             {text}
           </button>
@@ -319,15 +322,15 @@ function Toggle({ label, value, options, onChange, testId }: { label: string; va
 
 function Stat({ value, label, lock }: { value: ReactNode | null; label: string; lock?: { href: string; label: string } }) {
   return (
-    <div className="rounded-2xl border border-line/70 px-4 py-3">
+    <div className="rounded-xl border border-line/70 px-3 py-2">
       {value === null ? (
         <Link href={lock?.href ?? "/signup"} className="flex items-center gap-1.5 text-[15px] font-semibold text-accent">
           <Lock /> {lock?.label}
         </Link>
       ) : (
-        <div className="text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
+        <div className="text-xl font-semibold leading-tight tabular-nums tracking-tight">{value}</div>
       )}
-      <div className="mt-0.5 text-xs text-mute">{label}</div>
+      <div className="text-[11px] text-mute">{label}</div>
     </div>
   );
 }
@@ -342,25 +345,24 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
       <table className="hidden w-full text-sm sm:table">
         <thead>
           <tr className="border-b border-line text-left text-xs text-mute">
-            <th className="py-2 pl-2 font-medium">#</th>
-            <th className="py-2 font-medium">{t.issuer}</th>
-            <th className="py-2 font-medium">{t.bond}</th>
-            <th className="py-2 text-right font-medium">{t.yield}</th>
-            <th className="py-2 text-right font-medium">{t.duration}</th>
-            <th className="py-2 text-right font-medium">{t.minInvest}</th>
-            <th className="py-2 pr-2 text-right font-medium" title={t.riskNote}>{t.risk}</th>
+            <th className="py-1.5 pl-2 font-medium">#</th>
+            <th className="whitespace-nowrap py-1.5 pr-3 font-medium">{t.issuer}</th>
+            <th className="whitespace-nowrap py-1.5 pr-3 font-medium">{t.bond}</th>
+            <th className="whitespace-nowrap py-1.5 pr-3 text-right font-medium">{t.yield}</th>
+            <th className="whitespace-nowrap py-1.5 pr-3 text-right font-medium">{t.duration}</th>
+            <th className="whitespace-nowrap py-1.5 pr-3 text-right font-medium">{t.minInvest}</th>
+            <th className="whitespace-nowrap py-1.5 pr-2 text-right font-medium" title={t.riskNote}>{t.risk}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.rank} className="border-b border-line/60 last:border-0">
-              <td className="py-2 pl-2 text-mute tabular-nums">{r.rank}</td>
-              <td className="py-2 font-medium">{r.issuer}</td>
-              <td className="py-2">
+              <td className="py-1.5 pl-2 text-mute tabular-nums">{r.rank}</td>
+              <td className="max-w-[220px] truncate py-1.5 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
+              <td className="max-w-0 w-full py-1.5 pr-3">
                 {paid ? (
                   <>
-                    <div>{r.name}</div>
-                    <div className="text-xs text-mute">{r.isin}</div>
+                    <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
                   </>
                 ) : signedIn ? (
                   <Link href="/pricing" className="inline-flex items-center gap-1 text-xs text-accent"><Lock /> {t.isinPlus}</Link>
@@ -368,10 +370,10 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
                   <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="py-2 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
-              <td className="py-2 text-right tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
-              <td className="py-2 text-right tabular-nums">{signedIn ? fmtMin(r.minInvestment) : <Dim />}</td>
-              <td className="py-2 pr-2 text-right">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              <td className="py-1.5 text-right font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="py-1.5 text-right tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
+              <td className="py-1.5 text-right tabular-nums">{signedIn ? fmtMin(r.minInvestment) : <Dim />}</td>
+              <td className="py-1.5 pr-2 text-right">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
             </tr>
           ))}
         </tbody>
@@ -408,7 +410,7 @@ function Results({ data, paid, signedIn }: { data: Response | null; paid: boolea
               "Top 10",
             )
           }
-          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line px-3.5 py-1.5 text-xs font-medium text-ink hover:bg-canvas"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
         >
           ⬇ {t.excel}
         </button>

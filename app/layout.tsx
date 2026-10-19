@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </nav>
         </header>
-        <main className="mx-auto max-w-6xl px-4 pb-8 pt-5 sm:px-6 sm:pt-7">
+        <main className="mx-auto max-w-6xl px-4 pb-6 pt-4 sm:px-6 sm:pt-5">
           <AccountNotices />
           {children}
         </main>
