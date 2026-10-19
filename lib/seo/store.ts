@@ -166,6 +166,16 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
   await s`alter table app.seo_keywords add column if not exists kc_section text`;
   await s`alter table app.seo_keywords add column if not exists potential text check (potential in ('high','medium','low'))`;
   await s`alter table app.seo_keywords add column if not exists verified_at date`;
+  // One row per keyword per Search Console sync, so the rankings page can show the trend.
+  await s`
+    create table if not exists app.seo_keyword_history (
+      keyword_id bigint not null references app.seo_keywords(id) on delete cascade,
+      at date not null,
+      position numeric,
+      clicks integer not null,
+      impressions integer not null,
+      primary key (keyword_id, at)
+    )`;
   // The seed guides go in once, in "review" (outlines in "draft"), for the admin to read and approve. They are never re-added.
   for (const g of SEED_GUIDES) {
     await s`
@@ -550,6 +560,16 @@ export async function importKeywordData(market: Locale, rows: { keyword: string;
 export async function setKeywordMetrics(id: number, m: { position: number | null; clicks: number; impressions: number; at: string }) {
   const s = await seoSql();
   await s`update app.seo_keywords set position = ${m.position}, clicks = ${m.clicks}, impressions = ${m.impressions}, metrics_at = ${m.at} where id = ${id}`;
+  await s`insert into app.seo_keyword_history (keyword_id, at, position, clicks, impressions) values (${id}, ${m.at}, ${m.position}, ${m.clicks}, ${m.impressions})
+    on conflict (keyword_id, at) do update set position = excluded.position, clicks = excluded.clicks, impressions = excluded.impressions`;
+}
+
+/** Search Console positions of a market's keywords, newest first, for the trend. */
+export async function keywordHistory(market: Locale): Promise<{ keywordId: number; at: string; position: number | null }[]> {
+  const s = await seoSql();
+  const rows = await s`select h.keyword_id, h.at, h.position from app.seo_keyword_history h join app.seo_keywords k on k.id = h.keyword_id
+    where k.market = ${market} and h.at > now() - interval '180 days' order by h.at desc`;
+  return rows.map((r) => ({ keywordId: Number(r.keyword_id), at: day(r.at)!, position: r.position === null ? null : Number(r.position) }));
 }
 
 export async function deleteKeyword(id: number) {

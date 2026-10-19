@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { parseCsv } from "@/lib/seo/backlinkCsv";
-import { searchConsoleQueries, serviceAccount } from "@/lib/seo/google";
+import { serviceAccount } from "@/lib/seo/google";
+import { syncKeywords } from "@/lib/seo/rankings";
 import { bad, int, isoDay, marketOf, notFound, oneOf, seoAdmin, str } from "@/lib/seo/input";
 import { EFFORT_SPLIT, FIRST_WAVE, isKcSection, KC_SECTIONS, opportunity, OPPORTUNITY_WEIGHTS, BROKERS_OWNER } from "@/lib/seo/knowledge";
 import { loadPublicData } from "@/lib/brokers/store";
 import { CALCULATORS } from "@/lib/seo/calculators";
 import { comparisonById } from "@/lib/seo/comparisons";
 import { comparisonPages, indexable } from "@/lib/seo/site";
-import { deleteKeyword, getSeoSetting, importKeywordData, listGuides, listKeywords, saveKeyword, setKeywordMetrics } from "@/lib/seo/store";
+import { deleteKeyword, getSeoSetting, importKeywordData, listGuides, listKeywords, saveKeyword } from "@/lib/seo/store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -104,27 +105,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ updated: n, rows: data.length });
     }
     case "sync": {
-      // Search Console figures for each keyword: exact query match, summed over the market's pages.
       const site = await getSeoSetting("gsc_site");
       if (!serviceAccount() || !site) return bad("Connect Search Console first (Performance tab).");
-      const { end, rows } = await searchConsoleQueries(site);
-      const mine = rows.filter((r) => {
-        try {
-          const p = new URL(r.page).pathname;
-          return p === `/${market}` || p.startsWith(`/${market}/`);
-        } catch {
-          return false;
-        }
-      });
-      const keywords = await listKeywords(market);
-      for (const k of keywords) {
-        const hits = mine.filter((r) => r.query.toLowerCase() === k.keyword.toLowerCase());
-        const impressions = hits.reduce((s, r) => s + r.impressions, 0);
-        const clicks = hits.reduce((s, r) => s + r.clicks, 0);
-        const position = impressions ? hits.reduce((s, r) => s + r.position * r.impressions, 0) / impressions : null;
-        await setKeywordMetrics(k.id, { position: position === null ? null : Math.round(position * 10) / 10, clicks, impressions, at: end });
-      }
-      return NextResponse.json({ updated: keywords.length, end });
+      return NextResponse.json(await syncKeywords(market, site));
     }
   }
   return bad("Unknown operation.");

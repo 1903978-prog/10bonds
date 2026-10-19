@@ -312,3 +312,19 @@ describe("Livio's articles", () => {
     expect(guideSection(SEED_GUIDES_LIVIO[0])).toBe("best");
   });
 });
+
+describe("Google rankings KPIs", () => {
+  it("buckets positions and counts page-1 keywords without inventing data", async () => {
+    const { bucketOf, rankings } = await import("./rankings");
+    expect(bucketOf(2.4, 10)).toBe("top3");
+    expect(bucketOf(9.9, 10)).toBe("page1");
+    expect(bucketOf(14, 10)).toBe("page2");
+    expect(bucketOf(5, 0)).toBe("none");
+    const kw = (id: number, position: number | null, impressions: number | null, metricsAt: string | null) =>
+      ({ id, market: "it", keyword: `k${id}`, intent: "informational", landingPath: null, volume: null, volumeSource: null, difficulty: null, position, clicks: 1, impressions, metricsAt, status: "target", nextAction: null, updatedAt: "", section: null, potential: null, verifiedAt: null }) as const;
+    expect(rankings([kw(1, 4, 50, null)], []).kpi).toBeNull();
+    const r = rankings([kw(1, 4, 50, "2026-10-17"), kw(2, 15, 20, "2026-10-17"), kw(3, null, 0, "2026-10-17")], [{ keywordId: 1, at: "2026-10-10", position: 7 }]);
+    expect(r.kpi).toMatchObject({ tracked: 3, page1: 1, page2: 1, ranking: 2 });
+    expect(r.rows[0]).toMatchObject({ keyword: "k1", previous: 7 });
+  });
+});
