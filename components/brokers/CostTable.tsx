@@ -11,6 +11,7 @@ export type TableRow = {
   id: string;
   name: string;
   profileHref: string;
+  site: { href: string; rel: string; kind: string };
   overall: number;
   custody: string;
   verifiedAt: string;
@@ -19,7 +20,7 @@ export type TableRow = {
 };
 type Labels = {
   broker: string; score: string; orderSize: string; custody: string; details: string; view: string;
-  notOffered: string; notDisclosed: string; notEligible: string; uncounted: string; verified: string; overdue: string; sortBy: string; generalTariff: string;
+  officialSite: string; notOffered: string; notDisclosed: string; notEligible: string; uncounted: string; verified: string; overdue: string; sortBy: string; generalTariff: string;
 };
 
 export default function CostTable({ rows, categories, amounts, labels }: { rows: TableRow[]; categories: { key: string; label: string }[]; amounts: { value: number; label: string }[]; labels: Labels }) {
@@ -114,9 +115,12 @@ export default function CostTable({ rows, categories, amounts, labels }: { rows:
                 ))}
                 <td className="max-w-[160px] py-3 pr-3 text-xs">{r.custody}</td>
                 <td className="py-3">
-                  <Link href={r.profileHref} className="text-accent">
+                  <Link href={r.profileHref} className="whitespace-nowrap text-accent">
                     {labels.view}
                   </Link>
+                  <a href={r.site.href} rel={r.site.rel} target="_blank" className="ml-3 text-accent" data-track={`broker:${r.id}:table:${r.site.kind}`}>
+                    {labels.officialSite} ↗
+                  </a>
                 </td>
               </tr>
             ))}
@@ -150,6 +154,9 @@ export default function CostTable({ rows, categories, amounts, labels }: { rows:
             <Link href={r.profileHref} className="mt-3 inline-block text-sm text-accent">
               {labels.view}
             </Link>
+            <a href={r.site.href} rel={r.site.rel} target="_blank" className="ml-4 mt-3 inline-block text-sm text-accent" data-track={`broker:${r.id}:table:${r.site.kind}`}>
+              {labels.officialSite} ↗
+            </a>
           </li>
         ))}
       </ol>
