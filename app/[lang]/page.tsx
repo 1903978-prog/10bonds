@@ -40,6 +40,8 @@ export default async function LocaleHome({ params }: Props) {
     .filter((p) => p && shown(p, source));
   return (
     <div className="space-y-10">
+      {/* The finder comes first so it fits on one screen; the page title and intro stay on the page, below it. */}
+      <Finder lang={l} heading={false} />
       <section className="mx-auto max-w-3xl text-center">
         <h1 className="text-[34px] font-semibold leading-tight tracking-tight sm:text-[44px]">{h.h1}</h1>
         <p className="mx-auto mt-4 max-w-2xl text-[17px] text-mute">{h.lead}</p>
@@ -47,7 +49,6 @@ export default async function LocaleHome({ params }: Props) {
           {h.points.map((p) => <li key={p}>✓ {p}</li>)}
         </ul>
       </section>
-      <Finder lang={l} heading={false} />
       {gov && shown(gov, source) && (
         <section className="mx-auto max-w-3xl">
           <div className="mb-3 flex items-baseline justify-between gap-3">
