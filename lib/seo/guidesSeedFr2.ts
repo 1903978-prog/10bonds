@@ -20,10 +20,10 @@ export const SEED_GUIDES_FR2: SeedGuide[] = [
     metaDescription: "La duration mesure la sensibilité du prix d'une obligation aux taux. Duration de Macaulay, duration modifiée, exemple chiffré et règle pratique.",
     primaryKeyword: "duration obligation",
     relatedKeywords: ["duration modifiée", "duration de Macaulay", "sensibilité obligation", "risque de taux"],
-    relatedSlugs: ["rendement-a-l-echeance", "obligations-investment-grade", "oat-obligations-etat-francaises"],
+    relatedSlugs: ["calcul-rendement-obligation", "obligations-investment-grade", "oat-obligations-etat"],
     bodyHtml: `
 <p><strong>En bref :</strong> la duration indique de combien le prix d'une obligation varie quand les taux bougent. Avec une duration modifiée de 5, une hausse des taux d'un point fait baisser le prix d'environ 5 %.</p>
-<p>Après le <a href="/fr/guides/rendement-a-l-echeance">rendement à l'échéance</a>, c'est le deuxième chiffre à regarder avant de choisir une obligation, qu'il s'agisse d'une OAT, d'un Bund ou d'une obligation d'entreprise. En France, on parle aussi de <em>sensibilité</em> : c'est le terme qu'emploient souvent les fiches des fonds obligataires.</p>
+<p>Après le <a href="/fr/guides/calcul-rendement-obligation">rendement à l'échéance</a>, c'est le deuxième chiffre à regarder avant de choisir une obligation, qu'il s'agisse d'une OAT, d'un Bund ou d'une obligation d'entreprise. En France, on parle aussi de <em>sensibilité</em> : c'est le terme qu'emploient souvent les fiches des fonds obligataires.</p>
 <h2 id="deux-durations">Duration de Macaulay ou duration modifiée : quelle différence ?</h2>
 <p>La <strong>duration de Macaulay</strong> est la durée de vie moyenne des flux de l'obligation (coupons et remboursement), pondérée par leur valeur actualisée. Elle s'exprime en années et elle est toujours égale ou inférieure à la durée de vie restante, puisque les coupons arrivent avant le remboursement final.</p>
 <p>La <strong>duration modifiée</strong> se déduit de la première (on la divise par 1 + rendement) et mesure directement la sensibilité du prix aux taux. C'est celle qu'utilise 10BONDS dans ses curseurs et ses tableaux.</p>
@@ -53,7 +53,7 @@ export const SEED_GUIDES_FR2: SeedGuide[] = [
 <h3>Duration et échéance, est-ce la même chose ?</h3>
 <p>Non. L'échéance est la date de remboursement ; la duration mesure la sensibilité du prix aux taux. Une obligation à 10 ans n'a pas forcément une duration de 10.</p>
 <h3>Un ETF obligataire a-t-il une duration ?</h3>
-<p>Oui, une duration moyenne de son portefeuille, mais elle reste à peu près constante dans le temps, alors que celle d'une obligation détenue en direct diminue à mesure que l'échéance approche. Voir notre comparaison <a href="/fr/guides/obligations-ou-etf">obligations ou ETF obligataires</a>.</p>
+<p>Oui, une duration moyenne de son portefeuille, mais elle reste à peu près constante dans le temps, alors que celle d'une obligation détenue en direct diminue à mesure que l'échéance approche. Voir notre comparaison <a href="/fr/guides/obligations-ou-etf-obligataires">obligations ou ETF obligataires</a>.</p>
 ${cta("fixez la duration qui correspond à votre horizon et le rendement que vous visez")}
 ${disclaimer}
 `,
@@ -153,13 +153,13 @@ ${disclaimer}
     metaDescription: "Comparer des obligations en 2026 : rendement à l'échéance, notation, échéance et duration, OAT et obligations d'entreprise, liquidité, frais et fiscalité.",
     primaryKeyword: "meilleures obligations 2026",
     relatedKeywords: ["comparer obligations", "rendement à l'échéance", "notation obligations", "oat ou obligations d'entreprise"],
-    relatedSlugs: ["rendement-a-l-echeance", "duration-obligations", "obligations-etat-ou-entreprise", "risque-de-credit-obligataire"],
+    relatedSlugs: ["calcul-rendement-obligation", "duration-obligations", "obligations-etat-ou-entreprise", "risque-de-credit-obligataire"],
     bodyHtml: `
 <p><strong>Mis à jour : 19 octobre 2026</strong></p>
 <p><strong>En bref :</strong> pour comparer des obligations en 2026, regardez en même temps le rendement à l'échéance, le risque de crédit, l'échéance (et la duration) et le prix d'achat. Un rendement plus élevé, à lui seul, ne signifie pas de meilleures conditions.</p>
 <p>Le marché offre un large choix à l'épargnant français : OAT, Bund et autres emprunts d'État européens comme les BTP italiens, obligations d'entreprise, émissions courtes et titres à plus de dix ans. Voici une méthode en six points pour s'y retrouver de façon objective.</p>
 <h2 id="rendement">1. Pourquoi partir du rendement à l'échéance ?</h2>
-<p>Le <a href="/fr/guides/rendement-a-l-echeance">rendement à l'échéance</a>, ou taux actuariel (<em>yield to maturity</em>), est le taux qui égalise le prix d'achat et la valeur actuelle des flux futurs prévus par le titre. Contrairement au coupon, il tient compte du prix payé et du remboursement final.</p>
+<p>Le <a href="/fr/guides/calcul-rendement-obligation">rendement à l'échéance</a>, ou taux actuariel (<em>yield to maturity</em>), est le taux qui égalise le prix d'achat et la valeur actuelle des flux futurs prévus par le titre. Contrairement au coupon, il tient compte du prix payé et du remboursement final.</p>
 <p>Une obligation à coupon annuel de 3 % achetée sous le pair peut ainsi offrir un rendement supérieur à 3 % ; achetée au-dessus du pair, son rendement peut être inférieur au coupon. Ce calcul suppose que tous les flux contractuels sont payés et que le titre est conservé jusqu'à l'échéance : ce n'est pas un rendement garanti.</p>
 <h2 id="notation">2. Comment interpréter la notation ?</h2>
 <p>Les agences de notation classent la qualité de crédit des émetteurs en deux grandes familles :</p>
@@ -265,55 +265,6 @@ ${disclaimer}
 <h3>Comment relier probabilité de défaut et rendement ?</h3>
 <p>Le spread d'une obligation rémunère notamment la perte attendue, qui combine probabilité de défaut et montant perdu en cas de défaut. Le guide sur le <a href="/fr/guides/risque-de-credit-obligataire">risque de crédit</a> explique comment ces éléments s'articulent, et celui sur les <a href="/fr/guides/obligations-haut-rendement">obligations à haut rendement</a> détaille les catégories spéculatives.</p>
 ${cta("comparez des obligations par risque, rendement et duration")}
-${disclaimer}
-`,
-  },
-  {
-    locale: "fr",
-    topic: "compare",
-    group: "bonds-vs-etf",
-    status: "published",
-    slug: "obligations-ou-etf",
-    title: "Obligations ou ETF obligataires : quelles différences ?",
-    seoTitle: "Obligations ou ETF obligataires ? Les différences",
-    metaDescription: "Obligation détenue jusqu'à l'échéance ou ETF obligataire : échéance, rendement connu, frais, diversification, fiscalité et enveloppes comparés.",
-    primaryKeyword: "obligations ou etf",
-    relatedKeywords: ["etf obligataire", "acheter des obligations", "oat ou etf", "fonds obligataire"],
-    relatedSlugs: ["rendement-a-l-echeance", "obligations-etat-ou-entreprise", "duration-obligations"],
-    bodyHtml: `
-<p><strong>En bref :</strong> une obligation a une échéance : conservée jusqu'au bout, son rendement est connu dès l'achat si l'émetteur paie. Un ETF obligataire classique n'a pas d'échéance : il renouvelle ses titres en permanence et sa valeur suit les taux sans date de remboursement.</p>
-<p>Les deux donnent accès au marché obligataire, mais ils ne fonctionnent pas de la même façon. Une OAT, un Bund ou une obligation d'entreprise est un titre unique émis par un seul débiteur. Un ETF obligataire est un fonds coté en bourse qui détient un panier d'obligations.</p>
-<h2 id="echeance">Que change l'échéance ?</h2>
-<p>Une OAT classique a une date de remboursement fixe : à cette date, vous récupérez le nominal, quels qu'aient été les mouvements de taux entre-temps. Un ETF obligataire traditionnel garde un portefeuille glissant : il vend les titres qui approchent de l'échéance et en achète de nouveaux. Il ne vous rembourse jamais à une date donnée ; vous revendez vos parts au prix du marché.</p>
-<p>Il existe aussi des <strong>ETF obligataires à échéance fixe</strong>, qui détiennent des obligations arrivant toutes à échéance la même année et se rapprochent ainsi d'une obligation détenue en direct. Leur fonctionnement diffère de celui des ETF traditionnels : lisez la documentation du fonds.</p>
-<h2 id="rendement">Rendement connu ou rendement moyen : quelle différence ?</h2>
-<p>Le <a href="/fr/guides/rendement-a-l-echeance">rendement à l'échéance</a> d'une obligation est fixé par le prix que vous payez : en la gardant jusqu'au remboursement, il ne change plus, sauf défaut de l'émetteur. Le rendement affiché par un ETF est une moyenne de son portefeuille qui évolue chaque jour. De même, la <a href="/fr/guides/duration-obligations">duration</a> d'une obligation diminue avec le temps, alors que celle d'un ETF reste à peu près stable : le risque de taux de l'ETF ne s'éteint jamais.</p>
-<h2 id="comparatif">Obligation ou ETF : quel tableau comparatif ?</h2>
-<table>
-<thead><tr><th scope="col">Critère</th><th scope="col">Obligation en direct</th><th scope="col">ETF obligataire classique</th></tr></thead>
-<tbody>
-<tr><td>Échéance</td><td>Date de remboursement fixe</td><td>Aucune (portefeuille renouvelé)</td></tr>
-<tr><td>Rendement</td><td>Connu à l'achat si conservée jusqu'à l'échéance</td><td>Moyenne variable du portefeuille</td></tr>
-<tr><td>Diversification</td><td>Un seul émetteur par titre</td><td>Plusieurs émetteurs et échéances</td></tr>
-<tr><td>Frais</td><td>Courtage à l'achat, éventuels droits de garde</td><td>Courtage et frais courants annuels du fonds</td></tr>
-<tr><td>Montant minimum</td><td>Parfois élevé selon l'émission</td><td>Le prix d'une part</td></tr>
-<tr><td>Enveloppe</td><td>Compte-titres</td><td>Compte-titres, parfois assurance-vie en unités de compte</td></tr>
-</tbody>
-</table>
-<h2 id="frais-risques">Quels frais et quels risques vérifier ?</h2>
-<ul>
-<li>Les frais de courtage et, le cas échéant, les droits de garde de votre banque ou courtier ;</li>
-<li>les frais courants annuels du fonds pour un ETF ;</li>
-<li>l'écart entre prix d'achat et prix de vente ;</li>
-<li>la sensibilité aux taux (duration) ;</li>
-<li>le risque de crédit des émetteurs ;</li>
-<li>la fiscalité applicable.</li>
-</ul>
-<h2 id="fiscalite">Et la fiscalité en France ?</h2>
-<p>Pour un particulier résident, les coupons et plus-values d'obligations détenues en compte-titres relèvent en principe du prélèvement forfaitaire unique (la « flat tax »), avec option possible pour le barème progressif ; les plus-values de cession de parts d'ETF détenues en compte-titres y sont en principe aussi soumises. Les obligations ne peuvent pas être détenues en direct dans un PEA, et la plupart des ETF obligataires n'y sont pas éligibles. Certains contrats d'assurance-vie proposent des ETF en unités de compte. Les règles et les taux évoluent : vérifiez votre situation sur impots.gouv.fr ou auprès de votre établissement.</p>
-<h2 id="choisir">Comment choisir entre les deux ?</h2>
-<p>Il n'existe pas de réponse valable pour tous. Ceux qui ont une date précise de besoin d'argent regardent souvent des titres arrivant à échéance à cette date ; ceux qui veulent diversifier avec un petit capital regardent plutôt les fonds. Dans tous les cas, comparez à duration égale et à risque de crédit égal. Les listes 10BONDS ne retiennent qu'une obligation par émetteur, pour faciliter une diversification en direct.</p>
-${cta("comparez les obligations en direct par échéance, rendement et risque")}
 ${disclaimer}
 `,
   },

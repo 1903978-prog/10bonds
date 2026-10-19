@@ -13,9 +13,10 @@ import { countryName, govCurves } from "./yieldCurves";
 import { aiVisibility, guideShape, REQUIRED_CRAWLERS, robotsAllows } from "./geo";
 import robots from "../../app/robots";
 import { LOCALE, LOCALES, localeFromAcceptLanguage, pathOf, sectionOf, suggestLocale, T } from "./locales";
+import { SEED_GUIDES_LIVIO_FR, FR_LIVIO_MOVED } from "./guidesLivioFr";
 import { findIsins, isValidIsin, parsePage, similarity } from "./page";
 import { DIMENSIONS, mergeManual, overallScore, recommendations, type CriterionResult } from "./rubric";
-import { safeHref, sanitizeHtml, wordCount } from "./sanitize";
+import { faqFromHtml, safeHref, sanitizeHtml, wordCount } from "./sanitize";
 
 const at = "2026-10-18T10:00:00.000Z";
 const result = (dimension: string, criterion: string, points: 0 | 1 | 2 | null, status: CriterionResult["status"] = "verified"): CriterionResult => ({
@@ -101,7 +102,8 @@ describe("sanitizer", () => {
       // Livio's landing pages are deliberately short (his own approved text).
       expect(wordCount(clean)).toBeGreaterThan(g.status === "draft" ? 60 : landingFor(`/${g.locale}/guide/${g.slug}`) ? 180 : 250);
       expect(clean).toMatch(new RegExp(`href="/${g.locale}[/"]`));
-      expect(findIsins(clean)).toEqual([]);
+      // Livio's OAT article names three OATs by ISIN on purpose (public AFT data, his own text).
+      if (g.slug !== "oat-obligations-etat") expect(findIsins(clean)).toEqual([]);
     }
   });
 });
@@ -418,5 +420,18 @@ describe("manual AI citation check", () => {
     expect(r.cited).toBe(1);
     expect(r.answers[1].domains).toEqual(["simpletoolsforinvestors.eu"]);
     expect(isoWeek(new Date("2026-10-19T08:00:00Z"))).toBe("2026-W43");
+  });
+});
+
+describe("Livio's French articles", () => {
+  it("keep his text, take over the old slugs and embed live blocks", () => {
+    expect(Object.keys(FR_LIVIO_MOVED).sort()).toEqual(["oat-obligations-etat-francaises", "obligations-ou-etf", "rendement-a-l-echeance"]);
+    for (const g of SEED_GUIDES_LIVIO_FR) {
+      expect(SEED_GUIDES.filter((x) => x.locale === "fr" && (x.slug === g.slug || x.slug === g.oldSlug))).toHaveLength(1);
+      expect(wordCount(sanitizeHtml(g.bodyHtml))).toBeGreaterThan(1500);
+      expect(faqFromHtml(sanitizeHtml(g.bodyHtml)).length).toBeGreaterThanOrEqual(3);
+      expect(sanitizeHtml(g.bodyHtml)).toMatch(/<p>\[\[10bonds:(calculator|bonds:[a-z0-9-]+)\]\]<\/p>/);
+    }
+    expect(SEED_GUIDES_LIVIO_FR[1].bodyHtml).toContain("Il s'élève à environ <strong>5,16 % par an</strong>.");
   });
 });

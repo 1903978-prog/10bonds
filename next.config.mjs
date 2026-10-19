@@ -19,6 +19,14 @@ const nextConfig = {
   // Title, description, canonical and hreflang always in the page <head> for every visitor and crawler
   // (no streamed metadata), so every search engine and the SEO check read them without running scripts.
   htmlLimitedBots: /.*/,
+  // French guides replaced by Livio's articles on 19 Oct 2026 (lib/seo/guidesLivioFr.ts).
+  async redirects() {
+    return [
+      ["oat-obligations-etat-francaises", "oat-obligations-etat"],
+      ["rendement-a-l-echeance", "calcul-rendement-obligation"],
+      ["obligations-ou-etf", "obligations-ou-etf-obligataires"],
+    ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }));
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

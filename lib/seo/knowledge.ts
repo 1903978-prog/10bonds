@@ -53,7 +53,7 @@ export const FIRST_WAVE: WavePage[] = [
   p("fr", "Rendement OAT 10 ans", "government", "rendement oat 10 ans", "comparison", "gov-fr", "/fr/obligations/oat"),
   p("fr", "Calcul rendement actuariel", "calculators", "calcul rendement actuariel", "calculator", "rendement-actuariel", "/fr/calculateurs/rendement-actuariel"),
   p("fr", "Meilleurs courtiers obligations", "brokers", "meilleur courtier obligations", "broker", null, "/fr/courtiers-obligations"),
-  p("fr", "Obligations ou ETF", "academy", "obligations ou etf", "guide", "obligations-ou-etf", "/fr/guides/obligations-ou-etf"),
+  p("fr", "Obligations ou ETF", "academy", "obligations ou etf", "guide", "obligations-ou-etf-obligataires", "/fr/guides/obligations-ou-etf-obligataires"),
   p("fr", "Acheter des OAT en direct", "government", "acheter des oat", "guide", "acheter-des-oat", "/fr/guides/acheter-des-oat"),
   p("de", "Beste Anleihen 2026", "best", "beste anleihen 2026", "comparison", "best", "/de/anleihen/beste-anleihen"),
   p("de", "Bundesanleihen Rendite", "government", "bundesanleihen rendite", "comparison", "gov-de", "/de/anleihen/bundesanleihen"),

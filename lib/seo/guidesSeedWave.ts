@@ -31,7 +31,7 @@ ${todo("it", ["confrontare TER tipici con fonte", "tassazione ETF (26% su proven
     metaDescription: "Comment acheter des obligations assimilables du Trésor (OAT) en direct via un courtier : où, à quel prix, avec quels frais et quels risques.",
     primaryKeyword: "acheter des oat",
     relatedKeywords: ["oat", "obligations d'état"],
-    relatedSlugs: ["oat-obligations-etat-francaises"],
+    relatedSlugs: ["oat-obligations-etat"],
     bodyHtml: `<p>Les OAT sont les obligations de l'État français. Un particulier peut les acheter sur le marché secondaire via un courtier, comme une action, au prix du jour.</p>
 <h2 id="ou">Où les acheter</h2><p>Via un compte-titres auprès d'un courtier ou d'une banque qui donne accès au marché obligataire.</p>
 <h2 id="prix">Prix et rendement</h2><p>Le prix varie autour de 100 ; le rendement à l'échéance dépend du prix payé et du coupon.</p>
