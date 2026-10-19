@@ -14,9 +14,9 @@ export function footerLang(pathname: string | null): keyof typeof FOOTER_NOTE {
 export type FooterLang = keyof typeof FOOTER_NOTE;
 
 /** The light grey legal menu at the bottom of every page. */
-export const FOOTER_LINKS: Record<FooterLang, { disclaimer: string; terms: string; privacy: string; cookies: string; settings: string; pro: string }> = {
-  en: { disclaimer: "Disclaimer", terms: "Terms", privacy: "Privacy & GDPR", cookies: "Cookies", settings: "Cookie settings", pro: "For wealth managers" },
-  it: { disclaimer: "Avvertenze", terms: "Termini", privacy: "Privacy e GDPR", cookies: "Cookie", settings: "Impostazioni cookie", pro: "Per i gestori patrimoniali" },
-  fr: { disclaimer: "Avertissement", terms: "Conditions", privacy: "Confidentialité et RGPD", cookies: "Cookies", settings: "Paramètres des cookies", pro: "Pour les gérants de patrimoine" },
-  de: { disclaimer: "Haftungsausschluss", terms: "Nutzungsbedingungen", privacy: "Datenschutz und DSGVO", cookies: "Cookies", settings: "Cookie-Einstellungen", pro: "Für Vermögensverwalter" },
+export const FOOTER_LINKS: Record<FooterLang, { disclaimer: string; terms: string; privacy: string; cookies: string; settings: string; pro: string; widget: string }> = {
+  en: { disclaimer: "Disclaimer", terms: "Terms", privacy: "Privacy & GDPR", cookies: "Cookies", settings: "Cookie settings", pro: "For wealth managers", widget: "Free widget" },
+  it: { disclaimer: "Avvertenze", terms: "Termini", privacy: "Privacy e GDPR", cookies: "Cookie", settings: "Impostazioni cookie", pro: "Per i gestori patrimoniali", widget: "Widget gratuito" },
+  fr: { disclaimer: "Avertissement", terms: "Conditions", privacy: "Confidentialité et RGPD", cookies: "Cookies", settings: "Paramètres des cookies", pro: "Pour les gérants de patrimoine", widget: "Widget gratuit" },
+  de: { disclaimer: "Haftungsausschluss", terms: "Nutzungsbedingungen", privacy: "Datenschutz und DSGVO", cookies: "Cookies", settings: "Cookie-Einstellungen", pro: "Für Vermögensverwalter", widget: "Kostenloses Widget" },
 };

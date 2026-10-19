@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import sitemap from "@/app/sitemap";
+import { serviceAccount } from "@/lib/seo/google";
+import { bad, notFound, seoAdmin, str } from "@/lib/seo/input";
+import { indexNowKey, linkedInRedirect, linkedInStatus, shareAll, shareLog, xConfigured } from "@/lib/seo/share";
+import { getSeoSetting, setSeoSetting } from "@/lib/seo/store";
+
+// Admin -> SEO -> Sharing: which channels are on, the log of what was sent, and the few settings they need.
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  if (!(await seoAdmin())) return notFound();
+  const [log, linkedin, gscSite] = await Promise.all([shareLog(), linkedInStatus(), getSeoSetting("gsc_site")]);
+  return NextResponse.json(
+    {
+      log,
+      indexnow: !!indexNowKey(),
+      google: { serviceAccount: serviceAccount()?.client_email ?? null, site: gscSite },
+      linkedin: { ...linkedin, redirect: linkedInRedirect() },
+      x: xConfigured(),
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+export async function POST(req: Request) {
+  if (!(await seoAdmin())) return notFound();
+  const b = await req.json().catch(() => ({}));
+  if (b?.op === "linkedin_org") {
+    // The page's number, or its admin address (https://www.linkedin.com/company/12345678/admin/).
+    const id = str(b.org, 200)?.match(/(\d{3,})/)?.[1] ?? null;
+    if (!id) return bad("Paste the number from your LinkedIn page's admin address.");
+    await setSeoSetting("linkedin_org", id);
+    return NextResponse.json({ ok: true });
+  }
+  if (b?.op === "linkedin_disconnect") {
+    await setSeoSetting("linkedin_token", null);
+    return NextResponse.json({ ok: true });
+  }
+  if (b?.op === "send_all") {
+    const urls = (await sitemap()).map((e) => e.url);
+    await shareAll(urls);
+    return NextResponse.json({ ok: true, pages: urls.length });
+  }
+  return bad("Unknown action.");
+}

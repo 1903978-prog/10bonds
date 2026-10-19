@@ -73,6 +73,17 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       status text not null,
       note text
     )`;
+  // What was sent where when a guide went live: search engines (IndexNow, Google) and social pages (LinkedIn, X).
+  await s`
+    create table if not exists app.seo_shares (
+      id bigserial primary key,
+      guide_id bigint references app.seo_guides(id) on delete set null,
+      url text not null,
+      channel text not null,
+      ok boolean not null,
+      detail text,
+      at timestamptz not null default now()
+    )`;
   await s`
     create table if not exists app.seo_backlinks (
       id bigserial primary key,

@@ -30,7 +30,13 @@ const nextConfig = {
     ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }));
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // /embed/... is shown inside other websites' frames, so it skips the "never in a frame" and same-origin rules.
+    // It keeps "require-corp": a page with that rule (ours included) may only frame pages that also have it.
+    const embed = new Set(["X-Frame-Options", "Cross-Origin-Resource-Policy", "Cross-Origin-Opener-Policy"]);
+    return [
+      { source: "/((?!embed/).*)", headers: securityHeaders },
+      { source: "/embed/:path*", headers: [...securityHeaders.filter((h) => !embed.has(h.key)), { key: "Cross-Origin-Resource-Policy", value: "cross-origin" }] },
+    ];
   },
 };
 export default nextConfig;
