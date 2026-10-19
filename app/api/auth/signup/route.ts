@@ -7,6 +7,7 @@ import { TERMS_VERSION } from "@/lib/terms";
 import { checkSolution } from "@/lib/botCheck";
 import { sendConfirmation } from "@/lib/confirm";
 import { normaliseCode } from "@/lib/codes";
+import { requestLang } from "@/lib/welcomeEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     if (user === "username-taken") return NextResponse.json({ error: "This username is taken. Please choose another." }, { status: 409 });
     const redeemed = code ? await redeemTrialCode(user.id, code) : null;
     const premiumUntil = redeemed && typeof redeemed === "object" ? redeemed.premiumUntil : user.premiumUntil;
-    const emailed = await sendConfirmation(user.id, user.email, u);
+    const emailed = await sendConfirmation(user.id, user.email, u, requestLang(req));
     return withSession(user.id, {
       ok: true,
       plan: user.plan,
