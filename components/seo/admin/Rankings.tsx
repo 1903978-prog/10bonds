@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Locale } from "@/lib/seo/locales";
+import type { ContentScore } from "@/lib/seo/contentScores";
 import type { Bucket, RankingRow } from "@/lib/seo/rankings";
 import { api, Badge, card, day, ErrorNote, num, Steps, Table } from "./ui";
 
 type Data = {
   market: Locale; state: "not_connected" | "needs_setting" | "connected"; site: string | null; serviceAccount: string | null; error: string | null;
   site28: { clicks: number; impressions: number; position: number } | null;
-  rows: RankingRow[];
+  rows: (RankingRow & { content: ContentScore | null })[];
   kpi: { tracked: number; ranking: number; top3: number; page1: number; page1Share: number; page2: number; clicks: number; impressions: number; at: string | null } | null;
 };
 
@@ -73,7 +74,7 @@ export default function Rankings({ market }: { market: Locale }) {
       <section className={card}>
         <h2 className="text-lg font-semibold">Keyword by keyword</h2>
         {data.rows.length === 0 ? <p className="mt-2 text-sm text-mute">No target keywords for this language yet.</p> : (
-          <Table head={["Keyword", "Google", "Position", "Change", "Clicks", "Impressions", "CTR", "Monthly searches", "Landing page"]} min="56rem">
+          <Table head={["Keyword", "Google", "Position", "Change", "Clicks", "Impressions", "CTR", "Monthly searches", "Landing page", "Content vs top 3", "Top 3 on Google"]} min="84rem">
             {data.rows.map((r) => {
               const change = r.position !== null && r.previous !== null ? r.previous - r.position : null;
               return (
@@ -86,7 +87,17 @@ export default function Rankings({ market }: { market: Locale }) {
                   <td className="pr-3">{num(r.impressions)}</td>
                   <td className="pr-3">{pct(r.ctr)}</td>
                   <td className="pr-3 text-mute">{num(r.volume)}</td>
-                  <td className="break-all text-mute">{r.landingPath ?? "—"}</td>
+                  <td className="break-all pr-3 text-mute">{r.landingPath ?? "—"}</td>
+                  <td className="pr-3"><ContentCell c={r.content} /></td>
+                  <td className="text-xs">
+                    {r.content?.competitors.length ? (
+                      <ol className="space-y-0.5">
+                        {r.content.competitors.map((c, i) => (
+                          <li key={c.url}><a href={c.url} target="_blank" rel="noopener noreferrer nofollow" className="text-accent hover:underline" title={c.title}>{i + 1}. {host(c.url)} ↗</a></li>
+                        ))}
+                      </ol>
+                    ) : <span className="text-mute">—</span>}
+                  </td>
                 </tr>
               );
             })}
@@ -99,4 +110,22 @@ export default function Rankings({ market }: { market: Locale }) {
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
   return <div className="rounded-2xl bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p><p className="text-xs text-mute">{sub}</p></div>;
+}
+
+const host = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } };
+
+/** Our page's content score against the top 3 Google results, with the reason on hover and below. */
+function ContentCell({ c }: { c: ContentScore | null }) {
+  if (!c) return <span className="text-mute">Not checked</span>;
+  if (c.status === "draft") return <span title={c.note}><Badge tone="gray">Draft, not public</Badge></span>;
+  if (c.status === "missing") return <span title={c.note}><Badge tone="red">Page missing</Badge></span>;
+  const tone = c.score === null ? "gray" : c.score >= 7 ? "green" : c.score >= 5 ? "amber" : "red";
+  return (
+    <div className="min-w-[12rem]">
+      <span title={`Depth ${c.depth ?? "—"} · relevance ${c.relevance ?? "—"} · richness ${c.richness ?? "—"}`}><Badge tone={tone}>{c.score ?? "—"}/10</Badge></span>
+      {c.status === "gap" && <> <Badge tone="purple">Gap</Badge></>}
+      <p className="mt-1 text-xs leading-snug text-mute">{c.note}</p>
+      <p className="text-[11px] text-mute">Checked {day(c.checkedAt)}</p>
+    </div>
+  );
 }
