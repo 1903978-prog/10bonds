@@ -27,8 +27,8 @@ export function PlanButton({ plan, interval = "month", highlight, label }: Props
     setBusy(false);
   }
   return (
-    <div className="mt-7">
-      <label className="flex gap-2 text-left text-xs text-mute">
+    <div className="mt-4">
+      <label className="flex gap-1.5 text-left text-[11px] leading-snug text-mute">
         <input type="checkbox" className="mt-0.5" checked={startNow} onChange={(e) => setStartNow(e.target.checked)} data-testid={`start-now-${plan}`} />
         <span>Start my plan straight away. If I withdraw within 14 days, I pay for the days already used.</span>
       </label>
@@ -36,7 +36,7 @@ export function PlanButton({ plan, interval = "month", highlight, label }: Props
         onClick={go}
         disabled={!startNow || busy}
         data-testid={`buy-${plan}`}
-        className={`mt-3 w-full rounded-full px-5 py-3 text-[15px] font-medium ${highlight ? "bg-accent text-white" : "bg-ink text-white"} disabled:opacity-50`}
+        className={`mt-2 w-full rounded-full px-4 py-2 text-sm font-medium ${highlight ? "bg-accent text-white" : "bg-ink text-white"} disabled:opacity-50`}
       >
         {busy ? "Opening payment…" : label}
       </button>

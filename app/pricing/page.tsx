@@ -56,11 +56,11 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
   return (
     <div>
       <div className="mx-auto max-w-2xl text-center">
-        <h1 className="text-[36px] font-semibold tracking-tight sm:text-[48px]">Simple plans</h1>
-        <p className="mt-3 text-mute">
+        <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">Simple plans</h1>
+        <p className="mt-1 text-sm text-mute">
           Start with a free account. Upgrade when you want the ISIN codes and more. Cancel anytime.
         </p>
-        {!user && <p className="mt-2 text-sm text-mute">Without an account you can try the search and see the top 3.</p>}
+        {!user && <p className="mt-0.5 text-xs text-mute">Without an account you can try the search and see the top 3.</p>}
         {sp.paid && (
           <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-800" data-testid="paid-msg">
             Thank you. Your payment went through; your plan is active within a minute (refresh if it still shows the old plan).
@@ -74,33 +74,33 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
           <p className="mt-4 text-sm text-mute">Your subscription ends on {new Date(sub.renewsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.</p>
         )}
       </div>
-      <div className="mt-8 flex justify-center">
+      <div className="mt-3 flex justify-center">
         <div className="inline-flex rounded-full bg-canvas p-1 text-sm" data-testid="billing-toggle">
-          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1.5 ${interval === "month" ? "bg-white font-medium shadow-sm" : "text-mute"}`} data-testid="billing-month">Monthly</Link>
-          <Link href="/pricing?billing=year" scroll={false} className={`rounded-full px-4 py-1.5 ${interval === "year" ? "bg-white font-medium shadow-sm" : "text-mute"}`} data-testid="billing-year">
+          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 ${interval === "month" ? "bg-white font-medium shadow-sm" : "text-mute"}`} data-testid="billing-month">Monthly</Link>
+          <Link href="/pricing?billing=year" scroll={false} className={`rounded-full px-4 py-1 ${interval === "year" ? "bg-white font-medium shadow-sm" : "text-mute"}`} data-testid="billing-year">
             Yearly <span className="text-accent">−{Math.round(YEARLY_DISCOUNT * 100)}%</span>
           </Link>
         </div>
       </div>
-      <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((p) => (
           <div
             key={p.name}
-            className={`flex flex-col rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] ${p.highlight ? "ring-2 ring-accent" : ""}`}
+            className={`flex flex-col rounded-[20px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] ${p.highlight ? "ring-2 ring-accent" : ""}`}
           >
-            <h2 className="flex items-center gap-2 text-xl font-semibold">
+            <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               {p.name}
               {p.key === "pro" && <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-medium text-white">For professionals</span>}
             </h2>
-            <p className="mt-1 text-sm text-mute">{p.tagline}</p>
-            <p className="mt-5" data-testid={`price-${p.key}`}>
-              <span className="text-4xl font-semibold tracking-tight">{p.key === "free" ? "€0" : euro(priceCents(p.key as PaidPlan, interval))}</span>
-              {p.key !== "free" && <span className="text-mute">{interval === "year" ? "/year" : "/month"}</span>}
+            <p className="text-xs text-mute">{p.tagline}</p>
+            <p className="mt-3" data-testid={`price-${p.key}`}>
+              <span className="text-[28px] font-semibold tracking-tight">{p.key === "free" ? "€0" : euro(priceCents(p.key as PaidPlan, interval))}</span>
+              {p.key !== "free" && <span className="text-sm text-mute">{interval === "year" ? "/year" : "/month"}</span>}
             </p>
             {p.key !== "free" && interval === "year" && (
-              <p className="mt-1 text-xs text-mute">= {euro(Math.round(priceCents(p.key as PaidPlan, "year") / 12))}/month, 20% less than monthly</p>
+              <p className="text-[11px] text-mute">= {euro(Math.round(priceCents(p.key as PaidPlan, "year") / 12))}/month, 20% less than monthly</p>
             )}
-            <ul className="mt-6 flex-1 space-y-2.5 text-[15px]">
+            <ul className="mt-3 flex-1 space-y-1 text-[13px] leading-snug">
               {p.features.map((f) => (
                 <li key={f} className="flex gap-2">
                   <span className="text-accent">✓</span>
@@ -110,30 +110,30 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
             </ul>
             {p.key === "free" ? (
               !user ? (
-                <Link href="/signup" className="mt-7 rounded-full bg-ink px-5 py-3 text-center text-[15px] font-medium text-white hover:opacity-90">
+                <Link href="/signup" className="mt-4 rounded-full bg-ink px-4 py-2 text-center text-sm font-medium text-white hover:opacity-90">
                   {p.cta}
                 </Link>
               ) : (
-                <button disabled className="mt-7 rounded-full bg-canvas px-5 py-3 text-[15px] font-medium text-ink disabled:cursor-default disabled:opacity-80">
+                <button disabled className="mt-4 rounded-full bg-canvas px-4 py-2 text-sm font-medium text-ink disabled:cursor-default disabled:opacity-80">
                   {user.plan === "free" ? "Your plan" : "Included"}
                 </button>
               )
             ) : !payOn ? (
-              <button disabled className={`mt-7 rounded-full px-5 py-3 text-[15px] font-medium ${p.highlight ? "bg-accent text-white" : "bg-canvas text-ink"} disabled:cursor-default disabled:opacity-80`}>
+              <button disabled className={`mt-4 rounded-full px-4 py-2 text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-canvas text-ink"} disabled:cursor-default disabled:opacity-80`}>
                 {user?.storedPlan === p.key ? "Your plan" : "Coming soon"}
               </button>
             ) : p.key === "pro" && !proApproved ? (
-              <Link href="/pro" className="mt-7 rounded-full bg-ink px-5 py-3 text-center text-[15px] font-medium text-white hover:opacity-90" data-testid="pro-request">
+              <Link href="/pro" className="mt-4 rounded-full bg-ink px-4 py-2 text-center text-sm font-medium text-white hover:opacity-90" data-testid="pro-request">
                 {user ? "Request professional access" : "Learn more"}
               </Link>
             ) : !user ? (
-              <Link href="/signup" className={`mt-7 rounded-full px-5 py-3 text-center text-[15px] font-medium ${p.highlight ? "bg-accent text-white" : "bg-ink text-white"} hover:opacity-90`}>
+              <Link href="/signup" className={`mt-4 rounded-full px-4 py-2 text-center text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-ink text-white"} hover:opacity-90`}>
                 Create a free account first
               </Link>
             ) : sub ? (
               <>
-                {user.storedPlan === p.key && <p className="mt-7 text-center text-sm font-medium text-accent">Your plan</p>}
-                <Link href="/account" className="mt-7 rounded-full bg-canvas px-5 py-3 text-center text-[15px] font-medium text-ink">Change on your profile</Link>
+                {user.storedPlan === p.key && <p className="mt-4 text-center text-sm font-medium text-accent">Your plan</p>}
+                <Link href="/account" className="mt-4 rounded-full bg-canvas px-4 py-2 text-center text-sm font-medium text-ink">Change on your profile</Link>
               </>
             ) : (
               <PlanButton plan={p.key as PaidPlan} interval={interval} highlight={p.highlight} label={p.cta} />
@@ -142,8 +142,10 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
         ))}
       </div>
       {user && !sub && <RedeemForm />}
-      <p className="mt-6 text-center text-sm text-mute" data-testid="plan-terms">Prices include VAT · cancel anytime · payments by Stripe.</p>
-      {!user && <p className="mt-2 text-center text-sm text-mute">Have a promo code? Enter it when you create your free account for 30 days of full access.</p>}
+      <p className="mt-3 text-center text-xs text-mute" data-testid="plan-terms">
+        Prices include VAT · cancel anytime · payments by Stripe.
+        {!user && " Have a promo code? Enter it when you create your free account for 30 days of full access."}
+      </p>
     </div>
   );
 }
