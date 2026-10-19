@@ -5,7 +5,7 @@ export const LOCALES = ["it", "fr", "de"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const isLocale = (v: unknown): v is Locale => LOCALES.includes(v as Locale);
 
-export type Section = "guides" | "bonds" | "tools" | "method" | "team";
+export type Section = "guides" | "bonds" | "tools" | "method" | "team" | "knowledge";
 
 type LocaleDef = {
   name: string; // in its own language
@@ -17,9 +17,9 @@ type LocaleDef = {
 };
 
 export const LOCALE: Record<Locale, LocaleDef> = {
-  it: { name: "Italiano", hreflang: "it-IT", ogLocale: "it_IT", country: "IT", marketName: "Italy", seg: { guides: "guide", bonds: "obbligazioni", tools: "calcolatori", method: "metodologia", team: "redazione" } },
-  fr: { name: "Français", hreflang: "fr-FR", ogLocale: "fr_FR", country: "FR", marketName: "France", seg: { guides: "guides", bonds: "obligations", tools: "calculateurs", method: "methodologie", team: "redaction" } },
-  de: { name: "Deutsch", hreflang: "de-DE", ogLocale: "de_DE", country: "DE", marketName: "Germany", seg: { guides: "ratgeber", bonds: "anleihen", tools: "rechner", method: "methodik", team: "redaktion" } },
+  it: { name: "Italiano", hreflang: "it-IT", ogLocale: "it_IT", country: "IT", marketName: "Italy", seg: { guides: "guide", bonds: "obbligazioni", tools: "calcolatori", method: "metodologia", team: "redazione", knowledge: "sapere" } },
+  fr: { name: "Français", hreflang: "fr-FR", ogLocale: "fr_FR", country: "FR", marketName: "France", seg: { guides: "guides", bonds: "obligations", tools: "calculateurs", method: "methodologie", team: "redaction", knowledge: "savoir" } },
+  de: { name: "Deutsch", hreflang: "de-DE", ogLocale: "de_DE", country: "DE", marketName: "Germany", seg: { guides: "ratgeber", bonds: "anleihen", tools: "rechner", method: "methodik", team: "redaktion", knowledge: "wissen" } },
 };
 
 export function sectionOf(locale: Locale, segment: string): Section | null {
@@ -62,7 +62,7 @@ export const LANG_COOKIE = "tb_lang";
 // Words used on the public pages, per language.
 export const T: Record<Locale, Record<string, string>> = {
   it: {
-    home: "Home", guides: "Guide", bonds: "Obbligazioni", tools: "Calcolatori", method: "Metodologia", team: "Redazione",
+    home: "Home", guides: "Guide", bonds: "Obbligazioni", tools: "Calcolatori", method: "Metodologia", team: "Redazione", knowledge: "Sapere",
     by: "Di", reviewedBy: "Revisione di", editorial: "Redazione 10BONDS", published: "Pubblicata il", reviewed: "Ultima revisione",
     related: "Guide correlate", liveData: "Dati aggiornati", openTool: "Apri lo strumento", freeAccount: "Account gratuito: top 10 completa",
     ctaTitle: "Trova le tue 10 obbligazioni", ctaText: "Scegli una duration e un rendimento obiettivo: 10BONDS ti mostra le 10 obbligazioni in euro più vicine, una per emittente.",
@@ -75,7 +75,7 @@ export const T: Record<Locale, Record<string, string>> = {
     langLabel: "Lingua",
   },
   fr: {
-    home: "Accueil", guides: "Guides", bonds: "Obligations", tools: "Calculateurs", method: "Méthodologie", team: "Rédaction",
+    home: "Accueil", guides: "Guides", bonds: "Obligations", tools: "Calculateurs", method: "Méthodologie", team: "Rédaction", knowledge: "Savoir",
     by: "Par", reviewedBy: "Relu par", editorial: "Rédaction 10BONDS", published: "Publié le", reviewed: "Dernière relecture",
     related: "Guides associés", liveData: "Données à jour", openTool: "Ouvrir l'outil", freeAccount: "Compte gratuit : le top 10 complet",
     ctaTitle: "Trouvez vos 10 obligations", ctaText: "Choisissez une duration et un rendement cible : 10BONDS affiche les 10 obligations en euros les plus proches, une par émetteur.",
@@ -88,7 +88,7 @@ export const T: Record<Locale, Record<string, string>> = {
     langLabel: "Langue",
   },
   de: {
-    home: "Start", guides: "Ratgeber", bonds: "Anleihen", tools: "Rechner", method: "Methodik", team: "Redaktion",
+    home: "Start", guides: "Ratgeber", bonds: "Anleihen", tools: "Rechner", method: "Methodik", team: "Redaktion", knowledge: "Wissen",
     by: "Von", reviewedBy: "Geprüft von", editorial: "Redaktion 10BONDS", published: "Veröffentlicht am", reviewed: "Zuletzt geprüft",
     related: "Weitere Ratgeber", liveData: "Aktuelle Daten", openTool: "Zum Anleihen-Finder", freeAccount: "Kostenloses Konto: komplette Top 10",
     ctaTitle: "Finden Sie Ihre 10 Anleihen", ctaText: "Wählen Sie eine Duration und eine Zielrendite: 10BONDS zeigt die 10 passendsten Euro-Anleihen, eine je Emittent.",

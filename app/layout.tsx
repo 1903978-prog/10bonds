@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
+import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import LangSwitch from "@/components/LangSwitch";
 import ProNavLink from "@/components/ProNavLink";
 import UsageStats, { UsageStatsSetting } from "@/components/UsageStats";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight">10BONDS</Link>
             <div className="ml-3 flex items-center gap-3 text-sm text-mute sm:gap-5">
               <LangSwitch />
+              <KnowledgeNavLink />
               <ProNavLink />
               <Link href="/pricing" className="hover:text-ink">Pricing</Link>
               <Link href="/disclaimer" className="hidden hover:text-ink sm:inline">Disclaimer</Link>

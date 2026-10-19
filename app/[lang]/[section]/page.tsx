@@ -6,6 +6,10 @@ import { SITE_URL } from "@/lib/seo/crawl";
 import { isLocale, LOCALE, pathOf, sectionOf, T, type Locale, type Section } from "@/lib/seo/locales";
 import { CALCULATORS, TOOLS_HUB } from "@/lib/seo/calculators";
 import { BONDS_HUB, GUIDES_HUB, METHOD, TEAM } from "@/lib/seo/pagesText";
+import { isPublished as brokersPublished } from "@/components/brokers/Pages";
+import { methodologyPath, sectionPath } from "@/lib/brokers/content";
+import { FIRST_WAVE } from "@/lib/seo/knowledge";
+import { comparisonSection, guideSection, KC_ORDER, KC_TEXT, type HubItem } from "@/lib/seo/knowledgeHub";
 import { comparisonPages, fmtDate, publicPeople, publishedGuides, sectionAlternates, shown } from "@/lib/seo/site";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +23,7 @@ async function resolve(params: Props["params"]): Promise<{ l: Locale; s: Section
   return s ? { l: lang, s } : null;
 }
 
-const TEXT = { guides: GUIDES_HUB, bonds: BONDS_HUB, tools: TOOLS_HUB, method: METHOD, team: TEAM };
+const TEXT = { knowledge: KC_TEXT, guides: GUIDES_HUB, bonds: BONDS_HUB, tools: TOOLS_HUB, method: METHOD, team: TEAM };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const r = await resolve(params);
@@ -38,7 +42,58 @@ export default async function SectionPage({ params }: Props) {
   let body: React.ReactNode = null;
   let ld: unknown = null;
 
-  if (s === "guides") {
+  if (s === "knowledge") {
+    const k = KC_TEXT[l];
+    const [guides, { pages, source }, brokersLive] = await Promise.all([publishedGuides(l), comparisonPages(), brokersPublished(l)]);
+    const live = pages.filter((p) => shown(p, source));
+    const items = Object.fromEntries(KC_ORDER.map((sec) => [sec, [] as HubItem[]])) as Record<(typeof KC_ORDER)[number], HubItem[]>;
+    for (const p of live) {
+      const sec = comparisonSection(p.def.id);
+      if (sec) items[sec].push({ title: p.def.text[l].h1, href: pathOf(l, "bonds", p.def.text[l].slug), note: `${p.issuers} ${t.issuersCount}` });
+    }
+    const c = CALCULATORS[l];
+    items.calculators.push({ title: c.h1, href: pathOf(l, "tools", c.slug) });
+    const brokerPage = FIRST_WAVE.find((p) => p.market === l && p.kind === "broker");
+    if (brokersLive && brokerPage) {
+      items.brokers.push({ title: brokerPage.title, href: sectionPath(l) });
+      items.brokers.push({ title: `${brokerPage.title} · ${t.method}`, href: methodologyPath(l) });
+    }
+    for (const g of guides) items[guideSection(g)].push({ title: g.title, href: pathOf(l, "guides", g.slug) });
+    items.academy.push({ title: t.method, href: pathOf(l, "method") });
+    // First-wave pages that are not public yet (guide in review, broker page unpublished, too few bonds today).
+    const linked = new Set(Object.values(items).flat().map((i) => i.href));
+    for (const p of FIRST_WAVE.filter((x) => x.market === l && x.path && !linked.has(x.path))) items[p.section].push({ title: p.title, href: null, note: k.soon });
+    body = (
+      <div className="mt-8 space-y-6">
+        {KC_ORDER.map((sec) => (
+          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+            <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
+            <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
+            {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {items[sec].map((i) => (
+                  <li key={i.title + (i.href ?? "")}>
+                    {i.href ? (
+                      <Link href={i.href} className="block h-full rounded-2xl bg-canvas px-4 py-3 hover:text-accent">
+                        <span className="block text-[15px] font-medium">{i.title}</span>
+                        {i.note && <span className="mt-0.5 block text-xs text-mute">{i.note}</span>}
+                      </Link>
+                    ) : (
+                      <span className="block h-full rounded-2xl border border-dashed border-line px-4 py-3 text-mute">
+                        <span className="block text-[15px]">{i.title}</span>
+                        <span className="mt-0.5 block text-xs">{i.note}</span>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
+      </div>
+    );
+    ld = { "@context": "https://schema.org", "@type": "CollectionPage", name: k.h1, inLanguage: LOCALE[l].hreflang, url: SITE_URL + pathOf(l, s), hasPart: Object.values(items).flat().filter((i) => i.href).map((i) => ({ "@type": "WebPage", name: i.title, url: SITE_URL + i.href })) };
+  } else if (s === "guides") {
     const guides = await publishedGuides(l);
     body = guides.length === 0 ? (
       <p className="mt-8 rounded-2xl bg-white p-6 text-mute">{t.noGuides} <Link href={pathOf(l, "bonds")} className="text-accent">{t.bonds} ›</Link></p>
