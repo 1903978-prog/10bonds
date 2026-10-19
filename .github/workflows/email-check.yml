@@ -27,7 +27,9 @@ jobs:
         run: |
           [ -n "$RESEND_API_KEY" ] || { echo "RESEND_API_KEY is not set"; exit 1; }
           H="Authorization: Bearer $RESEND_API_KEY"
-          id=$(curl -sS -H "$H" https://api.resend.com/domains | jq -r --arg d "$DOMAIN" '.data[] | select(.name==$d) | .id')
+          list=$(curl -sS -w '\n%{http_code}' -H "$H" https://api.resend.com/domains)
+          echo "list domains: HTTP $(echo "$list" | tail -1) $(echo "$list" | head -n -1 | jq -c '{name,message,statusCode}' 2>/dev/null)"
+          id=$(echo "$list" | head -n -1 | jq -r --arg d "$DOMAIN" '.data[]? | select(.name==$d) | .id')
           [ -n "$id" ] || { echo "Domain $DOMAIN is not in Resend"; exit 1; }
           curl -sS -o /dev/null -X POST -H "$H" "https://api.resend.com/domains/$id/verify"
           sleep 20
