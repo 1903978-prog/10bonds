@@ -6,14 +6,15 @@ export function dominatedLevels(points: CurvePoint[]): CurvePoint[] {
   return points.filter((p) => p.ytm !== null && !kept.has(p.level));
 }
 
-/** Keep only risk steps whose best yield beats every lower-risk step (more risk must pay more). Empty steps stay as "no bond". */
+/** Keep only risk steps whose best yield after expected losses beats every lower-risk step (more risk must pay more). Empty steps stay as "no bond". */
 export function dropDominated(points: CurvePoint[]): CurvePoint[] {
   let best = -Infinity;
   const keep = new Set<number>();
   for (const p of [...points].sort((a, b) => a.level - b.level)) {
     if (p.ytm === null) continue;
-    if (p.ytm > best) keep.add(p.level);
-    best = Math.max(best, p.ytm);
+    const v = p.adj ?? p.ytm;
+    if (v > best) keep.add(p.level);
+    best = Math.max(best, v);
   }
   return points.filter((p) => p.ytm === null || keep.has(p.level));
 }

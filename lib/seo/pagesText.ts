@@ -81,7 +81,7 @@ export const METHOD: Record<Locale, Method> = {
     sections: [
       { id: "ranking", h2: "Come funziona la classifica", paras: [
         "Indichi due criteri: una duration e un rendimento a scadenza obiettivo. Prendiamo le obbligazioni in euro con duration entro il ±20% di quella scelta (per 13 anni: da 10,4 a 15,6), allargando la finestra di mezzo anno alla volta finché ci sono almeno 10 emittenti diversi.",
-        "Tra queste scegliamo 10 obbligazioni, una per emittente, con il rendimento più alto e il rischio più basso possibili: il rendimento medio raggiunge almeno il tuo obiettivo e la duration media resta vicina a quella scelta. Le mostriamo dalla migliore per rendimento e rischio. Con il terzo cursore scegli il rischio massimo che accetti, da 1 (più basso) a 10 (più alto).",
+        "Tra queste scegliamo 10 obbligazioni, una per emittente, con il miglior rendimento al netto delle perdite attese: il rendimento meno il tasso storico annuo di default del rating (medie di lungo periodo S&P per la stessa durata) moltiplicato per una perdita del 60% in caso di default. Un rendimento più alto vince solo se paga il rischio in più. Il rendimento medio raggiunge almeno il tuo obiettivo e la duration media resta vicina a quella scelta. Con il terzo cursore scegli il rischio massimo che accetti, da 1 (più basso) a 10 (più alto).",
         "Il rendimento massimo che puoi chiedere per ogni duration è la media dei 10 emittenti con il rendimento più alto: oltre quel valore nessuna lista di 10 obbligazioni potrebbe raggiungerlo.",
       ] },
       { id: "sources", h2: "Fonti dei dati", paras: [
@@ -108,7 +108,7 @@ export const METHOD: Record<Locale, Method> = {
     sections: [
       { id: "ranking", h2: "Comment fonctionne le classement", paras: [
         "Vous indiquez deux critères : une duration et un rendement à l'échéance cible. Nous retenons les obligations en euros dont la duration est à ±20 % de votre choix (pour 13 ans : de 10,4 à 15,6), en élargissant la fenêtre d'une demi-année à la fois jusqu'à réunir au moins 10 émetteurs différents.",
-        "Parmi elles, nous choisissons 10 obligations, une par émetteur, au rendement le plus élevé et au risque le plus faible possibles : le rendement moyen atteint au moins votre objectif et la duration moyenne reste proche de votre choix. Nous les affichons de la meilleure en rendement et risque à la moins bonne. Le troisième curseur fixe le risque maximal accepté, de 1 (le plus faible) à 10 (le plus élevé).",
+        "Parmi elles, nous choisissons 10 obligations, une par émetteur, au meilleur rendement net des pertes attendues : le rendement moins le taux historique annuel de défaut de la note (moyennes de long terme S&P pour la même durée) multiplié par une perte de 60 % en cas de défaut. Un rendement plus élevé ne l'emporte que s'il paie le risque supplémentaire. Le rendement moyen atteint au moins votre objectif et la duration moyenne reste proche de votre choix. Le troisième curseur fixe le risque maximal accepté, de 1 (le plus faible) à 10 (le plus élevé).",
         "Le rendement maximal que vous pouvez demander pour chaque duration est la moyenne des 10 émetteurs les mieux rémunérés : au-delà, aucune liste de 10 obligations ne pourrait l'atteindre.",
       ] },
       { id: "sources", h2: "Sources des données", paras: [
@@ -135,7 +135,7 @@ export const METHOD: Record<Locale, Method> = {
     sections: [
       { id: "ranking", h2: "So funktioniert die Auswahl", paras: [
         "Sie geben zwei Kriterien vor: eine Duration und eine Zielrendite bis Fälligkeit. Wir nehmen Euro-Anleihen mit einer Duration innerhalb von ±20 % Ihrer Wahl (bei 13 Jahren: 10,4 bis 15,6), und erweitern das Fenster in Halbjahresschritten, bis mindestens 10 verschiedene Emittenten enthalten sind.",
-        "Daraus wählen wir 10 Anleihen, eine je Emittent, mit möglichst hoher Rendite und möglichst geringem Risiko: Die Durchschnittsrendite erreicht mindestens Ihr Ziel und die durchschnittliche Duration bleibt nahe Ihrer Wahl. Wir zeigen sie von der besten Kombination aus Rendite und Risiko an. Mit dem dritten Regler wählen Sie das höchste akzeptierte Risiko, von 1 (am niedrigsten) bis 10 (am höchsten).",
+        "Daraus wählen wir 10 Anleihen, eine je Emittent, mit der besten Rendite nach erwarteten Verlusten: Rendite minus historische jährliche Ausfallrate des Ratings (langfristige S&P-Durchschnitte für dieselbe Laufzeit) mal 60 % Verlust bei Ausfall. Eine höhere Rendite gewinnt nur, wenn sie das zusätzliche Risiko bezahlt. Die Durchschnittsrendite erreicht mindestens Ihr Ziel und die durchschnittliche Duration bleibt nahe Ihrer Wahl. Mit dem dritten Regler wählen Sie das höchste akzeptierte Risiko, von 1 (am niedrigsten) bis 10 (am höchsten).",
         "Die höchste wählbare Zielrendite je Duration ist der Durchschnitt der 10 renditestärksten Emittenten: Darüber könnte keine Liste aus 10 Anleihen das Ziel erreichen.",
       ] },
       { id: "sources", h2: "Datenquellen", paras: [
