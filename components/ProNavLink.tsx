@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import NavLink from "@/components/NavLink";
 import { useEffect, useState } from "react";
 
-/** "Pro" in the menu, shown only to accounts with professional access. */
+/** "Pro" in the menu, shown only to approved professionals and the admin. Others request access from Pricing. */
 export default function ProNavLink() {
   const [show, setShow] = useState(false);
   useEffect(() => {
@@ -13,5 +13,5 @@ export default function ProNavLink() {
       .catch(() => {});
   }, []);
   if (!show) return null;
-  return <Link href="/pro" className="font-medium text-ink hover:text-accent" data-testid="nav-pro">Pro</Link>;
+  return <NavLink href="/pro" testId="nav-pro">Pro</NavLink>;
 }
