@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ListingSite } from "@/lib/seo/listingSites";
 import type { Backlink, Opportunity } from "@/lib/seo/store";
 import { api, Badge, btn, btnLight, card, day, ErrorNote, Field, input, Table, when } from "./ui";
 
@@ -9,7 +10,13 @@ const OPP = { id: 0, kind: "publisher", name: "", url: "", status: "idea", notes
 
 /** Backlinks are site-wide (one domain for all three languages); targets show which language they point to. */
 export default function Backlinks() {
-  const [data, setData] = useState<{ backlinks: Backlink[]; opportunities: Opportunity[]; checkedAt: string | null } | null>(null);
+  const [data, setData] = useState<{
+    backlinks: Backlink[]; opportunities: Opportunity[]; checkedAt: string | null;
+    listing: { sites: ListingSite[]; done: Record<string, string> }; bing: { configured: boolean; syncedAt: string | null };
+  } | null>(null);
+  const [market, setMarket] = useState("all");
+  const [syncing, setSyncing] = useState(false);
+  const autoSynced = useRef(false);
   const [link, setLink] = useState<typeof LINK | null>(null);
   const [opp, setOpp] = useState<typeof OPP | null>(null);
   const [csv, setCsv] = useState<string | null>(null);
@@ -41,6 +48,19 @@ export default function Backlinks() {
     }
   }
 
+  const syncBing = useCallback(async () => {
+    setSyncing(true);
+    await call({ op: "bing" }, (r) => setMsg(`Bing: ${r.imported} link${r.imported === 1 ? "" : "s"} from other websites found and saved.`));
+    setSyncing(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Refresh from Bing once a day, when the page is opened.
+  useEffect(() => {
+    if (!data?.bing.configured || autoSynced.current) return;
+    autoSynced.current = true;
+    if (!data.bing.syncedAt || Date.now() - Date.parse(data.bing.syncedAt) > 86_400_000) syncBing();
+  }, [data, syncBing]);
+
   if (!data) return error ? <ErrorNote error={error} /> : <p className="text-sm text-mute">Loading…</p>;
   const active = data.backlinks.filter((b) => b.status === "active");
   const domains = new Set(active.map((b) => b.sourceDomain)).size;
@@ -51,12 +71,14 @@ export default function Backlinks() {
           <div>
             <h2 className="text-lg font-semibold">Backlinks</h2>
             <p className="mt-1 max-w-3xl text-xs text-mute">
-              {active.length} active links from {domains} websites. Last checked: {when(data.checkedAt)}. Until you add links, import a file or confirm you checked, the backlink score stays “Not assessed” (not a verified zero).
+              {active.length} active links from {domains} websites. Last checked: {when(data.checkedAt)}.{" "}
+              {data.bing.configured ? `Bing Webmaster Tools is read automatically once a day (last: ${when(data.bing.syncedAt)}).` : "Bing is not connected (BING_WEBMASTER_API_KEY missing)."} Until you add links, import a file or confirm you checked, the backlink score stays “Not assessed” (not a verified zero).
               Export the list from Search Console → Links → “Export external links” at https://search.google.com/search-console/links, or from Ahrefs / Semrush.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setLink({ ...LINK })} className={btn}>Add link</button>
+            {data.bing.configured && <button disabled={syncing} onClick={syncBing} className={btn}>{syncing ? "Reading Bing…" : "Update from Bing"}</button>}
+            <button onClick={() => setLink({ ...LINK })} className={btnLight}>Add link</button>
             <button onClick={() => setCsv("")} className={btnLight}>Import CSV</button>
             <button onClick={() => call({ op: "checked" }, () => setMsg("Recorded: you checked the backlink sources today."))} className={btnLight}>I checked, list is complete</button>
           </div>
@@ -110,6 +132,8 @@ export default function Backlinks() {
         </Table>
       </section>
 
+      <ListingSites sites={data.listing.sites} done={data.listing.done} market={market} setMarket={setMarket} onToggle={(id, done) => call({ op: "listing", id, done })} />
+
       <section className={card}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
@@ -145,5 +169,41 @@ export default function Backlinks() {
         </Table>
       </section>
     </div>
+  );
+}
+
+const MARKET_LABEL: Record<string, string> = { all: "All", global: "🌍 Global", it: "🇮🇹 Italy", fr: "🇫🇷 France", de: "🇩🇪 Germany", us: "🇺🇸 US", uk: "🇬🇧 UK" };
+const PRIORITY: Record<number, [string, "red" | "amber" | "gray"]> = { 1: ["High", "red"], 2: ["Medium", "amber"], 3: ["Low", "gray"] };
+
+/** Checklist of sites where 10BONDS should have a listing or profile, ticked as they are done. */
+function ListingSites({ sites, done, market, setMarket, onToggle }: {
+  sites: ListingSite[]; done: Record<string, string>; market: string; setMarket: (m: string) => void; onToggle: (id: string, done: boolean) => void;
+}) {
+  const shown = sites.filter((x) => market === "all" || x.market === market).sort((a, b) => a.priority - b.priority || Number(!!done[a.id]) - Number(!!done[b.id]));
+  const count = sites.filter((x) => done[x.id]).length;
+  return (
+    <section className={card} data-testid="seo-listing-sites">
+      <h2 className="text-lg font-semibold">Where to list 10BONDS</h2>
+      <p className="mt-1 max-w-3xl text-xs text-mute">
+        {count} of {sites.length} done. Each site gives a link back to 10bonds.com. Start with “High”. On forums and Reddit, answer questions first and link a guide only when it helps: plain self-promotion gets removed. Once a link is live, add it above (or wait for the Bing update).
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {Object.entries(MARKET_LABEL).map(([id, label]) => (
+          <button key={id} onClick={() => setMarket(id)} className={`rounded-full px-3 py-1.5 text-sm ${market === id ? "bg-ink text-white" : "bg-canvas"}`}>{label}</button>
+        ))}
+      </div>
+      <Table head={["Done", "Site", "Market", "Type", "Priority", "Tip"]} min="48rem">
+        {shown.map((x) => (
+          <tr key={x.id} className={`border-t border-line align-top ${done[x.id] ? "opacity-60" : ""}`}>
+            <td className="py-2 pr-3"><input type="checkbox" aria-label={`${x.name} done`} checked={!!done[x.id]} onChange={(e) => onToggle(x.id, e.target.checked)} className="h-4 w-4" /></td>
+            <td className="pr-3"><a href={x.url} target="_blank" rel="noopener noreferrer nofollow" className="text-accent">{x.name} ↗</a>{done[x.id] && <span className="block text-[11px] text-mute">done {day(done[x.id])}</span>}</td>
+            <td className="pr-3 text-xs">{MARKET_LABEL[x.market]}</td>
+            <td className="pr-3 text-xs">{x.kind}</td>
+            <td className="pr-3"><Badge tone={PRIORITY[x.priority][1]}>{PRIORITY[x.priority][0]}</Badge></td>
+            <td className="pr-3 text-xs text-mute">{x.tip}</td>
+          </tr>
+        ))}
+      </Table>
+    </section>
   );
 }

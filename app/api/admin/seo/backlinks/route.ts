@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { linksFromCsv } from "@/lib/seo/backlinkCsv";
+import { bingInboundLinks } from "@/lib/seo/bing";
+import { LISTING_SITES } from "@/lib/seo/listingSites";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { bad, httpUrl, int, isoDay, notFound, oneOf, seoAdmin, str } from "@/lib/seo/input";
 import {
@@ -14,10 +16,20 @@ const STATUSES = ["active", "lost", "unverified"] as const;
 const OPP_KINDS = ["publisher", "blog", "education", "youtube", "mention", "other"] as const;
 const OPP_STATUSES = ["idea", "contacted", "in_progress", "won", "declined"] as const;
 
+/** Ticked listing sites: { siteId: ISO day it was done }. */
+async function listingDone(): Promise<Record<string, string>> {
+  try { return JSON.parse((await getSeoSetting("listing_done")) ?? "{}"); } catch { return {}; }
+}
+
 export async function GET() {
   if (!(await seoAdmin())) return notFound();
-  const [backlinks, opportunities, checkedAt] = await Promise.all([listBacklinks(), listOpportunities(), getSeoSetting("backlinks_checked_at")]);
-  return NextResponse.json({ backlinks, opportunities, checkedAt }, { headers: { "Cache-Control": "no-store" } });
+  const [backlinks, opportunities, checkedAt, done, bingAt] = await Promise.all([
+    listBacklinks(), listOpportunities(), getSeoSetting("backlinks_checked_at"), listingDone(), getSeoSetting("backlinks_bing_at"),
+  ]);
+  return NextResponse.json(
+    { backlinks, opportunities, checkedAt, listing: { sites: LISTING_SITES, done }, bing: { configured: !!process.env.BING_WEBMASTER_API_KEY, syncedAt: bingAt } },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(req: Request) {
@@ -62,6 +74,32 @@ export async function POST(req: Request) {
       await setSeoSetting("backlinks_checked_at", new Date().toISOString());
       await markStale();
       return NextResponse.json({ ok: true });
+    }
+    case "listing": {
+      const id = typeof b.id === "string" && LISTING_SITES.some((x) => x.id === b.id) ? b.id : null;
+      if (!id) return bad("Unknown site.");
+      const done = await listingDone();
+      if (b.done) done[id] = new Date().toISOString().slice(0, 10);
+      else delete done[id];
+      await setSeoSetting("listing_done", JSON.stringify(done));
+      return NextResponse.json({ ok: true });
+    }
+    case "bing": {
+      // Bing Webmaster Tools' inbound links count as seen live today; links Bing no longer reports are left as they were.
+      const key = process.env.BING_WEBMASTER_API_KEY;
+      if (!key) return bad("The Bing key (BING_WEBMASTER_API_KEY) is not set.");
+      let links;
+      try { links = await bingInboundLinks(key); } catch (e) { return bad(`Bing did not answer: ${(e as Error).message}`); }
+      const today = new Date().toISOString().slice(0, 10);
+      const n = await saveBacklinks(links.map((l) => ({
+        sourceUrl: l.sourceUrl, targetUrl: l.targetUrl, linkType: "editorial", rel: "follow", status: "active",
+        relevance: null, quality: null, verifiedAt: today, source: "bing", notes: null,
+      })));
+      const now = new Date().toISOString();
+      await setSeoSetting("backlinks_bing_at", now);
+      await setSeoSetting("backlinks_checked_at", now);
+      if (!n) await markStale();
+      return NextResponse.json({ imported: n });
     }
     case "opportunity": {
       const kind = oneOf(b.kind, OPP_KINDS);
