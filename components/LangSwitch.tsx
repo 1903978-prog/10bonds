@@ -73,7 +73,7 @@ export default function LangSwitch() {
   ];
 
   return (
-    <span ref={box} className="relative text-xs" aria-label="Language">
+    <span ref={box} className="relative hidden text-xs sm:inline-block" aria-label="Language">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
