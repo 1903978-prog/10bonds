@@ -143,7 +143,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
       </div>
       {user && !sub && <RedeemForm />}
       <p className="mt-6 text-center text-sm text-mute" data-testid="plan-terms">Prices include VAT · cancel anytime · payments by Stripe.</p>
-      {!user && <p className="mt-2 text-center text-sm text-mute">Have a code? Enter it when you create your free account.</p>}
+      {!user && <p className="mt-2 text-center text-sm text-mute">Have a promo code? Enter it when you create your free account for 30 days of full access.</p>}
     </div>
   );
 }

@@ -2,7 +2,7 @@
  * Terms of Use and Risk Disclosure that every user accepts before an account is created.
  * Changing the text means raising TERMS_VERSION, so each account records which version it accepted.
  */
-export const TERMS_VERSION = "2026-10-19.3";
+export const TERMS_VERSION = "2026-10-19.4";
 
 export type TermsSection = { title: string; paragraphs: string[] };
 
@@ -75,7 +75,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
     title: "9. Paid plans",
     paragraphs: [
       "Paid plans, when offered, give access to additional information and features as described at the time of purchase. Paying for a plan does not turn the Service into advice or create any advisory, fiduciary or client relationship. Prices, features, payment terms, renewal and cancellation rules will be shown before you pay and form part of these Terms. Where the law of your country gives consumers a right of withdrawal, you will be told how it applies. Plus costs €9, Premium €19 and Pro €89 per month, or 20% less when paid yearly (€86.40, €182.40 and €854.40 a year), VAT included where applicable, charged in advance for each month or year by our payment provider Stripe until you cancel. Pro is available only to professionals whose access we have approved. You can cancel or change plan at any time on your profile page; a change of plan is prorated by Stripe, and a cancellation takes effect at the end of the period already paid, with no refund for the remaining days except where the law requires one. If a payment fails, Stripe retries it for a short period, after which the account returns to the free plan. EU and UK consumers normally have 14 days to withdraw from a contract for a digital service. Because the plan starts straight away, you are asked before paying to request this expressly and to acknowledge that, if you withdraw within 14 days, you pay for the days already used; you can withdraw by cancelling and writing to us within that period.",
-      "Free trials: each new account receives a free trial of the Premium plan for a limited period stated at sign-up (currently 7 days). Trial codes we hand out give the same Premium features for the period stated with the code; each code can be used once and has no cash value. When a trial ends your account returns to the free plan automatically; you are never charged for a trial and no payment details are needed. We may change or end trial offers at any time for the future.",
+      "Free trials: new accounts start on the free plan. Promo codes we hand out give the Premium features for the period stated with the code (usually 30 days); each code can be used once and has no cash value. When a trial ends your account returns to the free plan automatically; you are never charged for a trial and no payment details are needed. We may change or end trial offers at any time for the future.",
     ],
   },
   {

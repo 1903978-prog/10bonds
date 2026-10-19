@@ -61,7 +61,7 @@ export default function AdminPanel() {
 
       {s && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="admin-stats">
-          {[["Accounts", s.users], ["E-mail confirmed", s.verified], ["On Premium trial", s.onTrial], ["New in 7 days", s.newThisWeek]].map(([k, v]) => (
+          {[["Accounts", s.users], ["E-mail confirmed", s.verified], ["On free Premium (code)", s.onTrial], ["New in 7 days", s.newThisWeek]].map(([k, v]) => (
             <div key={k} className={card}>
               <p className="text-xs text-mute">{k}</p>
               <p className="mt-1 text-2xl font-semibold">{v}</p>
@@ -73,7 +73,7 @@ export default function AdminPanel() {
       <AdminData />
 
       <section className={card}>
-        <h2 className="text-lg font-semibold">Free trial codes</h2>
+        <h2 className="text-lg font-semibold">Promo codes</h2>
         <p className="mt-1 text-sm text-mute">Each code gives one account Premium (every feature of the most expensive plan) for the days you choose. One use per code.</p>
         <form onSubmit={generate} className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-sm">

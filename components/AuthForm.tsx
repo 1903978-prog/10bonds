@@ -16,7 +16,6 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [step, setStep] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
   const [code, setCode] = useState("");
-  const [showCode, setShowCode] = useState(false);
   const [ticket, setTicket] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
   const signup = mode === "signup";
@@ -156,25 +155,19 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
         </label>
         {signup && (
           <div>
-            {showCode ? (
-              <label className="block">
-                <span className="text-sm font-medium">10BONDS code <span className="font-normal text-mute">(optional)</span></span>
-                <input
-                  type="text"
-                  placeholder="10B-XXXX-XXXX"
-                  autoComplete="off"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 font-mono text-[15px] uppercase outline-none focus:border-accent"
-                  data-testid="signup-code"
-                />
-                <span className="mt-1 block text-xs text-mute">A code gives you Premium free for the time stated with it.</span>
-              </label>
-            ) : (
-              <button type="button" onClick={() => setShowCode(true)} className="text-sm text-accent" data-testid="signup-code-toggle">
-                Have a code?
-              </button>
-            )}
+            <label className="block">
+              <span className="text-sm font-medium">Promo code <span className="font-normal text-mute">(optional)</span></span>
+              <input
+                type="text"
+                placeholder="10B-XXXX-XXXX"
+                autoComplete="off"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 font-mono text-[15px] uppercase outline-none focus:border-accent"
+                data-testid="signup-code"
+              />
+              <span className="mt-1 block text-xs text-mute">A valid promo code gives you 30 days of full access (Premium), free.</span>
+            </label>
           </div>
         )}
         {signup && (

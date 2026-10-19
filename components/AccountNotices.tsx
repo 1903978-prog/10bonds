@@ -62,14 +62,13 @@ export default function AccountNotices() {
           <div className="w-full max-w-md rounded-[28px] bg-white p-7 text-center shadow-[0_8px_40px_rgba(0,0,0,0.2)] sm:p-9">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl">🎉</div>
             <h2 className="mt-4 text-[24px] font-semibold leading-tight tracking-tight">
-              {withCode ? "Your code is active!" : "Experience 10BONDS without limits for 7 days!"}
+              {withCode ? "Your code is active!" : "Welcome to 10BONDS!"}
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-mute">
-              {withCode ? "You have Premium free: ISIN codes, full bond details and every feature" : "You’re now on a free 7-day Premium trial: ISIN codes, full bond details and every feature"}
-              {me.premiumUntil ? `, until ${fmtDate(me.premiumUntil)}` : ""}.
+              {withCode ? <>You have full access free: ISIN codes, full bond details and every feature{me.premiumUntil ? `, until ${fmtDate(me.premiumUntil)}` : ""}.</> : "Your free account is ready. Upgrade any time on the Pricing page for ISIN codes, full bond details and every feature."}
             </p>
             <p className="mt-3 text-[15px] leading-relaxed text-mute">
-              After {withCode ? "that" : "your trial"}, you’ll switch to our Free plan and will not be charged. No card needed.
+              {withCode ? "After that, you’ll switch to our Free plan and will not be charged. No card needed." : "No card needed for the Free plan."}
             </p>
             {me.confirmationOn && !me.emailVerified && (
               <p className="mt-3 text-sm text-mute">We also sent you an e-mail: click the button in it to confirm your account.</p>
