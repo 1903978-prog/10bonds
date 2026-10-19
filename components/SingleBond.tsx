@@ -45,7 +45,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         setData(body);
         setError(null);
         setIndex(0);
-        setLevel((l) => (l !== null && body.points[l - 1]?.ytm !== null ? l : null));
+        setLevel(null); // a new horizon starts again from the lowest-risk bond
       } catch (e) {
         if ((e as Error).name !== "AbortError") setError((e as Error).message);
       } finally {
@@ -61,7 +61,9 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   const tier = data?.tier ?? "visitor";
   // Hide a risk step whose best yield is not above every lower-risk step: more risk must pay more.
   const points = dropDominated(data?.points ?? []);
-  const point = level === null ? null : points.find((p) => p.level === level) ?? null;
+  // Until a dot is tapped, show the lowest-risk bond (rightmost dot) so the card is always there.
+  const shown = level ?? points.find((p) => p.ytm !== null)?.level ?? null;
+  const point = shown === null ? null : points.find((p) => p.level === shown) ?? null;
   const bond = point?.options[index] ?? null;
 
   if (limit) return <LimitReached quota={limit} />;
@@ -73,7 +75,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         <h2 className="text-[17px] font-semibold">{t.bestByRating}</h2>
         <span className="text-xs text-mute">{t.tapDot}</span>
       </div>
-      <Chart points={points} axis={data?.points ?? []} selected={level} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      <Chart points={points} axis={data?.points ?? []} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
 
       {point && bond ? (
         <BondBox
