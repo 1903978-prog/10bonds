@@ -35,7 +35,7 @@ for (const w of [1440, 390]) {
   ok(await p.locator('[data-testid=footer-legal] >> text="Privacy e GDPR"').count() === 1, `${w} footer menu in Italian`);
   ok(await p.isVisible("text=182,40 € all'anno"), `${w} Italian home shows yearly Premium`);
   await p.goto(BASE + "/privacy");
-  ok(await p.isVisible("[data-testid=legal-draft]") && await p.isVisible("[data-testid=processors]"), `${w} privacy page with draft notice and processors`);
+  ok(!(await p.isVisible("[data-testid=legal-draft]")) && await p.isVisible("[data-testid=processors]"), `${w} privacy page final (no draft notice) with processors`);
   await noScroll("privacy");
   await p.goto(BASE + "/cookies");
   ok(await p.locator("[data-testid=cookie-table] tbody tr").count() === 5, `${w} cookie table lists 5 items`);
