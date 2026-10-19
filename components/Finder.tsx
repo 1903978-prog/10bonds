@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { LIMITS } from "@/lib/limits";
@@ -47,6 +47,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
   const [touched, setTouched] = useState(false);
+  // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
+  const resultsBox = useRef<HTMLElement>(null);
+  const [resultsH, setResultsH] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (mode === "portfolio" && resultsBox.current) setResultsH(resultsBox.current.offsetHeight);
+  });
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
@@ -128,7 +134,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     <FinderLangContext.Provider value={lang}>
     <div className="finder-wide grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
       {/* Inputs */}
-      <section className="rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6 lg:sticky lg:top-20 lg:self-start">
+      <section className="rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
         <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
           {t.h1}
         </Title>
@@ -159,9 +165,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
             testId="toggle-size"
             disabled={minKnown === false ? ["1k"] : []}
+            disabledTitle={t.minNoData}
           />
         </div>
-        {minKnown === false && <p className="mt-1.5 text-[11px] leading-snug text-mute">{t.minNoData}</p>}
 
         <Slider
           label={t.horizon}
@@ -175,7 +181,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           maxLabel={t.years15}
           onChange={changeDuration}
         />
-        {mode === "portfolio" && (<>
+        {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
+        <div className={mode === "portfolio" ? "" : "invisible"} aria-hidden={mode !== "portfolio"}>
         <Slider
           label={t.yieldLabel}
           hint={t.yieldHint}
@@ -201,66 +208,73 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           maxLabel={t.lowRiskLabel}
           onChange={(pos) => changeRisk(LIMITS.risk.max + LIMITS.risk.min - pos)}
         />
-        </>)}
+        </div>
 
       </section>
 
       {/* Results */}
       {mode === "single" ? (
-        <section className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+        <section
+          className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5 lg:min-h-[var(--results-h)]"
+          style={resultsH ? { ["--results-h" as string]: `${resultsH}px` } : undefined}
+        >
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
-          <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
+          <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
         </section>
       ) : (
-      <section className="relative rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+      <section ref={resultsBox} className="relative flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
         {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
         {!touched && (
           <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
             <Frontier currency={currency} />
           </div>
         )}
-        {data?.source === "sample" && (
-          <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {t.sample}
-          </div>
-        )}
-
+        {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
-          <Stat value={paid ? pct(data?.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
-          <Stat value={paid ? (data?.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
-          <Stat value={paid ? yrs(data?.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? pct(data.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? (data.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? yrs(data.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
         </div>
-        {!paid && (
-          <Link href={lockTo.href} className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline" data-testid="avg-unlock">
-            <Lock /> {lockTo.label}
-          </Link>
-        )}
+        <div className="mt-1.5 h-4">
+          {data && !paid && (
+            <Link href={lockTo.href} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline" data-testid="avg-unlock">
+              <Lock /> {lockTo.label}
+            </Link>
+          )}
+        </div>
 
         <div className={`mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
-          {limit ? (
-            <LimitReached quota={limit} />
-          ) : error ? (
-            <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>
-          ) : data && data.rows.length === 0 ? (
-            <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">
-              {t.none}
-            </p>
-          ) : (
-            <Results data={data} paid={paid} signedIn={signedIn} currency={currency} />
-          )}
-          {!limit && <QuotaNote quota={data?.quota} />}
+          <Results
+            data={data}
+            paid={paid}
+            signedIn={signedIn}
+            currency={currency}
+            message={
+              limit ? <LimitReached quota={limit} />
+              : error ? <p className="text-sm text-mute">{error}</p>
+              : data && data.rows.length === 0 ? <p className="text-sm text-mute">{t.none}</p>
+              : null
+            }
+          />
+          <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
         </div>
 
-        {data?.source === "live" && isStale(data.asOf) && (
-          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status" data-testid="yields-stale">
-            {t.stale(ageDays(data.asOf) ?? 0)}
-          </p>
-        )}
-        <p className="mt-2 text-[11px] leading-snug text-mute" data-testid="yields-date">
-          {data?.asOf ? `${t.asOf} ${plainDate(data.asOf, lang)}. ` : ""}{t.gross}
-        </p>
-        <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
+        <div className="mt-auto pt-2">
+          {data?.source === "live" && isStale(data.asOf) ? (
+            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-stale">
+              {t.stale(ageDays(data.asOf) ?? 0)}
+            </p>
+          ) : data?.source === "sample" ? (
+            <p className="truncate text-[11px] leading-snug text-amber-800" role="status">{t.sample}</p>
+          ) : (
+            <p className="text-[11px] leading-snug text-mute" data-testid="yields-date">
+              {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
+              {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}. {t.gross}
+            </p>
+          )}
+          <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
+        </div>
       </section>
       )}
     </div>
@@ -306,7 +320,7 @@ function Slider(props: {
   );
 }
 
-function Toggle({ label, value, options, onChange, testId, disabled = [] }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; testId: string; disabled?: string[] }) {
+function Toggle({ label, value, options, onChange, testId, disabled = [], disabledTitle }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; testId: string; disabled?: string[]; disabledTitle?: string }) {
   return (
     <div>
       <div className="text-xs font-medium text-mute">{label}</div>
@@ -318,6 +332,7 @@ function Toggle({ label, value, options, onChange, testId, disabled = [] }: { la
             role="radio"
             aria-checked={value === v}
             disabled={disabled.includes(v)}
+            title={disabled.includes(v) ? disabledTitle : undefined}
             onClick={() => onChange(v)}
             className={`rounded-full px-2 py-1 transition disabled:cursor-not-allowed disabled:opacity-40 ${value === v ? "bg-white shadow-sm" : "text-mute"}`}
           >
@@ -331,7 +346,7 @@ function Toggle({ label, value, options, onChange, testId, disabled = [] }: { la
 
 function Stat({ value, label, lock }: { value: ReactNode | null; label: string; lock?: { href: string; label: string } }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center">
+    <div className="flex h-[60px] flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center">
       {value === null ? (
         // Locked: a grey lock and a dash; the one sign-up link sits under the row.
         <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute/60" aria-label={lock?.label}>
@@ -345,12 +360,20 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
   );
 }
 
-function Results({ data, paid, signedIn, currency }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string }) {
+// Fixed sizes of the result table: a header and always 10 row slots, so nothing under it moves when the results change.
+const SLOTS = 10;
+const HEAD_H = 30;
+const ROW_H = 34;
+const CARD_H = 64;
+
+function Results({ data, paid, signedIn, currency, message }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null }) {
   const t = useFinderText();
-  const rows = data?.rows ?? [];
-  const locked = data?.lockedCount ?? 0;
+  const rows = message ? [] : (data?.rows ?? []).slice(0, SLOTS);
+  const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
+  const empty = SLOTS - rows.length - locked;
   return (
     <div>
+      <div className="relative">
       {/* Desktop table */}
       {/* Fixed layout: column widths never change when the results do. */}
       <table className="hidden w-full table-fixed text-sm sm:table">
@@ -364,37 +387,45 @@ function Results({ data, paid, signedIn, currency }: { data: Response | null; pa
           <col className="w-[5rem]" />
         </colgroup>
         <thead>
-          <tr className="border-b border-line text-left text-xs text-mute">
-            <th className="py-1.5 pl-2 font-medium">#</th>
-            <th className="truncate py-1.5 pr-3 font-medium">{t.issuer}</th>
-            <th className="truncate py-1.5 pr-3 font-medium">{t.bond}</th>
-            <th className="truncate px-3 py-1.5 text-center font-medium">{t.yield}</th>
-            <th className="truncate px-3 py-1.5 text-center font-medium">{t.duration}</th>
-            <th className="truncate px-3 py-1.5 text-center font-medium">{t.minInvest}</th>
-            <th className="truncate px-3 py-1.5 text-center font-medium" title={t.riskNote}>{t.risk}</th>
+          <tr className="border-b border-line text-left text-xs text-mute" style={{ height: HEAD_H }}>
+            <th className="py-0 pl-2 font-medium">#</th>
+            <th className="truncate py-0 pr-3 font-medium">{t.issuer}</th>
+            <th className="truncate py-0 pr-3 font-medium">{t.bond}</th>
+            <th className="truncate px-3 py-0 text-center font-medium">{t.yield}</th>
+            <th className="truncate px-3 py-0 text-center font-medium">{t.duration}</th>
+            <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>
+            <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.rank} className="border-b border-line/60 last:border-0">
-              <td className="py-1.5 pl-2 text-mute tabular-nums">{r.rank}</td>
-              <td className="truncate py-1.5 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
-              <td className="overflow-hidden py-1.5 pr-3">
+            <tr key={r.rank} className="border-b border-line/60" style={{ height: ROW_H }}>
+              <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
+              <td className="truncate py-0 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
+              <td className="overflow-hidden py-0 pr-3">
                 {paid ? (
-                  <>
-                    <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
-                  </>
+                  <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
                 ) : signedIn ? (
-                  <Link href="/pricing" className="inline-flex items-center gap-1 text-xs text-accent"><Lock /> {t.isinPlus}</Link>
+                  <Link href="/pricing" className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-accent"><Lock /> {t.isinPlus}</Link>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-mute"><Lock /> {t.freeAccount}</span>
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="px-3 py-1.5 text-center font-semibold tabular-nums">{pct(r.ytm)}</td>
-              <td className="px-3 py-1.5 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
-              <td className="px-3 py-1.5 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
-              <td className="px-3 py-1.5 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              <td className="px-3 py-0 text-center font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
+              <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
+              <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
             </tr>
+          ))}
+          {Array.from({ length: locked }).map((_, i) => (
+            <tr key={`l${i}`} aria-hidden className="select-none border-b border-line/60 blur-[5px]" style={{ height: ROW_H }}>
+              <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
+              <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
+              <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
+            </tr>
+          ))}
+          {Array.from({ length: empty }).map((_, i) => (
+            <tr key={`e${i}`} aria-hidden style={{ height: ROW_H }}><td colSpan={7} /></tr>
           ))}
         </tbody>
       </table>
@@ -402,11 +433,11 @@ function Results({ data, paid, signedIn, currency }: { data: Response | null; pa
       {/* Phone cards */}
       <ul className="space-y-2 sm:hidden">
         {rows.map((r) => (
-          <li key={r.rank} className="flex items-center gap-3 rounded-2xl border border-line/70 px-4 py-3">
+          <li key={r.rank} className="flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4" style={{ height: CARD_H }}>
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.issuer}</div>
-              <div className="text-xs leading-relaxed text-mute">
+              <div className="truncate text-xs leading-relaxed text-mute">
                 {paid
                   ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} />{r.minInvestment != null && <> · min {fmtMin(r.minInvestment, currency)}</>}</>
                   : signedIn
@@ -417,61 +448,72 @@ function Results({ data, paid, signedIn, currency }: { data: Response | null; pa
             <span className="font-semibold tabular-nums">{pct(r.ytm)}</span>
           </li>
         ))}
+        {Array.from({ length: locked }).map((_, i) => (
+          <li key={`l${i}`} aria-hidden className="flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]" style={{ height: CARD_H }}>
+            <span className="h-3 w-4 rounded bg-line" />
+            <span className="h-3 flex-1 rounded bg-line" />
+            <span className="h-3 w-12 rounded bg-line" />
+          </li>
+        ))}
+        {Array.from({ length: empty }).map((_, i) => (
+          <li key={`e${i}`} aria-hidden style={{ height: CARD_H }} />
+        ))}
       </ul>
 
-      {paid && rows.length > 0 && (
-        <button
-          type="button"
-          data-testid="excel-download"
-          onClick={() =>
-            downloadXlsx(
-              [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk, minForExcel(r.minInvestment)])],
-              "10bonds-top10.xlsx",
-              "Top 10",
-            )
-          }
-          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
-        >
-          ⬇ {t.excel}
-        </button>
+      {locked > 0 && <LockedOverlay count={locked} top={rows.length} />}
+      {message && (
+        <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
+          {message}
+        </div>
       )}
-      {locked > 0 && <LockedRows count={locked} />}
-      {signedIn && !paid && rows.length > 0 && (
-        <Link
-          href="/pricing"
-          className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-canvas px-4 py-3 text-sm transition hover:bg-line/60"
-        >
-          <span>{t.plusPitch}</span>
-          <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
-        </Link>
-      )}
+      </div>
+
+      {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
+      <div className="mt-2 flex h-7 items-center">
+        {paid && rows.length > 0 ? (
+          <button
+            type="button"
+            data-testid="excel-download"
+            onClick={() =>
+              downloadXlsx(
+                [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk, minForExcel(r.minInvestment)])],
+                "10bonds-top10.xlsx",
+                "Top 10",
+              )
+            }
+            className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
+          >
+            ⬇ {t.excel}
+          </button>
+        ) : signedIn && !paid && rows.length > 0 ? (
+          <Link href="/pricing" className="flex min-w-0 items-center gap-3 text-xs">
+            <span className="truncate text-mute">{t.plusPitch}</span>
+            <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function LockedRows({ count }: { count: number }) {
+/** Drawn over the blurred row slots after the visible rows: the sign-up offer. */
+function LockedOverlay({ count, top }: { count: number; top: number }) {
   const t = useFinderText();
+  // Desktop rows are ROW_H tall under a HEAD_H header; phone cards are CARD_H tall with 8px gaps.
+  const style = {
+    ["--top-d" as string]: `${HEAD_H + top * ROW_H}px`,
+    ["--top-m" as string]: `${top * (CARD_H + 8)}px`,
+  };
   return (
-    <div className="relative mt-2">
-      <div aria-hidden className="select-none space-y-2 blur-[6px]">
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-2xl border border-line/70 px-4 py-3">
-            <span className="h-3 w-4 rounded bg-line" />
-            <span className="h-3 flex-1 rounded bg-line" />
-            <span className="h-3 w-12 rounded bg-line" />
-          </div>
-        ))}
-      </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
-        <p className="text-[17px] font-semibold">{t.more(count)}</p>
-        <p className="-mt-1 text-sm text-mute">{t.noCard}</p>
-        <Link
-          href="/signup"
-          className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#0077ed]"
-        >
-          {t.seeAll}
-        </Link>
-      </div>
+    <div style={style} className="absolute inset-x-0 bottom-0 top-[var(--top-m)] flex flex-col items-center justify-center gap-3 text-center sm:top-[var(--top-d)]">
+      <p className="text-[17px] font-semibold">{t.more(count)}</p>
+      <p className="-mt-1 text-sm text-mute">{t.noCard}</p>
+      <Link
+        href="/signup"
+        className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#0077ed]"
+      >
+        {t.seeAll}
+      </Link>
     </div>
   );
 }

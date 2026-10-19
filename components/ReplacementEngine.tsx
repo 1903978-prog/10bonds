@@ -143,11 +143,15 @@ export default function ReplacementEngine() {
             </div>
           )}
 
-          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800" data-testid="pro-error">{error}</p>}
           <button disabled={busy || !text.trim()} className="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-medium text-white hover:bg-[#0077ed] disabled:opacity-50 sm:w-auto sm:px-8" data-testid="pro-run">
             {busy ? "Checking every bond…" : "Find better bonds"}
           </button>
-          <p className="text-xs text-mute">The portfolio is used for this answer only. We do not store it.</p>
+          {/* An error takes this line's place, so the button and the text below it never move. */}
+          {error ? (
+            <p className="text-xs text-red-700" role="alert" data-testid="pro-error">{error}</p>
+          ) : (
+            <p className="text-xs text-mute">The portfolio is used for this answer only. We do not store it.</p>
+          )}
         </form>
       </section>
 
