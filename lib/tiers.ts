@@ -19,6 +19,8 @@ export type ResultRow = {
   isin?: string;
   coupon?: number | null;
   maturity?: string | null;
+  // Admin only (Livio): the S&P grade, never sent to anyone else.
+  sp?: string | null;
 };
 
 export type ResultsPayload = {

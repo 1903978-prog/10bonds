@@ -22,4 +22,8 @@ describe("bond filters", () => {
     expect(minInvestmentOf(null, 1000)).toBe(1000);
     expect(minInvestmentOf(null, 1)).toBeNull();
   });
+  it("USD bonds take the issuer denomination only, never the venue lot", () => {
+    expect(minInvestmentOf(200000, 1000, "USD")).toBe(200000);
+    expect(minInvestmentOf(null, 1000, "USD")).toBeNull();
+  });
 });

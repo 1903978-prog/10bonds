@@ -5,12 +5,12 @@ import { useFinderText } from "@/lib/finderText";
 export type Quota = { kind: "single" | "portfolio"; limit: number | null; used: number; resetsAt: string | null };
 
 /** Small line under the results: how many free searches are left this week. Nothing for unlimited plans. */
-export function QuotaNote({ quota }: { quota: Quota | null | undefined }) {
+export function QuotaNote({ quota, className = "mt-3" }: { quota: Quota | null | undefined; className?: string }) {
   const t = useFinderText();
   if (!quota || quota.limit === null) return null;
   const left = Math.max(0, quota.limit - quota.used);
   return (
-    <p className="mt-3 text-center text-xs text-mute" data-testid={`quota-${quota.kind}`}>
+    <p className={`${className} text-center text-xs text-mute`} data-testid={`quota-${quota.kind}`}>
       {t.quotaLeft(left, quota.limit, quota.kind === "single")} · <Link href="/pricing" className="text-accent">Plus</Link>
     </p>
   );

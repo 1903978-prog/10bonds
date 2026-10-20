@@ -6,12 +6,13 @@ import ViewSwitch from "@/components/ViewSwitch";
 import { useEffect, useState } from "react";
 import { loadMe, trialDaysLeft, type Me } from "@/lib/me";
 
-export default function AccountNav() {
+export default function AccountNav({ hasSession = false }: { hasSession?: boolean }) {
   const [me, setMe] = useState<Me | undefined>(undefined);
   useEffect(() => {
     loadMe().then(setMe);
   }, []);
-  if (me === undefined) return null;
+  // Until the account loads, draw what the sign-in cookie says (profile icon, or Sign in / Sign up), so nothing shifts.
+  if (me === undefined && hasSession) return <ProfileIcon />;
   if (!me)
     return (
       <>
@@ -31,12 +32,18 @@ export default function AccountNav() {
           <span className="hidden sm:inline">Premium · {days} {days === 1 ? "day" : "days"} left</span>
         </Link>
       )}
-      <Link href="/account" aria-label="Your profile" title={me.email} data-testid="nav-profile" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink hover:bg-ink/10">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
-        </svg>
-      </Link>
+      <ProfileIcon email={me.email} />
     </>
+  );
+}
+
+function ProfileIcon({ email }: { email?: string }) {
+  return (
+    <Link href="/account" aria-label="Your profile" title={email} data-testid="nav-profile" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink hover:bg-ink/10">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+      </svg>
+    </Link>
   );
 }

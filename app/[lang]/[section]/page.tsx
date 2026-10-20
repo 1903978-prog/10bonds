@@ -11,6 +11,7 @@ import { methodologyPath, sectionPath } from "@/lib/brokers/content";
 import { FIRST_WAVE } from "@/lib/seo/knowledge";
 import { curvePath, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { insightsPath, INSIGHTS_TEXT } from "@/lib/seo/insights";
+import { bondMapPath, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import { enPath, hubLangs, withEnglish } from "@/lib/seo/knowledgeEn";
 import KnowledgeTools, { FINDER } from "@/components/seo/KnowledgeTools";
 import { comparisonSection, guideSection, KC_ORDER, KC_TEXT, type HubItem } from "@/lib/seo/knowledgeHub";
@@ -59,7 +60,7 @@ export default async function SectionPage({ params }: Props) {
     const c = CALCULATORS[l];
     items.calculators.push({ title: c.h1, href: pathOf(l, "tools", c.slug) });
     items.government.unshift({ title: CURVE_TEXT[l].h1, href: curvePath(l) });
-    items.best.unshift({ title: INSIGHTS_TEXT[l].h1, href: insightsPath(l) });
+    items.best.unshift({ title: INSIGHTS_TEXT[l].h1, href: insightsPath(l) }, { title: BOND_MAP_TEXT[l].h1, href: bondMapPath(l) });
     const brokerPage = FIRST_WAVE.find((p) => p.market === l && p.kind === "broker");
     if (brokersLive && brokerPage) {
       items.brokers.push({ title: brokerPage.title, href: sectionPath(l) });

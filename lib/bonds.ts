@@ -18,7 +18,7 @@ function db() {
 
 // The copy changes once a day, so one read an hour is plenty (and keeps the database asleep most of the time).
 const CACHE_MS = 60 * 60 * 1000;
-let cache: { at: number; bonds: PublicBond[]; source: "live" | "sample" } | null = null;
+let cache: { at: number; bonds: PublicBond[]; source: "live" | "sample"; unrated: number; total: number } | null = null;
 
 export type BondSource = { bonds: PublicBond[]; source: "live" | "sample"; asOf: string | null };
 
@@ -41,7 +41,7 @@ async function loadAllBonds(): Promise<BondSource> {
     if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_DATA !== "1") {
       throw new Error("Bond data is not connected yet.");
     }
-    cache = { at: Date.now(), bonds: SAMPLE_BONDS, source: "sample" };
+    cache = { at: Date.now(), bonds: SAMPLE_BONDS, source: "sample", unrated: 0, total: SAMPLE_BONDS.length };
     return withAsOf(SAMPLE_BONDS, "sample");
   }
 
@@ -71,11 +71,13 @@ async function loadAllBonds(): Promise<BondSource> {
     grossYtm: num(r.gross_ytm),
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
-    minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot))),
+    minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot), r.currency)),
   }));
   // Unrated bonds never appear on the site (Livio, 18/10/2026).
-  const fresh = dropStale(bonds).filter((b) => bondNotch(b) !== null);
-  cache = { at: Date.now(), bonds: fresh, source: "live" };
+  const current = dropStale(bonds);
+  const fresh = current.filter((b) => bondNotch(b) !== null);
+  const [{ total }] = await client`select count(*)::int total from public_bonds`;
+  cache = { at: Date.now(), bonds: fresh, source: "live", unrated: current.length - fresh.length, total: Number(total) };
   return withAsOf(fresh, "live");
 }
 
@@ -107,6 +109,15 @@ function isoDay(v: unknown): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
+/**
+ * Every bond the site can show, all currencies, plus how many of the whole copy were left out
+ * (unrated with a current yield, and the rest: no yield, matured, stale or not modelled). For the bond map.
+ */
+export async function loadAllShown(): Promise<BondSource & { unrated: number; total: number }> {
+  const all = await loadAllBonds();
+  return { ...all, unrated: cache?.unrated ?? 0, total: cache?.total ?? all.bonds.length };
+}
+
 import { cleanIssuer } from "./issuer";
 export { cleanIssuer };
 
@@ -123,7 +134,7 @@ export async function bondDataStats(): Promise<{
            count(*) filter (where gross_ytm is not null and ytm_as_of > now() - interval '24 hours') ytm_24h,
            max(ytm_as_of) newest
     from public_bonds`;
-  const shown = await loadBonds().then((d) => d.bonds.length).catch(() => 0);
+  const shown = await loadAllBonds().then((d) => d.bonds.length).catch(() => 0);
   return {
     total: Number(r.total),
     withYtm: Number(r.with_ytm),

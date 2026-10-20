@@ -8,6 +8,7 @@ import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { CALCULATOR_EN, enPath } from "@/lib/seo/knowledgeEn";
 import { curvePath } from "@/lib/seo/yieldCurves";
 import { insightsPath } from "@/lib/seo/insights";
+import { bondMapPath } from "@/lib/seo/bondMap";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { LOCALE, LOCALES, pathOf, type Locale, type Section } from "@/lib/seo/locales";
 import { comparisonPages, indexable, publishedGuides } from "@/lib/seo/site";
@@ -22,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ pages, asOf, source }, guides, brokers] = await Promise.all([comparisonPages(), publishedGuides(), loadPublicData()]);
   const out: MetadataRoute.Sitemap = [
     { url: SITE_URL + "/", changeFrequency: "daily", priority: 1, alternates: { languages: { ...langs((l) => `/${l}`), "x-default": SITE_URL + "/" } } },
-    ...["/pricing", "/widget", "/disclaimer", "/terms", "/privacy", "/cookies"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
+    ...["/pricing", "/widget", "/disclaimer", "/methodology", "/terms", "/privacy", "/cookies"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
   ];
   // English Knowledge Center.
   out.push({ url: SITE_URL + enPath(), changeFrequency: "weekly", priority: 0.7, alternates: { languages: { ...langs((x) => pathOf(x, "knowledge")), en: SITE_URL + enPath() } } });
@@ -30,6 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   out.push({ url: SITE_URL + curvePath("en"), changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => curvePath(x)), en: SITE_URL + curvePath("en") } } });
   for (const l of LOCALES) out.push({ url: SITE_URL + curvePath(l), changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => curvePath(x)), en: SITE_URL + curvePath("en") } } });
   for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + insightsPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => insightsPath(x)), en: SITE_URL + insightsPath("en") } } });
+  for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + bondMapPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => bondMapPath(x)), en: SITE_URL + bondMapPath("en") } } });
   for (const g of EN_GUIDES) out.push({ url: SITE_URL + enPath(g.slug), changeFrequency: "monthly", priority: 0.7 });
   for (const l of LOCALES) {
     out.push({ url: `${SITE_URL}/${l}`, changeFrequency: "daily", priority: 1, alternates: { languages: langs((x) => `/${x}`) } });

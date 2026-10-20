@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { JsonLd, prose } from "@/components/seo/Seo";
 import CurveSection from "@/components/seo/CurveSection";
 import InsightsSection from "@/components/seo/InsightsSection";
+import BondMapSection from "@/components/seo/BondMapSection";
+import { bondMapAlternates, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import { insightsAlternates, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import YieldCalculator from "@/components/seo/YieldCalculator";
 import { curveAlternates, CURVE_TEXT } from "@/lib/seo/yieldCurves";
@@ -29,6 +31,10 @@ async function languageVersions(group: string): Promise<Partial<Record<Locale, s
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (slug === BOND_MAP_TEXT.en.slug) {
+    const c = BOND_MAP_TEXT.en;
+    return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+  }
   if (slug === INSIGHTS_TEXT.en.slug) {
     const c = INSIGHTS_TEXT.en;
     return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
@@ -63,6 +69,17 @@ const risk = <p className="mt-8 text-xs leading-relaxed text-mute">Information a
 
 export default async function EnglishKnowledgePage({ params }: Props) {
   const { slug } = await params;
+  if (slug === BOND_MAP_TEXT.en.slug) {
+    const c = BOND_MAP_TEXT.en;
+    return (
+      <div>
+        {crumbs(c.h1, enPath(c.slug))}
+        <h1 className="text-[28px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+        <p className="mt-1 text-[15px] text-mute">{c.lead}</p>
+        <BondMapSection locale="en" text={c} />
+      </div>
+    );
+  }
   if (slug === INSIGHTS_TEXT.en.slug) {
     const c = INSIGHTS_TEXT.en;
     return (

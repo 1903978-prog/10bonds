@@ -12,11 +12,13 @@ export default function FooterNote() {
 
 /** Light grey legal menu: everything legal lives here, not in the top menu. */
 export function FooterLegal() {
-  const l = FOOTER_LINKS[footerLang(usePathname())];
+  const lang = footerLang(usePathname());
+  const l = FOOTER_LINKS[lang];
   const a = "hover:text-ink";
   return (
     <nav aria-label="Legal" className="mx-auto mt-2 flex max-w-4xl flex-wrap justify-center gap-x-3 gap-y-1 px-4 text-[11px] text-mute" data-testid="footer-legal">
-      <Link href="/disclaimer" className={a}>{l.disclaimer}</Link>
+      <Link href={lang === "en" ? "/disclaimer" : `/disclaimer?lang=${lang}`} className={a}>{l.disclaimer}</Link>
+      <Link href={lang === "en" ? "/methodology" : `/methodology?lang=${lang}`} className={a}>{l.methodology}</Link>
       <Link href="/terms" className={a}>{l.terms}</Link>
       <Link href="/privacy" className={a}>{l.privacy}</Link>
       <Link href="/cookies" className={a}>{l.cookies}</Link>

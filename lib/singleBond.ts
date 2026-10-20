@@ -1,7 +1,8 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { RISK_LEVELS } from "./limits";
-import { bondNotch, bondRisk } from "./ratings";
-import { durationPool, issuerKey } from "./ranking";
+import { bondNotch, bondRisk, ratingSourceLabel, riskBand } from "./ratings";
+import { issuerKey } from "./ranking";
+import { lossAdjustedYield } from "./expectedLoss";
 import type { ResultRow } from "./tiers";
 
 /** How many bonds per rating step can be cycled with "Change". */
@@ -12,24 +13,22 @@ export function levelOf(b: PublicBond): number | null {
   return bondRisk(b);
 }
 
+/** A bond fits the horizon when its duration is within this share of it (5 years: 4 to 6). Livio, 19/10/2026. */
+export const DURATION_TOLERANCE = 0.2;
+
 /**
- * For one target duration, the bonds of each rating step, highest yield first, one per issuer.
- * Each step widens its own duration band (1 to 3 years) until it holds a few issuers.
+ * For one target duration, the bonds of each rating step, highest yield after expected losses first, one per issuer.
+ * Only bonds within ±20% of the horizon count; a step with none shows "no bond".
  */
 export function curveByLevel(bonds: PublicBond[], targetDuration: number): { level: number; label: string; bonds: RankedBond[] }[] {
+  const band = targetDuration * DURATION_TOLERANCE + 1e-9;
   return RISK_LEVELS.map((l, i) => {
     const level = i + 1;
-    const inStep = bonds.filter((b) => levelOf(b) === level);
-    let { pool } = durationPool(inStep, targetDuration, 3);
-    // Nothing within 3 years: take the bonds of this step nearest to the horizon instead, so every risk score keeps
-    // its best bond (Livio, 19/10/2026). The chart marks such a point with the bond's own duration.
-    if (!pool.length) {
-      const usable = inStep.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
-      const gap = (b: PublicBond) => Math.abs(b.modifiedDuration! - targetDuration);
-      const nearest = Math.min(...usable.map(gap));
-      pool = usable.filter((b) => gap(b) <= nearest + 1);
-    }
-    const sorted = [...pool].sort((a, b) => b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
+    const pool = bonds.filter(
+      (b) => levelOf(b) === level && b.grossYtm !== null && b.modifiedDuration !== null && Math.abs(b.modifiedDuration - targetDuration) <= band,
+    );
+    const adj = new Map(pool.map((b) => [b.isin, lossAdjustedYield(b.grossYtm!, bondNotch(b)!, b.modifiedDuration!)]));
+    const sorted = [...pool].sort((a, b) => adj.get(b.isin)! - adj.get(a.isin)! || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
     const seen = new Set<string>();
     const picked = sorted.filter((b) => {
       const k = issuerKey(b);
@@ -40,31 +39,29 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
     return {
       level,
       label: l.label,
-      bonds: picked.slice(0, PER_LEVEL).map((b, j) => ({ ...b, rank: j + 1, ratingNotch: bondNotch(b), score: 0 })),
+      bonds: picked.slice(0, PER_LEVEL).map((b, j) => ({ ...b, rank: j + 1, ratingNotch: bondNotch(b), score: adj.get(b.isin)! })),
     };
   });
 }
 
-/** Beyond this many years from the horizon a point is labelled with its bond's own duration. */
-export const FAR_GAP = 3;
-
-/** `far`: the best bond of the step is more than FAR_GAP years from the horizon; `duration` is then its duration. */
-export type CurvePoint = { level: number; label: string; ytm: number | null; options: ResultRow[]; more: number; far?: boolean; duration?: number };
+// adj: the step's best yield after expected losses, used to judge whether more risk pays more.
+export type CurvePoint = { level: number; label: string; ytm: number | null; adj?: number | null; options: ResultRow[]; more: number; band?: string };
 
 /** Cut each step down to what this tier may see. Visitors see the best bond of each step only, without details. */
-export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, targetDuration?: number): CurvePoint[] {
+/** `admin`: also add the agency grade each bond's risk score comes from (admin only, never for customers). */
+export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, admin = false): CurvePoint[] {
   return curve.map(({ level, label, bonds }) => {
     const ytm = bonds[0]?.grossYtm ?? null;
+    const adj = bonds[0] ? Math.round(bonds[0].score * 1000) / 1000 : null;
     const visible = tier === "visitor" ? bonds.slice(0, 1) : bonds;
     const options: ResultRow[] = visible.map((b) => {
       const base: ResultRow = { rank: b.rank, issuer: b.issuer ?? b.name, ytm: b.grossYtm! };
       if (tier === "visitor") return base;
       const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country, minInvestment: b.minInvestment ?? null };
       if (tier === "free") return free;
-      return { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
+      const paid: ResultRow = { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
+      return admin ? { ...paid, sp: ratingSourceLabel(b) } : paid;
     });
-    const best = bonds[0]?.modifiedDuration;
-    const far = targetDuration !== undefined && best != null && Math.abs(best - targetDuration) > FAR_GAP;
-    return { level, label, ytm, options, more: bonds.length - visible.length, ...(far ? { far, duration: Math.round(best * 10) / 10 } : {}) };
+    return { level, label, ytm, adj, options, more: bonds.length - visible.length, ...(admin ? { band: riskBand(level) } : {}) };
   });
 }
