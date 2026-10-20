@@ -14,10 +14,14 @@ import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
+import { MC_PATHS } from "@/lib/monteCarlo";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
   source: "live" | "sample";
+  scanned?: number;
+  found?: number[];
+  monteCarlo?: { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
@@ -47,6 +51,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
   const [touched, setTouched] = useState(false);
+  const show = useScanShow(data, touched);
+
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
   const [resultsH, setResultsH] = useState<number | null>(null);
@@ -254,8 +260,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           )}
         </div>
 
-        <div className={`mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+        <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
           <Results
+            show={show}
+            lang={lang}
             data={data}
             paid={paid}
             signedIn={signedIn}
@@ -284,6 +292,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
+          <MonteCarloNote data={data} lang={lang} />
         </div>
       </section>
       )}
@@ -370,17 +379,150 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
   );
 }
 
+type Show = { row: number; count: number; sim: number };
+
+/**
+ * The search, staged for the visitor. Every bond searched has a number 1..N in alphabetical order (from the server).
+ * Before each of the 10 picks appears, a counter runs up to that bond's number and stops there; the row then appears
+ * and the counter starts again for the next one, while the real Monte Carlo run of the list is drawn. Only for searches
+ * the visitor starts; a search that answers mid-show takes it over; quicker while the sliders are being moved;
+ * skipped for reduced motion. Rows keep their places throughout (hidden rows are invisible, not removed).
+ */
+function useScanShow(data: Response | null, active: boolean): Show | null {
+  const [show, setShow] = useState<Show | null>(null);
+  const lastEnd = useRef(0);
+  const run = useRef<{ raf: number; start: number; row: number; quick: boolean } | null>(null);
+  const latest = useRef(data);
+  latest.current = data;
+  const shown = useRef(data);
+  useEffect(() => {
+    if (!active) shown.current = data;
+  }, [active, data]);
+  useEffect(() => {
+    if (!active || !data?.found?.length || data === shown.current || run.current) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const now0 = performance.now();
+    const r = { raf: 0, start: now0, row: 0, quick: now0 - lastEnd.current < 4000 };
+    run.current = r;
+    const tick = (now: number) => {
+      const found = latest.current?.found ?? [];
+      const per = r.quick ? 70 : 230; // ms per pick: counting up, then a short hold on the number
+      const t = (now - r.start) / per;
+      const row = Math.floor(t);
+      if (row >= found.length) {
+        lastEnd.current = performance.now();
+        run.current = null;
+        setShow(null);
+        return;
+      }
+      const f = Math.min(1, (t - row) / 0.75);
+      const count = Math.max(1, Math.round((1 - (1 - f) * (1 - f)) * found[row]));
+      setShow({ row, count, sim: Math.min(1, t / found.length) });
+      r.raf = requestAnimationFrame(tick);
+    };
+    r.raf = requestAnimationFrame(tick);
+  }, [active, data]);
+  useEffect(
+    () => () => {
+      if (run.current) cancelAnimationFrame(run.current.raf);
+      run.current = null;
+    },
+    [],
+  );
+  return show;
+}
+
+/** The counter and the Monte Carlo drawing, laid over the slots of the picks not shown yet. */
+function ScanPanel({ data, show, lang, currency }: { data: Response; show: Show; lang: FinderLang; currency: string }) {
+  const t = useFinderText();
+  const fmt = new Intl.NumberFormat(lang);
+  const n = data.scanned ?? 0;
+  const mc = data.monteCarlo;
+  const sims = mc?.paths ?? 0;
+  const samples = mc?.samples ?? [];
+  const W = 280, H = 70;
+  const all = samples.flat();
+  const vMin = Math.min(...all), vMax = Math.max(...all);
+  const yOf = (v: number) => H - 2 - ((v - vMin) / Math.max(vMax - vMin, 0.1)) * (H - 4);
+  const steps = samples[0]?.length ?? 0;
+  const left = SLOTS - show.row; // slots still hidden, the space this panel has
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="scan-bar"
+      className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-canvas text-center top-[var(--m)] sm:top-[var(--d)]"
+      style={{ ["--m" as string]: `${show.row * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + show.row * ROW_H}px` }}
+    >
+      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-mute">{t.scanTitle(currency)} · A→Z</p>
+      <p className="mt-1 text-[30px] font-semibold leading-none tracking-tight tabular-nums">
+        <span className="text-[15px] font-normal text-mute">#{show.row + 1} → </span>
+        {fmt.format(show.count)}
+        <span className="text-[15px] font-normal text-mute"> {t.scanOf} {fmt.format(n)}</span>
+      </p>
+      <div className="mt-2 h-1 w-[260px] max-w-[80%] overflow-hidden rounded-full bg-white">
+        <div className="h-full rounded-full bg-accent" style={{ width: `${(show.count / Math.max(n, 1)) * 100}%` }} />
+      </div>
+      {sims > 0 && left >= 5 && (
+        <div className="mt-3 w-[280px] max-w-[85%]">
+          <svg viewBox={`0 0 ${W} ${H}`} className="block h-[70px] w-full" preserveAspectRatio="none">
+            <defs>
+              <clipPath id="mc-reveal"><rect x={0} y={0} width={W * show.sim} height={H} /></clipPath>
+            </defs>
+            {/* Real simulated paths of this list: each line is one scenario, the drops are defaults. */}
+            <g clipPath="url(#mc-reveal)">
+              {samples.map((s, k) => {
+                const fell = s.some((v, j) => j > 0 && v < s[j - 1]);
+                return (
+                  <polyline
+                    key={k}
+                    points={s.map((v, j) => `${(j / (steps - 1)) * W},${yOf(v)}`).join(" ")}
+                    fill="none"
+                    className={fell ? "stroke-amber-500" : "stroke-accent"}
+                    strokeWidth={fell ? 1.2 : 1.5}
+                    strokeOpacity={fell ? 0.8 : 0.25}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              })}
+            </g>
+          </svg>
+          <p className="mt-1 text-[10px] text-mute">{t.scanCaption}</p>
+        </div>
+      )}
+      {sims > 0 && (
+        <p className="mt-1 text-[12px] tabular-nums text-mute">
+          {t.scanSimsLabel} <span className="font-medium text-ink">{fmt.format(Math.round(show.sim * sims))}</span> / {fmt.format(sims)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
+function MonteCarloNote({ data, lang }: { data: Response | null; lang: FinderLang }) {
+  const t = useFinderText();
+  const mc = data?.monteCarlo;
+  const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
+  return (
+    <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="monte-carlo">
+      {mc?.expYield != null && mc.p5 != null ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
+    </p>
+  );
+}
+
 // Fixed sizes of the result table: a header and always 10 row slots, so nothing under it moves when the results change.
 const SLOTS = 10;
 const HEAD_H = 30;
 const ROW_H = 34;
 const CARD_H = 64;
 
-function Results({ data, paid, signedIn, currency, message }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null }) {
+function Results({ data, paid, signedIn, currency, message, show, lang }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang }) {
   const t = useFinderText();
   const rows = message ? [] : (data?.rows ?? []).slice(0, SLOTS);
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
+  // While the search show runs, picks from this slot on are kept in place but not shown yet.
+  const hide = (i: number) => (show && !message && i >= show.row ? " invisible" : "");
   return (
     <div>
       <div className="relative">
@@ -408,8 +550,8 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.rank} className="border-b border-line/60" style={{ height: ROW_H }}>
+          {rows.map((r, i) => (
+            <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: ROW_H }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
               <td className="overflow-hidden py-0 pr-3">
@@ -428,7 +570,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
-            <tr key={`l${i}`} aria-hidden className="select-none border-b border-line/60 blur-[5px]" style={{ height: ROW_H }}>
+            <tr key={`l${i}`} aria-hidden className={`select-none border-b border-line/60 blur-[5px]${hide(rows.length + i)}`} style={{ height: ROW_H }}>
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
               <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
@@ -442,8 +584,8 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
 
       {/* Phone cards */}
       <ul className="space-y-2 sm:hidden">
-        {rows.map((r) => (
-          <li key={r.rank} className="flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4" style={{ height: CARD_H }}>
+        {rows.map((r, i) => (
+          <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4${hide(i)}`} style={{ height: CARD_H }}>
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.issuer}</div>
@@ -459,7 +601,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (
-          <li key={`l${i}`} aria-hidden className="flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]" style={{ height: CARD_H }}>
+          <li key={`l${i}`} aria-hidden className={`flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]${hide(rows.length + i)}`} style={{ height: CARD_H }}>
             <span className="h-3 w-4 rounded bg-line" />
             <span className="h-3 flex-1 rounded bg-line" />
             <span className="h-3 w-12 rounded bg-line" />
@@ -470,7 +612,8 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
         ))}
       </ul>
 
-      {locked > 0 && <LockedOverlay count={locked} top={rows.length} />}
+      {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
+      {show && data && !message && <ScanPanel data={data} show={show} lang={lang} currency={currency} />}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
           {message}
