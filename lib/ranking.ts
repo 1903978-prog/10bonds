@@ -35,10 +35,7 @@ const YIELD_TIEBREAK = 0.01;
  * Shown best score first.
  */
 export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm: number, count = RESULT_COUNT, risk: number = LIMITS.risk.max): { results: RankedBond[]; band: number } {
-  // One duration band for every risk limit, so a higher limit only adds bonds to the pool: a list that is allowed at
-  // risk 6 is still allowed at risk 7, and can never end up with a higher expected loss at the same target.
-  const { band } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), targetDuration, count);
-  const pool = withinRisk(bonds, risk).filter((b) => b.grossYtm !== null && b.modifiedDuration !== null && nearHorizon(b.modifiedDuration, targetDuration, band + 1e-9));
+  const { pool, band } = portfolioPool(withinRisk(bonds, risk), targetDuration, count);
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
