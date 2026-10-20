@@ -127,6 +127,9 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       dimensions jsonb not null
     )`;
   await s`create index if not exists seo_assessments_at_idx on app.seo_assessments (market, at)`;
+  // The US and UK got their own score (20 Oct 2026); widening the check keeps every row.
+  await s`alter table app.seo_assessments drop constraint if exists seo_assessments_market_check`;
+  await s`alter table app.seo_assessments add constraint seo_assessments_market_check check (market in ('it','fr','de','us','uk'))`;
   await s`
     create table if not exists app.seo_criterion_results (
       assessment_id bigint not null references app.seo_assessments(id) on delete cascade,
@@ -154,6 +157,8 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       by_email text not null,
       at timestamptz not null default now()
     )`;
+  await s`alter table app.seo_manual drop constraint if exists seo_manual_market_check`;
+  await s`alter table app.seo_manual add constraint seo_manual_market_check check (market in ('it','fr','de','us','uk'))`;
   await s`
     create table if not exists app.seo_actions (
       key text primary key,
@@ -509,7 +514,7 @@ const toResult = (r: Record<string, unknown>): CriterionResult => ({
 });
 
 /** Latest manual entry per criterion. An entry with points = null withdraws the earlier manual score. */
-export async function latestManual(market: Locale): Promise<CriterionResult[]> {
+export async function latestManual(market: SeoMarket): Promise<CriterionResult[]> {
   const s = await seoSql();
   const rows = await s`
     select distinct on (dimension, criterion) dimension, criterion, points, override, evidence, justification, by_email, at
@@ -519,20 +524,20 @@ export async function latestManual(market: Locale): Promise<CriterionResult[]> {
     .map((r) => ({ ...toResult(r), status: (r.override ? "override" : "manual") as Status, method: (r.override ? "auto" : "manual") as CriterionResult["method"] }));
 }
 
-export async function addManual(m: { market: Locale; dimension: string; criterion: string; points: Points | null; override: boolean; evidence: string; justification: string | null }, by: string) {
+export async function addManual(m: { market: SeoMarket; dimension: string; criterion: string; points: Points | null; override: boolean; evidence: string; justification: string | null }, by: string) {
   const s = await seoSql();
   await s`insert into app.seo_manual (market, dimension, criterion, points, override, evidence, justification, by_email)
     values (${m.market}, ${m.dimension}, ${m.criterion}, ${m.points}, ${m.override}, ${m.evidence}, ${m.justification}, ${by})`;
 }
 
-export async function manualHistory(market: Locale, dimension: string) {
+export async function manualHistory(market: SeoMarket, dimension: string) {
   const s = await seoSql();
   const rows = await s`select criterion, points, override, evidence, justification, by_email, at from app.seo_manual where market = ${market} and dimension = ${dimension} order by at desc limit 50`;
   return rows.map((r) => ({ criterion: r.criterion as string, points: r.points === null ? null : Number(r.points), override: r.override === true, evidence: r.evidence as string, justification: (r.justification as string) ?? null, by: r.by_email as string, at: iso(r.at)! }));
 }
 
 /** Points of each criterion of a dimension over time, only where they changed from the assessment before. */
-export async function criterionChanges(market: Locale, dimension: string) {
+export async function criterionChanges(market: SeoMarket, dimension: string) {
   const s = await seoSql();
   const rows = await s`
     select * from (
@@ -544,13 +549,13 @@ export async function criterionChanges(market: Locale, dimension: string) {
   return rows.map((r) => ({ assessmentId: Number(r.id), at: iso(r.at)!, criterion: r.criterion as string, points: r.points === null ? null : Number(r.points), previous: r.prev === null ? null : Number(r.prev), status: r.status as string, evidence: r.evidence as string }));
 }
 
-export type AssessmentRow = { id: number; market: Locale; at: string; by: string; trigger: string; overall: number; assessed: number; criteria: number; dimensions: Record<string, number> };
+export type AssessmentRow = { id: number; market: SeoMarket; at: string; by: string; trigger: string; overall: number; assessed: number; criteria: number; dimensions: Record<string, number> };
 const toAssessment = (r: Record<string, unknown>): AssessmentRow => ({
-  id: Number(r.id), market: r.market as Locale, at: iso(r.at)!, by: r.by_email as string, trigger: r.trigger as string, overall: Number(r.overall), assessed: Number(r.assessed), criteria: Number(r.criteria),
+  id: Number(r.id), market: r.market as SeoMarket, at: iso(r.at)!, by: r.by_email as string, trigger: r.trigger as string, overall: Number(r.overall), assessed: Number(r.assessed), criteria: Number(r.criteria),
   dimensions: r.dimensions as Record<string, number>,
 });
 
-export async function saveAssessment(a: { market: Locale; by: string; trigger: string; overall: number; assessed: number; criteria: number; dimensions: Record<string, number>; results: CriterionResult[] }): Promise<number> {
+export async function saveAssessment(a: { market: SeoMarket; by: string; trigger: string; overall: number; assessed: number; criteria: number; dimensions: Record<string, number>; results: CriterionResult[] }): Promise<number> {
   const s = await seoSql();
   return s.begin(async (tx) => {
     const [row] = await tx`insert into app.seo_assessments (market, by_email, trigger, overall, assessed, criteria, dimensions)
@@ -568,7 +573,7 @@ export async function clearStale() {
   await s`delete from app.settings where key = ${STALE_KEY}`;
 }
 
-export async function assessmentHistory(sinceDays: number | null, market: Locale | null = null): Promise<AssessmentRow[]> {
+export async function assessmentHistory(sinceDays: number | null, market: SeoMarket | null = null): Promise<AssessmentRow[]> {
   const s = await seoSql();
   const rows = await s`select * from app.seo_assessments
     where (${sinceDays}::int is null or at > now() - make_interval(days => ${sinceDays ?? 0}))
@@ -577,7 +582,7 @@ export async function assessmentHistory(sinceDays: number | null, market: Locale
   return rows.map(toAssessment);
 }
 
-export async function latestAssessments(market: Locale, n = 2): Promise<{ row: AssessmentRow; results: CriterionResult[] }[]> {
+export async function latestAssessments(market: SeoMarket, n = 2): Promise<{ row: AssessmentRow; results: CriterionResult[] }[]> {
   const s = await seoSql();
   const rows = await s`select * from app.seo_assessments where market = ${market} order by at desc, id desc limit ${n}`;
   const out = [];

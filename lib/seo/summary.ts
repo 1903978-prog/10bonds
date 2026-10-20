@@ -4,6 +4,7 @@ import { bing, google } from "./engines";
 import { geoAssessed } from "./geo";
 import { geoReport } from "./geoReport";
 import { serviceAccount } from "./google";
+import { SEO_MARKETS } from "./input";
 import { LOCALES } from "./locales";
 import { recommendations, round2 } from "./rubric";
 import { actionStatuses, getSeoSetting, latestAssessments, setSeoSetting } from "./store";
@@ -97,21 +98,21 @@ async function sources(crawl: CrawlSnapshot | null, citationsAt: string | null):
 /** Everything the top of the page shows. */
 export async function seoSummary() {
   const [latest, actions, history, crawl, geo] = await Promise.all([
-    Promise.all(LOCALES.map((m) => latestAssessments(m, 1).then((r) => r[0] ?? null))),
+    Promise.all(SEO_MARKETS.map((m) => latestAssessments(m, 1).then((r) => r[0] ?? null))),
     actionStatuses(),
     readHistory(),
     readCrawl(),
     geoReport(),
   ]);
   const scored = latest.filter((x): x is NonNullable<typeof x> => x !== null);
-  const seo = scored.length === LOCALES.length ? round2(scored.reduce((s, a) => s + a.row.overall, 0) / scored.length) : null;
+  const seo = scored.length === SEO_MARKETS.length ? round2(scored.reduce((s, a) => s + a.row.overall, 0) / scored.length) : null;
   const assessed = scored.reduce((s, a) => s + a.row.assessed, 0);
   const criteria = scored.reduce((s, a) => s + a.row.criteria, 0);
   const lastCheck = scored.map((a) => a.row.at).sort().reverse()[0] ?? null;
 
   // SEO steps: the same criterion in several markets is one step, with its largest gain.
   const seoSteps = new Map<string, NextStep>();
-  LOCALES.forEach((m, i) => {
+  SEO_MARKETS.forEach((m, i) => {
     const a = latest[i];
     if (!a) return;
     for (const r of recommendations(a.results)) {
