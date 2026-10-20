@@ -10,7 +10,6 @@ import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import PlansNavLink from "@/components/PlansNavLink";
 import LangSwitch from "@/components/LangSwitch";
-import ProNavLink from "@/components/ProNavLink";
 import SearchNavLink from "@/components/SearchNavLink";
 import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
@@ -50,9 +49,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <SearchNavLink />
               <KnowledgeNavLink />
               <PlansNavLink />
-              {/* Fixed-width slot for the links that load after the page (Pro, Admin, Sign in, profile), so the menu never shifts. */}
+              {/* Fixed-width slot for the links that load after the page (Retail/Pro switch, Admin, Sign in, profile), so the menu never shifts. */}
               <div className="flex min-w-[128px] items-center justify-end gap-1.5 sm:min-w-[232px] sm:gap-5">
-                <ProNavLink />
                 {/* Language sits right before the account links (profile icon), as Livio asked. */}
                 <LangSwitch />
                 <AccountNav hasSession={hasSession} />
