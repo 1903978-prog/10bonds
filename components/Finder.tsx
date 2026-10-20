@@ -9,6 +9,7 @@ import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
 import { averageRisk } from "@/lib/ratings";
+import { listLossChance } from "@/lib/expectedLoss";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
@@ -282,7 +283,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
-          <Stat value={!data ? "—" : paid ? (summary?.avgRisk != null ? <RiskBadge risk={summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? (summary?.lossChance != null ? `${summary.lossChance.toFixed(1)}%` : "—") : null} label={t.lossChance} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
@@ -788,6 +789,7 @@ function listSummary(list: ResultRow[]): ResultsPayload["summary"] {
     avgYtm: avg(list.map((r) => r.ytm)),
     avgDuration: avg(list.flatMap((r) => (r.duration == null ? [] : [r.duration]))),
     avgRisk: averageRisk(list.map((r) => r.risk ?? null)),
+    lossChance: list.length && list.every((r) => r.pd != null) ? listLossChance(list.map((r) => r.pd!)) : null,
   };
 }
 

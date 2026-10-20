@@ -2,7 +2,8 @@ import type { PublicBond, RankedBond } from "./types";
 import { cleanIssuer } from "./issuer";
 import { bondNotch, riskOfNotch } from "./ratings";
 import { riskLevel, LIMITS, nearHorizon, isOpenEnded } from "./limits";
-import { lossAdjustedYield } from "./expectedLoss";
+import { bondLossChance, lossAdjustedYield } from "./expectedLoss";
+import { lifeYears } from "./lifeYears";
 
 export const RESULT_COUNT = 10;
 
@@ -15,8 +16,12 @@ const EXTRA_BAND = 2; // most years the window may widen by
 // The list's average duration should stay within 5% of the target; each year beyond costs this much yield.
 const AVG_DURATION_SLACK = 0.05;
 const AVG_DURATION_PENALTY = 0.5;
-// Below the slider maximum the target sets how much risk the list takes: the lowest average risk score that still
-// reaches it wins. Yield after losses only breaks near-ties (0.05 risk points per percentage point).
+// Below the slider maximum the target sets how much risk the list takes: the lowest chance of a loss over the bonds'
+// life that still reaches it (Livio 20/10: not the average risk score, since 5 bonds at risk 6 plus 5 at risk 1 is
+// riskier than 5 at 3 plus 5 at 4). Default chances grow much faster than the risk score, so a few bonds at the limit
+// cost more than a spread of mid-risk ones. Each bond adds -ln(1 - its default chance), so the sum ranks lists exactly
+// like the list's chance of a loss (lib/expectedLoss.ts listLossChance). Weighted so 1% of chance costs one point.
+const LOSS_WEIGHT = 100;
 const YIELD_TIEBREAK = 0.05;
 
 /**
@@ -24,8 +29,8 @@ const YIELD_TIEBREAK = 0.05;
  * 1. Pool: rated bonds within the risk level, duration within ±20% of the target, one bond per issuer.
  * 2. Each bond scores its yield after expected losses (lib/expectedLoss.ts): yield minus the yearly historical default
  *    rate for its rating over its duration times a 60% loss. More yield wins unless it does not pay for the extra risk.
- * 3. Below the slider maximum: the 10 with the lowest average risk score whose average yield still reaches the target
- *    and whose average duration stays close to the horizon; ties go to the higher yield after losses.
+ * 3. Below the slider maximum: the 10 with the lowest chance of any default before they mature whose average yield
+ *    still reaches the target and whose average duration stays close to the horizon; ties go to the higher yield after losses.
  *    A lower target gives a safer list with a lower yield; a higher one takes more risk for more yield.
  * 4. At (or above) the slider maximum the answer is exactly the 10 highest-yielding issuers the maximum is computed from.
  * Shown best score first.
@@ -35,7 +40,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
+    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: -LOSS_WEIGHT * Math.log(1 - bondLossChance(notch, lifeYears(b)) / 100 + 1e-12), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };
@@ -45,28 +50,31 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
     chosen = top;
   } else {
     // Swap bonds in and out while that improves the set: reach the target yield first, keep the average duration near
-    // the target, then the lowest average risk score, then the highest yield after losses. Two starts (the safest bonds
-    // and the highest-yield ones) so the search does not stop on a poor local answer; the better result wins.
+    // the target, then the lowest chance of a default, then the highest yield after losses. One swap at a time can get
+    // stuck on a "barbell" (very safe bonds plus a few at the risk limit) because dropping a risky bond for a mid-risk
+    // one loses yield until a second swap makes it up. So the search also starts from every lower risk limit: a list
+    // that works with risk up to 5 is also a candidate at 6, and accepting more risk can never give a riskier list
+    // than needed. The lowest cost wins.
     const n = top.length;
     const slack = AVG_DURATION_SLACK * targetDuration;
-    const costOf = (ytm: number, dur: number, rk: number, score: number) =>
-      Math.max(0, targetYtm - ytm / n) * 1000 + Math.max(0, (isOpenEnded(targetDuration) ? targetDuration - dur / n : Math.abs(dur / n - targetDuration)) - slack) * AVG_DURATION_PENALTY + rk / n - (YIELD_TIEBREAK * score) / n;
-    const search = (start: typeof cands) => {
+    const costOf = (ytm: number, dur: number, loss: number, score: number) =>
+      Math.max(0, targetYtm - ytm / n) * 1000 + Math.max(0, (isOpenEnded(targetDuration) ? targetDuration - dur / n : Math.abs(dur / n - targetDuration)) - slack) * AVG_DURATION_PENALTY + loss / n - (YIELD_TIEBREAK * score) / n;
+    const search = (start: typeof cands, from: typeof cands) => {
       const set = [...start];
       let ytm = set.reduce((s, b) => s + b.grossYtm!, 0);
       let dur = set.reduce((s, b) => s + b.modifiedDuration!, 0);
-      let rk = set.reduce((s, b) => s + b.rk, 0);
+      let loss = set.reduce((s, b) => s + b.loss, 0);
       let score = set.reduce((s, b) => s + b.score, 0);
-      let best = costOf(ytm, dur, rk, score);
+      let best = costOf(ytm, dur, loss, score);
       for (let iter = 0; iter < 400; iter++) {
         let move: { i: number; j: (typeof cands)[number]; c: number } | null = null;
         const used = new Set(set.map((b) => b.key));
         for (let i = 0; i < n; i++) {
           const out = set[i];
-          for (const j of cands) {
+          for (const j of from) {
             if (j.isin === out.isin) continue;
             if (j.key !== out.key && used.has(j.key)) continue;
-            const c = costOf(ytm - out.grossYtm! + j.grossYtm!, dur - out.modifiedDuration! + j.modifiedDuration!, rk - out.rk + j.rk, score - out.score + j.score);
+            const c = costOf(ytm - out.grossYtm! + j.grossYtm!, dur - out.modifiedDuration! + j.modifiedDuration!, loss - out.loss + j.loss, score - out.score + j.score);
             if (c < best - 1e-9 && (!move || c < move.c)) move = { i, j, c };
           }
         }
@@ -74,22 +82,32 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
         const out = set[move.i];
         ytm += move.j.grossYtm! - out.grossYtm!;
         dur += move.j.modifiedDuration! - out.modifiedDuration!;
-        rk += move.j.rk - out.rk;
+        loss += move.j.loss - out.loss;
         score += move.j.score - out.score;
         set[move.i] = move.j;
         best = move.c;
       }
       return { set, cost: best };
     };
-    const safest = topIssuersBy([...cands].sort((a, b) => a.rk - b.rk || b.score - a.score || a.isin.localeCompare(b.isin)), count);
-    const fromSafe = search(safest);
-    const fromTop = search(top);
-    chosen = fromSafe.cost <= fromTop.cost ? fromSafe.set : fromTop.set;
+    let best: { set: typeof cands; cost: number } | null = null;
+    const levels = [...new Set(cands.map((b) => b.rk))].sort((a, b) => a - b);
+    for (const level of levels) {
+      const sub = level === levels[levels.length - 1] ? cands : cands.filter((b) => b.rk <= level);
+      if (new Set(sub.map((b) => b.key)).size < n) continue;
+      const safest = topIssuersBy([...sub].sort((a, b) => a.loss - b.loss || b.score - a.score || a.isin.localeCompare(b.isin)), count);
+      for (const start of [safest, topIssuers(sub, count)]) {
+        // Searched inside the lower limit first, then free to use the whole pool from there.
+        let r = search(start, sub);
+        if (sub !== cands) r = search(r.set, cands);
+        if (!best || r.cost < best.cost - 1e-9) best = r;
+      }
+    }
+    chosen = best?.set ?? top;
   }
 
   const ordered = [...chosen].sort((a, b) => b.score - a.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
   return {
-    results: ordered.map(({ notch: _n, key: _k, rk: _r, ...b }, i) => ({ ...b, rank: i + 1 })),
+    results: ordered.map(({ notch: _n, key: _k, rk: _r, loss: _l, ...b }, i) => ({ ...b, rank: i + 1 })),
     band,
   };
 }

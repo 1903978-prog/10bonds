@@ -4,7 +4,7 @@ import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import type { PublicBond } from "./types";
-import { expectedLoss } from "./expectedLoss";
+import { expectedLoss, bondLossChance, listLossChance } from "./expectedLoss";
 
 const bond = (isin: string, ytm: number, dur: number, rating: string | null): PublicBond => ({
   isin, name: isin, issuer: isin, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -143,8 +143,8 @@ describe("highest yield with the lowest risk", () => {
     expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("R4");
     expect(rankBonds(bonds, 5, 4.5, 1).results[0].isin).toBe("R5");
   });
-  it("same risk: the higher yield after losses wins", () => {
-    const bonds = [{ ...bond("LO", 4.0, 5, "A"), issuer: "Lo" }, { ...bond("HI", 4.4, 5, "A-"), issuer: "Hi" }];
+  it("same rating: the higher yield after losses wins", () => {
+    const bonds = [{ ...bond("LO", 4.0, 5, "A"), issuer: "Lo" }, { ...bond("HI", 4.4, 5, "A"), issuer: "Hi" }];
     expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("HI");
   });
   it("takes on more risk only when that is needed to reach the target yield", () => {
@@ -203,5 +203,32 @@ describe("the list's average matches the target and the maximum", () => {
       expect(mean(results)).toBeGreaterThanOrEqual(t - 1e-9);
       expect(new Set(results.map((r) => r.issuer)).size).toBe(10);
     }
+  });
+});
+
+describe("chance of a loss, not average risk (Livio 20/10)", () => {
+  it("prefers mid-risk bonds to a barbell of very safe and limit-risk bonds with the same average yield", () => {
+    const safe = Array.from({ length: 5 }, (_, i) => ({ ...bond(`S${i}`, 3.0, 5, "AAA"), issuer: `Safe ${i}` }));
+    const risky = Array.from({ length: 5 }, (_, i) => ({ ...bond(`R${i}`, 5.0, 5, "BBB-"), issuer: `Risky ${i}` }));
+    const mid = Array.from({ length: 10 }, (_, i) => ({ ...bond(`M${i}`, 4.0, 5, i < 5 ? "A" : "BBB+"), issuer: `Mid ${i}` }));
+    const isins = rankBonds([...safe, ...risky, ...mid], 5, 4.0).results.map((r) => r.isin);
+    expect(isins.filter((x) => x.startsWith("M"))).toHaveLength(10);
+  });
+  it("accepting more risk never gives a list with a higher chance of a loss for the same target", () => {
+    const pool = [
+      ...Array.from({ length: 6 }, (_, i) => ({ ...bond(`S${i}`, 3.5, 5, "AAA"), issuer: `Safe ${i}` })),
+      ...Array.from({ length: 6 }, (_, i) => ({ ...bond(`M${i}`, 5.3 + i * 0.05, 5, "A"), issuer: `Mid ${i}` })),
+      ...Array.from({ length: 6 }, (_, i) => ({ ...bond(`R${i}`, 6.0, 5, "BBB-"), issuer: `Risky ${i}` })),
+    ];
+    const loss = (risk: number) => listLossChance(rankBonds(pool, 5, 4.4, 10, risk).results.map((r) => bondLossChance(bondNotch(r)!, r.modifiedDuration!)));
+    expect(loss(6)).toBeLessThanOrEqual(loss(3) + 1e-9);
+  });
+});
+
+describe("listLossChance", () => {
+  it("is 1 minus the chance every bond survives", () => {
+    expect(listLossChance([0, 0])).toBe(0);
+    expect(listLossChance([10, 10])).toBeCloseTo(19, 9);
+    expect(listLossChance([100, 0])).toBe(100);
   });
 });
