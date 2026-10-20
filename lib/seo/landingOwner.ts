@@ -1,13 +1,13 @@
 import type { Locale } from "./locales";
 
-// Livio's 16 Italian landing pages (19 Oct 2026), one per tracked Italian keyword. His own text, approved by him:
+// The owner's 16 Italian landing pages (19 Oct 2026), one per tracked Italian keyword. His own text, approved by him:
 // kept word for word, only turned into HTML. His notes to us ("Elemento SEO essenziale", "Nota tecnica") are not
 // page text and are left out. Guides (/it/guide/...) go into the guide store; the others sit on the comparison
 // pages, the calculator and the broker page, next to the live data they describe.
 
 export type Landing = { n: number; keyword: string; path: string; seoTitle: string; metaDescription: string; h1: string; bodyHtml: string };
 
-export const LIVIO_LANDINGS: Landing[] = [
+export const OWNER_LANDINGS: Landing[] = [
   {
     n: 1,
     keyword: "Rendimenti BTP",
@@ -407,8 +407,8 @@ export const LIVIO_LANDINGS: Landing[] = [
   },
 ];
 
-/** Livio's landing text for a page, by its path (e.g. "/it/obbligazioni/btp"). */
-export const landingFor = (path: string): Landing | null => LIVIO_LANDINGS.find((x) => x.path === path) ?? null;
+/** The owner's landing text for a page, by its path (e.g. "/it/obbligazioni/btp"). */
+export const landingFor = (path: string): Landing | null => OWNER_LANDINGS.find((x) => x.path === path) ?? null;
 
 /** Splits an article into its lead (before the first heading) and the rest, so live data can sit in between. */
 export function splitLead(html: string): [string, string] {

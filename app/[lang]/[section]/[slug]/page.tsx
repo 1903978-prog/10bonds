@@ -16,7 +16,7 @@ import { SITE_URL } from "@/lib/seo/crawl";
 import { isLocale, LOCALE, pathOf, sectionOf, T, type Locale } from "@/lib/seo/locales";
 import { calcLangs, CALCULATOR_EN, enGuideByGroup, enPath, withEnglish } from "@/lib/seo/knowledgeEn";
 import { unlinkMissing } from "@/lib/seo/links";
-import { landingFor, splitLead } from "@/lib/seo/landingLivio";
+import { landingFor, splitLead } from "@/lib/seo/landingOwner";
 import { curveAlternates, curvePath, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { insightsAlternates, insightsPath, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";

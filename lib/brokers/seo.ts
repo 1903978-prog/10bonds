@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { brokerPath, CONTENT, methodologyPath, sectionPath } from "./content";
 import { PROFILES, SEED_TARIFFS } from "./data";
 import { COUNTRIES, type Country } from "./types";
-import { landingFor } from "@/lib/seo/landingLivio";
+import { landingFor } from "@/lib/seo/landingOwner";
 
 // Page titles, canonical URLs, hreflang links and sitemap entries for the broker section.
 
@@ -19,7 +19,7 @@ const hreflang = (paths: Partial<Record<Country, string>>): Record<string, strin
 export function sectionMetadata(c: Country, published: boolean): Metadata {
   const t = CONTENT[c];
   const path = sectionPath(c);
-  const land = landingFor(path); // Livio's own title and description, where he wrote the page text
+  const land = landingFor(path); // The owner's own title and description, where he wrote the page text
   return {
     title: land ? { absolute: land.seoTitle } : `${t.metaTitle} · 10BONDS`,
     description: land?.metaDescription ?? t.metaDescription,

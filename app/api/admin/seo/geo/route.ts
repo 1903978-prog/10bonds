@@ -12,7 +12,7 @@ export async function GET() {
   return NextResponse.json(await geoReport(), { headers: { "Cache-Control": "no-store" } });
 }
 
-/** Save the answers Livio pasted from ChatGPT or Claude for this week. Keeps the last 12 weeks. */
+/** Save the answers the owner pasted from ChatGPT or Claude for this week. Keeps the last 12 weeks. */
 export async function POST(req: Request) {
   if (!(await seoAdmin())) return notFound();
   const b = (await req.json().catch(() => ({}))) as { assistant?: string; text?: string };

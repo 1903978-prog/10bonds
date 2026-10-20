@@ -7,7 +7,7 @@ const PRIVATE = ["/admin", "/api/", "/redeem", "/account"];
 
 // Search engines may read every public page; admin, account tools and the API stay out. The search and
 // user-directed crawlers of AI assistants (ChatGPT, Claude, Perplexity, Copilot via Bing, Google) are named
-// explicitly so they keep access to the public pages whatever the general rule says (Livio, 19 Oct 2026).
+// explicitly so they keep access to the public pages whatever the general rule says (the owner, 19 Oct 2026).
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [

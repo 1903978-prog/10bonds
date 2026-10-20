@@ -101,10 +101,10 @@ async function reload() {
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
     minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot), r.currency)),
   }));
-  // Unrated bonds never appear on the site (Livio, 18/10/2026).
+  // Unrated bonds never appear on the site (the owner, 18/10/2026).
   const current = dropStale(bonds);
   const rated = current.filter((b) => bondNotch(b) !== null);
-  // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (Livio, 20/10/2026).
+  // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
   const [{ total }] = await client`select count(*)::int total from public_bonds`;
   cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), bySd: new Map() };
 }

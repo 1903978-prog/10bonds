@@ -1,7 +1,7 @@
 import type { SeedGuide } from "./guidesSeed";
 
 // First-wave Knowledge Center pages from the research brief that had no page yet. They go in as DRAFTS with an
-// outline: the facts to research are marked, nothing is published until Livio completes and approves them.
+// outline: the facts to research are marked, nothing is published until the owner completes and approves them.
 // The French OAT and German Festgeld outlines were replaced by full guides in guidesSeedWave2.ts.
 
 const todo = (lang: "it" | "fr" | "de", items: string[]) =>

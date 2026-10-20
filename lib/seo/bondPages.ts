@@ -5,7 +5,7 @@ import { lossAdjustedYield } from "../expectedLoss";
 import { LOCALE, LOCALES, pathOf, type Locale } from "./locales";
 
 // One public page per bond the site shows, at /bonds/{ISIN} (English) and /it/obbligazioni/{ISIN},
-// /fr/obligations/{ISIN}, /de/anleihen/{ISIN}, so a Google search for an ISIN can find 10BONDS (Livio, 20 Oct 2026).
+// /fr/obligations/{ISIN}, /de/anleihen/{ISIN}, so a Google search for an ISIN can find 10BONDS (the owner, 20 Oct 2026).
 // The ISIN is shown on the bond's own page for everyone; the yield and the ranking stay with Plus and above.
 
 export type BondLang = "en" | Locale;

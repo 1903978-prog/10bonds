@@ -26,7 +26,7 @@ export function spGradeOf(notch: number | null): string | null {
 
 type RatedBond = { ratingResolved: string | null; ratingSp: string | null; ratingMoodys: string | null; ratingFitch: string | null; lrScore?: number | null };
 
-/** Risk score 1..10 from a Livio Rating (0..100, higher = safer): 90+ is 1, 80-89 is 2, ... below 10 is 10. */
+/** Risk score 1..10 from a 10bonds.com rating (0..100, higher = safer): 90+ is 1, 80-89 is 2, ... below 10 is 10. */
 export function riskOfLr(lr: number | null | undefined): number | null {
   if (lr === null || lr === undefined || !Number.isFinite(lr)) return null;
   return Math.min(RISK_MAX, Math.max(RISK_MIN, 10 - Math.floor(Math.min(99.99, Math.max(0, lr)) / 10)));
@@ -36,7 +36,7 @@ export function riskOfLr(lr: number | null | undefined): number | null {
 const NOTCH_OF_LR_RISK = [0, 2, 5, 7, 8, 9, 11, 14, 17, 19];
 
 /**
- * Rating used for the risk score: the Livio Rating (LR) when the bond has one (Livio, 20/10/2026), else S&P first
+ * Rating used for the risk score: the 10bonds.com rating when the bond has one (the owner, 20/10/2026), else S&P first
  * (so a BB- bond is always risk 7), else Moody's, else Fitch, else the resolved one.
  */
 export function bondNotch(b: RatedBond): number | null {
@@ -64,9 +64,9 @@ export function riskBand(risk: number): string {
   return SP_SCALE.filter((_, n) => RISK_BY_NOTCH[n] === risk).join(", ");
 }
 
-/** Where the risk score comes from, e.g. "LR 72.5", or the agency grade "S&P BB-", "Moody's B1" or "Fitch B+" (admin only). */
+/** Where the risk score comes from, e.g. "10bonds 72.5", or the agency grade "S&P BB-", "Moody's B1" or "Fitch B+" (admin only). */
 export function ratingSourceLabel(b: RatedBond): string | null {
-  if (riskOfLr(b.lrScore) !== null) return `LR ${Math.round(b.lrScore! * 10) / 10}`;
+  if (riskOfLr(b.lrScore) !== null) return `10bonds ${Math.round(b.lrScore! * 10) / 10}`;
   const n = bondNotch(b);
   if (n === null) return null;
   const agencies: [string, string | null][] = [["S&P", b.ratingSp], ["Moody's", b.ratingMoodys], ["Fitch", b.ratingFitch]];

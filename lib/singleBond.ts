@@ -13,7 +13,7 @@ export function levelOf(b: PublicBond): number | null {
   return bondRisk(b);
 }
 
-/** A bond fits the horizon when its duration is within this share of it (5 years: 4 to 6). Livio, 19/10/2026. */
+/** A bond fits the horizon when its duration is within this share of it (5 years: 4 to 6). The owner, 19/10/2026. */
 export const DURATION_TOLERANCE = 0.2;
 
 /**

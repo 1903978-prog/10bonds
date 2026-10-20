@@ -1,6 +1,6 @@
 import type { SeedGuide } from "./guidesSeed";
 
-// The guides the translation matrix still showed as missing or as outline drafts (19 Oct 2026, Livio asked for every
+// The guides the translation matrix still showed as missing or as outline drafts (19 Oct 2026, the owner asked for every
 // topic in every language): "buy OAT" and "bonds vs deposit" in Italian, French and German. Written for each market
 // (local deposit schemes, taxes and accounts), not translated word for word. No yields, prices or ISINs are quoted.
 

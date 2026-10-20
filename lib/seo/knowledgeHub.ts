@@ -2,7 +2,7 @@ import type { Guide } from "./store";
 import { FIRST_WAVE, KC_SECTIONS, type KcSection } from "./knowledge";
 import type { Locale } from "./locales";
 
-// The public Knowledge Center: one page per language with Livio's six sections. It only links to pages that are
+// The public Knowledge Center: one page per language with the owner's six sections. It only links to pages that are
 // public today; planned pages (guides in review, unpublished broker pages) are listed as "coming soon", unlinked.
 
 export const KC_ORDER: KcSection[] = ["best", "government", "calculators", "brokers", "risk", "academy"];

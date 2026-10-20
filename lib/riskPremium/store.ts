@@ -104,7 +104,7 @@ async function setup(s: Sql) {
     insert into app.risk_premium_versions (version, status, currency, issuer_category, min_maturity, max_maturity, floor, exceptional_bp, premiums, notes, justification, created_by, activated_at, activated_by)
     select ${V1_CURVE.version}, 'active', ${V1_CURVE.currency}, ${V1_CURVE.issuerCategory}, ${V1_CURVE.minMaturity}, ${V1_CURVE.maxMaturity}, ${V1_CURVE.floor}, ${V1_CURVE.exceptionalBp},
       ${s.json(V1_CURVE.premiums as never)}, ${"Initial 10BONDS Risk Premium Curve: minimum spread over a maturity-matched Bund, ~5y EUR senior fixed-rate corporates."},
-      ${"Initial specification (Livio, 20/10/2026)"}, 'seed', now(), 'seed'
+      ${"Initial specification (the owner, 20/10/2026)"}, 'seed', now(), 'seed'
     where not exists (select 1 from app.risk_premium_versions)`;
 }
 
@@ -204,7 +204,7 @@ export async function listAudit(limit = 100): Promise<AuditRow[]> {
   return rows.map((r) => ({ id: Number(r.id), at: new Date(r.at).toISOString(), by: r.by_email, versionId: r.version_id === null ? null : Number(r.version_id), action: r.action, justification: r.justification, detail: r.detail }));
 }
 
-// Risk premium weight, in app.settings (Livio, 20/10/2026, replaces the on/off mode): 0 = users get the current
+// Risk premium weight, in app.settings (the owner, 20/10/2026, replaces the on/off mode): 0 = users get the current
 // ranking exactly; above 0 the active curve's premiums are scaled by it (1 = the curve as stored, up to MAX_WEIGHT)
 // and the risk-adjusted ranking is used wherever the curve applies. Set with the yellow admin slider on the search page.
 export const MAX_WEIGHT = 3;
@@ -226,7 +226,7 @@ export async function setWeight(weight: number, justification: string, by: strin
 }
 
 // Outlier rule (lib/outliers.ts): how many standard deviations above its cohort's average yield a bond must be to be
-// left out everywhere. Set with the yellow admin slider on the search page (Livio, 20/10/2026: 0.5 to 5, default 2).
+// left out everywhere. Set with the yellow admin slider on the search page (the owner, 20/10/2026: 0.5 to 5, default 2).
 const OUTLIER_SD_KEY = "outlier_sd";
 
 export async function getOutlierSd(): Promise<number> {

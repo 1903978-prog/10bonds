@@ -37,7 +37,7 @@ const pts = (x: number) => `${Math.round(x)} bp`;
 
 /**
  * Every EUR bond in the curve's maturity bracket for one search, each with why it is in the risk-adjusted top 10 or
- * why it is not (Livio, 20/10/2026). Extra yield is measured over the maturity-matched Bund (AAA).
+ * why it is not (the owner, 20/10/2026). Extra yield is measured over the maturity-matched Bund (AAA).
  * Checks in the order the ranking applies them: outlier, risk limit, duration window, the model's checks, yield cap,
  * issuer already used, Pareto dominance, then "not picked".
  */

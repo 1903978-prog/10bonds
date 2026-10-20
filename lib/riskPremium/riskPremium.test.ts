@@ -8,7 +8,7 @@ import { rankRiskAdjusted } from "./rank";
 import { bracketExplain } from "./shadow";
 import { activate, activeOf, draftFrom, type CurveVersion } from "./versions";
 
-// The mandatory examples of the specification (Livio, 20/10/2026), one test each, plus the building blocks.
+// The mandatory examples of the specification (the owner, 20/10/2026), one test each, plus the building blocks.
 
 const AS_OF = "2026-10-19T00:00:00.000Z";
 const inYears = (y: number) => new Date(Date.parse(AS_OF) + y * 365.25 * 86_400_000).toISOString().slice(0, 10);
@@ -127,7 +127,7 @@ describe("mandatory examples", () => {
     expect(e.status).toBe("review");
     const { results } = rankRiskAdjusted([...BUNDS, cit, bond("Alpha Corp", "A", 4.0)], 4.5, 3.5, ctx());
     expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
-    // Even approved by the admin it stays out (Livio, 20/10/2026).
+    // Even approved by the admin it stays out (the owner, 20/10/2026).
     expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "approved"]]) })).status).toBe("review");
     expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "rejected"]]) })).status).toBe("rejected");
   });

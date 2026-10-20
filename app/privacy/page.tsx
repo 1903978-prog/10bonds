@@ -5,7 +5,7 @@ import { euro, priceCents } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Privacy and GDPR · 10BONDS", alternates: { canonical: "/privacy" } };
 
-// Livio's privacy policy text (19 October 2026), with his four checks filled in from how 10BONDS actually works:
+// The owner's privacy policy text (19 October 2026), with his four checks filled in from how 10BONDS actually works:
 // passwords (scrypt hash only), technical data (IP in memory only, hosting logs), payments (Stripe) and analytics
 // (own statistics, consent only, no Google Analytics or advertising pixels).
 

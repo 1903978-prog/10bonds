@@ -17,7 +17,7 @@ const EXTRA_BAND = 2; // most years the window may widen by
 const AVG_DURATION_SLACK = 0.05;
 const AVG_DURATION_PENALTY = 0.5;
 // Below the slider maximum the target sets how much risk the list takes: the lowest chance of a loss over the bonds'
-// life that still reaches it (Livio 20/10: not the average risk score, since 5 bonds at risk 6 plus 5 at risk 1 is
+// life that still reaches it (the owner 20/10: not the average risk score, since 5 bonds at risk 6 plus 5 at risk 1 is
 // riskier than 5 at 3 plus 5 at 4). Default chances grow much faster than the risk score, so a few bonds at the limit
 // cost more than a spread of mid-risk ones. Each bond adds -ln(1 - its default chance), so the sum ranks lists exactly
 // like the list's chance of a loss (lib/expectedLoss.ts listLossChance). Weighted so 1% of chance costs one point.

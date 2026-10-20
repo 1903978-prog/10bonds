@@ -3,7 +3,7 @@ import type { SearchKpis } from "./bing";
 
 // Google data sources. Nothing here is ever invented: without credentials each source reports "not connected".
 // - PageSpeed Insights: public API, works without a key at a low daily quota; PAGESPEED_API_KEY raises it.
-// - Search Console and Analytics 4: a Google service account (GOOGLE_SERVICE_ACCOUNT_JSON) that Livio adds as a user
+// - Search Console and Analytics 4: a Google service account (GOOGLE_SERVICE_ACCOUNT_JSON) that the owner adds as a user
 //   to his Search Console property and GA4 property.
 
 type ServiceAccount = { client_email: string; private_key: string };

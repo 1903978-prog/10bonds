@@ -1,5 +1,5 @@
 # Deploys the public 10BONDS site to Fly.io on every push to main.
-# Needs one repo secret: FLY_API_TOKEN (a Fly token Livio creates himself).
+# Needs one repo secret: FLY_API_TOKEN (a Fly token the owner creates himself).
 # The build runs on Fly's remote builder; the runner only waits.
 name: Deploy to Fly
 on:

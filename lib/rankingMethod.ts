@@ -2,7 +2,7 @@ import type { MethodLang } from "./methodology";
 
 /**
  * The Ranking methodology page (/ranking-methodology): how the risk premium check judges whether a bond's extra yield
- * pays for its extra credit risk (Livio's specification, 20/10/2026). Numbers (premiums, bracket, floor, exceptional
+ * pays for its extra credit risk (the owner's specification, 20/10/2026). Numbers (premiums, bracket, floor, exceptional
  * spread) come from the active curve version, never from these texts; {placeholders} are filled in by the page.
  */
 export type RankingText = {

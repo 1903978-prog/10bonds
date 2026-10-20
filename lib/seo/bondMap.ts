@@ -3,7 +3,7 @@ import { bondRisk, RISK_MAX, RISK_MIN } from "../ratings";
 import type { Locale } from "./locales";
 import { pathOf } from "./locales";
 
-// The bond map (Livio, 19/10/2026): every rated bond the site shows, all currencies, counted by years to maturity
+// The bond map (the owner, 19/10/2026): every rated bond the site shows, all currencies, counted by years to maturity
 // and risk 1-10, with the highest and the median yield in each cell. Rebuilt from the bond copy every time it is read.
 
 /** Years-to-maturity buckets: [from, to) in years; the last one is open-ended. */

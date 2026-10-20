@@ -1,7 +1,7 @@
 import type { PublicBond } from "./types";
 import { bondRisk } from "./ratings";
 
-/** The red line (Livio, 20/10/2026): the efficient frontier of the 4-6 year bonds (shown in blue), risk 1 to 8. */
+/** The red line (the owner, 20/10/2026): the efficient frontier of the 4-6 year bonds (shown in blue), risk 1 to 8. */
 export const FRONTIER_SEARCH = { minDuration: 4, maxDuration: 6, minRisk: 1, maxRisk: 8 };
 
 export type Frontier = {
@@ -40,7 +40,7 @@ export function frontierOf(bonds: PublicBond[]): Frontier {
 }
 
 /**
- * The red line must rise steadily towards higher risk (Livio, 20/10/2026): of the picked bonds, ordered from the safest
+ * The red line must rise steadily towards higher risk (the owner, 20/10/2026): of the picked bonds, ordered from the safest
  * to the riskiest, keep the longest run whose yield goes up at every step. A bond that pays less than a safer one is
  * left out, and so is a lone outlier that would otherwise hide most of the others.
  */

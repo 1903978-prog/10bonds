@@ -3,13 +3,13 @@ import { faqFromHtml } from "./sanitize";
 import { seoSql, type Guide } from "./store";
 
 // AI Visibility (GEO / AEO): how ready the site is to be found, trusted and cited by AI assistants (ChatGPT,
-// Claude, Copilot, Google AI, Perplexity). A score out of 100 on Livio's seven weights (19 Oct 2026). The weights
+// Claude, Copilot, Google AI, Perplexity). A score out of 100 on the owner's seven weights (19 Oct 2026). The weights
 // are his management framework, not any AI provider's algorithm. Each dimension is a list of checks the site
 // can verify about itself; nothing here is estimated. Citation share needs a weekly test against the assistants'
 // APIs, which is not connected yet, so it shows "not connected" and scores zero.
 
 export const AI_CRAWLERS = ["OAI-SearchBot", "ChatGPT-User", "Claude-SearchBot", "Claude-User", "PerplexityBot", "Bingbot", "Googlebot"];
-/** Crawlers Livio named as required (search and user-directed retrieval, not model training). */
+/** Crawlers the owner named as required (search and user-directed retrieval, not model training). */
 export const REQUIRED_CRAWLERS = ["OAI-SearchBot", "Claude-SearchBot", "Claude-User"];
 
 /** Referrer hosts of AI assistants, by assistant. */

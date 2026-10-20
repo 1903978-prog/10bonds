@@ -9,12 +9,12 @@ import { evaluate, type Facts } from "./evaluate";
 import { SEED_GUIDES } from "./guidesSeed";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import { FIRST_WAVE, opportunity } from "./knowledge";
-import { landingFor, LIVIO_LANDINGS } from "./landingLivio";
+import { landingFor, OWNER_LANDINGS } from "./landingOwner";
 import { countryName, govCurves } from "./yieldCurves";
 import { aiVisibility, guideShape, REQUIRED_CRAWLERS, robotsAllows } from "./geo";
 import robots from "../../app/robots";
 import { LOCALE, LOCALES, localeFromAcceptLanguage, pathOf, sectionOf, suggestLocale, T } from "./locales";
-import { SEED_GUIDES_LIVIO_FR, FR_LIVIO_MOVED } from "./guidesLivioFr";
+import { SEED_GUIDES_OWNER_FR, FR_OWNER_MOVED } from "./guidesOwnerFr";
 import { findIsins, isValidIsin, parsePage, similarity } from "./page";
 import { DIMENSIONS, mergeManual, overallScore, recommendations, type CriterionResult } from "./rubric";
 import { faqFromHtml, safeHref, sanitizeHtml, wordCount } from "./sanitize";
@@ -100,10 +100,10 @@ describe("sanitizer", () => {
   it("every seed guide survives sanitising unchanged in substance and has a tool link", () => {
     for (const g of SEED_GUIDES) {
       const clean = sanitizeHtml(g.bodyHtml);
-      // Livio's landing pages are deliberately short (his own approved text).
+      // The owner's landing pages are deliberately short (his own approved text).
       expect(wordCount(clean)).toBeGreaterThan(g.status === "draft" ? 60 : landingFor(`/${g.locale}/guide/${g.slug}`) ? 180 : 250);
       expect(clean).toMatch(new RegExp(`href="/${g.locale}[/"]`));
-      // Livio's OAT article names three OATs by ISIN on purpose (public AFT data, his own text).
+      // The owner's OAT article names three OATs by ISIN on purpose (public AFT data, his own text).
       if (g.slug !== "oat-obligations-etat") expect(findIsins(clean)).toEqual([]);
     }
   });
@@ -306,18 +306,18 @@ describe("Knowledge Center sections", () => {
   });
 });
 
-describe("Livio's articles", () => {
+describe("The owner's articles", () => {
   it("keeps the CTA button class and reads the FAQ for structured data", async () => {
     const { sanitizeHtml, faqFromHtml, wordCount } = await import("./sanitize");
-    const { SEED_GUIDES_LIVIO } = await import("./guidesSeedLivio");
-    const html = sanitizeHtml(SEED_GUIDES_LIVIO[0].bodyHtml);
+    const { SEED_GUIDES_OWNER } = await import("./guidesSeedOwner");
+    const html = sanitizeHtml(SEED_GUIDES_OWNER[0].bodyHtml);
     expect(html).toContain('<a href="/it" class="cta">');
     expect(sanitizeHtml('<a class="evil" href="/x">x</a>')).toBe('<a href="/x">x</a>');
     expect(faqFromHtml(html)).toHaveLength(4);
     expect(wordCount(html)).toBeGreaterThan(600);
-    expect(SEED_GUIDES_LIVIO[0].seoTitle.length).toBeLessThanOrEqual(60);
+    expect(SEED_GUIDES_OWNER[0].seoTitle.length).toBeLessThanOrEqual(60);
     const { guideSection } = await import("./knowledgeHub");
-    expect(guideSection(SEED_GUIDES_LIVIO[0])).toBe("best");
+    expect(guideSection(SEED_GUIDES_OWNER[0])).toBe("best");
   });
 });
 
@@ -337,11 +337,11 @@ describe("Google rankings KPIs", () => {
   });
 });
 
-describe("Livio's Italian landing pages", () => {
+describe("The owner's Italian landing pages", () => {
   it("has all 16 pages, each with its own URL, title and a call-to-action, and none of his notes to us", () => {
-    expect(LIVIO_LANDINGS.map((x) => x.n)).toEqual(Array.from({ length: 16 }, (_, i) => i + 1));
-    expect(new Set(LIVIO_LANDINGS.map((x) => x.path)).size).toBe(16);
-    for (const x of LIVIO_LANDINGS) {
+    expect(OWNER_LANDINGS.map((x) => x.n)).toEqual(Array.from({ length: 16 }, (_, i) => i + 1));
+    expect(new Set(OWNER_LANDINGS.map((x) => x.path)).size).toBe(16);
+    for (const x of OWNER_LANDINGS) {
       expect(x.seoTitle && x.metaDescription && x.h1).toBeTruthy();
       expect(x.bodyHtml).toContain('class="cta"');
       expect(x.bodyHtml).not.toMatch(/Elemento SEO|Nota tecnica|SEO title|Target:/);
@@ -424,16 +424,16 @@ describe("manual AI citation check", () => {
   });
 });
 
-describe("Livio's French articles", () => {
+describe("The owner's French articles", () => {
   it("keep his text, take over the old slugs and embed live blocks", () => {
-    expect(Object.keys(FR_LIVIO_MOVED).sort()).toEqual(["oat-obligations-etat-francaises", "obligations-ou-etf", "rendement-a-l-echeance"]);
-    for (const g of SEED_GUIDES_LIVIO_FR) {
+    expect(Object.keys(FR_OWNER_MOVED).sort()).toEqual(["oat-obligations-etat-francaises", "obligations-ou-etf", "rendement-a-l-echeance"]);
+    for (const g of SEED_GUIDES_OWNER_FR) {
       expect(SEED_GUIDES.filter((x) => x.locale === "fr" && (x.slug === g.slug || x.slug === g.oldSlug))).toHaveLength(1);
       expect(wordCount(sanitizeHtml(g.bodyHtml))).toBeGreaterThan(1500);
       expect(faqFromHtml(sanitizeHtml(g.bodyHtml)).length).toBeGreaterThanOrEqual(3);
       expect(sanitizeHtml(g.bodyHtml)).toMatch(/<p>\[\[10bonds:(calculator|bonds:[a-z0-9-]+)\]\]<\/p>/);
     }
-    expect(SEED_GUIDES_LIVIO_FR[1].bodyHtml).toContain("Il s'élève à environ <strong>5,16 % par an</strong>.");
+    expect(SEED_GUIDES_OWNER_FR[1].bodyHtml).toContain("Il s'élève à environ <strong>5,16 % par an</strong>.");
   });
 });
 

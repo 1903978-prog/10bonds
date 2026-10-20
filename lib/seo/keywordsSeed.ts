@@ -1,7 +1,7 @@
 import type { KcSection, Potential } from "./knowledge";
 import type { SeoMarket } from "./input";
 
-// Starting target keywords per market, from Livio's briefs. Volumes are only set where Livio's research cited a
+// Starting target keywords per market, from the owner's briefs. Volumes are only set where the owner's research cited a
 // third-party figure, always with its source and date; everything else (volume, difficulty, ranking) stays empty
 // until imported from a keyword tool or read from Search Console.
 
@@ -18,7 +18,7 @@ const us = (keyword: string, landingPath: string | null, intent: Seed["intent"] 
 const uk = (keyword: string, landingPath: string | null, intent: Seed["intent"] = "informational"): Seed => ({ market: "uk", keyword, intent, landingPath });
 
 const BRIEF = "2026-10-18";
-/** Volumes cited in Livio's SEO market research brief (third-party estimates, not Google data). */
+/** Volumes cited in the owner's SEO market research brief (third-party estimates, not Google data). */
 const vol = (volume: number, source: string) => ({ volume, volumeSource: `${source} — third-party estimate, cited in research brief ${BRIEF}` });
 
 const BASE: Seed[] = [
@@ -76,7 +76,7 @@ const RESEARCH: Seed[] = [
   { ...de("anleihen etf oder einzelanleihen", "/de/ratgeber/anleihen-etf-oder-einzelanleihen"), section: "academy", potential: "medium" },
 ];
 
-/** Google suggestions for "migliori btp" Livio asked to track (19 Oct 2026). No volume until a tool gives one. */
+/** Google suggestions for "migliori btp" the owner asked to track (19 Oct 2026). No volume until a tool gives one. */
 const BTP_SUGGESTIONS: Seed[] = [
   it("migliori btp", "/it/obbligazioni/btp", "commercial"),
   it("migliori btp da comprare oggi sotto 100 e quali da acquistare", "/it/obbligazioni/btp", "commercial"),

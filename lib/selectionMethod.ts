@@ -2,7 +2,7 @@ import type { MethodLang } from "./methodology";
 
 /**
  * The Selection methodology page (/selection-methodology): how the Portfolio top 10 is built, step by step, exactly as
- * lib/bonds.ts, lib/outliers.ts, lib/ranking.ts, lib/expectedLoss.ts and lib/monteCarlo.ts do it (Livio, 20/10/2026).
+ * lib/bonds.ts, lib/outliers.ts, lib/ranking.ts, lib/expectedLoss.ts and lib/monteCarlo.ts do it (the owner, 20/10/2026).
  * Numbers come from the code's constants and are filled in by the page ({placeholders}); never agency names.
  */
 export type SelectionText = {

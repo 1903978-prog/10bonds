@@ -4,11 +4,11 @@ import type { CriterionResult, Points, Status } from "./rubric";
 import { SEED_GUIDES } from "./guidesSeed";
 import { DEFAULT_RATE_TEXT_FIXES } from "./defaultRatesTextFixes";
 import { LEGAL_TEXT_FIXES } from "./legalTextFixes";
-import { SEED_GUIDES_LIVIO_FR } from "./guidesLivioFr";
+import { SEED_GUIDES_OWNER_FR } from "./guidesOwnerFr";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { SEED_GUIDES_WAVE2 } from "./guidesSeedWave2";
-import { landingFor } from "./landingLivio";
+import { landingFor } from "./landingOwner";
 import { EXTRA_IT } from "./guidesExtraIt";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import type { Potential } from "./knowledge";
@@ -204,20 +204,20 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       impressions integer not null,
       primary key (keyword_id, at)
     )`;
-  // Livio's three French articles (19 Oct 2026) take over the earlier French guides on the same topics, once: the old
+  // The owner's three French articles (19 Oct 2026) take over the earlier French guides on the same topics, once: the old
   // row gets the new slug and his text (so its history and language links stay), links to the old slug are updated,
   // and next.config.mjs redirects the old URLs. Runs before the seed insert so the new slug is not added twice.
   await s`create table if not exists app.settings (key text primary key, value text not null, updated_at timestamptz not null default now())`;
-  const [frLivio] = await s`insert into app.settings (key, value) values ('seo_fr_livio_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
-  if (frLivio) {
-    for (const g of SEED_GUIDES_LIVIO_FR) {
+  const [frOwner] = await s`insert into app.settings (key, value) values ('seo_fr_livio_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (frOwner) {
+    for (const g of SEED_GUIDES_OWNER_FR) {
       const [taken] = await s`select id from app.seo_guides where locale = 'fr' and slug = ${g.slug}`;
       const from = taken ? g.slug : g.oldSlug;
       const [row] = await s`update app.seo_guides set slug = ${g.slug}, title = ${g.title}, seo_title = ${g.seoTitle}, meta_description = ${g.metaDescription}, body_html = ${g.bodyHtml},
           primary_keyword = ${g.primaryKeyword}, related_keywords = ${g.relatedKeywords}, related_slugs = ${g.relatedSlugs}, translation_group = ${g.group ?? g.topic},
           status = 'published', published_at = coalesce(published_at, now()), reviewed_at = now(), updated_at = now()
         where locale = 'fr' and slug = ${from} returning id`;
-      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Replaced with Livio's French article (19 Oct 2026)."})`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Replaced with the owner's French article (19 Oct 2026)."})`;
       if (taken) await s`delete from app.seo_guides where locale = 'fr' and slug = ${g.oldSlug}`;
       await s`update app.seo_guides set body_html = replace(body_html, ${`/fr/guides/${g.oldSlug}"`}, ${`/fr/guides/${g.slug}"`}), related_slugs = array_replace(related_slugs, ${g.oldSlug}, ${g.slug})
         where locale = 'fr'`;
@@ -232,7 +232,7 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
               ${g.status === "published" ? new Date() : null})
       on conflict (locale, slug) do nothing`;
   }
-  // Livio asked on 2026-10-19 for the guides written from his material to go public. Runs once (marker in
+  // The owner asked on 2026-10-19 for the guides written from his material to go public. Runs once (marker in
   // app.settings), so a guide he later moves back to review stays there. Outlines and translated drafts are untouched.
   await s`create table if not exists app.settings (key text primary key, value text not null, updated_at timestamptz not null default now())`;
   const [marker] = await s`insert into app.settings (key, value) values ('seo_seed_guides_published', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
@@ -241,20 +241,20 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
     for (const g of seedReview) {
       const [row] = await s`update app.seo_guides set status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = ${g.locale} and slug = ${g.slug} and status = 'review' and not machine_translated returning id`;
-      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at Livio's request (19 Oct 2026)."})`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at the owner's request (19 Oct 2026)."})`;
     }
   }
-  // Livio's 16 Italian landing pages (19 Oct 2026): his text replaces the earlier text of the same guides, once.
+  // The owner's 16 Italian landing pages (19 Oct 2026): his text replaces the earlier text of the same guides, once.
   const [landings] = await s`insert into app.settings (key, value) values ('seo_livio_landings_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
   if (landings) {
     for (const g of SEED_GUIDES.filter((x) => x.locale === "it" && landingFor(`/it/guide/${x.slug}`))) {
       const [row] = await s`update app.seo_guides set title = ${g.title}, seo_title = ${g.seoTitle}, meta_description = ${g.metaDescription}, body_html = ${g.bodyHtml},
           related_slugs = ${g.relatedSlugs}, status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = 'it' and slug = ${g.slug} returning id`;
-      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Replaced with Livio's landing text (19 Oct 2026)."})`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Replaced with the owner's landing text (19 Oct 2026)."})`;
     }
   }
-  // Sections added under Livio's Italian guides and two search fixes (he agreed 19 Oct 2026), once. Only a guide whose
+  // Sections added under the owner's Italian guides and two search fixes (he agreed 19 Oct 2026), once. Only a guide whose
   // text is still exactly his is extended, so any later edit in Admin is kept.
   const [extra] = await s`insert into app.settings (key, value) values ('seo_it_extensions_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
   if (extra) {
@@ -262,10 +262,10 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       const original = g.bodyHtml.slice(0, g.bodyHtml.length - EXTRA_IT[g.slug].length);
       const [row] = await s`update app.seo_guides set body_html = ${g.bodyHtml}, seo_title = ${g.seoTitle}, related_keywords = ${g.relatedKeywords}, updated_at = now()
         where locale = 'it' and slug = ${g.slug} and body_html = ${original} returning id`;
-      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Sections added under Livio's text (19 Oct 2026)."})`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Sections added under the owner's text (19 Oct 2026)."})`;
     }
   }
-  // French and German versions of six topics (19 Oct 2026, Livio asked for every topic in every language): they replace
+  // French and German versions of six topics (19 Oct 2026, the owner asked for every topic in every language): they replace
   // the earlier outline drafts of the same slug, once. A guide already published by hand is left alone.
   const [l10n] = await s`insert into app.settings (key, value) values ('seo_l10n_guides_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
   if (l10n) {
@@ -277,9 +277,9 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Full localized version published (19 Oct 2026)."})`;
     }
   }
-  // The last missing or outline guides of the translation matrix (19 Oct 2026, Livio asked to fill and publish them),
+  // The last missing or outline guides of the translation matrix (19 Oct 2026, the owner asked to fill and publish them),
   // once: full text replaces the outline of the same slug. The other seed guides still in draft or review are published
-  // too, except outlines that still carry the "to complete" note. A guide Livio later moves back stays where he puts it.
+  // too, except outlines that still carry the "to complete" note. A guide the owner later moves back stays where he puts it.
   const [wave2] = await s`insert into app.settings (key, value) values ('seo_wave2_applied', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
   if (wave2) {
     for (const g of SEED_GUIDES_WAVE2) {
@@ -292,10 +292,10 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
     for (const g of SEED_GUIDES.filter((x) => !SEED_GUIDES_WAVE2.includes(x))) {
       const [row] = await s`update app.seo_guides set status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = ${g.locale} and slug = ${g.slug} and status in ('draft', 'review') and body_html not like ${"%<blockquote><strong>%"} returning id`;
-      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at Livio's request (19 Oct 2026)."})`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at the owner's request (19 Oct 2026)."})`;
     }
   }
-  // The default-rate table and its "Source: S&P" wording become the combined 10BONDS table (Livio, 20 Oct 2026), once,
+  // The default-rate table and its "Source: S&P" wording become the combined 10BONDS table (the owner, 20 Oct 2026), once,
   // as text replacements, so any other edit made in Admin is kept.
   const [rates] = await s`insert into app.settings (key, value) values ('seo_default_rates_combined', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
   if (rates) {
@@ -304,7 +304,7 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
         where strpos(body_html, ${from}) > 0 or strpos(meta_description, ${from}) > 0`;
     }
   }
-  // The guides stop naming the agency the risk score is read from (legal review, Livio, 20 Oct 2026), once, the same way.
+  // The guides stop naming the agency the risk score is read from (legal review, the owner, 20 Oct 2026), once, the same way.
   const [legal] = await s`insert into app.settings (key, value) values ('seo_legal_text_fixes', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
   if (legal) {
     for (const [from, to] of LEGAL_TEXT_FIXES) {

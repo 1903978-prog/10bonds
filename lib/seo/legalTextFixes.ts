@@ -1,4 +1,4 @@
-// Text fixes applied once to the guides stored in the database (Livio, 20 Oct 2026, legal review): the guides no longer
+// Text fixes applied once to the guides stored in the database (the owner, 20 Oct 2026, legal review): the guides no longer
 // say which rating agency the 10BONDS risk score is read from. The same pairs are applied to the seed files.
 export const LEGAL_TEXT_FIXES: [from: string, to: string][] = [
   [

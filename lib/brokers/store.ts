@@ -17,7 +17,7 @@ export type CountrySettings = {
   intro: string[] | null;
 };
 
-// Markets are public unless the admin unpublishes one (Livio asked to publish all three on 2026-10-19).
+// Markets are public unless the admin unpublishes one (the owner asked to publish all three on 2026-10-19).
 const DEFAULT_COUNTRY: CountrySettings = { published: true, excluded: [], intro: null };
 
 let ready: Promise<void> | null = null;

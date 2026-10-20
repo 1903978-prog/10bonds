@@ -1,18 +1,18 @@
-// First Italian guides. They are added once in "review" status: Livio reads, edits and publishes them from
+// First Italian guides. They are added once in "review" status: the owner reads, edits and publishes them from
 // Admin -> SEO. No author credentials are claimed: until a real profile is assigned they show "Redazione 10BONDS".
 
 import type { Topic } from "./comparisons";
 import type { Locale } from "./locales";
 import { SEED_GUIDES_DE } from "./guidesSeedDe";
 import { SEED_GUIDES_FR } from "./guidesSeedFr";
-import { SEED_GUIDES_LIVIO } from "./guidesSeedLivio";
-import { landingFor } from "./landingLivio";
+import { SEED_GUIDES_OWNER } from "./guidesSeedOwner";
+import { landingFor } from "./landingOwner";
 import { SEED_GUIDES_WAVE } from "./guidesSeedWave";
 import { SEED_GUIDES_WAVE2 } from "./guidesSeedWave2";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 import { EXTRA_IT } from "./guidesExtraIt";
-import { SEED_GUIDES_LIVIO_FR } from "./guidesLivioFr";
+import { SEED_GUIDES_OWNER_FR } from "./guidesOwnerFr";
 
 export type SeedGuide = {
   locale: Locale;
@@ -26,7 +26,7 @@ export type SeedGuide = {
   relatedSlugs: string[];
   bodyHtml: string;
   group?: string; // translation group when it differs from the topic
-  status?: "draft" | "published"; // outline drafts, or Livio's own approved articles; default "review"
+  status?: "draft" | "published"; // outline drafts, or the owner's own approved articles; default "review"
 };
 
 const cta = (text: string) => `<p><strong>Prova subito:</strong> <a href="/it">${text}</a>. Due cursori, dieci obbligazioni, nessun impegno.</p>`;
@@ -275,7 +275,7 @@ ${cta("imposta durata e rendimento obiettivo e confronta Stati e aziende nella s
 /** Guides that link to the default-rate table among their related pages. */
 const LINKS_DEFAULT_RATES = ["rischio-di-credito-obbligazioni", "obbligazioni-investment-grade"];
 
-/** Livio's landing text (19 Oct 2026) replaces the earlier text of the same Italian guide and publishes it. */
+/** The owner's landing text (19 Oct 2026) replaces the earlier text of the same Italian guide and publishes it. */
 function withLanding(g: SeedGuide): SeedGuide {
   const x = g.locale === "it" ? landingFor(`/it/guide/${g.slug}`) : null;
   if (!x) return g;
@@ -283,20 +283,20 @@ function withLanding(g: SeedGuide): SeedGuide {
   return { ...g, title: x.h1, seoTitle: x.seoTitle, metaDescription: x.metaDescription, bodyHtml: x.bodyHtml, relatedSlugs: related, status: "published" };
 }
 
-/** Small search fixes on Livio's guides (19 Oct 2026): the title carries the searched words, and the BTP guide now
+/** Small search fixes on the owner's guides (19 Oct 2026): the title carries the searched words, and the BTP guide now
  *  covers yields and net yield too. */
 const META_IT: Record<string, Partial<SeedGuide>> = {
   "rendimento-a-scadenza": { seoTitle: "Come calcolare il rendimento a scadenza: calcolo YTM" },
   btp: { relatedKeywords: ["rendimenti btp", "btp rendimento netto", "titoli di stato italiani"] },
 };
 
-/** Sections added under Livio's Italian guides (approved 19 Oct 2026); his text above them is unchanged. */
+/** Sections added under the owner's Italian guides (approved 19 Oct 2026); his text above them is unchanged. */
 function withExtra(g: SeedGuide): SeedGuide {
   if (g.locale !== "it") return g;
   const extra = EXTRA_IT[g.slug];
   return { ...g, ...META_IT[g.slug], bodyHtml: extra ? g.bodyHtml + extra : g.bodyHtml };
 }
 
-export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_WAVE2, ...SEED_GUIDES_LIVIO, ...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2, ...SEED_GUIDES_LIVIO_FR]
+export const SEED_GUIDES: SeedGuide[] = [...SEED_GUIDES_IT, ...SEED_GUIDES_FR, ...SEED_GUIDES_DE, ...SEED_GUIDES_WAVE, ...SEED_GUIDES_WAVE2, ...SEED_GUIDES_OWNER, ...SEED_GUIDES_FR2, ...SEED_GUIDES_DE2, ...SEED_GUIDES_OWNER_FR]
   .map(withLanding)
   .map(withExtra);

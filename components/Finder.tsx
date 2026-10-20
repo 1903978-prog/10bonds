@@ -64,7 +64,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [size, setSize] = useState<BondFilter["size"]>("100k");
   const [minKnown, setMinKnown] = useState<boolean | null>(null);
   const sizeTouched = useRef(false);
-  // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
+  // Until the visitor moves a control, the results box shows the efficient-frontier chart (the owner, 19/10/2026).
   const [touched, setTouched] = useState(false);
   const show = useScanShow(data, touched);
 
@@ -462,7 +462,7 @@ function useScanShow(data: Response | null, active: boolean): Show | null {
     run.current = r;
     const tick = (now: number) => {
       const found = latest.current?.found ?? [];
-      const per = 1000; // ms per pick (Livio: the 10 picks in about 10 seconds): counting up, then a hold on the number
+      const per = 1000; // ms per pick (the owner: the 10 picks in about 10 seconds): counting up, then a hold on the number
       const t = (now - r.start) / per;
       const row = Math.floor(t);
       if (row >= found.length) {

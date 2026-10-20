@@ -1,16 +1,16 @@
 import type { SeedGuide } from "./guidesSeed";
 
-// Livio's three French articles (19 Oct 2026). His text is kept word for word (only turned into HTML; his notes to us
+// The owner's three French articles (19 Oct 2026). His text is kept word for word (only turned into HTML; his notes to us
 // are left out). The sections marked "complément" below his text were added at his request so the French guides match
 // the Italian ones: live data, the calculator, worked numbers and a FAQ. Educational only, no invented market data.
 // A paragraph [[10bonds:...]] is replaced on the page by a live block (see GuidePage): bonds:<comparison id> or calculator.
 // Each article takes over an earlier French guide on the same topic (oldSlug), which now redirects to it.
 
-export type LivioFrGuide = SeedGuide & { oldSlug: string };
+export type OwnerFrGuide = SeedGuide & { oldSlug: string };
 
 const updated = `<p><strong>Mis à jour : 19 octobre 2026</strong></p>`;
 
-export const SEED_GUIDES_LIVIO_FR: LivioFrGuide[] = [
+export const SEED_GUIDES_OWNER_FR: OwnerFrGuide[] = [
   {
     locale: "fr", topic: "gov", group: "gov", status: "published",
     oldSlug: "oat-obligations-etat-francaises",
@@ -326,5 +326,5 @@ export const SEED_GUIDES_LIVIO_FR: LivioFrGuide[] = [
   },
 ];
 
-/** Earlier French guide slug -> the slug of Livio's article that replaced it. */
-export const FR_LIVIO_MOVED: Record<string, string> = Object.fromEntries(SEED_GUIDES_LIVIO_FR.map((g) => [g.oldSlug, g.slug]));
+/** Earlier French guide slug -> the slug of the owner's article that replaced it. */
+export const FR_OWNER_MOVED: Record<string, string> = Object.fromEntries(SEED_GUIDES_OWNER_FR.map((g) => [g.oldSlug, g.slug]));
