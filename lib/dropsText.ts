@@ -16,7 +16,6 @@ const en = {
   none: "No drops of more than 0.5% yet.",
   building: (d: string) => `We started recording prices on ${d}. Drops appear as prices move; the full 52-week view builds up over the year.`,
   indicative: "Prices are indicative, per 100, worked out from the daily yield.",
-  note: "Information only, not investment advice or a buy signal. A falling price can mean the market sees more risk, and prices can keep falling.",
   locale: "en-GB",
 };
 export type DropsText = typeof en;
@@ -33,7 +32,6 @@ const it: DropsText = {
   none: "Ancora nessun ribasso superiore allo 0,5%.",
   building: (d: string) => `Registriamo i prezzi dal ${d}. I ribassi compaiono quando i prezzi si muovono; la vista completa a 52 settimane si costruisce nel corso dell'anno.`,
   indicative: "Prezzi indicativi, per 100, calcolati dal rendimento giornaliero.",
-  note: "Solo a scopo informativo, non è consulenza né un segnale di acquisto. Un prezzo in calo può indicare un rischio maggiore e i prezzi possono continuare a scendere.",
   locale: "it-IT",
 };
 
@@ -49,7 +47,6 @@ const fr: DropsText = {
   none: "Aucune baisse de plus de 0,5 % pour l'instant.",
   building: (d: string) => `Nous enregistrons les prix depuis le ${d}. Les baisses apparaissent quand les prix bougent ; la vue complète sur 52 semaines se construit au fil de l'année.`,
   indicative: "Prix indicatifs, pour 100, calculés à partir du rendement du jour.",
-  note: "Information uniquement, ni conseil en investissement ni signal d'achat. Un prix en baisse peut signaler un risque plus élevé, et les prix peuvent continuer à baisser.",
   locale: "fr-FR",
 };
 
@@ -65,7 +62,6 @@ const de: DropsText = {
   none: "Noch keine Rückgänge von mehr als 0,5 %.",
   building: (d: string) => `Wir zeichnen die Kurse seit dem ${d} auf. Rückgänge erscheinen, sobald sich die Kurse bewegen; die volle 52-Wochen-Sicht entsteht im Lauf des Jahres.`,
   indicative: "Indikative Kurse, je 100, aus der täglichen Rendite berechnet.",
-  note: "Nur zur Information, keine Anlageberatung und kein Kaufsignal. Ein fallender Kurs kann auf höheres Risiko hindeuten, und Kurse können weiter fallen.",
   locale: "de-DE",
 };
 

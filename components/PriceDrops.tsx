@@ -100,7 +100,6 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
       <p className="mt-3 text-[11px] leading-snug text-mute">
         {data.since && <span>{t.building(day(data.since))} </span>}
         {!data.fromCopy && <span>{t.indicative} </span>}
-        {t.note}
       </p>
     </div>
   );
