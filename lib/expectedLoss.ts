@@ -42,6 +42,15 @@ export function listLossChance(chances: number[]): number {
   return 100 * (1 - chances.reduce((p, c) => p * (1 - c / 100), 1));
 }
 
+/**
+ * Expected loss over the list's life as % of the money invested (Livio 20/10: the chance of a loss alone looked too
+ * high, since it counts any default among 10 bonds): the equal-weight average of each bond's default chance to
+ * maturity times the 60% loss in a default.
+ */
+export function listLifeLoss(chances: number[]): number {
+  return chances.length ? (chances.reduce((s, c) => s + c, 0) / chances.length) * LOSS_GIVEN_DEFAULT : 0;
+}
+
 /** One bond's chance of defaulting before it matures, in %. */
 export function bondLossChance(notch: number, years: number): number {
   return Math.min(100, cumulativeDefault(notch, Math.max(0, years)));

@@ -232,3 +232,11 @@ describe("listLossChance", () => {
     expect(listLossChance([100, 0])).toBe(100);
   });
 });
+
+describe("listLifeLoss", () => {
+  it("is the average default chance times the 60% loss", async () => {
+    const { listLifeLoss } = await import("./expectedLoss");
+    expect(listLifeLoss([1, 0.5, 0.5, 0])).toBeCloseTo(0.3, 9);
+    expect(listLifeLoss([])).toBe(0);
+  });
+});
