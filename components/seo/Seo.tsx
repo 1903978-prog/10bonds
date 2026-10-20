@@ -51,15 +51,6 @@ export function ToolCta({ locale }: { locale: Locale }) {
   );
 }
 
-export function RiskNote({ locale }: { locale: Locale }) {
-  const t = T[locale];
-  return (
-    <p className="mt-8 rounded-2xl bg-white/60 px-5 py-4 text-xs leading-relaxed text-mute">
-      {t.risk} <Link href="/disclaimer" className="underline">{t.disclaimer}</Link> · <Link href={pathOf(locale, "method")} className="underline">{t.method}</Link>
-    </p>
-  );
-}
-
 function Table({ locale, rows, curve }: { locale: Locale; rows: ComparisonRow[]; curve?: boolean }) {
   const t = T[locale];
   return (
