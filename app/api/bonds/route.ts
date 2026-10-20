@@ -65,7 +65,9 @@ export async function GET(req: Request) {
   // A real Monte Carlo run of defaults on this top 10 over the chosen horizon. Its averages are a paid feature like the others.
   const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b) })), duration);
   const paid = tier === "plus" || tier === "premium";
-  const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null };
+  // Others see the drawn paths relative to the best one at each step (drops from defaults, not the growth, which would give away the average yield).
+  const best = sim.samples.length ? sim.samples[0].map((_, k) => Math.max(...sim.samples.map((s) => s[k]))) : [];
+  const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null, samples: sim.samples.map((s) => s.map((v, k) => Math.round((v / best[k]) * 1000) / 10)) };
   return NextResponse.json(
     { ...shapeForTier(results, tier), monteCarlo, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine },
     { headers: { "Cache-Control": "no-store" } },

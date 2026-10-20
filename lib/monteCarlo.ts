@@ -5,9 +5,12 @@ export const MC_PATHS = 1_000_000;
 /** Share of the investment recovered when an issuer defaults (long-run average for senior unsecured bonds). */
 export const MC_RECOVERY = 0.4;
 
-export type MonteCarloResult = { paths: number; expYield: number | null; p5: number | null };
+/** `samples`: the first MC_SAMPLES simulated paths, as the portfolio's value (100 at the start) at MC_STEPS+1 even points of the horizon, drawn while the search runs. */
+export type MonteCarloResult = { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
+export const MC_SAMPLES = 60;
+export const MC_STEPS = 40;
 
-// Cumulative default rate (fraction) per 10BONDS risk score: the average of the S&P notches mapped to it.
+// Cumulative default rate (fraction) per 10BONDS risk score: the average of the rating notches mapped to it.
 const CURVES: Record<number, number[]> = (() => {
   const out: Record<number, number[][]> = {};
   for (const [, risk, pct] of DEFAULT_RATES) for (const r of risk.split("–").map(Number)) (out[r] ??= []).push(pct);
@@ -16,7 +19,7 @@ const CURVES: Record<number, number[]> = (() => {
   return avg;
 })();
 
-/** Probability that a bond with this risk score defaults within `years` (linear between the S&P points). */
+/** Probability that a bond with this risk score defaults within `years` (linear between the table's points). */
 export function defaultProbability(risk: number | null | undefined, years: number): number {
   const curve = CURVES[Math.min(10, Math.max(1, Math.round(risk ?? 10)))];
   if (years <= 0) return 0;
@@ -44,12 +47,12 @@ const BIN = 0.00001; // ending value per 1 invested, in steps fine enough for 0.
 const TOP = 4;
 
 /**
- * Equal-weight portfolio held for `years`: in each path every issuer may default (S&P historical rates for its risk
- * score), at a random time within the horizon, returning MC_RECOVERY of its value then. Gives the average yield after
+ * Equal-weight portfolio held for `years`: in each path every issuer may default (historical default rates for its
+ * risk score), at a random time within the horizon, returning MC_RECOVERY of its value then. Gives the average yield after
  * defaults and the yield that 95% of the paths beat.
  */
 export function simulatePortfolio(bonds: { ytm: number; risk: number | null | undefined }[], years: number, paths = MC_PATHS, seed = 1): MonteCarloResult {
-  if (!bonds.length || years <= 0) return { paths: 0, expYield: null, p5: null };
+  if (!bonds.length || years <= 0) return { paths: 0, expYield: null, p5: null, samples: [] };
   const n = bonds.length;
   const y = bonds.map((b) => b.ytm / 100);
   const pd = bonds.map((b) => defaultProbability(b.risk, years));
@@ -58,12 +61,21 @@ export function simulatePortfolio(bonds: { ytm: number; risk: number | null | un
   // Paths are counted by ending value; the yield of each value is worked out once per step, not once per path.
   const bins = new Uint32Array(Math.ceil(TOP / BIN));
   const last = bins.length - 1;
+  const samples: number[][] = [];
+  const at = new Float64Array(n); // default time per bond in the path being sampled (Infinity: no default)
   for (let p = 0; p < paths; p++) {
     let v = 0;
     for (let i = 0; i < n; i++) {
       const u = rand();
-      v += u < pd[i] ? Math.pow(1 + y[i], (years * u) / pd[i]) * MC_RECOVERY : full[i];
+      if (u < pd[i]) {
+        v += Math.pow(1 + y[i], (years * u) / pd[i]) * MC_RECOVERY;
+        at[i] = (years * u) / pd[i];
+      } else {
+        v += full[i];
+        at[i] = Infinity;
+      }
     }
+    if (p < MC_SAMPLES) samples.push(samplePath(y, at, years));
     const k = Math.floor(v / n / BIN);
     bins[k > last ? last : k]++;
   }
@@ -75,7 +87,19 @@ export function simulatePortfolio(bonds: { ytm: number; risk: number | null | un
     seen += bins[k];
     if (p5 === null && seen >= paths * 0.05) p5 = yieldOf(k) * 100;
   }
-  return { paths, expYield: (sum / paths) * 100, p5 };
+  return { paths, expYield: (sum / paths) * 100, p5, samples };
+}
+
+/** One simulated path as portfolio value over time: each bond grows at its yield until it defaults, then keeps MC_RECOVERY of its value. */
+function samplePath(y: number[], at: Float64Array, years: number): number[] {
+  const out: number[] = [];
+  for (let k = 0; k <= MC_STEPS; k++) {
+    const x = (years * k) / MC_STEPS;
+    let v = 0;
+    for (let i = 0; i < y.length; i++) v += x < at[i] ? Math.pow(1 + y[i], x) : Math.pow(1 + y[i], at[i]) * MC_RECOVERY;
+    out.push(Math.round((v / y.length) * 1000) / 10);
+  }
+  return out;
 }
 
 // Same top 10 and horizon give the same answer, so repeated searches (slider back and forth) are not re-run.

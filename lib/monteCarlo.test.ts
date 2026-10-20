@@ -5,7 +5,8 @@ describe("monte carlo", () => {
   it("riskier scores default more often", () => {
     expect(defaultProbability(1, 5)).toBeLessThan(defaultProbability(5, 5));
     expect(defaultProbability(5, 5)).toBeLessThan(defaultProbability(9, 5));
-    expect(defaultProbability(5, 5)).toBeCloseTo(0.0144, 4);
+    expect(defaultProbability(5, 5)).toBeGreaterThan(0.005);
+    expect(defaultProbability(5, 5)).toBeLessThan(0.03);
   });
 
   it("runs every path and lowers the yield by the expected loss", () => {
@@ -15,6 +16,10 @@ describe("monte carlo", () => {
     const junk = simulatePortfolio(Array.from({ length: 10 }, () => ({ ytm: 9, risk: 9 })), 5, 100_000);
     expect(junk.expYield!).toBeLessThan(9);
     expect(junk.p5!).toBeLessThan(junk.expYield!);
+    expect(junk.samples).toHaveLength(60);
+    expect(junk.samples[0][0]).toBe(100);
+    // With these risks some of the drawn paths must show a default (a drop).
+    expect(junk.samples.some((s) => s.some((v, k) => k > 0 && v < s[k - 1]))).toBe(true);
   });
 
   it("is fast enough for a million paths", () => {

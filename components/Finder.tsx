@@ -20,7 +20,7 @@ type Response = ResultsPayload & {
   quota?: Quota | null;
   source: "live" | "sample";
   scanned?: number;
-  monteCarlo?: { paths: number; expYield: number | null; p5: number | null };
+  monteCarlo?: { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
@@ -258,7 +258,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
-          <ScanBar data={data} lang={lang} />
+          {touched && <ScanBar data={data} lang={lang} currency={currency} />}
           <Results
             data={data}
             paid={paid}
@@ -375,48 +375,101 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
   );
 }
 
-/** A short "Scanning bond 1 … N" bar over the results each time they arrive; N is the real number of bonds searched. Overlays the box, so nothing moves. */
-function ScanBar({ data, lang }: { data: Response | null; lang: FinderLang }) {
+/**
+ * The search, staged for the visitor: a fast counter over every bond searched (the real count for this currency),
+ * then the real Monte Carlo run of this top 10 drawn as its outcome chart filling up. Drawn over the results box,
+ * so nothing on the page moves. Shorter while the sliders are being moved; skipped for reduced motion.
+ */
+function ScanBar({ data, lang, currency }: { data: Response | null; lang: FinderLang; currency: string }) {
   const t = useFinderText();
-  const [i, setI] = useState<number | null>(null);
-  const [s, setS] = useState(0);
+  const [p, setP] = useState<number | null>(null);
   const lastEnd = useRef(0);
+  const run = useRef<{ raf: number; start: number; ms: number } | null>(null);
   const n = data?.scanned ?? 0;
-  const sims = data?.monteCarlo?.paths ?? 0;
+  const mc = data?.monteCarlo;
+  const sims = mc?.paths ?? 0;
+  // The list already on screen when the visitor first moves a control is not a new search: wait for the one that move starts.
+  const shown = useRef(data);
   useEffect(() => {
-    if (!n || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // A search that answers while the show is running joins it (its numbers take over) instead of restarting it.
+    if (!n || data === shown.current || run.current || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const start = performance.now();
-    // Quicker when the sliders are being moved, so it never gets in the way.
-    const ms = start - lastEnd.current < 4000 ? 400 : 1000;
-    let raf = 0;
+    // Full show for a new search; short while the sliders are being moved.
+    const r = { raf: 0, start, ms: start - lastEnd.current < 4000 ? 700 : 2200 };
+    run.current = r;
     const tick = (now: number) => {
-      const p = Math.min(1, Math.max(0, (now - start) / ms));
-      const eased = 1 - (1 - p) * (1 - p);
-      setI(Math.max(1, Math.round(eased * n)));
-      setS(Math.round(eased * sims));
-      if (p < 1) raf = requestAnimationFrame(tick);
+      const q = Math.min(1, Math.max(0, (now - r.start) / r.ms));
+      setP(q);
+      if (q < 1) r.raf = requestAnimationFrame(tick);
       else {
         lastEnd.current = performance.now();
-        setI(null);
+        run.current = null;
+        setP(null);
       }
     };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      lastEnd.current = performance.now();
-      setI(null);
-    };
-  }, [data, n, sims]);
-  if (i === null) return null;
+    r.raf = requestAnimationFrame(tick);
+  }, [data, n]);
+  useEffect(
+    () => () => {
+      if (run.current) cancelAnimationFrame(run.current.raf);
+      run.current = null;
+    },
+    [],
+  );
+  if (p === null) return null;
   const fmt = new Intl.NumberFormat(lang);
+  // First half: the bond counter. Second half: the simulations. Last tenth: "Top 10 found".
+  const ease = (x: number) => 1 - (1 - x) * (1 - x);
+  const scan = ease(Math.min(1, p / 0.5));
+  const sim = ease(Math.min(1, Math.max(0, (p - 0.3) / 0.6)));
+  const done = p > 0.9;
+  const samples = mc?.samples ?? [];
+  const W = 280, H = 80;
+  const all = samples.flat();
+  const vMin = Math.min(...all), vMax = Math.max(...all);
+  const yOf = (v: number) => H - 2 - ((v - vMin) / Math.max(vMax - vMin, 0.1)) * (H - 4);
+  const steps = samples[0]?.length ?? 0;
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/90" aria-hidden="true" data-testid="scan-bar">
-      <div className="w-64 max-w-[80%]">
-        <p className="text-center text-[13px] tabular-nums text-mute">{t.scanning(fmt.format(i), fmt.format(n))}</p>
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-canvas">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${(i / n) * 100}%` }} />
+    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/95" aria-hidden="true" data-testid="scan-bar">
+      <div className="w-[300px] max-w-[88%] text-center">
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-mute">{t.scanTitle(currency)}</p>
+        <p className="mt-1 text-[34px] font-semibold leading-none tracking-tight tabular-nums">
+          {fmt.format(Math.max(1, Math.round(scan * n)))}
+          <span className="text-[15px] font-normal text-mute"> {t.scanOf} {fmt.format(n)}</span>
+        </p>
+        <div className="mt-3 h-1 overflow-hidden rounded-full bg-canvas">
+          <div className="h-full rounded-full bg-accent" style={{ width: `${scan * 100}%` }} />
         </div>
-        {sims > 0 && <p className="mt-2 text-center text-[11px] tabular-nums text-mute">{t.scanSims(fmt.format(s), fmt.format(sims))}</p>}
+        {sims > 0 && (
+          <>
+            <svg viewBox={`0 0 ${W} ${H}`} className="mt-4 block h-20 w-full" preserveAspectRatio="none">
+              <defs>
+                <clipPath id="mc-reveal"><rect x={0} y={0} width={W * sim} height={H} /></clipPath>
+              </defs>
+              {/* Real simulated paths of this top 10: each line is one scenario, the drops are defaults. Drawn left to right as the simulations run. */}
+              <g clipPath="url(#mc-reveal)">
+                {samples.map((s, k) => {
+                  const fell = s.some((v, j) => j > 0 && v < s[j - 1]);
+                  return (
+                    <polyline
+                      key={k}
+                      points={s.map((v, j) => `${(j / (steps - 1)) * W},${yOf(v)}`).join(" ")}
+                      fill="none"
+                      className={fell ? "stroke-amber-500" : "stroke-accent"}
+                      strokeWidth={fell ? 1.2 : 1.5}
+                      strokeOpacity={fell ? 0.8 : 0.25}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  );
+                })}
+              </g>
+            </svg>
+            <p className="mt-1 text-[10px] text-mute">{t.scanCaption}</p>
+            <p className="mt-2 text-[12px] tabular-nums text-mute">
+              {done ? <span className="font-medium text-accent">✓ {t.scanDone}</span> : <>{t.scanSimsLabel} <span className="font-medium text-ink">{fmt.format(Math.round(sim * sims))}</span> / {fmt.format(sims)}</>}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
