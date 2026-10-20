@@ -108,8 +108,8 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
   if (ctx.asOf && Date.parse(b.ytmAsOf) < Date.parse(ctx.asOf) - STALE_DAYS * 86_400_000) return stop("insufficient_data", "Stale price");
 
   // 2. Does the Version 1.0 curve apply?
-  if (ev.category === "sovereign") return stop("unsupported", "Government bond: needs the separate sovereign methodology");
-  if (ev.category === "agency") return stop("unsupported", "Agency, supranational or regional issuer: no curve yet");
+  // Governments, agencies, states and supranationals use the same curve: only the rating matters (Livio, 20/10/2026:
+  // "a AA gov bond is the same as a AA corp bond"). The category is still recorded for the admin.
   if (b.currency !== curve.currency) return stop("unsupported", `Curve is ${curve.currency} only`);
   if (NON_STANDARD.test(b.name)) return stop("unsupported", "Possible subordinated, callable, perpetual or floating structure");
 
@@ -129,7 +129,8 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
   if (ev.surplusBp >= curve.exceptionalBp) {
     const d = ctx.reviews?.get(b.isin);
     if (d === "rejected") return stop("rejected", `Surplus ${fmtBp(ev.surplusBp)}: rejected after review`);
-    if (d !== "approved") return stop("review", `Surplus ${fmtBp(ev.surplusBp)} at or above ${curve.exceptionalBp} bp`);
+    // Always left out, even after an approval (Livio, 20/10/2026): a spread this wide usually means a structure the rating misses.
+    return stop("review", `Surplus ${fmtBp(ev.surplusBp)} at or above ${curve.exceptionalBp} bp: left out`);
   }
   // The bond passes only when its spread is strictly above the hurdle; equality does not pass.
   if (ev.surplusBp <= 0) return stop("below_hurdle", `Spread ${fmtBp(ev.spreadBp!)} vs ${ev.requiredBp} bp required`);
