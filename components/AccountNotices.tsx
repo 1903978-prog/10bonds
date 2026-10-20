@@ -95,7 +95,7 @@ export default function AccountNotices() {
               {withCode ? "Your code is active!" : "Welcome to 10BONDS!"}
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-mute">
-              {withCode ? <>You have full access free: ISIN codes, full bond details and every feature{me.premiumUntil ? `, until ${fmtDate(me.premiumUntil)}` : ""}.</> : "Your free account is ready. Upgrade any time on the Pricing page for ISIN codes, full bond details and every feature."}
+              {withCode ? <>You have full access free: ISIN codes, full bond details and every feature{me.premiumUntil ? `, until ${fmtDate(me.premiumUntil)}` : ""}.</> : "Your free account is ready. Upgrade any time on the Plans page for ISIN codes, full bond details and every feature."}
             </p>
             <p className="mt-3 text-[15px] leading-relaxed text-mute">
               {withCode ? "After that, you’ll switch to our Free plan and will not be charged. No card needed." : "No card needed for the Free plan."}
