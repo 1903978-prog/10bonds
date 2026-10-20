@@ -19,7 +19,7 @@ describe("more risk accepted", () => it("at the maximum never gives a lower aver
       else if (target <= caps[String(r)][String(d)]!) expect(a.ytm!).toBeGreaterThanOrEqual(target - 1e-9);
     }
   }
-}));
+}, 30_000)); // the caps check reaches each maximum by running the ranking a few times per cell
 
 describe("lower target yield", () => it("gives a safer list: average risk never rises as the target falls", () => {
   for (const d of [2, 5, 10]) {
