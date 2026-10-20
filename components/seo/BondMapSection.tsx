@@ -31,7 +31,6 @@ export default async function BondMapSection({ locale, text }: { locale: string;
           data.unrated ? text.unrated(n(data.unrated)) : null,
           all.noMaturity ? text.noMaturity(n(all.noMaturity)) : null,
           noYield > 0 ? text.noYield(n(noYield)) : null,
-          text.note,
         ].filter(Boolean).join(" ")}
       </p>
     </>

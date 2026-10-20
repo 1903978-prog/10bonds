@@ -110,7 +110,6 @@ export default async function Methodology({ searchParams }: { searchParams: Prom
         </section>
       </div>
 
-      <p className="mt-3 text-center text-[11px] text-mute">{t.note}</p>
     </article>
   );
 }

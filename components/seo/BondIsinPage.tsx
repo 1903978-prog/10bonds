@@ -115,7 +115,7 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
       </div>
 
       <p className="mt-4 text-[11px] leading-snug text-mute">
-        {t.note} <Link href={method(l)} className="underline hover:text-ink">{t.riskLink}</Link> · <Link href={home(l)} className="underline hover:text-ink">{t.findTen}</Link>
+        <Link href={method(l)} className="underline hover:text-ink">{t.riskLink}</Link> · <Link href={home(l)} className="underline hover:text-ink">{t.findTen}</Link>
       </p>
 
       <JsonLd
