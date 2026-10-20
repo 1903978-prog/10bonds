@@ -4,7 +4,8 @@ import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import type { PublicBond } from "./types";
-import { expectedLoss, bondLossChance, listLossChance } from "./expectedLoss";
+import { expectedLoss, bondLossChance, listLossChance, listLifeLoss } from "./expectedLoss";
+import { pdOf } from "./tiers";
 
 const bond = (isin: string, ytm: number, dur: number, rating: string | null): PublicBond => ({
   isin, name: isin, issuer: isin, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -238,5 +239,47 @@ describe("listLifeLoss", () => {
     const { listLifeLoss } = await import("./expectedLoss");
     expect(listLifeLoss([1, 0.5, 0.5, 0])).toBeCloseTo(0.3, 9);
     expect(listLifeLoss([])).toBe(0);
+  });
+});
+
+describe("the list has the lowest expected loss at its target (the owner's safeguard)", () => {
+  // A fixed, seeded universe of 80 rated bonds from 40 issuers, so the test is the same on every run.
+  let seed = 7;
+  const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const RATINGS = ["AAA", "AA", "A", "BBB", "BBB-", "BB", "B", "CCC"];
+  const universe: PublicBond[] = Array.from({ length: 80 }, (_, i) => ({
+    ...bond(`U${i}`, 2 + rand() * 5, 3 + rand() * 5, RATINGS[Math.floor(rand() * RATINGS.length)]),
+    issuer: `Issuer ${i % 40}`,
+  }));
+  const meetsRules = (results: { grossYtm: number | null; modifiedDuration: number | null }[], target: number) => {
+    if (results.length < 10) return false;
+    const avgYtm = results.reduce((s, r) => s + r.grossYtm!, 0) / results.length;
+    const avgDuration = results.reduce((s, r) => s + r.modifiedDuration!, 0) / results.length;
+    return avgYtm >= target - 1e-9 && Math.abs(avgDuration - 5) <= 0.05 * 5;
+  };
+  const loss = (results: { isin: string }[]) => listLifeLoss(results.map((r) => pdOf(universe.find((b) => b.isin === r.isin)!)));
+
+  it("never gives a higher expected loss when the risk limit goes up, at the same target", () => {
+    for (const target of [2.5, 3, 3.5]) {
+      for (let risk = 1; risk < 10; risk++) {
+        const lower = rankBonds(universe, 5, target, 10, risk).results;
+        const higher = rankBonds(universe, 5, target, 10, risk + 1).results;
+        // Only lists that meet the rules (10 bonds, the target yield, the average duration within 5%) are compared.
+        if (!meetsRules(lower, target) || !meetsRules(higher, target)) continue;
+        expect(loss(higher), `target ${target}, risk ${risk} to ${risk + 1}`).toBeLessThanOrEqual(loss(lower) + 0.005);
+      }
+    }
+  });
+
+  it("never gives a lower expected loss for a higher target, at the same risk limit", () => {
+    for (const risk of [4, 7, 10]) {
+      let previous = 0;
+      for (const target of [2.5, 2.75, 3, 3.25, 3.5]) {
+        const results = rankBonds(universe, 5, target, 10, risk).results;
+        if (!meetsRules(results, target)) continue;
+        expect(loss(results), `risk ${risk}, target ${target}`).toBeGreaterThanOrEqual(previous - 0.005);
+        previous = loss(results);
+      }
+    }
   });
 });
