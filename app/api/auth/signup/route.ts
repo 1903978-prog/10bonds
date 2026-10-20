@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   if (website || !checkSolution(challenge, nonce))
     return NextResponse.json({ error: "The robot check did not pass. Please reload the page and try again." }, { status: 400 });
   if (acceptTerms !== true)
-    return NextResponse.json({ error: "Please read and accept the Terms and Risk Disclosure to create an account." }, { status: 400 });
+    return NextResponse.json({ error: "Please tick the box to agree to the Terms and Conditions." }, { status: 400 });
   const e = normaliseEmail(email);
   if (!e) return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
   const u = normaliseUsername(username);
