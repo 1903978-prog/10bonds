@@ -20,6 +20,7 @@ export function FooterLegal() {
       <Link href={lang === "en" ? "/disclaimer" : `/disclaimer?lang=${lang}`} className={a}>{l.disclaimer}</Link>
       <Link href={lang === "en" ? "/methodology" : `/methodology?lang=${lang}`} className={a}>{l.methodology}</Link>
       <Link href={lang === "en" ? "/ranking-methodology" : `/ranking-methodology?lang=${lang}`} className={a}>{l.ranking}</Link>
+      <Link href={lang === "en" ? "/selection-methodology" : `/selection-methodology?lang=${lang}`} className={a}>{l.selection}</Link>
       <Link href="/terms" className={a}>{l.terms}</Link>
       <Link href="/privacy" className={a}>{l.privacy}</Link>
       <Link href="/cookies" className={a}>{l.cookies}</Link>
