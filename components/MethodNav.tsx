@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { METHOD_LANGS, METHOD_UI, type MethodLang } from "@/lib/methodology";
-
-const LANG_NAME = { en: "English", it: "Italiano", fr: "Français", de: "Deutsch" } as const;
+import { METHOD_UI, type MethodLang } from "@/lib/methodology";
 
 export type Kind = "sovereign" | "corporate";
 export const kindOf = (v: string | string[] | undefined): Kind => ((Array.isArray(v) ? v[0] : v) === "corporate" ? "corporate" : "sovereign");
@@ -18,7 +16,7 @@ export function methodHref(lang: MethodLang, kind: Kind) {
   return `/methodology${q ? `?${q}` : ""}`;
 }
 
-/** Language links, the Countries / Companies switch and the full-text PDF download. */
+/** The Countries / Companies switch and the full-text PDF download. */
 export function MethodNav({ lang, kind }: { lang: MethodLang; kind: Kind }) {
   const ui = METHOD_UI[lang];
   const seg = (k: Kind, label: string) => (
@@ -28,13 +26,6 @@ export function MethodNav({ lang, kind }: { lang: MethodLang; kind: Kind }) {
   );
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-mute">
-      <nav aria-label="Language" className="flex gap-3">
-        {METHOD_LANGS.map((l) => (
-          <Link key={l} href={methodHref(l, kind)} hrefLang={l} className={l === lang ? "text-ink" : "hover:text-ink"} aria-current={l === lang ? "page" : undefined}>
-            {LANG_NAME[l]}
-          </Link>
-        ))}
-      </nav>
       <div className="flex rounded-lg bg-line/50 p-0.5">
         {seg("sovereign", ui.countries)}
         {seg("corporate", ui.companies)}

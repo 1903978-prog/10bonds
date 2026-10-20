@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { METHOD_LANGS, methodLang } from "@/lib/methodology";
+import { pickedLang } from "@/lib/pageLang";
+import { methodLang } from "@/lib/methodology";
 import { fill } from "@/lib/rankingMethod";
 import { SELECTION_TEXT } from "@/lib/selectionMethod";
 import { DURATION_WINDOW } from "@/lib/ranking";
@@ -12,10 +12,8 @@ import { currentOutlierSd } from "@/lib/bonds";
 export const metadata: Metadata = { title: "Selection methodology · 10BONDS", alternates: { canonical: "/selection-methodology" } };
 export const dynamic = "force-dynamic";
 
-const LANG_NAME = { en: "English", it: "Italiano", fr: "Français", de: "Deutsch" } as const;
-
 export default async function SelectionMethodology({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
-  const lang = methodLang((await searchParams).lang);
+  const lang = methodLang(await pickedLang((await searchParams).lang));
   const t = SELECTION_TEXT[lang];
   const sd = await currentOutlierSd();
   const num = (n: number) => new Intl.NumberFormat(lang).format(n);
@@ -25,13 +23,6 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
 
   return (
     <article lang={lang} className="mx-auto max-w-6xl">
-      <nav aria-label="Language" className="flex gap-3 text-xs text-mute">
-        {METHOD_LANGS.map((l) => (
-          <Link key={l} href={l === "en" ? "/selection-methodology" : `/selection-methodology?lang=${l}`} hrefLang={l} className={l === lang ? "text-ink" : "hover:text-ink"} aria-current={l === lang ? "page" : undefined}>
-            {LANG_NAME[l]}
-          </Link>
-        ))}
-      </nav>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
       <p className="mt-1 max-w-3xl text-[13px] leading-snug text-mute">{t.intro}</p>
 
