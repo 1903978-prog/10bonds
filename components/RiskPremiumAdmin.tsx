@@ -4,14 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { CURVE_RATINGS, type CurveRating } from "@/lib/riskPremium/curve";
 import { shortStatus, STATUS_LABEL, type RiskStatus } from "@/lib/riskPremium/status";
 import type { CurveVersion } from "@/lib/riskPremium/versions";
-import type { Row } from "@/lib/riskPremium/shadow";
+import type { BracketRow, Row } from "@/lib/riskPremium/shadow";
 
 // Admin -> Bond Engine -> Risk Premium Model. Curve versions (drafts until activated), the shadow comparison of the
 // current and risk-adjusted top 10, exceptional spread reviews, sensitivity and the audit trail.
 // The public ranking only changes when the mode is switched to "on" here.
 
 type Summary = { count: number; ytm: number | null; duration: number | null; risk: number | null; surplusBp: number | null };
-type Compare = { scenario: { duration: number; ytm: number; risk: number }; current: { rows: Row[]; summary: Summary }; riskAdjusted: { rows: Row[]; summary: Summary; targetReached: boolean; counts: Record<RiskStatus, number> }; overlap: number };
+type Compare = { scenario: { duration: number; ytm: number; risk: number }; current: { rows: Row[]; summary: Summary }; riskAdjusted: { rows: Row[]; summary: Summary; targetReached: boolean; counts: Record<RiskStatus, number> }; overlap: number; bracket: BracketRow[] };
 type Payload = {
   mode: "shadow" | "on"; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
   reviews: { isin: string; decision: string; note: string; by: string; at: string }[];
@@ -205,6 +205,7 @@ export default function RiskPremiumAdmin() {
               <RowsCard title={`Risk-adjusted, v${active?.version ?? "1.0"}${data.compare.riskAdjusted.targetReached ? "" : " · target not reached"}`} rows={data.compare.riskAdjusted.rows} s={data.compare.riskAdjusted.summary} />
               {data.draftCompare && <RowsCard title={`Risk-adjusted, draft v${data.draftCompare.version}`} rows={data.draftCompare.riskAdjusted.rows} s={data.draftCompare.riskAdjusted.summary} />}
             </div>
+            <BracketCard rows={data.compare.bracket} min={active?.minMaturity ?? 4} max={active?.maxMaturity ?? 6} />
           </div>
         )}
 
@@ -271,6 +272,40 @@ function nextVersion(vs: CurveVersion[]): string {
   const nums = vs.map((v) => v.version.split(".").map(Number)).sort((a, b) => b[0] - a[0] || (b[1] ?? 0) - (a[1] ?? 0));
   const [maj, min] = nums[0] ?? [1, 0];
   return `${maj}.${(min ?? 0) + 1}`;
+}
+
+function BracketCard({ rows, min, max }: { rows: BracketRow[]; min: number; max: number }) {
+  const inTop = rows.filter((r) => r.inTop).length;
+  return (
+    <section className={card}>
+      <h2 className="text-sm font-semibold">All EUR bonds maturing in {min}–{max} years ({rows.length}): why in or out</h2>
+      <p className="mb-1 text-xs text-mute">{inTop} in the top 10, {rows.length - inTop} left out. Extra yield is over the maturity-matched AAA Bund. Unrated bonds are never shown on the site and are not listed.</p>
+      <div className="max-h-[50vh] overflow-y-auto">
+        <table className="w-full table-fixed text-xs tabular-nums">
+          <thead className="sticky top-0 bg-white">
+            <tr className="text-left text-mute">
+              <th className="w-6">#</th><th className="w-44">Issuer</th><th className="w-12 text-right">Yield</th><th className="w-10 text-right">Risk</th><th className="w-10 text-right">Dur.</th><th className="w-14 text-right">Over AAA</th><th className="w-10 text-right">Req.</th><th className="w-12 text-right">Surplus</th><th className="pl-3">Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.isin} className={`border-t border-line/60 ${r.inTop ? "font-medium" : "text-mute"}`}>
+                <td>{r.inTop ? r.rank : "–"}</td>
+                <td className="truncate" title={`${r.name} · ${r.isin}`}>{r.issuer}</td>
+                <td className="text-right">{r.ytm.toFixed(2)}</td>
+                <td className="text-right">{r.risk ?? "–"}</td>
+                <td className="text-right">{r.duration.toFixed(1)}</td>
+                <td className="text-right">{r.spreadBp === null ? "–" : Math.round(r.spreadBp)}</td>
+                <td className="text-right">{r.requiredBp ?? "–"}</td>
+                <td className="text-right">{bp(r.surplusBp)}</td>
+                <td className="truncate pl-3" title={r.why}>{r.why}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
 
 function RowsCard({ title, rows, s }: { title: string; rows: Row[]; s: Summary }) {

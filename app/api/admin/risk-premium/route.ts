@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { loadBonds } from "@/lib/bonds";
+import { loadBonds, loadOutliers } from "@/lib/bonds";
 import { signatureOf } from "@/lib/bestTable";
 import { LIMITS } from "@/lib/limits";
 import { curveProblems, CURVE_RATINGS, V1_CURVE, type CurveRating } from "@/lib/riskPremium/curve";
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     ytm: num(url.searchParams.get("ytm"), DEFAULT_SCENARIO.ytm, LIMITS.ytm.min, LIMITS.ytm.max),
     risk: Math.round(num(url.searchParams.get("risk"), DEFAULT_SCENARIO.risk, LIMITS.risk.min, LIMITS.risk.max)),
   };
-  const [versions, mode, reviews, audit, data] = await Promise.all([listVersions(), getMode(), latestReviews(), listAudit(60), loadBonds()]);
+  const [versions, mode, reviews, audit, data, outliers] = await Promise.all([listVersions(), getMode(), latestReviews(), listAudit(60), loadBonds(), loadOutliers()]);
   const active = versions.find((v) => v.status === "active") ?? null;
   const reviewMap = new Map(reviews.map((r) => [r.isin, r.decision]));
   const curve = active ?? V1_CURVE;
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
     {
       mode, versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
       source: data.source, asOf: data.asOf, bund: ctx.bund.points.map((p) => ({ years: Math.round(p.years * 100) / 100, ytm: p.ytm })),
-      compare: compareScenario(data.bonds, ctx, sc),
+      compare: compareScenario(data.bonds, ctx, sc, outliers),
       draftCompare: draft ? { id: draft.id, version: draft.version, ...compareScenario(data.bonds, contextFor(data.bonds, data.asOf, draft, reviewMap, ctx.bund), sc) } : null,
       universe: { counts: u.counts, reasons: u.reasons, belowHurdle: u.belowHurdle.slice(0, 200), exceptional: u.exceptional, eligible: u.eligible.length },
       sensitivity: sensitivity(data.bonds, ctx),

@@ -2,7 +2,7 @@
 // risk-adjusted top 10 for a few 5-year searches, bonds below the hurdle, exceptional spreads, sensitivity.
 // Read-only. Prints issuer names, yields and 10BONDS risk scores (what a free account sees), no ISINs or agency grades.
 // Usage: npx vite-node -c vitest.config.ts scripts/risk-premium-validation.ts
-import { loadBonds } from "@/lib/bonds";
+import { loadBonds, loadOutliers } from "@/lib/bonds";
 import { V1_CURVE } from "@/lib/riskPremium/curve";
 import { compareScenario, contextFor, sensitivity, universeReport, type Row } from "@/lib/riskPremium/shadow";
 
@@ -25,6 +25,13 @@ for (const sc of [{ duration: 5, ytm: 4, risk: 7 }, { duration: 5, ytm: 3.5, ris
   console.log("-- risk-adjusted", JSON.stringify(c.riskAdjusted.summary));
   c.riskAdjusted.rows.forEach((r) => console.log(fmt(r)));
 }
+
+const br = compareScenario(data.bonds, ctx, { duration: 5, ytm: 4, risk: 7 }, await loadOutliers()).bracket;
+console.log(`\n== Bracket 5y / 4% / risk 7: ${br.length} EUR bonds, reasons`);
+const kinds: Record<string, number> = {};
+for (const r of br) { const k = r.why.split(/[:(]/)[0]; kinds[k] = (kinds[k] ?? 0) + 1; }
+console.log(JSON.stringify(kinds));
+br.slice(0, 25).forEach((r) => console.log(`${r.issuer.slice(0, 30).padEnd(30)} ${r.ytm.toFixed(2)} risk ${r.risk} · ${r.why}`));
 
 console.log(`\n== Below required compensation: ${u.belowHurdle.length} (worst 20)`);
 u.belowHurdle.slice(0, 20).forEach((r) => console.log(fmt(r)));

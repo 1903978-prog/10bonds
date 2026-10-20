@@ -5,6 +5,7 @@ import { bundCurve, bundYieldAt } from "./benchmark";
 import { evaluateBond, type EvalContext } from "./evaluate";
 import { compareBonds, explainPair } from "./compare";
 import { rankRiskAdjusted } from "./rank";
+import { bracketExplain } from "./shadow";
 import { activate, activeOf, draftFrom, type CurveVersion } from "./versions";
 
 // The mandatory examples of the specification (Livio, 20/10/2026), one test each, plus the building blocks.
@@ -229,6 +230,24 @@ describe("maturity bracket", () => {
     const r = rankRiskAdjusted([...BUNDS, longer, inside], 4.5, 3.5, ctx());
     expect(r.results.map((x) => x.issuer)).toEqual(["Alpha Corp"]);
     expect(r.evaluations.map((e) => e.isin)).not.toContain(longer.isin);
+  });
+});
+
+describe("bracket explanation", () => {
+  it("lists every EUR bond in the bracket with why it is in or out", () => {
+    const top = bond("Alpha Corp", "A", 4.0), low = bond("Thin Corp", "BBB", 3.4), twin = bond("Alpha Corp", "A", 3.9, { isin: "XS9999999999" });
+    const sub = bond("Bank Corp", "A", 6.8), longer = bond("Long Corp", "A", 4.2, { years: 7 });
+    const sc = { duration: 4.5, ytm: 3.5, risk: 7 };
+    const all = [...BUNDS, top, low, twin, longer];
+    const next = rankRiskAdjusted(all, sc.duration, sc.ytm, ctx(), undefined, sc.risk);
+    const rows = bracketExplain(all, [{ bond: sub, reason: "yield", peerMedian: 4 }], ctx(), sc, next);
+    const why = Object.fromEntries(rows.map((r) => [r.isin, r.why]));
+    expect(rows[0]).toMatchObject({ isin: top.isin, inTop: true });
+    expect(why[top.isin]).toMatch(/^In the top 10/);
+    expect(why[low.isin]).toMatch(/not above the 115 bp/);
+    expect(why[twin.isin]).toMatch(/Issuer already in the list/);
+    expect(why[sub.isin]).toMatch(/^Outlier/);
+    expect(why[longer.isin]).toBeUndefined();
   });
 });
 
