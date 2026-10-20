@@ -131,7 +131,7 @@ export const EN_GUIDES: EnGuide[] = [
 <p>The yield of an investment grade bond depends on market rates, on the <a href="/knowledge/bond-duration">duration</a> and on the rating. As a rule, for the same duration, the lower the rating the higher the yield. You can see today's values in the <a href="/">bond finder</a>, updated every day.</p>
 <p>When you compare, keep the duration fixed first and then look at how the yield changes as the rating goes down: the gap between bands is the extra return the market pays for the extra risk.</p>
 <h2 id="agencies-disagree">When the agencies disagree</h2>
-<p>It happens that a bond is BBB- for one agency and BB+ for another. On 10BONDS we use the resolved rating supplied with the data when available, otherwise S&amp;P's, then Moody's, then Fitch's. Bonds without a rating do not appear in our lists. The details are in our methodology.</p>
+<p>It happens that a bond is BBB- for one agency and BB+ for another. On 10BONDS we show a risk score from 1 to 10 instead, our own scale, which is not a credit rating. Bonds without a rating do not appear in our lists. The details are in our methodology.</p>
 <p>Split ratings are most common close to the investment grade boundary, which is exactly where the difference matters most. If you hold such a bond, it is worth knowing which rating your bank or fund uses.</p>
 <p><a class="cta" href="/">Find your 10 bonds</a>: choose the minimum rating with the third slider and look at the 10 bonds.</p>
 `,

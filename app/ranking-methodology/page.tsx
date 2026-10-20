@@ -27,7 +27,15 @@ export default async function RankingMethodology({ searchParams }: { searchParam
   const t = RANKING_TEXT[lang];
   const { curve, on, sd } = await activeCurve();
   const p = curve.premiums;
-  const v = { version: curve.version, min: curve.minMaturity, max: curve.maxMaturity, floor: curve.floor, exceptional: curve.exceptionalBp, a: p["AA-"], b: p["BBB+"], diff: p["BBB+"] - p["AA-"], sd: sd.toFixed(1) };
+  // Shown by 10BONDS risk score, never by agency grade: each risk level gets the range of its curve minimums.
+  const byRisk = new Map<number, number[]>();
+  for (const r of CURVE_RATINGS) {
+    const risk = riskOfNotch(notchOf(r));
+    if (risk !== null) byRisk.set(risk, [...(byRisk.get(risk) ?? []), p[r]]);
+  }
+  const rows = [...byRisk.entries()].sort((x, y) => x[0] - y[0]).map(([risk, bps]) => ({ risk, lo: Math.min(...bps), hi: Math.max(...bps) }));
+  const top = (risk: number) => rows.find((r) => r.risk === risk)?.hi ?? 0;
+  const v = { version: curve.version, min: curve.minMaturity, max: curve.maxMaturity, floorRisk: riskOfNotch(notchOf(curve.floor)) ?? "–", exceptional: curve.exceptionalBp, a: top(2), b: top(4), diff: top(4) - top(2), sd: sd.toFixed(1) };
   const card = "overflow-hidden rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
   const head = "px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-mute";
 
@@ -49,12 +57,10 @@ export default async function RankingMethodology({ searchParams }: { searchParam
           <table className="mx-4 mb-3 w-[calc(100%-2rem)] text-[12px] tabular-nums">
             <thead><tr className="text-left text-[11px] text-mute">{t.cols.map((c, i) => <th key={c} className={i ? "text-right font-normal" : "font-normal"}>{c}</th>)}</tr></thead>
             <tbody>
-              {CURVE_RATINGS.map((r, i) => (
-                <tr key={r} className="border-t border-line/60">
-                  <td className="py-[2px]">{r}</td>
-                  <td className="text-right">{riskOfNotch(notchOf(r)) ?? "–"}</td>
-                  <td className="text-right">{p[r]} bp</td>
-                  <td className="text-right text-mute">{i ? `+${p[r] - p[CURVE_RATINGS[i - 1]]}` : "–"}</td>
+              {rows.map((r) => (
+                <tr key={r.risk} className="border-t border-line/60">
+                  <td className="py-[2px]">{r.risk}</td>
+                  <td className="text-right">{r.lo === r.hi ? r.lo : `${r.lo}-${r.hi}`} bp</td>
                 </tr>
               ))}
             </tbody>

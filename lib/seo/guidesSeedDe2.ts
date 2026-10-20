@@ -96,7 +96,7 @@ ${hinweis}
 <h2 id="rendite">Wovon hängt die Rendite ab?</h2>
 <p>Die Rendite einer Investment-Grade-Anleihe hängt vom allgemeinen Zinsniveau, von der <a href="/de/ratgeber/duration-anleihen">Duration</a> und vom Rating ab. Bei gleicher Duration gilt in der Regel: Je niedriger das Rating, desto höher die Rendite. Den Renditeabstand zur Bundesanleihe gleicher Laufzeit nennt man Spread. Aktuelle Werte zeigt die Seite <a href="/de/anleihen/investment-grade">Investment-Grade-Anleihen in Euro</a>, täglich aktualisiert.</p>
 <h2 id="uneinig">Was gilt, wenn die Agenturen sich nicht einig sind?</h2>
-<p>Es kommt vor, dass eine Anleihe bei einer Agentur BBB- und bei einer anderen BB+ hat. 10BONDS verwendet das mit den Daten gelieferte zusammengeführte Rating, sofern vorhanden, sonst das von S&amp;P, dann Moody's, dann Fitch. Anleihen ohne Rating erscheinen nicht in unseren Listen. Details finden Sie in der <a href="/de/methodik">Methodik</a>.</p>
+<p>Es kommt vor, dass eine Anleihe bei einer Agentur BBB- und bei einer anderen BB+ hat. 10BONDS zeigt stattdessen ein Risiko von 1 bis 10, eine eigene Skala, die kein Rating ist. Anleihen ohne Rating erscheinen nicht in unseren Listen. Details finden Sie in der <a href="/de/methodik">Methodik</a>.</p>
 <h2 id="faq">Häufige Fragen</h2>
 <h3>Kann ich mit einer Investment-Grade-Anleihe Geld verlieren?</h3>
 <p>Ja. Das Rating garantiert keine Rückzahlung, und der Kurs kann fallen, etwa wenn die Zinsen steigen oder der Emittent herabgestuft wird.</p>

@@ -243,8 +243,8 @@ function BondBox(props: {
             onClick={() =>
               downloadXlsx(
                 [
-                  [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.risk, t.duration, `${t.coupon} %`, t.maturity, t.country, t.minInvest],
-                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.risk, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null, minForExcel(bond.minInvestment)],
+                  [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.duration, `${t.coupon} %`, t.maturity, t.country, t.minInvest],
+                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null, minForExcel(bond.minInvestment)],
                 ],
                 `10bonds-${bond.isin ?? "bond"}.xlsx`,
                 "Bond",

@@ -11,9 +11,9 @@ type Home = {
 
 export const HOME: Record<Locale, Home> = {
   it: {
-    title: "10BONDS · Trova le migliori obbligazioni in pochi secondi",
-    description: "Scegli durata e rendimento obiettivo: 10BONDS confronta migliaia di obbligazioni in euro, BTP compresi, e ti mostra le 10 più adatte. Dati aggiornati ogni giorno.",
-    h1: "Trova le migliori obbligazioni in pochi secondi",
+    title: "10BONDS · Confronta le obbligazioni per rendimento e rischio",
+    description: "Scegli durata e rendimento obiettivo: 10BONDS confronta migliaia di obbligazioni in euro, BTP compresi, e ti mostra le 10 più vicine ai tuoi criteri. Dati aggiornati ogni giorno.",
+    h1: "Confronta le obbligazioni per rendimento e rischio, in pochi secondi",
     lead: "Scegli una duration e un rendimento obiettivo: 10BONDS confronta migliaia di obbligazioni in euro, BTP e corporate, e ti mostra le 10 più vicine, una per emittente.",
     points: ["Rendimento a scadenza, duration e rischio in un'unica lista.", "BTP, titoli di Stato europei e obbligazioni societarie a confronto.", "Dati aggiornati ogni giorno, con la data sempre in vista."],
     govId: "gov-it", govTitle: "I BTP oggi", compareTitle: "Confronta le obbligazioni", guidesTitle: "Guide per capire i numeri",
@@ -21,12 +21,12 @@ export const HOME: Record<Locale, Home> = {
       { name: "Gratis", price: "0 €", text: "Con un account: 10 ricerche di singole obbligazioni e 3 di portafoglio a settimana, la top 10 completa con emittente, rendimento, rischio e duration." },
       { name: "Plus", price: "9 € al mese o 86,40 € all'anno", text: "Codici ISIN visibili, ricerche illimitate, nome, cedola e scadenza di ogni obbligazione, medie della lista." },
       { name: "Premium", price: "19 € al mese o 182,40 € all'anno", text: "Tutto Plus, più avvisi via e-mail sui cambiamenti, ricerche salvate e analisi del rischio." },
-      { name: "Pro", price: "89 € al mese o 854,40 € all'anno", text: "Solo per professionisti: analisi del portafoglio dei clienti e suggerimenti di sostituzione per aumentare il rendimento." },
+      { name: "Pro", price: "89 € al mese o 854,40 € all'anno", text: "Solo per professionisti: analisi del portafoglio dei clienti e obbligazioni simili con rendimento più alto." },
     ], plansLink: "Dettagli dei piani",
   },
   fr: {
     title: "10BONDS · Comparez les obligations par rendement et risque",
-    description: "Choisissez un horizon et un rendement cible : 10BONDS compare des milliers d'obligations en euros, OAT comprises, et affiche les 10 plus adaptées. Données quotidiennes.",
+    description: "Choisissez un horizon et un rendement cible : 10BONDS compare des milliers d'obligations en euros, OAT comprises, et affiche les 10 plus proches de vos critères. Données quotidiennes.",
     h1: "Comparez les obligations selon leur rendement et leur risque",
     lead: "Choisissez une duration et un rendement cible : 10BONDS compare des milliers d'obligations en euros, OAT, emprunts d'État européens et obligations d'entreprise, et affiche les 10 plus proches, une par émetteur.",
     points: ["Rendement à l'échéance, duration et risque dans une seule liste.", "OAT, Bund, BTP et obligations d'entreprise comparés sur les mêmes critères.", "Données mises à jour chaque jour, toujours datées."],
@@ -35,12 +35,12 @@ export const HOME: Record<Locale, Home> = {
       { name: "Gratuit", price: "0 €", text: "Avec un compte : 10 recherches d'obligation et 3 recherches de portefeuille par semaine, le top 10 complet avec émetteur, rendement, risque et duration." },
       { name: "Plus", price: "9 € par mois ou 86,40 € par an", text: "Codes ISIN visibles, recherches illimitées, nom, coupon et échéance de chaque obligation, moyennes de la liste." },
       { name: "Premium", price: "19 € par mois ou 182,40 € par an", text: "Tout Plus, avec des alertes par e-mail sur les changements, des recherches enregistrées et l'analyse du risque." },
-      { name: "Pro", price: "89 € par mois ou 854,40 € par an", text: "Réservé aux professionnels : analyse des portefeuilles clients et suggestions d'échanges pour augmenter le rendement." },
+      { name: "Pro", price: "89 € par mois ou 854,40 € par an", text: "Réservé aux professionnels : analyse des portefeuilles clients et obligations similaires au rendement plus élevé." },
     ], plansLink: "Détail des offres",
   },
   de: {
     title: "10BONDS · Anleihen nach Rendite und Risiko vergleichen",
-    description: "Wählen Sie Laufzeit und Zielrendite: 10BONDS vergleicht Tausende Euro-Anleihen, Bundesanleihen eingeschlossen, und zeigt die 10 passendsten. Täglich aktualisierte Daten.",
+    description: "Wählen Sie Laufzeit und Zielrendite: 10BONDS vergleicht Tausende Euro-Anleihen, Bundesanleihen eingeschlossen, und zeigt die 10, die Ihren Kriterien am nächsten kommen. Täglich aktualisierte Daten.",
     h1: "Finden und vergleichen Sie Anleihen nach Rendite und Risiko",
     lead: "Wählen Sie eine Duration und eine Zielrendite: 10BONDS vergleicht Tausende Euro-Anleihen, Bundesanleihen, europäische Staatsanleihen und Unternehmensanleihen, und zeigt die 10 passendsten, eine je Emittent.",
     points: ["Rendite bis Fälligkeit, Duration und Risiko in einer Liste.", "Bundesanleihen, OAT, BTP und Unternehmensanleihen nach denselben Kriterien.", "Täglich aktualisierte Daten, immer mit Datum."],
@@ -49,7 +49,7 @@ export const HOME: Record<Locale, Home> = {
       { name: "Kostenlos", price: "0 €", text: "Mit Konto: 10 Einzelanleihe- und 3 Portfolio-Suchen pro Woche, die komplette Top 10 mit Emittent, Rendite, Risiko und Duration." },
       { name: "Plus", price: "9 € im Monat oder 86,40 € im Jahr", text: "ISIN sichtbar, unbegrenzte Suchen, Name, Kupon und Fälligkeit jeder Anleihe, Durchschnittswerte der Liste." },
       { name: "Premium", price: "19 € im Monat oder 182,40 € im Jahr", text: "Alles aus Plus, dazu E-Mail-Hinweise bei Änderungen, gespeicherte Suchen und Risikoanalysen." },
-      { name: "Pro", price: "89 € im Monat oder 854,40 € im Jahr", text: "Nur für Profis: Analyse von Kundenportfolios und Tauschvorschläge für mehr Rendite." },
+      { name: "Pro", price: "89 € im Monat oder 854,40 € im Jahr", text: "Nur für Profis: Analyse von Kundenportfolios und ähnliche Anleihen mit höherer Rendite." },
     ], plansLink: "Tarife im Detail",
   },
 };

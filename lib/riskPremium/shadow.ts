@@ -61,10 +61,10 @@ export function bracketExplain(bonds: PublicBond[], outliers: Outlier[], ctx: Ev
     const e = evals.get(b.isin) ?? evaluateBond(b, ctx);
     const row = toRow(top.get(b.isin)?.rank ?? 0, b, e);
     let why: string;
-    if (top.has(b.isin)) why = `In the top 10: ${pts(e.spreadBp!)} over AAA Bund, ${pts(e.surplusBp!)} more than the ${e.requiredBp} bp required`;
+    if (top.has(b.isin)) why = `In the top 10: ${pts(e.surplusBp!)} more extra yield than its risk requires`;
     else if (!withinRisk([b], sc.risk).length) why = `Riskier than the risk limit (risk ${row.risk} > ${sc.risk})`;
     else if (!nearHorizon(b.modifiedDuration!, sc.duration, next.band + 1e-9)) why = `Duration ${b.modifiedDuration!.toFixed(1)}y outside the search window (${sc.duration} ± ${next.band}y)`;
-    else if (e.status === "below_hurdle") why = `Extra yield over AAA Bund ${pts(e.spreadBp!)} is not above the ${e.requiredBp} bp its rating requires`;
+    else if (e.status === "below_hurdle") why = "Extra yield over the Bund is not above what its risk requires";
     else if (e.status !== "eligible") why = e.reason ?? STATUS_TEXT[e.status];
     else if (e.ytm! > sc.ytm + MAX_ABOVE_TARGET + 1e-9) why = `Yield more than ${MAX_ABOVE_TARGET} points above the ${sc.ytm}% target`;
     else if (topIssuers.has(issuerKey(b))) why = `Issuer already in the list with a better bond (${topIssuers.get(issuerKey(b))!.name})`;

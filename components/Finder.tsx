@@ -706,7 +706,7 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
             data-testid="excel-download"
             onClick={() =>
               downloadXlsx(
-                [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk, minForExcel(r.minInvestment)])],
+                [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, minForExcel(r.minInvestment)])],
                 "10bonds-top10.xlsx",
                 "Top 10",
               )

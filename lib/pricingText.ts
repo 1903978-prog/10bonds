@@ -30,7 +30,7 @@ const en = {
     premium: { name: "Premium", tagline: "See why, and stay on top.", cta: "Get Premium",
       features: ["Everything in Plus", "Why each bond is in or out of the top 10", "Add a left-out bond to your top 10", "Email alerts when the top 10 changes", "More features as they come"] },
     pro: { name: "Pro", tagline: "For professionals only.", cta: "Get Pro",
-      features: ["Everything in Premium", "Client portfolio analysis", "Swap suggestions to raise the yield", "The reason for every swap", "Approved professionals only"] },
+      features: ["Everything in Premium", "Client portfolio analysis", "Similar bonds with a higher yield", "How each alternative differs", "Approved professionals only"] },
   } as Record<"free" | "plus" | "premium" | "pro", PlanText>,
 };
 export type PricingText = typeof en;
@@ -58,7 +58,7 @@ const it: PricingText = {
     premium: { name: "Premium", tagline: "Capisci il perché e resta aggiornato.", cta: "Scegli Premium",
       features: ["Tutto di Plus", "Perché ogni bond è dentro o fuori dalla top 10", "Aggiungi alla top 10 un bond escluso", "Avvisi email quando la top 10 cambia", "Altre funzioni in arrivo"] },
     pro: { name: "Pro", tagline: "Solo per professionisti.", cta: "Scegli Pro",
-      features: ["Tutto di Premium", "Analisi dei portafogli dei clienti", "Proposte di sostituzione per alzare il rendimento", "Il motivo di ogni sostituzione", "Solo professionisti approvati"] },
+      features: ["Tutto di Premium", "Analisi dei portafogli dei clienti", "Obbligazioni simili con rendimento più alto", "Come differisce ogni alternativa", "Solo professionisti approvati"] },
   },
 };
 
@@ -85,7 +85,7 @@ const fr: PricingText = {
     premium: { name: "Premium", tagline: "Comprendre le pourquoi, rester informé.", cta: "Choisir Premium",
       features: ["Tout Plus", "Pourquoi chaque obligation est dans le top 10 ou non", "Ajoutez une obligation écartée à votre top 10", "Alertes e-mail quand le top 10 change", "D'autres fonctions à venir"] },
     pro: { name: "Pro", tagline: "Réservé aux professionnels.", cta: "Choisir Pro",
-      features: ["Tout Premium", "Analyse des portefeuilles clients", "Propositions d'échange pour relever le rendement", "La raison de chaque échange", "Professionnels approuvés uniquement"] },
+      features: ["Tout Premium", "Analyse des portefeuilles clients", "Obligations similaires au rendement plus élevé", "En quoi chaque alternative diffère", "Professionnels approuvés uniquement"] },
   },
 };
 
@@ -112,7 +112,7 @@ const de: PricingText = {
     premium: { name: "Premium", tagline: "Das Warum sehen, auf dem Laufenden bleiben.", cta: "Premium wählen",
       features: ["Alles aus Plus", "Warum jede Anleihe in den Top 10 ist oder nicht", "Eine ausgeschlossene Anleihe zu Ihren Top 10 hinzufügen", "E-Mail-Hinweise, wenn sich die Top 10 ändern", "Weitere Funktionen folgen"] },
     pro: { name: "Pro", tagline: "Nur für Profis.", cta: "Pro wählen",
-      features: ["Alles aus Premium", "Analyse von Kundenportfolios", "Tauschvorschläge für mehr Rendite", "Der Grund für jeden Tausch", "Nur zugelassene Profis"] },
+      features: ["Alles aus Premium", "Analyse von Kundenportfolios", "Ähnliche Anleihen mit höherer Rendite", "Worin sich jede Alternative unterscheidet", "Nur zugelassene Profis"] },
   },
 };
 
