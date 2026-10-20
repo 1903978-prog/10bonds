@@ -1,7 +1,7 @@
 import { loadBonds, loadBondsFor, type BondSource } from "./bonds";
 import { filterKey, isDefaultFilter, type BondFilter } from "./bondFilter";
 import { accountsConfigured, accountsSql } from "./accounts";
-import { LIMITS } from "./limits";
+import { DURATION_STEPS, LIMITS, snapDuration } from "./limits";
 import { curveByLevel } from "./singleBond";
 import { ytmCapsByRisk } from "./ranking";
 import type { RankedBond } from "./types";
@@ -21,15 +21,13 @@ export type BestTable = {
 const key = (d: number) => String(Math.round(d * 100) / 100);
 
 export function durationSteps(): number[] {
-  const out: number[] = [];
-  for (let d = LIMITS.duration.min; d <= LIMITS.duration.max + 1e-9; d += LIMITS.duration.step) out.push(Math.round(d * 100) / 100);
-  return out;
+  return [...DURATION_STEPS];
 }
 
 /** Signature of a bond copy: changes whenever the daily copy brings new yields. */
 export function signatureOf(src: BondSource): string {
   // The leading version changes when the way the table is computed changes, so a new deploy rebuilds it.
-  return `v9:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
+  return `v10:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
 }
 
 export function computeBestTable(src: BondSource): BestTable {
@@ -38,7 +36,7 @@ export function computeBestTable(src: BondSource): BestTable {
     grid[key(d)] = {};
     for (const p of curveByLevel(src.bonds, d)) grid[key(d)][p.level] = p.bonds;
   }
-  return { signature: signatureOf(src), grid, caps: ytmCapsByRisk(src.bonds, LIMITS.duration, LIMITS.ytm) };
+  return { signature: signatureOf(src), grid, caps: ytmCapsByRisk(src.bonds, DURATION_STEPS, LIMITS.ytm) };
 }
 
 let memo: BestTable | null = null;
@@ -108,8 +106,6 @@ async function load(src: BondSource, sig: string): Promise<BestTable> {
 
 /** The ranked bonds per risk step for the duration step nearest to `d`. */
 export function curveAt(table: BestTable, d: number) {
-  const step = LIMITS.duration.step;
-  const snapped = Math.min(LIMITS.duration.max, Math.max(LIMITS.duration.min, Math.round(d / step) * step));
-  const levels = table.grid[key(snapped)] ?? {};
+  const levels = table.grid[key(snapDuration(d))] ?? {};
   return Array.from({ length: 10 }, (_, i) => i + 1).map((level) => ({ level, bonds: levels[level] ?? [] }));
 }

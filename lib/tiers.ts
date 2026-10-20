@@ -21,7 +21,19 @@ export type ResultRow = {
   maturity?: string | null;
   // Admin only (Livio): the S&P grade, never sent to anyone else.
   sp?: string | null;
+  // Paid only, when the risk-adjusted ranking is on: the figures behind the rank (no agency grade).
+  why?: RiskWhy;
 };
+
+/** Why a bond ranks where it does under the risk premium model. bp = basis points; adjYtm is a score, not a yield. */
+export type RiskWhy = { spreadBp: number; requiredBp: number; surplusBp: number; adjYtm: number; version: string; asOf: string | null };
+
+type WithRisk = RankedBond & { risk?: { spreadBp: number | null; requiredBp: number | null; surplusBp: number | null; riskAdjustedYtm: number | null; version: string; ytmAsOf: string | null } };
+function whyOf(b: WithRisk): RiskWhy | undefined {
+  const r = b.risk;
+  if (!r || r.spreadBp === null || r.requiredBp === null || r.surplusBp === null || r.riskAdjustedYtm === null) return undefined;
+  return { spreadBp: Math.round(r.spreadBp), requiredBp: r.requiredBp, surplusBp: Math.round(r.surplusBp), adjYtm: r.riskAdjustedYtm, version: r.version, asOf: r.ytmAsOf };
+}
 
 export type ResultsPayload = {
   tier: Tier;
@@ -71,6 +83,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       risk: bondRisk(b),
       country: b.country,
       minInvestment: b.minInvestment ?? null,
+      ...(whyOf(b) ? { why: whyOf(b) } : {}),
     })),
     lockedCount: 0,
     summary: {

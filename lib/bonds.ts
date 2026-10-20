@@ -6,6 +6,8 @@ import { bondNotch } from "./ratings";
 import { correctedMin } from "./minOverrides";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
 import { judge, missingColumns, type DataHealth } from "./dataHealth";
+import { cleanSd, findOutliers, OUTLIER_SD, type Outlier } from "./outliers";
+import { liveOutlierSd } from "./riskPremium/store";
 
 // The public site only ever READS one table, with a read-only login.
 // It has no connection details for the main app and no way to write anywhere.
@@ -18,7 +20,27 @@ function db() {
 
 // The copy changes once a day, so one read an hour is plenty (and keeps the database asleep most of the time).
 const CACHE_MS = 60 * 60 * 1000;
-let cache: { at: number; bonds: PublicBond[]; source: "live" | "sample"; unrated: number; total: number } | null = null;
+// `rated` is every bond the site may show before the outlier rule; the rule's result is kept per number of standard
+// deviations (the admin can preview other values), and cleared with the hourly reload.
+let cache: { at: number; rated: PublicBond[]; source: "live" | "sample"; unrated: number; total: number; bySd: Map<number, { bonds: PublicBond[]; outliers: Outlier[] }> } | null = null;
+
+/** The number of standard deviations users get (admin setting), or the default when it cannot be read. */
+export async function currentOutlierSd(): Promise<number> {
+  return liveOutlierSd().catch(() => OUTLIER_SD.default);
+}
+
+function outlierCut(sd: number) {
+  const c = cache!;
+  const k = cleanSd(sd);
+  let hit = c.bySd.get(k);
+  if (!hit) {
+    const outliers = c.source === "sample" ? [] : findOutliers(c.rated, k);
+    const gone = new Set(outliers.map((o) => o.bond.isin));
+    hit = { bonds: gone.size ? c.rated.filter((b) => !gone.has(b.isin)) : c.rated, outliers };
+    c.bySd.set(k, hit);
+  }
+  return hit;
+}
 
 export type BondSource = { bonds: PublicBond[]; source: "live" | "sample"; asOf: string | null };
 
@@ -28,21 +50,26 @@ export async function loadBonds(): Promise<BondSource> {
 }
 
 /** The bonds for one choice of currency and minimum order size. */
-export async function loadBondsFor(f: BondFilter): Promise<BondSource> {
-  const all = await loadAllBonds();
+export async function loadBondsFor(f: BondFilter, sd?: number): Promise<BondSource> {
+  const all = await loadAllBonds(sd);
   return withAsOf(applyFilter(all.bonds, f), all.source);
 }
 
-async function loadAllBonds(): Promise<BondSource> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return withAsOf(cache.bonds, cache.source);
+async function loadAllBonds(sd?: number): Promise<BondSource> {
+  const k = sd ?? (await currentOutlierSd());
+  if (!cache || Date.now() - cache.at >= CACHE_MS) await reload();
+  return withAsOf(outlierCut(k).bonds, cache!.source);
+}
+
+async function reload() {
 
   const client = db();
   if (!client) {
     if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_DATA !== "1") {
       throw new Error("Bond data is not connected yet.");
     }
-    cache = { at: Date.now(), bonds: SAMPLE_BONDS, source: "sample", unrated: 0, total: SAMPLE_BONDS.length };
-    return withAsOf(SAMPLE_BONDS, "sample");
+    cache = { at: Date.now(), rated: SAMPLE_BONDS, source: "sample", unrated: 0, total: SAMPLE_BONDS.length, bySd: new Map() };
+    return;
   }
 
   // Every column the copy has (min_denomination / min_lot arrive with a later export); filters are applied below.
@@ -75,10 +102,10 @@ async function loadAllBonds(): Promise<BondSource> {
   }));
   // Unrated bonds never appear on the site (Livio, 18/10/2026).
   const current = dropStale(bonds);
-  const fresh = current.filter((b) => bondNotch(b) !== null);
+  const rated = current.filter((b) => bondNotch(b) !== null);
+  // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (Livio, 20/10/2026).
   const [{ total }] = await client`select count(*)::int total from public_bonds`;
-  cache = { at: Date.now(), bonds: fresh, source: "live", unrated: current.length - fresh.length, total: Number(total) };
-  return withAsOf(fresh, "live");
+  cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), bySd: new Map() };
 }
 
 // A yield whose quote is more than this many days older than the newest one in the copy is stale and left out.
@@ -113,6 +140,13 @@ function isoDay(v: unknown): string | null {
  * Every bond the site can show, all currencies, plus how many of the whole copy were left out
  * (unrated with a current yield, and the rest: no yield, matured, stale or not modelled). For the bond map.
  */
+/** The bonds left out as likely risky structures (lib/outliers.ts), for checks and the admin. */
+export async function loadOutliers(sd?: number): Promise<Outlier[]> {
+  const k = sd ?? (await currentOutlierSd());
+  await loadAllBonds(k);
+  return outlierCut(k).outliers;
+}
+
 export async function loadAllShown(): Promise<BondSource & { unrated: number; total: number }> {
   const all = await loadAllBonds();
   return { ...all, unrated: cache?.unrated ?? 0, total: cache?.total ?? all.bonds.length };

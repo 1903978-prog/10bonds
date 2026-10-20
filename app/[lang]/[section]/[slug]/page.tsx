@@ -2,7 +2,7 @@ import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Breadcrumbs, ComparisonBody, JsonLd, prose, RiskNote, ToolCta } from "@/components/seo/Seo";
+import { Breadcrumbs, ComparisonBody, JsonLd, prose, ToolCta } from "@/components/seo/Seo";
 import { accountsConfigured } from "@/lib/accounts";
 import { currentUser } from "@/lib/currentUser";
 import CurveSection from "@/components/seo/CurveSection";
@@ -137,7 +137,6 @@ function InsightsPage({ l }: { l: Locale }) {
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
       <InsightsSection locale={l} text={c} curveHref={curvePath(l)} methodHref={pathOf(l, "method")} />
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
     </div>
   );
 }
@@ -152,7 +151,6 @@ function CurvePage({ l }: { l: Locale }) {
       {c.intro.map((p) => <p key={p.slice(0, 30)} className="mt-3 text-[17px] text-mute">{p}</p>)}
       <CurveSection locale={l} text={c} />
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + curvePath(l), inLanguage: LOCALE[l].hreflang, creator: ORGANIZATION }} />
     </div>
   );
@@ -177,7 +175,6 @@ function ToolPage({ l }: { l: Locale }) {
         <p className="mt-3"><Link href={pathOf(l, "bonds")} className="text-accent">{t.bonds} ›</Link> · <Link href={pathOf(l, "guides")} className="text-accent">{t.guides} ›</Link></p>
       </section>
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "WebApplication", name: c.h1, url, inLanguage: LOCALE[l].hreflang, applicationCategory: "FinanceApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, description: c.description }} />
     </div>
   );
@@ -220,7 +217,6 @@ async function ComparisonPage({ l, def }: { l: Locale; def: ComparisonDef }) {
       )}
       <p className="mt-6 text-sm text-mute"><Link href={pathOf(l, "method")} className="text-accent">{t.method}</Link></p>
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -274,7 +270,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
   const org = ORGANIZATION;
   const team = pathOf(l, "team");
   return (
-    <article className="mx-auto max-w-3xl">
+    <article className="mx-auto max-w-6xl">
       {g.status !== "published" && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.preview} ({g.status}{g.machineTranslated ? ", machine translation" : ""})</p>}
       <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.guides, href: pathOf(l, "guides") }, { name: g.title, href: pathOf(l, "guides", g.slug) }]} />
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
@@ -308,7 +304,6 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
         </section>
       )}
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd
         data={{
           "@context": "https://schema.org",

@@ -2,7 +2,7 @@ import { DEFAULT_RATES, DEFAULT_YEARS } from "./seo/defaultRates";
 
 // Yield after expected losses ("loss-adjusted yield"), the score both finder modes rank by:
 // yield minus the yearly default rate for the bond's rating over its horizon times the share lost in a default.
-// Default rates: S&P long-run cumulative averages per notch (lib/seo/defaultRates.ts). Loss given default: 60%.
+// Default rates: 10BONDS combined long-run cumulative averages per notch (lib/seo/defaultRates.ts). Loss given default: 60%.
 export const LOSS_GIVEN_DEFAULT = 0.6;
 
 /** The DEFAULT_RATES row for a notch (AAA = 0 .. B- = 15, CCC+ = 16, CCC and below = 17). */

@@ -1,0 +1,18 @@
+name: Outliers live check
+# Manual (and when the rule or this check changes): which bonds the outlier rule leaves out on the live copy. Read-only.
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/outliers-live-check.yml", "scripts/outliers-live-check.ts", "lib/outliers.ts"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/outliers-live-check.ts

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
-import { LIMITS } from "@/lib/limits";
+import { DURATION_STEPS, LIMITS, isOpenEnded } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
@@ -14,13 +14,22 @@ import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
+import { MC_PATHS } from "@/lib/monteCarlo";
+import { loadMe } from "@/lib/me";
+import WhyTable from "./WhyTable";
+import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
   source: "live" | "sample";
+  scanned?: number;
+  found?: number[];
+  monteCarlo?: { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
+  outliers?: { sd: number; liveSd: number; count: number; liveCount: number };
+  engine?: { method: string; version: string | null; weight: number; liveWeight: number; preview?: boolean; premiums?: Record<string, number> };
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -39,6 +48,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
+  // Admin only: the risk premium tuning panel (yellow). Everyone else never sees or sends it.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [tuner, setTuner] = useState<TunerState>(TUNER_START);
+  const [tunerSaved, setTunerSaved] = useState(0);
+  useEffect(() => { loadMe().then((me) => setIsAdmin(!!me?.isAdmin)); }, []);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
   const [currency, setCurrency] = useState<BondFilter["currency"]>("EUR");
@@ -47,6 +61,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
   const [touched, setTouched] = useState(false);
+  const show = useScanShow(data, touched);
+
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
   const [resultsH, setResultsH] = useState<number | null>(null);
@@ -110,6 +126,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (preview.current) qs.set("preview", preview.current);
+        if (isAdmin && tuner.weight !== null) {
+          qs.set("rw", String(tuner.weight));
+          qs.set("rp", tuner.shifts.join(","));
+        }
+        if (isAdmin && tuner.sd !== null) qs.set("os", String(tuner.sd));
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
         if (res.status === 402 && body.limitReached) {
@@ -132,11 +153,20 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size]);
+  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved]);
 
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
   const signedIn = tier !== "visitor";
+  // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
+  const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
+  if (isAdmin && tuner.weight !== null) {
+    why.set("rw", String(tuner.weight));
+    why.set("rp", tuner.shifts.join(","));
+  }
+  if (isAdmin && tuner.sd !== null) why.set("os", String(tuner.sd));
+  if (preview.current) why.set("preview", preview.current);
+  const whyQuery = why.toString();
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
   const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: "/signup", label: t.avgSignUp };
 
@@ -182,14 +212,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <Slider
           label={t.horizon}
           hint={t.horizonHint}
-          value={duration}
-          display={`${duration % 1 === 0 ? duration : duration.toFixed(1)} ${t.years}`}
-          min={LIMITS.duration.min}
-          max={LIMITS.duration.max}
-          step={LIMITS.duration.step}
+          value={DURATION_STEPS.indexOf(duration)}
+          display={isOpenEnded(duration) ? t.years30 : `${duration} ${t.years}`}
+          min={0}
+          max={DURATION_STEPS.length - 1}
+          step={1}
           minLabel={t.year1}
-          maxLabel={t.years15}
-          onChange={changeDuration}
+          maxLabel={t.years30}
+          onChange={(i) => changeDuration(DURATION_STEPS[i])}
         />
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
         <div className={mode === "portfolio" ? "" : "invisible"} aria-hidden={mode !== "portfolio"}>
@@ -219,6 +249,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
+        {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
 
       </section>
 
@@ -240,11 +271,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? pct(data.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? (data.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? yrs(data.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
+          <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">
           {data && !paid && (
@@ -254,11 +286,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           )}
         </div>
 
-        <div className={`mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+        <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
           <Results
+            show={show}
+            lang={lang}
             data={data}
             paid={paid}
             signedIn={signedIn}
+            whyQuery={whyQuery}
             currency={currency}
             message={
               limit ? <LimitReached quota={limit} />
@@ -284,6 +319,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
+          <MonteCarloNote data={data} lang={lang} />
         </div>
       </section>
       )}
@@ -370,17 +406,157 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
   );
 }
 
+type Show = { row: number; count: number; sim: number };
+
+/** Fifth box of the row: the bond counter while the search show runs (pick number → its A–Z place), else how many bonds were searched. Same size always. */
+function ScanBox({ data, show, lang, currency }: { data: Response | null; show: Show | null; lang: FinderLang; currency: string }) {
+  const t = useFinderText();
+  const fmt = new Intl.NumberFormat(lang);
+  const n = data?.scanned ?? 0;
+  const bar = show ? show.count / Math.max(n, 1) : n ? 1 : 0;
+  return (
+    <div className="col-span-2 flex h-[60px] flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-1.5 text-center sm:col-span-1" data-testid="scan-box">
+      <div className="text-xl font-semibold leading-none tabular-nums tracking-tight">
+        {show ? <><span className="text-[12px] font-normal text-mute">#{show.row + 1} → </span>{fmt.format(show.count)}</> : n ? fmt.format(n) : "—"}
+      </div>
+      <div className="my-1.5 h-1 w-full max-w-[140px] overflow-hidden rounded-full bg-canvas">
+        <div className="h-full rounded-full bg-accent" style={{ width: `${bar * 100}%` }} />
+      </div>
+      <div className="w-full truncate text-[11px] leading-none text-mute">{show ? `${t.scanOf} ${fmt.format(n)} · A→Z` : t.scanBox(currency)}</div>
+    </div>
+  );
+}
+
+/**
+ * The search, staged for the visitor. Every bond searched has a number 1..N in alphabetical order (from the server).
+ * Before each of the 10 picks appears, a counter runs up to that bond's number and stops there; the row then appears
+ * and the counter starts again for the next one, while the real Monte Carlo run of the list is drawn. Only for searches
+ * the visitor starts; a search that answers mid-show takes it over (the show is not restarted); about 1 second per pick;
+ * skipped for reduced motion. Rows keep their places throughout (hidden rows are invisible, not removed).
+ */
+function useScanShow(data: Response | null, active: boolean): Show | null {
+  const [show, setShow] = useState<Show | null>(null);
+  const run = useRef<{ raf: number; start: number } | null>(null);
+  const latest = useRef(data);
+  latest.current = data;
+  const shown = useRef(data);
+  useEffect(() => {
+    if (!active) shown.current = data;
+  }, [active, data]);
+  useEffect(() => {
+    if (!active || !data?.found?.length || data === shown.current || run.current) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const now0 = performance.now();
+    const r = { raf: 0, start: now0 };
+    run.current = r;
+    const tick = (now: number) => {
+      const found = latest.current?.found ?? [];
+      const per = 1000; // ms per pick (Livio: the 10 picks in about 10 seconds): counting up, then a hold on the number
+      const t = (now - r.start) / per;
+      const row = Math.floor(t);
+      if (row >= found.length) {
+        run.current = null;
+        setShow(null);
+        return;
+      }
+      const f = Math.min(1, (t - row) / 0.8);
+      const count = Math.max(1, Math.round((1 - (1 - f) * (1 - f)) * found[row]));
+      setShow({ row, count, sim: Math.min(1, t / found.length) });
+      r.raf = requestAnimationFrame(tick);
+    };
+    r.raf = requestAnimationFrame(tick);
+  }, [active, data]);
+  useEffect(
+    () => () => {
+      if (run.current) cancelAnimationFrame(run.current.raf);
+      run.current = null;
+    },
+    [],
+  );
+  return show;
+}
+
+/** The Monte Carlo drawing, laid over the slots of the picks not shown yet (the bond counter is the fifth box above). */
+function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: FinderLang }) {
+  const t = useFinderText();
+  const fmt = new Intl.NumberFormat(lang);
+  const mc = data.monteCarlo;
+  const sims = mc?.paths ?? 0;
+  const samples = mc?.samples ?? [];
+  const W = 280, H = 70;
+  const all = samples.flat();
+  const vMin = Math.min(...all), vMax = Math.max(...all);
+  const yOf = (v: number) => H - 2 - ((v - vMin) / Math.max(vMax - vMin, 0.1)) * (H - 4);
+  const steps = samples[0]?.length ?? 0;
+  const left = SLOTS - show.row; // slots still hidden, the space this panel has
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="scan-bar"
+      className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-canvas text-center top-[var(--m)] sm:top-[var(--d)]"
+      style={{ ["--m" as string]: `${show.row * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + show.row * ROW_H}px` }}
+    >
+      {sims > 0 && left >= 3 && (
+        <div className="w-[280px] max-w-[85%]">
+          <svg viewBox={`0 0 ${W} ${H}`} className="block h-[70px] w-full" preserveAspectRatio="none">
+            <defs>
+              <clipPath id="mc-reveal"><rect x={0} y={0} width={W * show.sim} height={H} /></clipPath>
+            </defs>
+            {/* Real simulated paths of this list: each line is one scenario, the drops are defaults. */}
+            <g clipPath="url(#mc-reveal)">
+              {samples.map((s, k) => {
+                const fell = s.some((v, j) => j > 0 && v < s[j - 1]);
+                return (
+                  <polyline
+                    key={k}
+                    points={s.map((v, j) => `${(j / (steps - 1)) * W},${yOf(v)}`).join(" ")}
+                    fill="none"
+                    className={fell ? "stroke-amber-500" : "stroke-accent"}
+                    strokeWidth={fell ? 1.2 : 1.5}
+                    strokeOpacity={fell ? 0.8 : 0.25}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              })}
+            </g>
+          </svg>
+          <p className="mt-1 text-[10px] text-mute">{t.scanCaption}</p>
+        </div>
+      )}
+      {sims > 0 && (
+        <p className="mt-1 text-[12px] tabular-nums text-mute">
+          {t.scanSimsLabel} <span className="font-medium text-ink">{fmt.format(Math.round(show.sim * sims))}</span> / {fmt.format(sims)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
+function MonteCarloNote({ data, lang }: { data: Response | null; lang: FinderLang }) {
+  const t = useFinderText();
+  const mc = data?.monteCarlo;
+  const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
+  return (
+    <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="monte-carlo">
+      {mc?.expYield != null && mc.p5 != null ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
+    </p>
+  );
+}
+
 // Fixed sizes of the result table: a header and always 10 row slots, so nothing under it moves when the results change.
 const SLOTS = 10;
 const HEAD_H = 30;
 const ROW_H = 34;
 const CARD_H = 64;
 
-function Results({ data, paid, signedIn, currency, message }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null }) {
+function Results({ data, paid, signedIn, currency, message, show, lang, whyQuery }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string }) {
   const t = useFinderText();
   const rows = message ? [] : (data?.rows ?? []).slice(0, SLOTS);
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
+  // While the search show runs, picks from this slot on are kept in place but not shown yet.
+  const hide = (i: number) => (show && !message && i >= show.row ? " invisible" : "");
   return (
     <div>
       <div className="relative">
@@ -408,8 +584,8 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.rank} className="border-b border-line/60" style={{ height: ROW_H }}>
+          {rows.map((r, i) => (
+            <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: ROW_H }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
               <td className="overflow-hidden py-0 pr-3">
@@ -421,14 +597,14 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                   <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="px-3 py-0 text-center font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="px-3 py-0 text-center font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
               <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
-            <tr key={`l${i}`} aria-hidden className="select-none border-b border-line/60 blur-[5px]" style={{ height: ROW_H }}>
+            <tr key={`l${i}`} aria-hidden className={`select-none border-b border-line/60 blur-[5px]${hide(rows.length + i)}`} style={{ height: ROW_H }}>
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
               <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
@@ -442,8 +618,8 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
 
       {/* Phone cards */}
       <ul className="space-y-2 sm:hidden">
-        {rows.map((r) => (
-          <li key={r.rank} className="flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4" style={{ height: CARD_H }}>
+        {rows.map((r, i) => (
+          <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4${hide(i)}`} style={{ height: CARD_H }}>
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.issuer}</div>
@@ -455,11 +631,11 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                     : t.detailsFree}
               </div>
             </div>
-            <span className="font-semibold tabular-nums">{pct(r.ytm)}</span>
+            <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (
-          <li key={`l${i}`} aria-hidden className="flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]" style={{ height: CARD_H }}>
+          <li key={`l${i}`} aria-hidden className={`flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]${hide(rows.length + i)}`} style={{ height: CARD_H }}>
             <span className="h-3 w-4 rounded bg-line" />
             <span className="h-3 flex-1 rounded bg-line" />
             <span className="h-3 w-12 rounded bg-line" />
@@ -470,7 +646,8 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
         ))}
       </ul>
 
-      {locked > 0 && <LockedOverlay count={locked} top={rows.length} />}
+      {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
+      {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
           {message}
@@ -501,6 +678,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
             <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
           </Link>
         ) : null}
+        {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} />}
       </div>
     </div>
   );

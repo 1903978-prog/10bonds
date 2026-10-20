@@ -69,7 +69,6 @@ export default async function KnowledgePage() {
           </section>
         ))}
       </div>
-      <p className="mt-8 max-w-3xl text-xs leading-relaxed text-mute">Information and education only, not investment advice or an offer to buy or sell. Yields are gross and indicative and can change. Bonds can lose value and issuers can default.</p>
       <JsonLd data={{ "@context": "https://schema.org", "@type": "CollectionPage", name: k.h1, inLanguage: "en", url: SITE_URL + enPath(), hasPart: Object.values(items).flat().map((i) => ({ "@type": "WebPage", name: i.title, url: SITE_URL + i.href })) }} />
     </div>
   );

@@ -22,3 +22,14 @@ jobs:
               echo "== $c values"; q "select $c, count(*) from public_bonds group by 1 order by 2 desc limit 15"
             fi
           done
+          echo "== USD: rated / rated+yield+duration / newest yield / stale vs overall newest"
+          q "select count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null), count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null and gross_ytm is not null and modified_duration is not null), max(ytm_as_of), min(ytm_as_of) from public_bonds where currency='USD'"
+          q "select currency, max(ytm_as_of) from public_bonds group by 1"
+          echo "== USD rated with yield: structure_modelled / matured / duration buckets"
+          q "select coalesce(structure_modelled::text,'null'), count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null and gross_ytm is not null group by 1"
+          q "select floor(modified_duration) d, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null and gross_ytm is not null group by 1 order by 1"
+          echo "== USD rated: ytm_as_of days, min_denomination values"
+          q "select date_trunc('day', ytm_as_of)::date, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1 order by 1 desc limit 15"
+          q "select min_denomination, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1 order by 2 desc limit 10"
+          echo "== USD rating samples"
+          q "select rating_resolved, rating_sp, rating_moodys, rating_fitch, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1,2,3,4 order by 5 desc limit 15"

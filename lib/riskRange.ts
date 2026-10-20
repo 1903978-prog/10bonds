@@ -1,5 +1,5 @@
 import type { PublicBond } from "./types";
-import { LIMITS } from "./limits";
+import { DURATION_STEPS, LIMITS } from "./limits";
 import { bondRisk } from "./ratings";
 import { portfolioPool, withinRisk } from "./ranking";
 
@@ -10,7 +10,7 @@ import { portfolioPool, withinRisk } from "./ranking";
 export function maxRiskByDuration(bonds: PublicBond[]): Record<string, number | null> {
   const rated = withinRisk(bonds, LIMITS.risk.max);
   const out: Record<string, number | null> = {};
-  for (let d = LIMITS.duration.min; d <= LIMITS.duration.max + 1e-9; d += LIMITS.duration.step) {
+  for (const d of DURATION_STEPS) {
     const risks = portfolioPool(rated, d).pool.map(bondRisk).filter((r): r is number => r !== null);
     out[String(Math.round(d * 100) / 100)] = risks.length ? Math.max(...risks) : null;
   }
