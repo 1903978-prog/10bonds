@@ -6,7 +6,9 @@ import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { DURATION_STEPS, LIMITS, isOpenEnded } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
-import type { ResultsPayload } from "@/lib/tiers";
+import type { ResultRow, ResultsPayload } from "@/lib/tiers";
+import type { AltRow } from "@/lib/alternatives";
+import { averageRisk } from "@/lib/ratings";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
@@ -25,6 +27,7 @@ type Response = ResultsPayload & {
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
+  alternatives?: AltRow[]; // Plus and up: bonds left out, to swap in
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -140,8 +143,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     };
   }, [duration, ytm, risk, mode, currency, size]);
 
+  // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
+  const [list, setList] = useState<ResultRow[] | null>(null);
+  useEffect(() => setList(null), [data]);
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
+  const summary = list ? listSummary(list) : data?.summary;
   const signedIn = tier !== "visitor";
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
   const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: "/signup", label: t.avgSignUp };
@@ -248,9 +255,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
-          <Stat value={!data ? "—" : paid ? pct(data.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
-          <Stat value={!data ? "—" : paid ? (data.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
-          <Stat value={!data ? "—" : paid ? yrs(data.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? (summary?.avgRisk != null ? <RiskBadge risk={summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">
@@ -266,6 +273,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             show={show}
             lang={lang}
             data={data}
+            list={list}
+            setList={setList}
+            atMax={ytm >= ytmMax - 1e-9}
             paid={paid}
             signedIn={signedIn}
             currency={currency}
@@ -293,7 +303,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
-          <MonteCarloNote data={data} lang={lang} />
+          <MonteCarloNote data={data} lang={lang} edited={list !== null} />
         </div>
       </section>
       )}
@@ -507,13 +517,21 @@ function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: Fin
 }
 
 /** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
-function MonteCarloNote({ data, lang }: { data: Response | null; lang: FinderLang }) {
+function MonteCarloNote({ data, lang, edited }: { data: Response | null; lang: FinderLang; edited: boolean }) {
   const t = useFinderText();
   const mc = data?.monteCarlo;
   const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
   return (
-    <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="monte-carlo">
-      {mc?.expYield != null && mc.p5 != null ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
+    <p className="mt-1 grid text-[11px] leading-snug text-mute" data-testid="monte-carlo">
+      {/* Both texts share one cell, so the line keeps its height when a paid user's edit hides the figures. */}
+      {mc?.expYield != null && mc.p5 != null ? (
+        <>
+          <span className={`col-start-1 row-start-1${edited ? " invisible" : ""}`}>{t.mc(n, pct(mc.expYield), pct(mc.p5))}</span>
+          <span className={`col-start-1 row-start-1${edited ? "" : " invisible"}`} aria-hidden={!edited}>{t.mcRun(n)}</span>
+        </>
+      ) : (
+        t.mcRun(n)
+      )}
     </p>
   );
 }
@@ -524,9 +542,18 @@ const HEAD_H = 30;
 const ROW_H = 34;
 const CARD_H = 64;
 
-function Results({ data, paid, signedIn, currency, message, show, lang }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang }) {
+function Results({ data, list, setList, atMax, paid, signedIn, currency, message, show, lang }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; atMax: boolean; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang }) {
   const t = useFinderText();
-  const rows = message ? [] : (data?.rows ?? []).slice(0, SLOTS);
+  const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
+  const premium = data?.tier === "premium";
+  // The swap panel (for one slot) or the Premium "why in or out" table, drawn over the rows so nothing moves.
+  const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | { kind: "why" } | null>(null);
+  useEffect(() => setPanel(null), [data]);
+  const swapIn = (slot: number, b: ResultRow) => {
+    setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
+    setPanel(null);
+  };
+  const canEdit = paid && !show && !message && rows.length > 0;
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
   // While the search show runs, picks from this slot on are kept in place but not shown yet.
@@ -545,6 +572,7 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
           <col className="w-[6.5rem]" />
           <col className="w-[9rem]" />
           <col className="w-[5rem]" />
+          <col className="w-8" />
         </colgroup>
         <thead>
           <tr className="border-b border-line text-left text-xs text-mute" style={{ height: HEAD_H }}>
@@ -555,6 +583,7 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
             <th className="truncate px-3 py-0 text-center font-medium">{t.duration}</th>
             <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>
             <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
+            <th aria-label={t.swap} />
           </tr>
         </thead>
         <tbody>
@@ -575,6 +604,7 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
               <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              <td className="py-0 text-center">{canEdit && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
@@ -582,10 +612,11 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
               <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
+              <td />
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: ROW_H }}><td colSpan={7} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: ROW_H }}><td colSpan={8} /></tr>
           ))}
         </tbody>
       </table>
@@ -606,6 +637,7 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
               </div>
             </div>
             <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
+            <span className="-mr-2 w-7 shrink-0 text-center">{canEdit && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</span>
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (
@@ -622,6 +654,11 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
 
       {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
       {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
+      {panel && data && canEdit && (
+        panel.kind === "swap"
+          ? <SwapPanel row={rows[panel.slot]} options={swapOptions(rows[panel.slot], available(data, rows))} onPick={(b) => swapIn(panel.slot, b)} onClose={() => setPanel(null)} />
+          : <WhyPanel rows={rows} out={available(data, rows)} atMax={atMax} onAdd={(b) => swapIn(weakestSlot(rows), b)} onClose={() => setPanel(null)} />
+      )}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
           {message}
@@ -630,8 +667,9 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
       </div>
 
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
-      <div className="mt-2 flex h-7 items-center">
+      <div className="mt-2 flex h-7 items-center gap-2 overflow-hidden whitespace-nowrap">
         {paid && rows.length > 0 ? (
+          <>
           <button
             type="button"
             data-testid="excel-download"
@@ -646,6 +684,19 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
           >
             ⬇ {t.excel}
           </button>
+          {premium ? (
+            <button type="button" data-testid="why-open" disabled={!canEdit} onClick={() => setPanel({ kind: "why" })} className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas disabled:opacity-50">
+              {t.why}
+            </button>
+          ) : (
+            <Link href="/pricing" className="inline-flex items-center gap-1 text-xs text-accent"><Lock /> {t.whyPremium}</Link>
+          )}
+          {list && (
+            <button type="button" data-testid="list-reset" onClick={() => setList(null)} className="truncate text-xs text-accent hover:underline">
+              ↺ {t.resetList}
+            </button>
+          )}
+          </>
         ) : signedIn && !paid && rows.length > 0 ? (
           <Link href="/pricing" className="flex min-w-0 items-center gap-3 text-xs">
             <span className="truncate text-mute">{t.plusPitch}</span>
@@ -701,4 +752,155 @@ function plainDate(iso: string, lang: FinderLang): string {
   if (Number.isNaN(d.getTime())) return iso;
   const loc = { en: "en-GB", it: "it-IT", fr: "fr-FR", de: "de-DE" }[lang] ?? "en-GB";
   return d.toLocaleString(loc, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+}
+
+
+/** The averages of a list the user edited (swapped bonds), worked out in the browser from what the rows show. */
+function listSummary(list: ResultRow[]): ResultsPayload["summary"] {
+  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  return {
+    count: list.length,
+    avgYtm: avg(list.map((r) => r.ytm)),
+    avgDuration: avg(list.flatMap((r) => (r.duration == null ? [] : [r.duration]))),
+    avgRisk: averageRisk(list.map((r) => r.risk ?? null)),
+  };
+}
+
+type OutRow = ResultRow & { reason?: AltRow["reason"] };
+
+/** Bonds that can come into the list now: those left out plus any the user swapped out, never an issuer already in it. */
+function available(data: Response, rows: ResultRow[]): OutRow[] {
+  const isins = new Set(rows.map((r) => r.isin));
+  const issuers = new Set(rows.map((r) => r.issuer));
+  const all: OutRow[] = [
+    ...data.rows,
+    ...(data.alternatives ?? []).map((a) => ({ ...a, rank: 0, lossAdj: a.adjYtm })),
+  ];
+  const seen = new Set<string>();
+  return all.filter((b) => {
+    if (!b.isin || seen.has(b.isin) || isins.has(b.isin) || issuers.has(b.issuer)) return false;
+    seen.add(b.isin);
+    return true;
+  });
+}
+
+/** The 5 bonds closest to `row` in risk and duration (a year of duration weighs like a risk step); higher yield breaks ties. */
+function swapOptions(row: ResultRow, pool: OutRow[]): OutRow[] {
+  const dist = (b: ResultRow) => Math.abs((b.risk ?? 10) - (row.risk ?? 10)) + Math.abs((b.duration ?? 0) - (row.duration ?? 0));
+  return [...pool].sort((a, b) => dist(a) - dist(b) || b.ytm - a.ytm).slice(0, 5);
+}
+
+/** The slot an added bond takes: the bond with the lowest yield after losses. */
+function weakestSlot(rows: ResultRow[]): number {
+  let k = 0;
+  rows.forEach((r, i) => {
+    if ((r.lossAdj ?? r.ytm) < (rows[k].lossAdj ?? rows[k].ytm)) k = i;
+  });
+  return k;
+}
+
+function SwapButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button type="button" onClick={onClick} title={label} aria-label={label} data-testid="swap-open" className="inline-flex h-6 w-6 items-center justify-center rounded-full text-mute hover:bg-canvas hover:text-accent">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="m17 20 4-4-4-4" /><path d="M21 16H7" />
+      </svg>
+    </button>
+  );
+}
+
+function PanelShell({ title, onClose, children }: { title: ReactNode; onClose: () => void; children: ReactNode }) {
+  const t = useFinderText();
+  return (
+    <div className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-3" role="dialog" aria-label={typeof title === "string" ? title : undefined}>
+      <div className="flex h-7 shrink-0 items-center justify-between gap-3">
+        <div className="min-w-0 truncate text-sm font-semibold">{title}</div>
+        <button type="button" onClick={onClose} aria-label={t.close} className="h-7 w-7 shrink-0 rounded-full text-mute hover:bg-canvas">✕</button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SwapPanel({ row, options, onPick, onClose }: { row: ResultRow; options: OutRow[]; onPick: (b: ResultRow) => void; onClose: () => void }) {
+  const t = useFinderText();
+  return (
+    <PanelShell title={t.swapTitle(row.issuer)} onClose={onClose}>
+      <p className="mb-2 truncate text-xs text-mute">{t.swapHint}</p>
+      {options.length === 0 ? (
+        <p className="text-sm text-mute">{t.swapNone}</p>
+      ) : (
+        <ul className="divide-y divide-line/60" data-testid="swap-options">
+          {options.map((b) => (
+            <li key={b.isin} className="flex items-center gap-3 text-sm" style={{ height: ROW_H + 4 }}>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{b.issuer}</div>
+                <div className="truncate text-[11px] text-mute">{b.name} · {b.isin}</div>
+              </div>
+              <span className="w-14 text-right font-semibold tabular-nums">{pct(b.ytm)}</span>
+              <span className="hidden w-12 text-right tabular-nums sm:inline">{b.duration?.toFixed(1)}</span>
+              <span className="w-8 text-center"><RiskBadge risk={b.risk} /></span>
+              <button type="button" onClick={() => onPick(b)} className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90">{t.swapPick}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PanelShell>
+  );
+}
+
+/** Premium: why each bond is in the list or left out, and an Add button to bring a left-out bond in. */
+function WhyPanel({ rows, out, atMax, onAdd, onClose }: { rows: ResultRow[]; out: OutRow[]; atMax: boolean; onAdd: (b: ResultRow) => void; onClose: () => void }) {
+  const t = useFinderText();
+  const [tab, setTab] = useState<"in" | "out">("in");
+  const shown: OutRow[] = tab === "in" ? rows : out.slice(0, SLOTS - 1);
+  const reason = (b: OutRow) =>
+    tab === "in" ? (atMax ? t.inTop : t.inTarget) : b.reason === "moreRisk" ? t.outRisk : b.reason === "lowerYield" ? t.outYield : t.outYou;
+  return (
+    <PanelShell
+      title={
+        <span className="inline-flex rounded-full bg-canvas p-0.5 text-xs font-medium">
+          {(["in", "out"] as const).map((k) => (
+            <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-full px-3 py-0.5 ${tab === k ? "bg-white shadow-sm" : "text-mute"}`}>
+              {k === "in" ? t.inTab : t.outTab}
+            </button>
+          ))}
+        </span>
+      }
+      onClose={onClose}
+    >
+      <table className="w-full table-fixed text-[13px]" data-testid="why-table">
+        <colgroup>
+          <col className="w-[30%]" /><col className="w-16" /><col className="w-10" /><col className="w-20" /><col /><col className="w-20" />
+        </colgroup>
+        <thead>
+          <tr className="border-b border-line text-left text-[11px] text-mute" style={{ height: 24 }}>
+            <th className="font-medium">{t.issuer}</th>
+            <th className="text-right font-medium">{t.yield}</th>
+            <th className="text-center font-medium">{t.risk}</th>
+            <th className="text-right font-medium">{t.afterLoss}</th>
+            <th className="pl-3 font-medium" />
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((b) => (
+            <tr key={b.isin} className="border-b border-line/60" style={{ height: 29 }}>
+              <td className="truncate font-medium" title={`${b.name} · ${b.isin}`}>{b.issuer}</td>
+              <td className="text-right tabular-nums">{pct(b.ytm)}</td>
+              <td className="text-center"><RiskBadge risk={b.risk} /></td>
+              <td className="text-right tabular-nums">{pct(b.lossAdj)}</td>
+              <td className="truncate pl-3 text-[11px] text-mute" title={reason(b)}>{reason(b)}</td>
+              <td className="text-right">
+                {tab === "out" && (
+                  <button type="button" onClick={() => onAdd(b)} data-testid="why-add" className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-accent hover:bg-canvas">+ {t.addBond}</button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {tab === "out" && <p className="mt-auto truncate pt-1 text-[11px] text-mute">{t.addNote}</p>}
+    </PanelShell>
+  );
 }

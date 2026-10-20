@@ -4,6 +4,7 @@ import { loadBondsFor } from "@/lib/bonds";
 import { parseFilter } from "@/lib/bondFilter";
 import { rankBonds } from "@/lib/ranking";
 import { shapeForTier } from "@/lib/tiers";
+import { alternativesFor } from "@/lib/alternatives";
 import { simulateCached } from "@/lib/monteCarlo";
 import { bondRisk } from "@/lib/ratings";
 import type { Tier } from "@/lib/types";
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
   if (user?.confirmBlocked) return NextResponse.json({ error: "Please confirm your e-mail address first.", confirmBlocked: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
   let tier: Tier = user ? user.plan : "visitor";
   const preview = url.searchParams.get("preview");
-  if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
+  if (data.source === "sample" && (preview === "free" || preview === "plus" || preview === "premium")) tier = preview;
 
   // Weekly allowance per plan (Free: limited; Plus and Premium: see SEARCH_LIMITS). Visitors keep their short preview.
   const usage = user && tier === user.plan ? await consumeSearch(user, "portfolio") : null;
@@ -72,8 +73,10 @@ export async function GET(req: Request) {
   // Others see the drawn paths relative to the best one at each step (drops from defaults, not the growth, which would give away the average yield).
   const best = sim.samples.length ? sim.samples[0].map((_, k) => Math.max(...sim.samples.map((s) => s[k]))) : [];
   const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null, samples: sim.samples.map((s) => s.map((v, k) => Math.round((v / best[k]) * 1000) / 10)) };
+  // Plus and up: the bonds left out, to swap into the list; Premium (and Pro) also see why each one is out.
+  const alternatives = paid ? alternativesFor(data.bonds, results, duration, risk, tier === "premium") : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier), monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine },
+    { ...shapeForTier(results, tier), alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

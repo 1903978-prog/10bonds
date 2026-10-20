@@ -6,79 +6,51 @@ import { currentUser } from "@/lib/currentUser";
 import { stripeConfigured } from "@/lib/stripe";
 import { euro, priceCents, YEARLY_DISCOUNT, type Interval, type PaidPlan } from "@/lib/plans";
 import { proStatus } from "@/lib/pro";
-import { SEARCH_LIMITS } from "@/lib/limits";
+import { cookies } from "next/headers";
+import { LANG_COOKIE } from "@/lib/seo/locales";
+import { PRICING_TEXT, pricingLang } from "@/lib/pricingText";
 
 export const metadata: Metadata = { title: "Plans · 10BONDS", alternates: { canonical: "/pricing" } };
 export const dynamic = "force-dynamic";
 
-const PLANS = [
-  {
-    key: "free",
-    name: "Free account",
-    tagline: "Sign up with your email.",
-    features: [`${SEARCH_LIMITS.free.single} single-bond searches a week`, `${SEARCH_LIMITS.free.portfolio} portfolio searches a week`, "Full top 10 bonds", "Issuer, yield, risk score, duration", "No ISIN codes"],
-    cta: "Create free account",
-    highlight: false,
-  },
-  {
-    key: "plus",
-    name: "Plus",
-    tagline: "The full shortlist.",
-    features: ["Everything in the free account", "ISIN codes visible", "Unlimited single-bond searches", SEARCH_LIMITS.plus.portfolio === null ? "Unlimited portfolio searches" : `${SEARCH_LIMITS.plus.portfolio} portfolio searches a week`, "Bond name, coupon, maturity", "Average shortlist figures"],
-    cta: "Get Plus",
-    highlight: true,
-  },
-  {
-    key: "premium",
-    name: "Premium",
-    tagline: "Stay on top of changes.",
-    features: ["Everything in Plus", "Email alerts when the top 10 changes", "Saved searches", "Deeper risk figures", "Yield history"],
-    cta: "Get Premium",
-    highlight: false,
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    tagline: "For professionals only.",
-    features: ["Everything in Premium", "Client portfolio analysis", "Swap suggestions to raise the yield", "The reason for every swap", "Approved professionals only"],
-    cta: "Get Pro",
-    highlight: false,
-  },
-];
+const PLAN_KEYS = ["free", "plus", "premium", "pro"] as const;
 
 export default async function Pricing({ searchParams }: { searchParams: Promise<{ paid?: string; cancelled?: string; billing?: string }> }) {
   const user = await currentUser();
   const sp = await searchParams;
   const payOn = stripeConfigured();
+  const lang = pricingLang((await cookies()).get(LANG_COOKIE)?.value);
+  const t = PRICING_TEXT[lang];
+  const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], highlight: key === "plus" }));
   const interval: Interval = sp.billing === "year" ? "year" : "month";
   const proApproved = user ? user.isAdmin || (await proStatus(user).catch(() => "none")) === "approved" : false;
   const sub = user?.subscription && ["active", "trialing", "past_due"].includes(user.subscription.status) ? user.subscription : null;
   return (
     <div>
       <div className="mx-auto max-w-2xl text-center">
-        <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">Simple plans</h1>
+        <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">{t.title}</h1>
         <p className="mt-1 text-sm text-mute">
-          Start with a free account. Upgrade when you want the ISIN codes and more. Cancel anytime.
+          {t.lead}
         </p>
-        {!user && <p className="mt-0.5 text-xs text-mute">Without an account you can try the search and see the top 3.</p>}
+        {!user && <p className="mt-0.5 text-xs text-mute">{t.visitor}</p>}
         {sp.paid && (
           <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-800" data-testid="paid-msg">
-            Thank you. Your payment went through; your plan is active within a minute (refresh if it still shows the old plan).
+            {t.paid}
           </p>
         )}
-        {sp.cancelled && <p className="mt-4 rounded-2xl bg-canvas px-4 py-3 text-sm text-mute">Payment cancelled. Nothing was charged.</p>}
+        {sp.cancelled && <p className="mt-4 rounded-2xl bg-canvas px-4 py-3 text-sm text-mute">{t.cancelled}</p>}
         {sub?.status === "past_due" && (
-          <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">Your last payment failed. Please update your card on your <Link href="/account" className="underline">profile page</Link>.</p>
+          <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{t.pastDue[0]}<Link href="/account" className="underline">{t.pastDue[1]}</Link>{t.pastDue[2]}</p>
         )}
         {sub?.cancelAtEnd && sub.renewsAt && (
-          <p className="mt-4 text-sm text-mute">Your subscription ends on {new Date(sub.renewsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.</p>
+          <p className="mt-4 text-sm text-mute">{t.endsOn(new Date(sub.renewsAt).toLocaleDateString(lang === "en" ? "en-GB" : lang, { day: "numeric", month: "long", year: "numeric" }))}</p>
         )}
       </div>
       <div className="mt-3 flex justify-center">
         <div className="inline-flex rounded-full bg-canvas p-1 text-sm" data-testid="billing-toggle">
-          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "month" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-month">Monthly</Link>
+          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "month" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-month">{t.monthly}</Link>
           <Link href="/pricing?billing=year" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "year" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-year">
-            Yearly <span className="text-accent">−{Math.round(YEARLY_DISCOUNT * 100)}%</span>
+            {t.yearly} <span className="text-accent">−{Math.round(YEARLY_DISCOUNT * 100)}%</span>
           </Link>
         </div>
       </div>
@@ -90,16 +62,16 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
           >
             <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               {p.name}
-              {p.key === "pro" && <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-medium text-white">For professionals</span>}
+              {p.key === "pro" && <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-medium text-white">{t.forPros}</span>}
             </h2>
             <p className="text-xs text-mute">{p.tagline}</p>
             <p className="mt-3" data-testid={`price-${p.key}`}>
-              <span className="text-[28px] font-semibold tracking-tight">{p.key === "free" ? "€0" : euro(priceCents(p.key as PaidPlan, interval))}</span>
-              {p.key !== "free" && <span className="text-sm text-mute">{interval === "year" ? "/year" : "/month"}</span>}
+              <span className="text-[28px] font-semibold tracking-tight">{p.key === "free" ? "€0" : euro(priceCents(p.key as PaidPlan, interval), lang)}</span>
+              {p.key !== "free" && <span className="text-sm text-mute">{interval === "year" ? t.perYear : t.perMonth}</span>}
             </p>
             {/* Always one line here, so Monthly/Yearly never moves the features or buttons. */}
             <p className="h-4 text-[11px] text-mute">
-              {p.key === "free" ? "" : interval === "year" ? `= ${euro(Math.round(priceCents(p.key as PaidPlan, "year") / 12))}/month, 20% less than monthly` : "Billed monthly"}
+              {p.key === "free" ? "" : interval === "year" ? t.yearlyNote(euro(Math.round(priceCents(p.key as PaidPlan, "year") / 12), lang)) : t.billedMonthly}
             </p>
             <ul className="mt-3 flex-1 space-y-1 text-[13px] leading-snug">
               {p.features.map((f) => (
@@ -116,25 +88,25 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
                 </Link>
               ) : (
                 <button disabled className="mt-4 rounded-full bg-canvas px-4 py-2 text-sm font-medium text-ink disabled:cursor-default disabled:opacity-80">
-                  {user.plan === "free" ? "Your plan" : "Included"}
+                  {user.plan === "free" ? t.yourPlan : t.included}
                 </button>
               )
             ) : !payOn ? (
               <button disabled className={`mt-4 rounded-full px-4 py-2 text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-canvas text-ink"} disabled:cursor-default disabled:opacity-80`}>
-                {user?.storedPlan === p.key ? "Your plan" : "Coming soon"}
+                {user?.storedPlan === p.key ? t.yourPlan : t.soon}
               </button>
             ) : p.key === "pro" && !proApproved ? (
               <Link href="/pro" className="mt-4 rounded-full bg-ink px-4 py-2 text-center text-sm font-medium text-white hover:opacity-90" data-testid="pro-request">
-                {user ? "Request professional access" : "Learn more"}
+                {user ? t.proRequest : t.learnMore}
               </Link>
             ) : !user ? (
               <Link href="/signup" className={`mt-4 rounded-full px-4 py-2 text-center text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-ink text-white"} hover:opacity-90`}>
-                Create a free account first
+                {t.freeFirst}
               </Link>
             ) : sub ? (
               <>
-                {user.storedPlan === p.key && <p className="mt-4 text-center text-sm font-medium text-accent">Your plan</p>}
-                <Link href="/account" className="mt-4 rounded-full bg-canvas px-4 py-2 text-center text-sm font-medium text-ink">Change on your profile</Link>
+                {user.storedPlan === p.key && <p className="mt-4 text-center text-sm font-medium text-accent">{t.yourPlan}</p>}
+                <Link href="/account" className="mt-4 rounded-full bg-canvas px-4 py-2 text-center text-sm font-medium text-ink">{t.changeOnProfile}</Link>
               </>
             ) : (
               <PlanButton plan={p.key as PaidPlan} interval={interval} highlight={p.highlight} label={p.cta} />
@@ -144,8 +116,8 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
       </div>
       {user && !sub && <RedeemForm />}
       <p className="mt-3 text-center text-xs text-mute" data-testid="plan-terms">
-        Prices include VAT · cancel anytime · payments by Stripe.
-        {!user && " Have a promo code? Enter it when you create your free account for 30 days of full access."}
+        {t.terms}
+        {!user && t.promo}
       </p>
     </div>
   );
