@@ -10,6 +10,9 @@ import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
 import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
+import LossChart from "@/components/LossChart";
+import { nearestLoss } from "@/lib/lossCurve";
+import type { CurvePoint } from "@/lib/lossCurve";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
@@ -166,6 +169,19 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   useEffect(() => setList(null), [data]);
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
+  // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
+  const [chartOn, setChartOn] = useState(false);
+  const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
+  const chartable = (paid || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
+  useEffect(() => {
+    if (!chartOn || !chartable) return;
+    const ctrl = new AbortController();
+    fetch(`/api/bonds/curve?${new URLSearchParams({ duration: String(duration), risk: String(risk), currency, size })}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => j && setCurve(j))
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [chartOn, chartable, duration, risk, currency, size]);
   const summary = list ? listSummary(list) : data?.summary;
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
@@ -297,6 +313,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+          {/* Fixed-height row above the list: the chart button is always here, drawn only when a chart can be shown. */}
+          <div className="mb-1 flex h-7 justify-end">
+            {chartable && (
+              <button type="button" onClick={() => setChartOn((v) => !v)} data-testid="loss-chart-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
+                {chartOn ? t.chartOff : t.chartOn}
+              </button>
+            )}
+          </div>
+          <div className="relative">
+          <div className={chartOn && chartable ? "invisible" : undefined}>
           <Results
             show={show}
             lang={lang}
@@ -314,6 +340,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               : null
             }
           />
+          </div>
+          {chartOn && chartable && (
+            <div className="absolute inset-0 bg-white" data-testid="loss-chart">
+              {curve ? (
+                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} />
+              ) : null}
+            </div>
+          )}
+          </div>
           <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
         </div>
 
