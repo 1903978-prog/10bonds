@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Breadcrumbs, DataStamp, JsonLd, RiskNote, ToolCta } from "@/components/seo/Seo";
+import { Breadcrumbs, DataStamp, JsonLd, ToolCta } from "@/components/seo/Seo";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { isLocale, LOCALE, pathOf, sectionOf, T, type Locale, type Section } from "@/lib/seo/locales";
 import { CALCULATORS, TOOLS_HUB } from "@/lib/seo/calculators";
@@ -219,7 +219,6 @@ export default async function SectionPage({ params }: Props) {
         </p>
       )}
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd data={ld} />
     </div>
   );

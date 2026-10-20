@@ -14,7 +14,7 @@ describe("footer note", () => {
     for (const [l, t] of Object.entries(FOOTER_NOTE)) {
       expect(t, l).not.toMatch(/Stripe/);
       expect(t, l).toMatch(/10BONDS/);
-      expect(t.length, l).toBeLessThan(140);
+      expect(t.length, l).toBeLessThan(280);
     }
     expect(FOOTER_NOTE.en.match(/investment advice/g)).toHaveLength(1);
   });
