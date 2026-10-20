@@ -206,9 +206,27 @@ export function ytmCaps(bonds: PublicBond[], durations: readonly number[], ytmLi
       continue;
     }
     const top = topIssuers(pool.map((b) => ({ ...b, key: issuerKey(b) })), RESULT_COUNT);
-    caps[key] = capOf(top.map((b) => b.grossYtm!));
+    // The top 10 can break the duration rule, so the maximum is lowered until the list really reaches it, and
+    // the targets just below it too (the post-deploy check looks at these). Never higher than the top 10's average.
+    let cap = capOf(top.map((b) => b.grossYtm!));
+    for (let i = 0; i < MAX_CAP_STEPS && cap > ytmLimits.min && !reachesCap(pool, d, cap); i++) cap = Math.round((cap - ytmLimits.step) * 100) / 100;
+    caps[key] = cap;
   }
   return caps;
+}
+
+const MAX_CAP_STEPS = 40;
+/** The targets the post-deploy check samples: the maximum and two below it. A list must reach each one. */
+const CAP_SAMPLES = [0, 0.3, 0.8];
+
+function reachesCap(pool: PublicBond[], duration: number, cap: number): boolean {
+  return CAP_SAMPLES.every((below) => {
+    const target = Math.round((cap - below) * 100) / 100;
+    const { results } = rankBonds(pool, duration, target, RESULT_COUNT, LIMITS.risk.max);
+    if (!results.length) return true;
+    const avg = results.reduce((s, r) => s + r.grossYtm!, 0) / results.length;
+    return avg >= target - 0.005;
+  });
 }
 
 const distinctIssuers = (rows: PublicBond[]) => new Set(rows.map(issuerKey)).size;
