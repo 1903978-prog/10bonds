@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { solveChallenge } from "@/lib/solveChallenge";
 import { flushNow, track } from "@/lib/track";
-import TermsText from "./TermsText";
+import { NEWSLETTER_TEXT } from "@/lib/newsletterText";
+
+// Sign-up agreement line: [before link, link text, after link], in the visitor's chosen language.
+const AGREE = {
+  en: ["By signing up I agree to the ", "Terms and Conditions", ""],
+  it: ["Registrandomi accetto i ", "Termini e Condizioni", ""],
+  fr: ["En m'inscrivant, j'accepte les ", "Conditions générales", ""],
+  de: ["Mit der Registrierung stimme ich den ", "Allgemeinen Geschäftsbedingungen", " zu"],
+} as const;
+type AgreeLang = keyof typeof AGREE;
 
 export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [accept, setAccept] = useState(false);
+  const [newsletter, setNewsletter] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<string | null>(null);
@@ -19,6 +29,11 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [ticket, setTicket] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
   const signup = mode === "signup";
+  const [lang, setLang] = useState<AgreeLang>("en");
+  useEffect(() => {
+    const c = document.cookie.match(/(?:^|; )tb_lang=(\w+)/)?.[1];
+    if (c && c in AGREE) setLang(c as AgreeLang);
+  }, []);
   // After sign-in, back to the page that asked for it (same site only).
   const after = () => {
     const n = new URLSearchParams(window.location.search).get("next");
@@ -59,7 +74,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       const res = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signup ? { email, username, password, acceptTerms: accept, website, code: code.trim() || undefined, ...check } : { email, password }),
+        body: JSON.stringify(signup ? { email, username, password, acceptTerms: accept, newsletter, website, code: code.trim() || undefined, ...check } : { email, password }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
@@ -106,7 +121,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
     <div className="mx-auto max-w-md rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7">
       <h1 className="text-[24px] font-semibold tracking-tight">{signup ? "Create your free account" : "Sign in"}</h1>
       <p className="mt-2 text-[15px] text-mute">
-        {signup ? "See the full top 10 bonds for your goals. Free, no card needed." : "Welcome back."}
+        {signup ? "Your full top 10 bonds. Free, no card needed." : "Welcome back."}
       </p>
       <form onSubmit={submit} className="mt-4 space-y-3">
         <label className="block">
@@ -132,9 +147,9 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              placeholder="3–24 letters, digits, . - _"
               className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
             />
-            <span className="mt-1 block text-xs text-mute">3 to 24 letters, digits, dots, dashes or underscores.</span>
           </label>
         )}
         <label className="block">
@@ -146,9 +161,9 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
             autoComplete={signup ? "new-password" : "current-password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder={signup ? "At least 8 characters" : undefined}
             className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
           />
-          {signup && <span className="mt-1 block text-xs text-mute">At least 8 characters.</span>}
           {!signup && (
             <Link href="/forgot-password" className="mt-1.5 block text-right text-sm text-accent" data-testid="forgot-link">Forgot password?</Link>
           )}
@@ -183,28 +198,33 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
           />
         )}
         {signup && (
-          <div>
-            <div className="max-h-32 overflow-y-auto rounded-xl border border-line bg-canvas p-4" data-testid="terms-box" tabIndex={0} role="region" aria-label="Terms summary">
-              <p className="mb-3 text-sm font-semibold">Terms of Use and Risk Disclosure</p>
-              <TermsText compact />
-            </div>
-            <label className="mt-3 flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
-                required
-                checked={accept}
-                onChange={(e) => setAccept(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#0071e3]"
-              />
-              <span>
-                I have read and accept the{" "}
-                <Link href="/terms" target="_blank" className="text-accent">
-                  Terms of Use and Risk Disclosure
-                </Link>
-                . I understand 10BONDS gives information only, not investment advice, and that I can lose money investing in bonds.
-              </span>
-            </label>
-          </div>
+          <label className="flex min-h-[20px] items-center gap-3 text-sm" data-testid="terms-tick">
+            <input
+              type="checkbox"
+              required
+              checked={accept}
+              onChange={(e) => setAccept(e.target.checked)}
+              className="h-4 w-4 shrink-0 accent-[#0071e3]"
+            />
+            <span>
+              {AGREE[lang][0]}
+              <Link href="/terms" target="_blank" rel="noopener" className="text-accent">
+                {AGREE[lang][1]}
+              </Link>
+              {AGREE[lang][2]}
+            </span>
+          </label>
+        )}
+        {signup && (
+          <label className="flex min-h-[20px] items-center gap-3 text-sm" data-testid="newsletter-tick">
+            <input
+              type="checkbox"
+              checked={newsletter}
+              onChange={(e) => setNewsletter(e.target.checked)}
+              className="h-4 w-4 shrink-0 accent-[#0071e3]"
+            />
+            <span>{NEWSLETTER_TEXT[lang].signup}</span>
+          </label>
         )}
         {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
         <button

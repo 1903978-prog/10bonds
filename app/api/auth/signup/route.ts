@@ -14,12 +14,12 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   if (!accountsConfigured()) return NextResponse.json({ error: "Free accounts open very soon." }, { status: 503 });
   if (!allow(`signup:${clientIp(req)}`, 5)) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
-  const { email, password, username, acceptTerms, challenge, nonce, website, code: rawCode } = await readCredentials(req);
+  const { email, password, username, acceptTerms, challenge, nonce, website, code: rawCode, newsletter } = await readCredentials(req);
   // "website" is a hidden field people never see; scripts that fill every field do.
   if (website || !checkSolution(challenge, nonce))
     return NextResponse.json({ error: "The robot check did not pass. Please reload the page and try again." }, { status: 400 });
   if (acceptTerms !== true)
-    return NextResponse.json({ error: "Please read and accept the Terms and Risk Disclosure to create an account." }, { status: 400 });
+    return NextResponse.json({ error: "Please tick the box to agree to the Terms and Conditions." }, { status: 400 });
   const e = normaliseEmail(email);
   if (!e) return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
   const u = normaliseUsername(username);
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       if (status === "unknown") return NextResponse.json({ error: "This code does not exist. Check it, or leave the box empty." }, { status: 404 });
       if (status === "used") return NextResponse.json({ error: "This code has already been used. Leave the box empty to continue without it." }, { status: 409 });
     }
-    const user = await createUser(e, u, await hashPassword(password), TERMS_VERSION);
+    const user = await createUser(e, u, await hashPassword(password), TERMS_VERSION, newsletter === true);
     if (user === "email-taken") return NextResponse.json({ error: "An account with this email already exists. Please sign in." }, { status: 409 });
     if (user === "username-taken") return NextResponse.json({ error: "This username is taken. Please choose another." }, { status: 409 });
     const redeemed = code ? await redeemTrialCode(user.id, code) : null;

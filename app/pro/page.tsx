@@ -18,7 +18,7 @@ export default async function Pro() {
         <p className="text-sm font-medium text-accent">For professional wealth managers</p>
         <h1 className="mt-1 text-[28px] font-semibold tracking-tight">Bond Replacement Engine</h1>
         <p className="mt-2 text-[15px] text-mute">
-          Upload a client portfolio and see which bonds to swap for higher yield or lower risk, with the reason for each swap. For regulated professionals only.
+          Upload a client portfolio and see similar bonds with a higher yield or lower risk, and how each one differs. For regulated professionals only.
         </p>
         <p className="mt-6 text-[15px]">
           Please <Link href="/signup" className="text-accent">create a free account</Link> or <Link href="/login" className="text-accent">sign in</Link> first, then request professional access here.
@@ -38,7 +38,7 @@ export default async function Pro() {
         <p className="text-sm font-medium text-accent">Your professional access is approved</p>
         <h1 className="mt-1 text-[28px] font-semibold tracking-tight">Subscribe to Pro</h1>
         <p className="mt-2 text-[15px] text-mute">
-          Pro gives you client portfolio analysis and swap suggestions to raise the yield, on top of everything in Premium.
+          Pro gives you client portfolio analysis and similar bonds with a higher yield, on top of everything in Premium.
           {` ${euro(priceCents("pro", "month"))} a month, or ${euro(priceCents("pro", "year"))} a year (20% less).`}
         </p>
         <PlanButton plan="pro" interval="month" highlight label="Get Pro monthly" />

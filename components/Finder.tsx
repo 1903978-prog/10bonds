@@ -4,22 +4,36 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
-import { LIMITS } from "@/lib/limits";
+import { DURATION_STEPS, LIMITS, isOpenEnded } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
-import type { ResultsPayload } from "@/lib/tiers";
+import type { ResultRow, ResultsPayload } from "@/lib/tiers";
+import type { AltRow } from "@/lib/alternatives";
+import { averageRisk } from "@/lib/ratings";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
+import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
+import { MC_PATHS } from "@/lib/monteCarlo";
+import { loadMe } from "@/lib/me";
+import WhyTable from "./WhyTable";
+import type { WhyRow } from "@/lib/whyList";
+import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
   source: "live" | "sample";
+  scanned?: number;
+  found?: number[];
+  monteCarlo?: { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
+  alternatives?: AltRow[]; // Plus and up: bonds left out, to swap in
+  outliers?: { sd: number; liveSd: number; count: number; liveCount: number };
+  engine?: { method: string; version: string | null; weight: number; liveWeight: number; preview?: boolean; premiums?: Record<string, number> };
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -38,12 +52,21 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
+  // Admin only: the risk premium tuning panel (yellow). Everyone else never sees or sends it.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [tuner, setTuner] = useState<TunerState>(TUNER_START);
+  const [tunerSaved, setTunerSaved] = useState(0);
+  useEffect(() => { loadMe().then((me) => setIsAdmin(!!me?.isAdmin)); }, []);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
   const [currency, setCurrency] = useState<BondFilter["currency"]>("EUR");
   const [size, setSize] = useState<BondFilter["size"]>("100k");
   const [minKnown, setMinKnown] = useState<boolean | null>(null);
   const sizeTouched = useRef(false);
+  // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
+  const [touched, setTouched] = useState(false);
+  const show = useScanShow(data, touched);
+
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
   const [resultsH, setResultsH] = useState<number | null>(null);
@@ -53,6 +76,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
+  // The highest risk level that has bonds at each horizon: the risk slider stops there (no risk-7 bonds = 6 to 1).
+  const [maxRisk, setMaxRisk] = useState<Record<string, number | null> | null>(null);
+  const riskTopFor = (d: number, m = maxRisk) => Math.max(LIMITS.risk.min + 1, m?.[String(Math.round(d * 100) / 100)] ?? LIMITS.risk.max);
+  const riskTop = riskTopFor(duration);
 
   useEffect(() => {
     fetch(`/api/bonds/caps?${new URLSearchParams({ currency, size })}`)
@@ -60,6 +87,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       .then((b) => {
         if (!b?.caps) return;
         setCaps(b.caps);
+        if (b.maxRisk) {
+          setMaxRisk(b.maxRisk);
+          setRisk((r) => Math.min(r, riskTopFor(duration, b.maxRisk)));
+        }
         setMinKnown(Boolean(b.minKnown));
         if (!b.minKnown) setSize("100k");
         // Small orders (1k-10k) is the default once the data says which bonds they are.
@@ -74,10 +105,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // A target at the maximum stays at the maximum when the horizon or risk changes, so more risk shows more yield.
   const followCap = (cap: number) => setYtm((y) => (y > cap || y >= ytmMax - 1e-9 ? cap : y));
   const changeDuration = (d: number) => {
+    setTouched(true);
     setDuration(d);
-    followCap(capFor(d, risk));
+    const r = Math.min(risk, riskTopFor(d));
+    if (r !== risk) setRisk(r);
+    followCap(capFor(d, r));
   };
   const changeRisk = (r: number) => {
+    setTouched(true);
     setRisk(r);
     followCap(capFor(duration, r));
   };
@@ -95,6 +130,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (preview.current) qs.set("preview", preview.current);
+        if (isAdmin && tuner.weight !== null) {
+          qs.set("rw", String(tuner.weight));
+          qs.set("rp", tuner.shifts.join(","));
+        }
+        if (isAdmin && tuner.sd !== null) qs.set("os", String(tuner.sd));
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
         if (res.status === 402 && body.limitReached) {
@@ -117,11 +157,24 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size]);
+  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved]);
 
+  // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
+  const [list, setList] = useState<ResultRow[] | null>(null);
+  useEffect(() => setList(null), [data]);
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
+  const summary = list ? listSummary(list) : data?.summary;
   const signedIn = tier !== "visitor";
+  // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
+  const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
+  if (isAdmin && tuner.weight !== null) {
+    why.set("rw", String(tuner.weight));
+    why.set("rp", tuner.shifts.join(","));
+  }
+  if (isAdmin && tuner.sd !== null) why.set("os", String(tuner.sd));
+  if (preview.current) why.set("preview", preview.current);
+  const whyQuery = why.toString();
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
   const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: "/signup", label: t.avgSignUp };
 
@@ -143,7 +196,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               key={m}
               role="tab"
               aria-selected={mode === m}
-              onClick={() => setMode(m)}
+              onClick={() => { setTouched(true); setMode(m); }}
               className={`rounded-full px-4 py-1.5 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
             >
               {label}
@@ -152,12 +205,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => setCurrency(v as BondFilter["currency"])} testId="toggle-currency" />
+          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" />
           <Toggle
             label={t.minOrder}
             value={size}
             options={[["1k", t.small], ["100k", t.allSizes]]}
-            onChange={(v) => { sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
+            onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
             testId="toggle-size"
             disabled={minKnown === false ? ["1k"] : []}
             disabledTitle={t.minNoData}
@@ -167,14 +220,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <Slider
           label={t.horizon}
           hint={t.horizonHint}
-          value={duration}
-          display={`${duration % 1 === 0 ? duration : duration.toFixed(1)} ${t.years}`}
-          min={LIMITS.duration.min}
-          max={LIMITS.duration.max}
-          step={LIMITS.duration.step}
+          value={DURATION_STEPS.indexOf(duration)}
+          display={isOpenEnded(duration) ? t.years30 : `${duration} ${t.years}`}
+          min={0}
+          max={DURATION_STEPS.length - 1}
+          step={1}
           minLabel={t.year1}
-          maxLabel={t.years15}
-          onChange={changeDuration}
+          maxLabel={t.years30}
+          onChange={(i) => changeDuration(DURATION_STEPS[i])}
         />
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
         <div className={mode === "portfolio" ? "" : "invisible"} aria-hidden={mode !== "portfolio"}>
@@ -188,22 +241,23 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           step={LIMITS.ytm.step}
           minLabel="1.0%"
           maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
-          onChange={setYtm}
+          onChange={(v) => { setTouched(true); setYtm(v); }}
         />
-        {/* Risk 1 (lowest) always on the right: the slider position is 11 - risk. */}
+        {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
         <Slider
           label={t.ratingLabel}
           hint={t.ratingHint}
-          value={LIMITS.risk.max + LIMITS.risk.min - risk}
+          value={riskTop + LIMITS.risk.min - risk}
           display={<RiskBadge risk={risk} />}
           min={LIMITS.risk.min}
-          max={LIMITS.risk.max}
+          max={riskTop}
           step={LIMITS.risk.step}
-          minLabel={t.highRiskLabel}
+          minLabel={t.highRiskLabel.replace(/^\d+/, String(riskTop))}
           maxLabel={t.lowRiskLabel}
-          onChange={(pos) => changeRisk(LIMITS.risk.max + LIMITS.risk.min - pos)}
+          onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
+        {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
 
       </section>
 
@@ -217,13 +271,20 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
         </section>
       ) : (
-      <section ref={resultsBox} className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+      <section ref={resultsBox} className="relative flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+        {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
+        {!touched && (
+          <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
+            <Frontier currency={currency} />
+          </div>
+        )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
-          <Stat value={!data ? "—" : paid ? pct(data.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
-          <Stat value={!data ? "—" : paid ? (data.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
-          <Stat value={!data ? "—" : paid ? yrs(data.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? (summary?.avgRisk != null ? <RiskBadge risk={summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
+          <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">
           {data && !paid && (
@@ -233,11 +294,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           )}
         </div>
 
-        <div className={`mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+        <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
           <Results
+            show={show}
+            lang={lang}
             data={data}
+            list={list}
+            setList={setList}
             paid={paid}
             signedIn={signedIn}
+            whyQuery={whyQuery}
             currency={currency}
             message={
               limit ? <LimitReached quota={limit} />
@@ -255,7 +321,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {t.stale(ageDays(data.asOf) ?? 0)}
             </p>
           ) : data?.source === "sample" ? (
-            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-sample">{t.sample}</p>
+            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-date">{t.sample} {t.gross}</p>
           ) : (
             <p className="text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
@@ -263,6 +329,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
+          <MonteCarloNote data={data} lang={lang} edited={list !== null} />
         </div>
       </section>
       )}
@@ -349,17 +416,181 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
   );
 }
 
+type Show = { row: number; count: number; sim: number };
+
+/** Fifth box of the row: the bond counter while the search show runs (pick number → its A–Z place), else how many bonds were searched. Same size always. */
+function ScanBox({ data, show, lang, currency }: { data: Response | null; show: Show | null; lang: FinderLang; currency: string }) {
+  const t = useFinderText();
+  const fmt = new Intl.NumberFormat(lang);
+  const n = data?.scanned ?? 0;
+  const bar = show ? show.count / Math.max(n, 1) : n ? 1 : 0;
+  return (
+    <div className="col-span-2 flex h-[60px] flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-1.5 text-center sm:col-span-1" data-testid="scan-box">
+      <div className="text-xl font-semibold leading-none tabular-nums tracking-tight">
+        {show ? <><span className="text-[12px] font-normal text-mute">#{show.row + 1} → </span>{fmt.format(show.count)}</> : n ? fmt.format(n) : "—"}
+      </div>
+      <div className="my-1.5 h-1 w-full max-w-[140px] overflow-hidden rounded-full bg-canvas">
+        <div className="h-full rounded-full bg-accent" style={{ width: `${bar * 100}%` }} />
+      </div>
+      <div className="w-full truncate text-[11px] leading-none text-mute">{show ? `${t.scanOf} ${fmt.format(n)} · A→Z` : t.scanBox(currency)}</div>
+    </div>
+  );
+}
+
+/**
+ * The search, staged for the visitor. Every bond searched has a number 1..N in alphabetical order (from the server).
+ * Before each of the 10 picks appears, a counter runs up to that bond's number and stops there; the row then appears
+ * and the counter starts again for the next one, while the real Monte Carlo run of the list is drawn. Only for searches
+ * the visitor starts; a search that answers mid-show takes it over (the show is not restarted); about 1 second per pick;
+ * skipped for reduced motion. Rows keep their places throughout (hidden rows are invisible, not removed).
+ */
+function useScanShow(data: Response | null, active: boolean): Show | null {
+  const [show, setShow] = useState<Show | null>(null);
+  const run = useRef<{ raf: number; start: number } | null>(null);
+  const latest = useRef(data);
+  latest.current = data;
+  const shown = useRef(data);
+  useEffect(() => {
+    if (!active) shown.current = data;
+  }, [active, data]);
+  useEffect(() => {
+    if (!active || !data?.found?.length || data === shown.current || run.current) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const now0 = performance.now();
+    const r = { raf: 0, start: now0 };
+    run.current = r;
+    const tick = (now: number) => {
+      const found = latest.current?.found ?? [];
+      const per = 1000; // ms per pick (Livio: the 10 picks in about 10 seconds): counting up, then a hold on the number
+      const t = (now - r.start) / per;
+      const row = Math.floor(t);
+      if (row >= found.length) {
+        run.current = null;
+        setShow(null);
+        return;
+      }
+      const f = Math.min(1, (t - row) / 0.8);
+      const count = Math.max(1, Math.round((1 - (1 - f) * (1 - f)) * found[row]));
+      setShow({ row, count, sim: Math.min(1, t / found.length) });
+      r.raf = requestAnimationFrame(tick);
+    };
+    r.raf = requestAnimationFrame(tick);
+  }, [active, data]);
+  useEffect(
+    () => () => {
+      if (run.current) cancelAnimationFrame(run.current.raf);
+      run.current = null;
+    },
+    [],
+  );
+  return show;
+}
+
+/** The Monte Carlo drawing, laid over the slots of the picks not shown yet (the bond counter is the fifth box above). */
+function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: FinderLang }) {
+  const t = useFinderText();
+  const fmt = new Intl.NumberFormat(lang);
+  const mc = data.monteCarlo;
+  const sims = mc?.paths ?? 0;
+  const samples = mc?.samples ?? [];
+  const W = 280, H = 70;
+  const all = samples.flat();
+  const vMin = Math.min(...all), vMax = Math.max(...all);
+  const yOf = (v: number) => H - 2 - ((v - vMin) / Math.max(vMax - vMin, 0.1)) * (H - 4);
+  const steps = samples[0]?.length ?? 0;
+  const left = SLOTS - show.row; // slots still hidden, the space this panel has
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="scan-bar"
+      className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-canvas text-center top-[var(--m)] sm:top-[var(--d)]"
+      style={{ ["--m" as string]: `${show.row * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + show.row * ROW_H}px` }}
+    >
+      {sims > 0 && left >= 3 && (
+        <div className="w-[280px] max-w-[85%]">
+          <svg viewBox={`0 0 ${W} ${H}`} className="block h-[70px] w-full" preserveAspectRatio="none">
+            <defs>
+              <clipPath id="mc-reveal"><rect x={0} y={0} width={W * show.sim} height={H} /></clipPath>
+            </defs>
+            {/* Real simulated paths of this list: each line is one scenario, the drops are defaults. */}
+            <g clipPath="url(#mc-reveal)">
+              {samples.map((s, k) => {
+                const fell = s.some((v, j) => j > 0 && v < s[j - 1]);
+                return (
+                  <polyline
+                    key={k}
+                    points={s.map((v, j) => `${(j / (steps - 1)) * W},${yOf(v)}`).join(" ")}
+                    fill="none"
+                    className={fell ? "stroke-amber-500" : "stroke-accent"}
+                    strokeWidth={fell ? 1.2 : 1.5}
+                    strokeOpacity={fell ? 0.8 : 0.25}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              })}
+            </g>
+          </svg>
+          <p className="mt-1 text-[10px] text-mute">{t.scanCaption}</p>
+        </div>
+      )}
+      {sims > 0 && (
+        <p className="mt-1 text-[12px] tabular-nums text-mute">
+          {t.scanSimsLabel} <span className="font-medium text-ink">{fmt.format(Math.round(show.sim * sims))}</span> / {fmt.format(sims)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
+function MonteCarloNote({ data, lang, edited }: { data: Response | null; lang: FinderLang; edited: boolean }) {
+  const t = useFinderText();
+  const mc = data?.monteCarlo;
+  const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
+  return (
+    <p className="mt-1 grid text-[11px] leading-snug text-mute" data-testid="monte-carlo">
+      {/* Both texts share one cell, so the line keeps its height when a paid user's edit hides the figures. */}
+      {mc?.expYield != null && mc.p5 != null ? (
+        <>
+          <span className={`col-start-1 row-start-1${edited ? " invisible" : ""}`}>{t.mc(n, pct(mc.expYield), pct(mc.p5))}</span>
+          <span className={`col-start-1 row-start-1${edited ? "" : " invisible"}`} aria-hidden={!edited}>{t.mcRun(n)}</span>
+        </>
+      ) : (
+        t.mcRun(n)
+      )}
+    </p>
+  );
+}
+
 // Fixed sizes of the result table: a header and always 10 row slots, so nothing under it moves when the results change.
 const SLOTS = 10;
 const HEAD_H = 30;
 const ROW_H = 34;
 const CARD_H = 64;
 
-function Results({ data, paid, signedIn, currency, message }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null }) {
+function Results({ data, list, setList, paid, signedIn, currency, message, show, lang, whyQuery }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string }) {
   const t = useFinderText();
-  const rows = message ? [] : (data?.rows ?? []).slice(0, SLOTS);
+  const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
+  const premium = data?.tier === "premium";
+  // The swap panel for one slot, drawn over the rows so nothing moves.
+  const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | null>(null);
+  useEffect(() => setPanel(null), [data]);
+  const swapIn = (slot: number, b: ResultRow) => {
+    setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
+    setPanel(null);
+  };
+  const canEdit = paid && !show && !message && rows.length > 0;
+  // Premium: a bond from the "why in or out" table comes in, in place of the same issuer's bond, else the weakest one.
+  const addFromWhy = (w: WhyRow) => {
+    if (!data || rows.some((r) => r.isin === w.isin)) return;
+    const full = [...data.rows, ...(data.alternatives ?? []).map((a) => ({ ...a, rank: 0, lossAdj: a.adjYtm }))].find((b) => b.isin === w.isin);
+    const same = rows.findIndex((r) => r.issuer === w.issuer);
+    swapIn(same >= 0 ? same : weakestSlot(rows), full ?? { rank: 0, issuer: w.issuer, name: w.name, isin: w.isin, ytm: w.ytm, duration: w.duration, risk: w.risk });
+  };
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
+  // While the search show runs, picks from this slot on are kept in place but not shown yet.
+  const hide = (i: number) => (show && !message && i >= show.row ? " invisible" : "");
   return (
     <div>
       <div className="relative">
@@ -374,6 +605,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
           <col className="w-[6.5rem]" />
           <col className="w-[9rem]" />
           <col className="w-[5rem]" />
+          <col className="w-8" />
         </colgroup>
         <thead>
           <tr className="border-b border-line text-left text-xs text-mute" style={{ height: HEAD_H }}>
@@ -384,11 +616,12 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
             <th className="truncate px-3 py-0 text-center font-medium">{t.duration}</th>
             <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>
             <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
+            <th aria-label={t.swap} />
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.rank} className="border-b border-line/60" style={{ height: ROW_H }}>
+          {rows.map((r, i) => (
+            <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: ROW_H }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
               <td className="overflow-hidden py-0 pr-3">
@@ -400,29 +633,31 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                   <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="px-3 py-0 text-center font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="px-3 py-0 text-center font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
               <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              <td className="py-0 text-center">{canEdit && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
-            <tr key={`l${i}`} aria-hidden className="select-none border-b border-line/60 blur-[5px]" style={{ height: ROW_H }}>
+            <tr key={`l${i}`} aria-hidden className={`select-none border-b border-line/60 blur-[5px]${hide(rows.length + i)}`} style={{ height: ROW_H }}>
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
               <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
+              <td />
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: ROW_H }}><td colSpan={7} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: ROW_H }}><td colSpan={8} /></tr>
           ))}
         </tbody>
       </table>
 
       {/* Phone cards */}
       <ul className="space-y-2 sm:hidden">
-        {rows.map((r) => (
-          <li key={r.rank} className="flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4" style={{ height: CARD_H }}>
+        {rows.map((r, i) => (
+          <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4${hide(i)}`} style={{ height: CARD_H }}>
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.issuer}</div>
@@ -434,11 +669,12 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                     : t.detailsFree}
               </div>
             </div>
-            <span className="font-semibold tabular-nums">{pct(r.ytm)}</span>
+            <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
+            <span className="-mr-2 w-7 shrink-0 text-center">{canEdit && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</span>
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (
-          <li key={`l${i}`} aria-hidden className="flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]" style={{ height: CARD_H }}>
+          <li key={`l${i}`} aria-hidden className={`flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]${hide(rows.length + i)}`} style={{ height: CARD_H }}>
             <span className="h-3 w-4 rounded bg-line" />
             <span className="h-3 flex-1 rounded bg-line" />
             <span className="h-3 w-12 rounded bg-line" />
@@ -449,7 +685,11 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
         ))}
       </ul>
 
-      {locked > 0 && <LockedOverlay count={locked} top={rows.length} />}
+      {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
+      {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
+      {panel && data && canEdit && (
+        <SwapPanel row={rows[panel.slot]} options={swapOptions(rows[panel.slot], available(data, rows))} onPick={(b) => swapIn(panel.slot, b)} onClose={() => setPanel(null)} />
+      )}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
           {message}
@@ -458,14 +698,15 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
       </div>
 
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
-      <div className="mt-2 flex h-7 items-center">
+      <div className="mt-2 flex h-7 items-center gap-2 overflow-hidden whitespace-nowrap">
         {paid && rows.length > 0 ? (
+          <>
           <button
             type="button"
             data-testid="excel-download"
             onClick={() =>
               downloadXlsx(
-                [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.risk, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, r.risk, minForExcel(r.minInvestment)])],
+                [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, minForExcel(r.minInvestment)])],
                 "10bonds-top10.xlsx",
                 "Top 10",
               )
@@ -474,12 +715,19 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
           >
             ⬇ {t.excel}
           </button>
+          {list && (
+            <button type="button" data-testid="list-reset" onClick={() => setList(null)} className="truncate text-xs text-accent hover:underline">
+              ↺ {t.resetList}
+            </button>
+          )}
+          </>
         ) : signedIn && !paid && rows.length > 0 ? (
           <Link href="/pricing" className="flex min-w-0 items-center gap-3 text-xs">
             <span className="truncate text-mute">{t.plusPitch}</span>
             <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
           </Link>
         ) : null}
+        {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={premium && canEdit ? addFromWhy : undefined} />}
       </div>
     </div>
   );
@@ -529,4 +777,99 @@ function plainDate(iso: string, lang: FinderLang): string {
   if (Number.isNaN(d.getTime())) return iso;
   const loc = { en: "en-GB", it: "it-IT", fr: "fr-FR", de: "de-DE" }[lang] ?? "en-GB";
   return d.toLocaleString(loc, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+}
+
+
+/** The averages of a list the user edited (swapped bonds), worked out in the browser from what the rows show. */
+function listSummary(list: ResultRow[]): ResultsPayload["summary"] {
+  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  return {
+    count: list.length,
+    avgYtm: avg(list.map((r) => r.ytm)),
+    avgDuration: avg(list.flatMap((r) => (r.duration == null ? [] : [r.duration]))),
+    avgRisk: averageRisk(list.map((r) => r.risk ?? null)),
+  };
+}
+
+type OutRow = ResultRow;
+
+/** Bonds that can come into the list now: those left out plus any the user swapped out, never an issuer already in it. */
+function available(data: Response, rows: ResultRow[]): OutRow[] {
+  const isins = new Set(rows.map((r) => r.isin));
+  const issuers = new Set(rows.map((r) => r.issuer));
+  const all: OutRow[] = [
+    ...data.rows,
+    ...(data.alternatives ?? []).map((a) => ({ ...a, rank: 0, lossAdj: a.adjYtm })),
+  ];
+  const seen = new Set<string>();
+  return all.filter((b) => {
+    if (!b.isin || seen.has(b.isin) || isins.has(b.isin) || issuers.has(b.issuer)) return false;
+    seen.add(b.isin);
+    return true;
+  });
+}
+
+/** The 5 bonds closest to `row` in risk and duration (a year of duration weighs like a risk step); higher yield breaks ties. */
+function swapOptions(row: ResultRow, pool: OutRow[]): OutRow[] {
+  const dist = (b: ResultRow) => Math.abs((b.risk ?? 10) - (row.risk ?? 10)) + Math.abs((b.duration ?? 0) - (row.duration ?? 0));
+  return [...pool].sort((a, b) => dist(a) - dist(b) || b.ytm - a.ytm).slice(0, 5);
+}
+
+/** The slot an added bond takes: the bond with the lowest yield after losses. */
+function weakestSlot(rows: ResultRow[]): number {
+  let k = 0;
+  rows.forEach((r, i) => {
+    if ((r.lossAdj ?? r.ytm) < (rows[k].lossAdj ?? rows[k].ytm)) k = i;
+  });
+  return k;
+}
+
+function SwapButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button type="button" onClick={onClick} title={label} aria-label={label} data-testid="swap-open" className="inline-flex h-6 w-6 items-center justify-center rounded-full text-mute hover:bg-canvas hover:text-accent">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="m17 20 4-4-4-4" /><path d="M21 16H7" />
+      </svg>
+    </button>
+  );
+}
+
+function PanelShell({ title, onClose, children }: { title: ReactNode; onClose: () => void; children: ReactNode }) {
+  const t = useFinderText();
+  return (
+    <div className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-3" role="dialog" aria-label={typeof title === "string" ? title : undefined}>
+      <div className="flex h-7 shrink-0 items-center justify-between gap-3">
+        <div className="min-w-0 truncate text-sm font-semibold">{title}</div>
+        <button type="button" onClick={onClose} aria-label={t.close} className="h-7 w-7 shrink-0 rounded-full text-mute hover:bg-canvas">✕</button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SwapPanel({ row, options, onPick, onClose }: { row: ResultRow; options: OutRow[]; onPick: (b: ResultRow) => void; onClose: () => void }) {
+  const t = useFinderText();
+  return (
+    <PanelShell title={t.swapTitle(row.issuer)} onClose={onClose}>
+      <p className="mb-2 truncate text-xs text-mute">{t.swapHint}</p>
+      {options.length === 0 ? (
+        <p className="text-sm text-mute">{t.swapNone}</p>
+      ) : (
+        <ul className="divide-y divide-line/60" data-testid="swap-options">
+          {options.map((b) => (
+            <li key={b.isin} className="flex items-center gap-3 text-sm" style={{ height: ROW_H + 4 }}>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{b.issuer}</div>
+                <div className="truncate text-[11px] text-mute">{b.name} · {b.isin}</div>
+              </div>
+              <span className="w-14 text-right font-semibold tabular-nums">{pct(b.ytm)}</span>
+              <span className="hidden w-12 text-right tabular-nums sm:inline">{b.duration?.toFixed(1)}</span>
+              <span className="w-8 text-center"><RiskBadge risk={b.risk} /></span>
+              <button type="button" onClick={() => onPick(b)} className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90">{t.swapPick}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PanelShell>
+  );
 }

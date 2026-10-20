@@ -8,8 +8,8 @@ import "./globals.css";
 import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
+import PlansNavLink from "@/components/PlansNavLink";
 import LangSwitch from "@/components/LangSwitch";
-import ProNavLink from "@/components/ProNavLink";
 import SearchNavLink from "@/components/SearchNavLink";
 import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Bing Webmaster Tools site verification (Livio, 19 Oct 2026). Public by design, not a secret.
   verification: { other: { "msvalidate.01": "ADA17531835A822BB9A6870BCE68531B" } },
-  title: "10BONDS · Find the 10 best bonds for your goals",
+  title: "10BONDS · Find 10 bonds that match your goals",
   description: "Pick a duration and a target yield. 10BONDS turns thousands of euro bonds into a clear shortlist of 10.",
   openGraph: {
     title: "10BONDS · 10 bonds, 2 sliders",
@@ -48,10 +48,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
               <SearchNavLink />
               <KnowledgeNavLink />
-              <NavLink href="/pricing">Pricing</NavLink>
-              {/* Fixed-width slot for the links that load after the page (Pro, Admin, Sign in, profile), so the menu never shifts. */}
+              <PlansNavLink />
+              {/* Fixed-width slot for the links that load after the page (Retail/Pro switch, Admin, Sign in, profile), so the menu never shifts. */}
               <div className="flex min-w-[128px] items-center justify-end gap-1.5 sm:min-w-[232px] sm:gap-5">
-                <ProNavLink />
                 {/* Language sits right before the account links (profile icon), as Livio asked. */}
                 <LangSwitch />
                 <AccountNav hasSession={hasSession} />

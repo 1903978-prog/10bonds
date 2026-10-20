@@ -38,6 +38,11 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists terms_version text`;
   await sql`alter table app.users add column if not exists terms_accepted_at timestamptz`;
   await sql`alter table app.users add column if not exists email_verified_at timestamptz`;
+  // Newsletter: explicit opt-in only (box unticked by default). The time and place of the consent are kept as proof.
+  await sql`alter table app.users add column if not exists newsletter_opt_in boolean not null default false`;
+  await sql`alter table app.users add column if not exists newsletter_consent_at timestamptz`;
+  await sql`alter table app.users add column if not exists newsletter_consent_source text`;
+  await sql`alter table app.users add column if not exists newsletter_unsubscribed_at timestamptz`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
   // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
   await sql`alter table app.users add column if not exists stripe_customer_id text`;
@@ -152,6 +157,8 @@ export type User = {
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
   adminState?: "ok" | "setup" | "needed";
   twoFactorOn: boolean;
+  /** Opted in to the newsletter (and has not unsubscribed since). */
+  newsletter: boolean;
   stripeCustomerId: string | null;
   subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean; interval: "month" | "year" | null } | null;
 };
@@ -165,6 +172,7 @@ type UserRow = {
   id: string; email: string; username: string | null; plan: StoredPlan; premium_until: Date | null; email_verified_at: Date | null;
   created_at?: Date | null;
   totp_enabled_at?: Date | null;
+  newsletter_opt_in?: boolean | null;
   stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null; subscription_interval?: string | null;
 };
 function isAdminRow(r: UserRow): boolean {
@@ -183,7 +191,7 @@ export const OWNER_COOKIE = "tb_owner";
 /** How long a new account may be used before its e-mail address must be confirmed. */
 export const CONFIRM_GRACE_MS = 3 * 3600_000;
 
-const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, newsletter_opt_in, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
   const admin = isAdminRow(r);
@@ -203,6 +211,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: admin,
     twoFactorOn: Boolean(r.totp_enabled_at),
+    newsletter: r.newsletter_opt_in === true,
     stripeCustomerId: r.stripe_customer_id ?? null,
     subscription: r.subscription_status
       ? { status: r.subscription_status, renewsAt: r.subscription_renews_at ? new Date(r.subscription_renews_at).toISOString() : null, cancelAtEnd: r.subscription_cancel_at_end === true, interval: r.subscription_interval === "year" ? "year" : r.subscription_interval === "month" ? "month" : null }
@@ -223,7 +232,7 @@ export function normaliseEmail(raw: unknown): string | null {
   return e.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
 }
 
-export async function createUser(email: string, username: string, passwordHash: string, termsVersion: string): Promise<User | "email-taken" | "username-taken"> {
+export async function createUser(email: string, username: string, passwordHash: string, termsVersion: string, newsletter = false): Promise<User | "email-taken" | "username-taken"> {
   const { sql, ready } = db();
   await ready;
   const taken = await sql<{ email: string }[]>`
@@ -232,14 +241,24 @@ export async function createUser(email: string, username: string, passwordHash: 
   if (taken.length) return "username-taken";
   try {
     const rows = await sql<UserRow[]>`
-      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at)
-      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now())
+      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at, newsletter_opt_in, newsletter_consent_at, newsletter_consent_source)
+      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now(), ${newsletter}, ${newsletter ? new Date() : null}, ${newsletter ? "signup" : null})
       returning ${sql.unsafe(USER_COLS)}`;
     return toUser(rows[0]);
   } catch (e) {
     if ((e as { code?: string }).code === "23505") return String((e as Error).message).includes("username") ? "username-taken" : "email-taken";
     throw e;
   }
+}
+
+/** Newsletter on or off. Switching on records a fresh consent; switching off records the unsubscribe. */
+export async function setNewsletter(userId: number, on: boolean, source: "profile" | "unsubscribe-link"): Promise<boolean> {
+  const { sql, ready } = db();
+  await ready;
+  const r = on
+    ? await sql`update app.users set newsletter_opt_in = true, newsletter_consent_at = now(), newsletter_consent_source = ${source}, newsletter_unsubscribed_at = null where id = ${userId}`
+    : await sql`update app.users set newsletter_opt_in = false, newsletter_unsubscribed_at = now() where id = ${userId}`;
+  return r.count === 1;
 }
 
 /** Sign in with either the email or the username. */
@@ -566,6 +585,7 @@ export async function exportUserData(userId: number) {
   const { sql, ready } = db();
   await ready;
   const [user] = await sql`select id, email, username, plan, created_at, last_login_at, terms_version, terms_accepted_at, email_verified_at, premium_until,
+    newsletter_opt_in, newsletter_consent_at, newsletter_consent_source, newsletter_unsubscribed_at,
     stripe_customer_id, subscription_status, subscription_interval, subscription_renews_at, subscription_cancel_at_end from app.users where id = ${userId}`;
   const searches = await sql`select kind, at from app.search_usage where user_id = ${userId} order by at`;
   const events = await sql`select at, kind, path, detail from app.events where user_id = ${userId} order by at`;

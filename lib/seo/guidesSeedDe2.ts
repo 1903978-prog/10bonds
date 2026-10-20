@@ -2,7 +2,7 @@ import type { SeedGuide } from "./guidesSeed";
 
 // Zweite Welle deutscher Ratgeber: für Anleger in Deutschland geschrieben (Bund, Depot, Abgeltungsteuer), keine
 // wörtlichen Übersetzungen. Jede Seite trägt die Übersetzungsgruppe ihrer italienischen Vorlage. Zahlen stammen nur
-// aus den Vorlagen (Duration-Beispiel, S&P-Ausfalltabelle); keine Renditen, Kurse oder ISINs erfunden.
+// aus den Vorlagen (Duration-Beispiel, Ausfalltabelle); keine Renditen, Kurse oder ISINs erfunden.
 
 const cta = (text: string) => `<p><strong>Jetzt ausprobieren:</strong> <a href="/de">${text}</a>. Zwei Regler, zehn Anleihen, unverbindlich.</p>`;
 
@@ -96,7 +96,7 @@ ${hinweis}
 <h2 id="rendite">Wovon hängt die Rendite ab?</h2>
 <p>Die Rendite einer Investment-Grade-Anleihe hängt vom allgemeinen Zinsniveau, von der <a href="/de/ratgeber/duration-anleihen">Duration</a> und vom Rating ab. Bei gleicher Duration gilt in der Regel: Je niedriger das Rating, desto höher die Rendite. Den Renditeabstand zur Bundesanleihe gleicher Laufzeit nennt man Spread. Aktuelle Werte zeigt die Seite <a href="/de/anleihen/investment-grade">Investment-Grade-Anleihen in Euro</a>, täglich aktualisiert.</p>
 <h2 id="uneinig">Was gilt, wenn die Agenturen sich nicht einig sind?</h2>
-<p>Es kommt vor, dass eine Anleihe bei einer Agentur BBB- und bei einer anderen BB+ hat. 10BONDS verwendet das mit den Daten gelieferte zusammengeführte Rating, sofern vorhanden, sonst das von S&amp;P, dann Moody's, dann Fitch. Anleihen ohne Rating erscheinen nicht in unseren Listen. Details finden Sie in der <a href="/de/methodik">Methodik</a>.</p>
+<p>Es kommt vor, dass eine Anleihe bei einer Agentur BBB- und bei einer anderen BB+ hat. 10BONDS zeigt stattdessen ein Risiko von 1 bis 10, eine eigene Skala, die kein Rating ist. Anleihen ohne Rating erscheinen nicht in unseren Listen. Details finden Sie in der <a href="/de/methodik">Methodik</a>.</p>
 <h2 id="faq">Häufige Fragen</h2>
 <h3>Kann ich mit einer Investment-Grade-Anleihe Geld verlieren?</h3>
 <p>Ja. Das Rating garantiert keine Rückzahlung, und der Kurs kann fallen, etwa wenn die Zinsen steigen oder der Emittent herabgestuft wird.</p>
@@ -133,7 +133,7 @@ ${hinweis}
 </ul>
 <p>Diese Risiken treten oft gemeinsam auf: In einem Abschwung häufen sich Herabstufungen, die Spreads steigen und die Anleihen lassen sich schwerer verkaufen, alles zur gleichen Zeit.</p>
 <h2 id="bb-und-b">Ist High Yield gleich High Yield?</h2>
-<p>Nein. Der Bereich BB liegt am nächsten am <a href="/de/ratgeber/investment-grade-anleihen">Investment Grade</a> und hatte historisch deutlich weniger Ausfälle als die Bereiche B und CCC. Die Unterschiede sind groß: Die Tabelle zur <a href="/de/ratgeber/ausfallwahrscheinlichkeit-rating">Ausfallwahrscheinlichkeit nach Rating</a> zeigt die S&amp;P-Durchschnittswerte für jede Stufe.</p>
+<p>Nein. Der Bereich BB liegt am nächsten am <a href="/de/ratgeber/investment-grade-anleihen">Investment Grade</a> und hatte historisch deutlich weniger Ausfälle als die Bereiche B und CCC. Die Unterschiede sind groß: Die Tabelle zur <a href="/de/ratgeber/ausfallwahrscheinlichkeit-rating">Ausfallwahrscheinlichkeit nach Rating</a> zeigt die langjährigen Durchschnittswerte für jede Stufe.</p>
 <p>Auf 10BONDS ist BB das niedrigste Rating, das Sie wählen können. Spekulativere Bereiche und Anleihen ohne Rating erscheinen nie in unseren Listen.</p>
 <h2 id="vergleichen">Wie vergleichen Sie Hochzinsanleihen sinnvoll?</h2>
 <p>Schauen Sie vor der Rendite auf Rating, <a href="/de/ratgeber/duration-anleihen">Duration</a> und Rang der Anleihe (vorrangig oder nachrangig). Vergleichen Sie den Spread mit dem ähnlicher Emittenten: Rentiert eine Anleihe deutlich höher als andere mit gleichem Rating, sieht der Markt ein besonderes Risiko. Wie Sie es einschätzen, erklärt der Ratgeber zum <a href="/de/ratgeber/kreditrisiko-anleihen">Kreditrisiko</a>.</p>
@@ -227,37 +227,37 @@ ${hinweis}
     slug: "ausfallwahrscheinlichkeit-rating",
     title: "Wie hoch ist die historische Ausfallwahrscheinlichkeit bei BBB?",
     seoTitle: "Ausfallwahrscheinlichkeit nach Rating: BBB, A, BB",
-    metaDescription: "Historische Ausfallraten nach Rating, von AAA bis CCC: BBB-Emittenten fielen in 1,44 % der Fälle binnen 5 und in 3,52 % binnen 10 Jahren aus (S&P).",
+    metaDescription: "Historische Ausfallraten nach Rating, von AAA bis CCC: BBB-Emittenten fielen in 1,40 % der Fälle binnen 5 und in 3,40 % binnen 10 Jahren aus (Langzeitdurchschnitt).",
     primaryKeyword: "ausfallwahrscheinlichkeit rating bbb",
     relatedKeywords: ["ausfallwahrscheinlichkeit rating", "ausfallraten nach rating", "default rate anleihen", "bbb anleihen ausfall"],
     relatedSlugs: ["kreditrisiko-anleihen", "investment-grade-anleihen", "hochzinsanleihen-chancen-risiken"],
     bodyHtml: `
-<p><strong>Kurz gesagt:</strong> Nach den langjährigen Durchschnittswerten von S&amp;P ist ein Emittent mit BBB-Rating in 0,16 % der Fälle innerhalb von 1 Jahr ausgefallen, in 1,44 % innerhalb von 5 Jahren und in 3,52 % innerhalb von 10 Jahren. Von 100 BBB-Emittenten sind im Schnitt also weniger als 4 binnen zehn Jahren ausgefallen.</p>
+<p><strong>Kurz gesagt:</strong> Laut öffentlichen historischen Ausfallstudien ist ein Emittent mit BBB-Rating in 0,15 % der Fälle innerhalb von 1 Jahr ausgefallen, in 1,40 % innerhalb von 5 Jahren und in 3,40 % innerhalb von 10 Jahren. Von 100 BBB-Emittenten sind im Schnitt also weniger als 4 binnen zehn Jahren ausgefallen.</p>
 <p>Die Tabelle zeigt die durchschnittlichen kumulierten Ausfallraten für jede Ratingstufe über 1 bis 15 Jahre. Eine kumulierte Rate gibt an, welcher Anteil der Emittenten mit diesem Rating zu Beginn des Zeitraums bis zu dessen Ende ausgefallen ist.</p>
 <h2 id="tabelle">Kumulierte Ausfallraten nach Rating (%)</h2>
 <table><thead><tr><th scope="col">Rating</th><th scope="col">10BONDS-Risiko</th><th scope="col">1 Jahr</th><th scope="col">3 Jahre</th><th scope="col">5 Jahre</th><th scope="col">7 Jahre</th><th scope="col">10 Jahre</th><th scope="col">15 Jahre</th></tr></thead><tbody>
-<tr><td>AAA</td><td>1</td><td>0,00%</td><td>0,03%</td><td>0,13%</td><td>0,25%</td><td>0,44%</td><td>0,58%</td></tr>
-<tr><td>AA+</td><td>2</td><td>0,00%</td><td>0,05%</td><td>0,15%</td><td>0,29%</td><td>0,52%</td><td>0,77%</td></tr>
-<tr><td>AA</td><td>2</td><td>0,02%</td><td>0,10%</td><td>0,25%</td><td>0,43%</td><td>0,70%</td><td>1,05%</td></tr>
-<tr><td>AA−</td><td>2</td><td>0,03%</td><td>0,15%</td><td>0,36%</td><td>0,57%</td><td>0,88%</td><td>1,34%</td></tr>
-<tr><td>A+</td><td>3</td><td>0,04%</td><td>0,18%</td><td>0,39%</td><td>0,65%</td><td>1,10%</td><td>1,82%</td></tr>
-<tr><td>A</td><td>3</td><td>0,05%</td><td>0,22%</td><td>0,48%</td><td>0,81%</td><td>1,38%</td><td>2,19%</td></tr>
-<tr><td>A−</td><td>3</td><td>0,07%</td><td>0,28%</td><td>0,57%</td><td>0,98%</td><td>1,65%</td><td>2,52%</td></tr>
-<tr><td>BBB+</td><td>4</td><td>0,11%</td><td>0,46%</td><td>0,98%</td><td>1,58%</td><td>2,54%</td><td>4,02%</td></tr>
-<tr><td>BBB</td><td>5</td><td>0,16%</td><td>0,71%</td><td>1,44%</td><td>2,27%</td><td>3,52%</td><td>5,38%</td></tr>
-<tr><td>BBB−</td><td>6</td><td>0,27%</td><td>1,22%</td><td>2,84%</td><td>4,08%</td><td>5,92%</td><td>8,44%</td></tr>
-<tr><td>BB+</td><td>7</td><td>0,39%</td><td>1,85%</td><td>3,65%</td><td>5,52%</td><td>8,05%</td><td>11,22%</td></tr>
-<tr><td>BB</td><td>7</td><td>0,63%</td><td>2,87%</td><td>5,48%</td><td>7,92%</td><td>11,08%</td><td>14,88%</td></tr>
-<tr><td>BB−</td><td>7</td><td>0,95%</td><td>4,22%</td><td>7,98%</td><td>11,25%</td><td>15,18%</td><td>19,65%</td></tr>
-<tr><td>B+</td><td>8</td><td>1,75%</td><td>6,20%</td><td>10,42%</td><td>13,95%</td><td>18,22%</td><td>23,40%</td></tr>
-<tr><td>B</td><td>8</td><td>3,32%</td><td>10,32%</td><td>15,65%</td><td>19,68%</td><td>24,33%</td><td>29,50%</td></tr>
-<tr><td>B−</td><td>8</td><td>6,25%</td><td>16,48%</td><td>23,10%</td><td>27,95%</td><td>33,15%</td><td>38,80%</td></tr>
-<tr><td>CCC+</td><td>9</td><td>15,40%</td><td>28,50%</td><td>35,80%</td><td>40,10%</td><td>44,90%</td><td>49,50%</td></tr>
-<tr><td>CCC / C</td><td>9–10</td><td>26,63%</td><td>40,85%</td><td>46,90%</td><td>50,41%</td><td>54,21%</td><td>57,86%</td></tr>
+<tr><td>AAA</td><td>1</td><td>0,00%</td><td>0,01%</td><td>0,07%</td><td>0,17%</td><td>0,31%</td><td>0,51%</td></tr>
+<tr><td>AA+</td><td>2</td><td>0,00%</td><td>0,04%</td><td>0,14%</td><td>0,26%</td><td>0,46%</td><td>0,69%</td></tr>
+<tr><td>AA</td><td>2</td><td>0,01%</td><td>0,07%</td><td>0,20%</td><td>0,36%</td><td>0,60%</td><td>0,97%</td></tr>
+<tr><td>AA−</td><td>2</td><td>0,03%</td><td>0,12%</td><td>0,30%</td><td>0,49%</td><td>0,78%</td><td>1,20%</td></tr>
+<tr><td>A+</td><td>3</td><td>0,04%</td><td>0,17%</td><td>0,38%</td><td>0,62%</td><td>1,10%</td><td>1,80%</td></tr>
+<tr><td>A</td><td>3</td><td>0,05%</td><td>0,21%</td><td>0,48%</td><td>0,80%</td><td>1,40%</td><td>2,20%</td></tr>
+<tr><td>A−</td><td>3</td><td>0,07%</td><td>0,28%</td><td>0,59%</td><td>0,98%</td><td>1,70%</td><td>2,60%</td></tr>
+<tr><td>BBB+</td><td>4</td><td>0,10%</td><td>0,44%</td><td>0,93%</td><td>1,50%</td><td>2,40%</td><td>3,90%</td></tr>
+<tr><td>BBB</td><td>5</td><td>0,15%</td><td>0,65%</td><td>1,40%</td><td>2,10%</td><td>3,40%</td><td>5,30%</td></tr>
+<tr><td>BBB−</td><td>6</td><td>0,26%</td><td>1,10%</td><td>2,40%</td><td>3,70%</td><td>5,50%</td><td>8,00%</td></tr>
+<tr><td>BB+</td><td>7</td><td>0,41%</td><td>1,80%</td><td>3,60%</td><td>5,40%</td><td>7,90%</td><td>11,20%</td></tr>
+<tr><td>BB</td><td>7</td><td>0,63%</td><td>2,70%</td><td>5,20%</td><td>7,60%</td><td>10,80%</td><td>14,80%</td></tr>
+<tr><td>BB−</td><td>7</td><td>1,00%</td><td>4,30%</td><td>8,00%</td><td>11,20%</td><td>15,20%</td><td>20,10%</td></tr>
+<tr><td>B+</td><td>8</td><td>1,60%</td><td>6,00%</td><td>10,30%</td><td>14,00%</td><td>18,40%</td><td>23,80%</td></tr>
+<tr><td>B</td><td>8</td><td>2,60%</td><td>8,80%</td><td>14,00%</td><td>18,20%</td><td>23,10%</td><td>28,50%</td></tr>
+<tr><td>B−</td><td>8</td><td>4,60%</td><td>13,20%</td><td>19,70%</td><td>24,50%</td><td>29,90%</td><td>35,40%</td></tr>
+<tr><td>CCC+</td><td>9</td><td>12,00%</td><td>24,50%</td><td>32,30%</td><td>37,40%</td><td>42,60%</td><td>47,50%</td></tr>
+<tr><td>CCC / C</td><td>9–10</td><td>24,50%</td><td>38,90%</td><td>45,60%</td><td>49,80%</td><td>54,10%</td><td>58,00%</td></tr>
 </tbody></table>
-<p><em>Quelle: S&amp;P, durchschnittliche kumulierte Ausfallraten von Unternehmen nach Ratingstufe (langjähriger historischer Durchschnitt). Die Spalte „10BONDS-Risiko“ zeigt, welcher Risikostufe von 1 bis 10 jedes Rating in unserem Anleihen-Finder entspricht.</em></p>
+<p><em>Quelle: 10BONDS, auf Basis öffentlicher historischer Ausfallstudien: durchschnittliche kumulierte Ausfallraten von Unternehmen nach Ratingstufe (langjährige Durchschnitte, kombiniert und gerundet). Die Spalte „10BONDS-Risiko“ zeigt, welcher Risikostufe von 1 bis 10 jedes Rating in unserem Anleihen-Finder entspricht.</em></p>
 <h2 id="lesen">Wie lesen Sie die Tabelle?</h2>
-<p>Je schlechter das Rating, desto höher die Ausfallwahrscheinlichkeit, und zwar nicht gleichmäßig: Über 5 Jahre steigt sie von 1,44 % bei BBB auf 2,84 % bei BBB− und springt dann auf 5,48 % bei BB, der ersten vollwertigen Stufe im spekulativen Bereich. An der Grenze zwischen <a href="/de/ratgeber/investment-grade-anleihen">Investment Grade</a> (bis BBB−) und <a href="/de/ratgeber/hochzinsanleihen-chancen-risiken">Hochzins</a> (ab BB+) ändert das Risiko sein Tempo.</p>
+<p>Je schlechter das Rating, desto höher die Ausfallwahrscheinlichkeit, und zwar nicht gleichmäßig: Über 5 Jahre steigt sie von 1,40 % bei BBB auf 2,40 % bei BBB− und springt dann auf 5,20 % bei BB, der ersten vollwertigen Stufe im spekulativen Bereich. An der Grenze zwischen <a href="/de/ratgeber/investment-grade-anleihen">Investment Grade</a> (bis BBB−) und <a href="/de/ratgeber/hochzinsanleihen-chancen-risiken">Hochzins</a> (ab BB+) ändert das Risiko sein Tempo.</p>
 <p>Die Zeit zählt ebenso wie das Rating. Eine Wahrscheinlichkeit über 1 Jahr lässt sich nicht mit einer über 10 Jahre vergleichen: Für eine BBB-Anleihe, die in 5 Jahren fällig wird, ist die Spalte „5 Jahre“ die richtige.</p>
 <h2 id="grenzen">Was sagt die Tabelle nicht?</h2>
 <ul>
@@ -269,9 +269,9 @@ ${hinweis}
 <p>Die Tabelle hilft einzuordnen, was eine Risikostufe im Anleihen-Finder historisch bedeutet hat. Wer etwa eine Anleihe mit 10BONDS-Risiko 5 betrachtet, sieht hier die Ausfallraten der Stufe BBB. Eine höhere Rendite bei schlechterem Rating ist der Ausgleich für dieses höhere Risiko; Streuung über viele Emittenten begrenzt die Folgen eines einzelnen Ausfalls. Wie Rating, Ausfallwahrscheinlichkeit und erwarteter Verlust zusammenspielen, erklärt der Ratgeber zum <a href="/de/ratgeber/kreditrisiko-anleihen">Kreditrisiko bei Anleihen</a>.</p>
 <h2 id="faq">Häufige Fragen</h2>
 <h3>Wie oft ist ein AAA-Emittent ausgefallen?</h3>
-<p>Laut S&amp;P-Durchschnitt in 0,44 % der Fälle innerhalb von 10 Jahren und in 0,58 % innerhalb von 15 Jahren.</p>
+<p>Im langjährigen Durchschnitt in 0,31 % der Fälle innerhalb von 10 Jahren und in 0,51 % innerhalb von 15 Jahren.</p>
 <h3>Wie hoch ist die Ausfallrate bei BB über 5 Jahre?</h3>
-<p>Im S&amp;P-Durchschnitt 5,48 %, also fast viermal so hoch wie bei BBB mit 1,44 %.</p>
+<p>Im langjährigen Durchschnitt 5,20 %, also fast viermal so hoch wie bei BBB mit 1,40 %.</p>
 ${cta("vergleichen Sie Anleihen nach Risiko, Rendite und Duration")}
 ${hinweis}
 `,

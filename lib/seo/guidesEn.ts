@@ -131,7 +131,7 @@ export const EN_GUIDES: EnGuide[] = [
 <p>The yield of an investment grade bond depends on market rates, on the <a href="/knowledge/bond-duration">duration</a> and on the rating. As a rule, for the same duration, the lower the rating the higher the yield. You can see today's values in the <a href="/">bond finder</a>, updated every day.</p>
 <p>When you compare, keep the duration fixed first and then look at how the yield changes as the rating goes down: the gap between bands is the extra return the market pays for the extra risk.</p>
 <h2 id="agencies-disagree">When the agencies disagree</h2>
-<p>It happens that a bond is BBB- for one agency and BB+ for another. On 10BONDS we use the resolved rating supplied with the data when available, otherwise S&amp;P's, then Moody's, then Fitch's. Bonds without a rating do not appear in our lists. The details are in our methodology.</p>
+<p>It happens that a bond is BBB- for one agency and BB+ for another. On 10BONDS we show a risk score from 1 to 10 instead, our own scale, which is not a credit rating. Bonds without a rating do not appear in our lists. The details are in our methodology.</p>
 <p>Split ratings are most common close to the investment grade boundary, which is exactly where the difference matters most. If you hold such a bond, it is worth knowing which rating your bank or fund uses.</p>
 <p><a class="cta" href="/">Find your 10 bonds</a>: choose the minimum rating with the third slider and look at the 10 bonds.</p>
 `,
@@ -391,35 +391,35 @@ export const EN_GUIDES: EnGuide[] = [
     section: "risk",
     title: "What is the historical default probability of a BBB rating?",
     seoTitle: "Default probability by rating: BBB, A, BB and more",
-    metaDescription: "Historical default probability by rating, from AAA to CCC: BBB issuers defaulted in 1.44% of cases over 5 years and 3.52% over 10 years (S&P averages).",
+    metaDescription: "Historical default probability by rating, from AAA to CCC: BBB issuers defaulted in 1.40% of cases over 5 years and 3.40% over 10 years (long-run averages).",
     primaryKeyword: "default probability bbb rating",
     bodyHtml: `
-<p><strong>Short answer:</strong> according to S&amp;P's long-run averages, a BBB-rated issuer defaulted in 0.16% of cases within 1 year, 1.44% within 5 years and 3.52% within 10 years. Out of 100 BBB issuers, on average fewer than 4 defaulted over ten years.</p>
+<p><strong>Short answer:</strong> based on public historical default studies, a BBB-rated issuer defaulted in 0.15% of cases within 1 year, 1.40% within 5 years and 3.40% within 10 years. Out of 100 BBB issuers, on average fewer than 4 defaulted over ten years.</p>
 <p>The table shows average cumulative default rates for each rating notch, from 1 to 15 years. A cumulative rate is the share of issuers with that rating at the start of the period that defaulted by the end of it.</p>
 <h2 id="table">Cumulative default rates by rating (%)</h2>
 <table><thead><tr><th scope="col">Rating</th><th scope="col">10BONDS risk</th><th scope="col">1 year</th><th scope="col">3 years</th><th scope="col">5 years</th><th scope="col">7 years</th><th scope="col">10 years</th><th scope="col">15 years</th></tr></thead><tbody>
-<tr><td>AAA</td><td>1</td><td>0.00%</td><td>0.03%</td><td>0.13%</td><td>0.25%</td><td>0.44%</td><td>0.58%</td></tr>
-<tr><td>AA+</td><td>2</td><td>0.00%</td><td>0.05%</td><td>0.15%</td><td>0.29%</td><td>0.52%</td><td>0.77%</td></tr>
-<tr><td>AA</td><td>2</td><td>0.02%</td><td>0.10%</td><td>0.25%</td><td>0.43%</td><td>0.70%</td><td>1.05%</td></tr>
-<tr><td>AA−</td><td>2</td><td>0.03%</td><td>0.15%</td><td>0.36%</td><td>0.57%</td><td>0.88%</td><td>1.34%</td></tr>
-<tr><td>A+</td><td>3</td><td>0.04%</td><td>0.18%</td><td>0.39%</td><td>0.65%</td><td>1.10%</td><td>1.82%</td></tr>
-<tr><td>A</td><td>3</td><td>0.05%</td><td>0.22%</td><td>0.48%</td><td>0.81%</td><td>1.38%</td><td>2.19%</td></tr>
-<tr><td>A−</td><td>3</td><td>0.07%</td><td>0.28%</td><td>0.57%</td><td>0.98%</td><td>1.65%</td><td>2.52%</td></tr>
-<tr><td>BBB+</td><td>4</td><td>0.11%</td><td>0.46%</td><td>0.98%</td><td>1.58%</td><td>2.54%</td><td>4.02%</td></tr>
-<tr><td>BBB</td><td>5</td><td>0.16%</td><td>0.71%</td><td>1.44%</td><td>2.27%</td><td>3.52%</td><td>5.38%</td></tr>
-<tr><td>BBB−</td><td>6</td><td>0.27%</td><td>1.22%</td><td>2.84%</td><td>4.08%</td><td>5.92%</td><td>8.44%</td></tr>
-<tr><td>BB+</td><td>7</td><td>0.39%</td><td>1.85%</td><td>3.65%</td><td>5.52%</td><td>8.05%</td><td>11.22%</td></tr>
-<tr><td>BB</td><td>7</td><td>0.63%</td><td>2.87%</td><td>5.48%</td><td>7.92%</td><td>11.08%</td><td>14.88%</td></tr>
-<tr><td>BB−</td><td>7</td><td>0.95%</td><td>4.22%</td><td>7.98%</td><td>11.25%</td><td>15.18%</td><td>19.65%</td></tr>
-<tr><td>B+</td><td>8</td><td>1.75%</td><td>6.20%</td><td>10.42%</td><td>13.95%</td><td>18.22%</td><td>23.40%</td></tr>
-<tr><td>B</td><td>8</td><td>3.32%</td><td>10.32%</td><td>15.65%</td><td>19.68%</td><td>24.33%</td><td>29.50%</td></tr>
-<tr><td>B−</td><td>8</td><td>6.25%</td><td>16.48%</td><td>23.10%</td><td>27.95%</td><td>33.15%</td><td>38.80%</td></tr>
-<tr><td>CCC+</td><td>9</td><td>15.40%</td><td>28.50%</td><td>35.80%</td><td>40.10%</td><td>44.90%</td><td>49.50%</td></tr>
-<tr><td>CCC / C</td><td>9–10</td><td>26.63%</td><td>40.85%</td><td>46.90%</td><td>50.41%</td><td>54.21%</td><td>57.86%</td></tr>
+<tr><td>AAA</td><td>1</td><td>0.00%</td><td>0.01%</td><td>0.07%</td><td>0.17%</td><td>0.31%</td><td>0.51%</td></tr>
+<tr><td>AA+</td><td>2</td><td>0.00%</td><td>0.04%</td><td>0.14%</td><td>0.26%</td><td>0.46%</td><td>0.69%</td></tr>
+<tr><td>AA</td><td>2</td><td>0.01%</td><td>0.07%</td><td>0.20%</td><td>0.36%</td><td>0.60%</td><td>0.97%</td></tr>
+<tr><td>AA−</td><td>2</td><td>0.03%</td><td>0.12%</td><td>0.30%</td><td>0.49%</td><td>0.78%</td><td>1.20%</td></tr>
+<tr><td>A+</td><td>3</td><td>0.04%</td><td>0.17%</td><td>0.38%</td><td>0.62%</td><td>1.10%</td><td>1.80%</td></tr>
+<tr><td>A</td><td>3</td><td>0.05%</td><td>0.21%</td><td>0.48%</td><td>0.80%</td><td>1.40%</td><td>2.20%</td></tr>
+<tr><td>A−</td><td>3</td><td>0.07%</td><td>0.28%</td><td>0.59%</td><td>0.98%</td><td>1.70%</td><td>2.60%</td></tr>
+<tr><td>BBB+</td><td>4</td><td>0.10%</td><td>0.44%</td><td>0.93%</td><td>1.50%</td><td>2.40%</td><td>3.90%</td></tr>
+<tr><td>BBB</td><td>5</td><td>0.15%</td><td>0.65%</td><td>1.40%</td><td>2.10%</td><td>3.40%</td><td>5.30%</td></tr>
+<tr><td>BBB−</td><td>6</td><td>0.26%</td><td>1.10%</td><td>2.40%</td><td>3.70%</td><td>5.50%</td><td>8.00%</td></tr>
+<tr><td>BB+</td><td>7</td><td>0.41%</td><td>1.80%</td><td>3.60%</td><td>5.40%</td><td>7.90%</td><td>11.20%</td></tr>
+<tr><td>BB</td><td>7</td><td>0.63%</td><td>2.70%</td><td>5.20%</td><td>7.60%</td><td>10.80%</td><td>14.80%</td></tr>
+<tr><td>BB−</td><td>7</td><td>1.00%</td><td>4.30%</td><td>8.00%</td><td>11.20%</td><td>15.20%</td><td>20.10%</td></tr>
+<tr><td>B+</td><td>8</td><td>1.60%</td><td>6.00%</td><td>10.30%</td><td>14.00%</td><td>18.40%</td><td>23.80%</td></tr>
+<tr><td>B</td><td>8</td><td>2.60%</td><td>8.80%</td><td>14.00%</td><td>18.20%</td><td>23.10%</td><td>28.50%</td></tr>
+<tr><td>B−</td><td>8</td><td>4.60%</td><td>13.20%</td><td>19.70%</td><td>24.50%</td><td>29.90%</td><td>35.40%</td></tr>
+<tr><td>CCC+</td><td>9</td><td>12.00%</td><td>24.50%</td><td>32.30%</td><td>37.40%</td><td>42.60%</td><td>47.50%</td></tr>
+<tr><td>CCC / C</td><td>9–10</td><td>24.50%</td><td>38.90%</td><td>45.60%</td><td>49.80%</td><td>54.10%</td><td>58.00%</td></tr>
 </tbody></table>
-<p><em>Source: S&amp;P, average cumulative corporate default rates by rating notch (long-run historical average). The "10BONDS risk" column shows which 1-10 risk score each rating corresponds to in our bond finder.</em></p>
+<p><em>Source: 10BONDS, based on public historical default studies: average cumulative corporate default rates by rating notch (long-run historical averages, combined and rounded). The "10BONDS risk" column shows which 1-10 risk score each rating corresponds to in our bond finder.</em></p>
 <h2 id="how-to-read">How to read the table</h2>
-<p>As the rating falls, the default probability rises, and not in a straight line: at 5 years it goes from 1.44% for BBB to 2.84% for BBB−, then jumps to 5.48% for BB, the first fully speculative-grade notch. The line between investment grade (down to BBB−) and speculative grade (BB+ and below) is where risk changes pace.</p>
+<p>As the rating falls, the default probability rises, and not in a straight line: at 5 years it goes from 1.40% for BBB to 2.40% for BBB−, then jumps to 5.20% for BB, the first fully speculative-grade notch. The line between investment grade (down to BBB−) and speculative grade (BB+ and below) is where risk changes pace.</p>
 <p>Time matters as much as the rating. A 1-year probability cannot be compared with a 10-year one: for a BBB bond maturing in 5 years, the column to look at is the 5-year one.</p>
 <h2 id="limits">What the table does not tell you</h2>
 <ul><li>These are past averages across many issuers and economic cycles, not a forecast for any single issuer.</li><li>Default does not mean losing everything: how much is recovered depends on the bond's seniority and collateral.</li><li>The data covers companies; government bonds have a different default history.</li></ul>

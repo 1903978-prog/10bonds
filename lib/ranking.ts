@@ -1,14 +1,11 @@
 import type { PublicBond, RankedBond } from "./types";
 import { cleanIssuer } from "./issuer";
-import { bondNotch } from "./ratings";
-import { riskLevel, LIMITS } from "./limits";
+import { bondNotch, riskOfNotch } from "./ratings";
+import { riskLevel, LIMITS, nearHorizon, isOpenEnded } from "./limits";
+import { lossAdjustedYield } from "./expectedLoss";
 
 export const RESULT_COUNT = 10;
 
-// How much one rating notch weighs against one percentage point of yield. Kept small so yield comes first and the
-// rating only settles near-ties: a higher "highest risk accepted" must give a higher yield, never a safer, poorer list.
-// AAA = 0, BBB- = 9: a BBB- bond needs 0.18 points more yield than an AAA one to rank level with it.
-export const NOTCH_PENALTY = 0.02;
 // Bonds with no rating are treated as just below investment grade.
 export const UNRATED_NOTCH = 10;
 
@@ -18,14 +15,18 @@ const EXTRA_BAND = 2; // most years the window may widen by
 // The list's average duration should stay within 5% of the target; each year beyond costs this much yield.
 const AVG_DURATION_SLACK = 0.05;
 const AVG_DURATION_PENALTY = 0.5;
+// Below the slider maximum the target sets how much risk the list takes: the lowest average risk score that still
+// reaches it wins. Yield after losses only breaks near-ties (0.05 risk points per percentage point).
+const YIELD_TIEBREAK = 0.05;
 
 /**
  * Top bonds for a target duration and yield (Portfolio mode).
  * 1. Pool: rated bonds within the risk level, duration within ±20% of the target, one bond per issuer.
- * 2. Each bond scores its yield minus a small NOTCH_PENALTY per rating notch: highest yield first, lower risk on near-ties.
- * 3. Pick the 10 with the best total score whose average yield reaches the target yield and whose average duration
- *    stays close to the target. A low target never lowers the yield: the target is a minimum.
- *    Accepting more risk only adds bonds to the pool, so the yield can only go up.
+ * 2. Each bond scores its yield after expected losses (lib/expectedLoss.ts): yield minus the yearly historical default
+ *    rate for its rating over its duration times a 60% loss. More yield wins unless it does not pay for the extra risk.
+ * 3. Below the slider maximum: the 10 with the lowest average risk score whose average yield still reaches the target
+ *    and whose average duration stays close to the horizon; ties go to the higher yield after losses.
+ *    A lower target gives a safer list with a lower yield; a higher one takes more risk for more yield.
  * 4. At (or above) the slider maximum the answer is exactly the 10 highest-yielding issuers the maximum is computed from.
  * Shown best score first.
  */
@@ -34,7 +35,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, key: issuerKey(b), score: b.grossYtm! - NOTCH_PENALTY * notch };
+    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };
@@ -43,43 +44,52 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
   if (targetYtm >= capOf(top.map((b) => b.grossYtm!)) - 1e-9) {
     chosen = top;
   } else {
-    // Start from the best-scoring bond of each issuer, then swap bonds in and out while that improves the set:
-    // reach the target yield first, then keep the average duration near the target, then the highest total score.
-    const byScore = [...cands].sort((a, b) => b.score - a.score || a.isin.localeCompare(b.isin));
-    chosen = topIssuersBy(byScore, count);
-    const n = chosen.length;
+    // Swap bonds in and out while that improves the set: reach the target yield first, keep the average duration near
+    // the target, then the lowest average risk score, then the highest yield after losses. Two starts (the safest bonds
+    // and the highest-yield ones) so the search does not stop on a poor local answer; the better result wins.
+    const n = top.length;
     const slack = AVG_DURATION_SLACK * targetDuration;
-    const costOf = (ytm: number, dur: number, score: number) =>
-      Math.max(0, targetYtm - ytm / n) * 1000 + Math.max(0, Math.abs(dur / n - targetDuration) - slack) * AVG_DURATION_PENALTY - score / n;
-    let ytm = chosen.reduce((s, b) => s + b.grossYtm!, 0);
-    let dur = chosen.reduce((s, b) => s + b.modifiedDuration!, 0);
-    let score = chosen.reduce((s, b) => s + b.score, 0);
-    let best = costOf(ytm, dur, score);
-    for (let iter = 0; iter < 300; iter++) {
-      let move: { i: number; j: (typeof cands)[number]; c: number } | null = null;
-      const used = new Set(chosen.map((b) => b.key));
-      for (let i = 0; i < n; i++) {
-        const out = chosen[i];
-        for (const j of cands) {
-          if (j.isin === out.isin) continue;
-          if (j.key !== out.key && used.has(j.key)) continue;
-          const c = costOf(ytm - out.grossYtm! + j.grossYtm!, dur - out.modifiedDuration! + j.modifiedDuration!, score - out.score + j.score);
-          if (c < best - 1e-9 && (!move || c < move.c)) move = { i, j, c };
+    const costOf = (ytm: number, dur: number, rk: number, score: number) =>
+      Math.max(0, targetYtm - ytm / n) * 1000 + Math.max(0, (isOpenEnded(targetDuration) ? targetDuration - dur / n : Math.abs(dur / n - targetDuration)) - slack) * AVG_DURATION_PENALTY + rk / n - (YIELD_TIEBREAK * score) / n;
+    const search = (start: typeof cands) => {
+      const set = [...start];
+      let ytm = set.reduce((s, b) => s + b.grossYtm!, 0);
+      let dur = set.reduce((s, b) => s + b.modifiedDuration!, 0);
+      let rk = set.reduce((s, b) => s + b.rk, 0);
+      let score = set.reduce((s, b) => s + b.score, 0);
+      let best = costOf(ytm, dur, rk, score);
+      for (let iter = 0; iter < 400; iter++) {
+        let move: { i: number; j: (typeof cands)[number]; c: number } | null = null;
+        const used = new Set(set.map((b) => b.key));
+        for (let i = 0; i < n; i++) {
+          const out = set[i];
+          for (const j of cands) {
+            if (j.isin === out.isin) continue;
+            if (j.key !== out.key && used.has(j.key)) continue;
+            const c = costOf(ytm - out.grossYtm! + j.grossYtm!, dur - out.modifiedDuration! + j.modifiedDuration!, rk - out.rk + j.rk, score - out.score + j.score);
+            if (c < best - 1e-9 && (!move || c < move.c)) move = { i, j, c };
+          }
         }
+        if (!move) break;
+        const out = set[move.i];
+        ytm += move.j.grossYtm! - out.grossYtm!;
+        dur += move.j.modifiedDuration! - out.modifiedDuration!;
+        rk += move.j.rk - out.rk;
+        score += move.j.score - out.score;
+        set[move.i] = move.j;
+        best = move.c;
       }
-      if (!move) break;
-      const out = chosen[move.i];
-      ytm += move.j.grossYtm! - out.grossYtm!;
-      dur += move.j.modifiedDuration! - out.modifiedDuration!;
-      score += move.j.score - out.score;
-      chosen[move.i] = move.j;
-      best = move.c;
-    }
+      return { set, cost: best };
+    };
+    const safest = topIssuersBy([...cands].sort((a, b) => a.rk - b.rk || b.score - a.score || a.isin.localeCompare(b.isin)), count);
+    const fromSafe = search(safest);
+    const fromTop = search(top);
+    chosen = fromSafe.cost <= fromTop.cost ? fromSafe.set : fromTop.set;
   }
 
   const ordered = [...chosen].sort((a, b) => b.score - a.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
   return {
-    results: ordered.map(({ notch: _n, key: _k, ...b }, i) => ({ ...b, rank: i + 1 })),
+    results: ordered.map(({ notch: _n, key: _k, rk: _r, ...b }, i) => ({ ...b, rank: i + 1 })),
     band,
   };
 }
@@ -89,10 +99,10 @@ export function portfolioPool(bonds: PublicBond[], targetDuration: number, count
   const usable = bonds.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
   const start = DURATION_WINDOW * targetDuration;
   let band = start;
-  let pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band + 1e-9);
+  let pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band + 1e-9));
   while (distinctIssuers(pool) < count && band < start + EXTRA_BAND) {
     band += 0.5;
-    pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band + 1e-9);
+    pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band + 1e-9));
   }
   return { pool, band: Math.round(band * 100) / 100 };
 }
@@ -131,9 +141,9 @@ export function withinRisk(bonds: PublicBond[], risk: number): PublicBond[] {
 }
 
 /** Yield caps per duration step for every risk level: { "1": {...}, ..., "10": {...} }. */
-export function ytmCapsByRisk(bonds: PublicBond[], durLimits: { min: number; max: number; step: number }, ytmLimits: { min: number; max: number; step: number }) {
+export function ytmCapsByRisk(bonds: PublicBond[], durations: readonly number[], ytmLimits: { min: number; max: number; step: number }) {
   const out: Record<string, Record<string, number | null>> = {};
-  for (let r = LIMITS.risk.min; r <= LIMITS.risk.max; r++) out[String(r)] = ytmCaps(withinRisk(bonds, r), durLimits, ytmLimits);
+  for (let r = LIMITS.risk.min; r <= LIMITS.risk.max; r++) out[String(r)] = ytmCaps(withinRisk(bonds, r), durations, ytmLimits);
   return out;
 }
 
@@ -156,10 +166,10 @@ const MAX_BAND = 3;
 export function durationPool(bonds: PublicBond[], targetDuration: number, count = RESULT_COUNT): { pool: PublicBond[]; band: number } {
   const usable = bonds.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
   let band = START_BAND;
-  let pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band);
+  let pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band));
   while (distinctIssuers(pool) < count && band < MAX_BAND) {
     band += 0.5;
-    pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band);
+    pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band));
   }
   return { pool, band };
 }
@@ -169,9 +179,9 @@ export function durationPool(bonds: PublicBond[], targetDuration: number, count 
  * 10 highest-yielding issuers in the portfolio pool for that duration (fewer when fewer issuers exist),
  * rounded down to the slider step so the top 10 can really reach it. Null when no bond is there.
  */
-export function ytmCaps(bonds: PublicBond[], limits: { min: number; max: number; step: number }, ytmLimits: { min: number; max: number; step: number }): Record<string, number | null> {
+export function ytmCaps(bonds: PublicBond[], durations: readonly number[], ytmLimits: { min: number; max: number; step: number }): Record<string, number | null> {
   const caps: Record<string, number | null> = {};
-  for (let d = limits.min; d <= limits.max + 1e-9; d += limits.step) {
+  for (const d of durations) {
     const { pool } = portfolioPool(bonds, d);
     const key = String(Math.round(d * 100) / 100);
     if (!pool.length) {

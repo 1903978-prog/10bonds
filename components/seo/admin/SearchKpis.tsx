@@ -43,17 +43,17 @@ function Row({ name, engine, indexedLabel, indexedHint, setup, extra }: { name: 
   return (
     <div>
       <p className="mb-1 text-xs text-mute">{name} · {k ? `last ${k.days} days` : engine.state === "error" ? `error: ${engine.message}` : "not connected"}</p>
-      {k ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          <Box label="Clicks" value={num(k.clicks)} change={delta(k.clicks, k.prevClicks)} />
-          <Box label="Impressions" value={num(k.impressions)} change={delta(k.impressions, k.prevImpressions)} />
-          <Box label="CTR" value={pct(k.ctr)} />
-          <Box label="Avg position" value={num(k.position, 1)} />
-          <Box label={indexedLabel} value={num(k.indexed)} hint={indexedHint} />
-          {extra}
-        </div>
-      ) : (
-        <div className="rounded-2xl bg-white px-4 py-3 text-sm">
+      {/* The boxes are always there (a dash until the source is connected), so nothing moves when data arrives. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <Box label="Clicks" value={k ? num(k.clicks) : "—"} change={k ? delta(k.clicks, k.prevClicks) : null} />
+        <Box label="Impressions" value={k ? num(k.impressions) : "—"} change={k ? delta(k.impressions, k.prevImpressions) : null} />
+        <Box label="CTR" value={k ? pct(k.ctr) : "—"} />
+        <Box label="Avg position" value={k ? num(k.position, 1) : "—"} />
+        <Box label={indexedLabel} value={k ? num(k.indexed) : "—"} hint={indexedHint} />
+        {extra ?? <div className="rounded-2xl bg-white px-3 py-2"><p className="text-[11px] text-mute">Status</p><p className={`mt-0.5 text-sm font-semibold ${k ? "text-green-700" : "text-red-700"}`}>{k ? "Connected" : "Not connected"}</p></div>}
+      </div>
+      {!k && (
+        <div className="mt-2 rounded-2xl bg-white px-4 py-3 text-sm">
           <button onClick={() => setOpen(!open)} className="text-accent">{open ? "Hide steps" : `Connect ${name} (one time)`}</button>
           {open && setup}
         </div>

@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Locale } from "@/lib/seo/locales";
+import type { SeoMarket } from "@/lib/seo/input";
 import { DIMENSIONS, type CriterionResult, type DimensionScore, type Recommendation } from "@/lib/seo/rubric";
 import { api, Badge, btn, btnLight, card, day, ErrorNote, Field, input, num, STATUS_LABEL, Table, when } from "./ui";
 
-type Row = { id: number; market: Locale; at: string; by: string; trigger: string; overall: number; assessed: number; criteria: number; dimensions: Record<string, number> };
+type Row = { id: number; market: SeoMarket; at: string; by: string; trigger: string; overall: number; assessed: number; criteria: number; dimensions: Record<string, number> };
 type Score = { total: number; dimensions: DimensionScore[]; assessed: number; criteria: number; complete: boolean };
 type Data = {
-  market: Locale;
-  markets: { market: Locale; overall: number | null; at: string | null }[];
+  market: SeoMarket;
+  markets: { market: SeoMarket; overall: number | null; at: string | null }[];
   global: number | null;
   current: (Row & { score: Score; results: CriterionResult[] }) | null;
   previous: (Row & { score: Score }) | null;
@@ -23,9 +23,9 @@ type Data = {
 
 const RANGES = [["30", "30 days"], ["90", "90 days"], ["365", "1 year"], ["all", "All"]] as const;
 const COLORS: Record<string, string> = { guides: "#0071e3", comparisons: "#34c759", credibility: "#af52de", backlinks: "#ff9500", technical: "#5ac8fa", internal: "#ff2d55", mobile: "#8e8e93" };
-const FLAG: Record<Locale, string> = { it: "🇮🇹 Italy", fr: "🇫🇷 France", de: "🇩🇪 Germany" };
+const FLAG: Record<SeoMarket, string> = { it: "🇮🇹 Italy", fr: "🇫🇷 France", de: "🇩🇪 Germany", us: "🇺🇸 United States", uk: "🇬🇧 United Kingdom" };
 
-export default function Overview({ market }: { market: Locale }) {
+export default function Overview({ market, onMarket }: { market: SeoMarket; onMarket: (m: SeoMarket) => void }) {
   const [range, setRange] = useState("90");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,17 +73,24 @@ export default function Overview({ market }: { market: Locale }) {
 
   return (
     <div className="space-y-5" data-testid="seo-overview">
-      <section className="grid gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {data.markets.map((m) => (
-          <div key={m.market} className={`${card} ${m.market === market ? "ring-2 ring-accent" : ""}`}>
-            <p className="text-xs text-mute">{FLAG[m.market]}</p>
+          <button
+            key={m.market}
+            type="button"
+            onClick={() => onMarket(m.market)}
+            aria-pressed={m.market === market}
+            className={`${card} text-left transition hover:ring-2 hover:ring-line ${m.market === market ? "ring-2 ring-accent hover:ring-accent" : ""}`}
+            data-testid={`seo-card-${m.market}`}
+          >
+            <p className="truncate text-xs text-mute">{FLAG[m.market]}</p>
             <p className="mt-1 text-2xl font-semibold">{m.overall === null ? "—" : `${num(m.overall, 1)}`}<span className="text-sm font-normal text-mute"> /100</span></p>
-          </div>
+          </button>
         ))}
         <div className={card}>
-          <p className="text-xs text-mute">Average of 3 markets</p>
+          <p className="text-xs text-mute">Average of {data.markets.length} markets</p>
           <p className="mt-1 text-2xl font-semibold">{data.global === null ? "—" : num(data.global, 1)}<span className="text-sm font-normal text-mute"> /100</span></p>
-          <p className="mt-1 text-[11px] text-mute">Internal metric, equal weights. Not a Google score.</p>
+          <p className="mt-1 text-[11px] text-mute">Internal metric, equal weights.</p>
         </div>
       </section>
 
@@ -95,7 +102,7 @@ export default function Overview({ market }: { market: Locale }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => run()} disabled={running} className={btn} data-testid="seo-run">{running ? "Checking the site…" : "Re-evaluate now"}</button>
-            <button onClick={() => run({ psi: true })} disabled={running} className={btnLight} title="Also runs Google PageSpeed on the three home pages (1-3 minutes)">+ PageSpeed</button>
+            <button onClick={() => run({ psi: true })} disabled={running} className={btnLight} title="Also runs Google PageSpeed on the IT, FR, DE and English home pages (1-3 minutes)">+ PageSpeed</button>
           </div>
         </div>
         <ErrorNote error={error} />
@@ -183,7 +190,7 @@ function Contribution({ dims }: { dims: DimensionScore[] }) {
 }
 
 /** Overall score over time, with each dimension's contribution as stacked areas. Plain SVG, no chart library. */
-function Chart({ history, market }: { history: Row[]; market: Locale }) {
+function Chart({ history, market }: { history: Row[]; market: SeoMarket }) {
   const rows = history.filter((h) => h.market === market);
   if (rows.length === 0) return <p className="mt-3 text-sm text-mute">No assessments in this period.</p>;
   const W = 640;
@@ -225,7 +232,7 @@ function Chart({ history, market }: { history: Row[]; market: Locale }) {
 type Manual = { criterion: string; points: number | null; override: boolean; evidence: string; justification: string | null; by: string; at: string };
 type Change = { assessmentId: number; at: string; criterion: string; points: number | null; previous: number | null; status: string; evidence: string };
 
-function Dimension({ market, dim, results, onSaved }: { market: Locale; dim: string; results: CriterionResult[]; onSaved: () => void }) {
+function Dimension({ market, dim, results, onSaved }: { market: SeoMarket; dim: string; results: CriterionResult[]; onSaved: () => void }) {
   const def = DIMENSIONS.find((d) => d.id === dim)!;
   const [hist, setHist] = useState<{ history: Manual[]; changes: Change[] } | null>(null);
   const [form, setForm] = useState<{ criterion: string; points: string; evidence: string; justification: string } | null>(null);
@@ -337,7 +344,7 @@ function Dimension({ market, dim, results, onSaved }: { market: Locale; dim: str
   );
 }
 
-function Roadmap({ market, items, onChange }: { market: Locale; items: (Recommendation & { status: string })[]; onChange: () => void }) {
+function Roadmap({ market, items, onChange }: { market: SeoMarket; items: (Recommendation & { status: string })[]; onChange: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const set = async (key: string, status: string) => {
     try {

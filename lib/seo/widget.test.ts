@@ -9,9 +9,9 @@ const bond = (rating: string, years: number, ytm: number, currency = "EUR"): Pub
 const now = new Date(Date.UTC(2026, 9, 19));
 
 describe("yields widget", () => {
-  it("gives the median yield per rating and maturity, and a dash below three bonds", () => {
+  it("gives the median yield per risk group and maturity, and a dash below three bonds", () => {
     const g = yieldGrid([bond("AA+", 5, 2), bond("AA-", 5, 3), bond("AA", 5, 4), bond("BBB", 1, 4), bond("BBB", 1, 5), bond("A", 20, 9), bond("AAA", 5, 1, "USD")], now);
-    expect(g.rows).toEqual([{ rating: "AA", cells: [null, 3, null, null] }]);
+    expect(g.rows).toEqual([{ risk: "2", cells: [null, 3, null, null] }]);
   });
   it("leaves out unrated bonds", () => {
     expect(yieldGrid([bond("NR", 5, 2), bond("NR", 5, 2), bond("NR", 5, 2)], now).rows).toEqual([]);

@@ -11,6 +11,7 @@ export type PublicBond = {
   ratingMoodys: string | null;
   ratingFitch: string | null;
   ratingResolved: string | null;
+  lrScore?: number | null; // Livio Rating (LRfinal) 0..100, higher = safer; null until the copy carries it
   grossYtm: number | null; // percent, e.g. 4.12
   modifiedDuration: number | null; // years
   ytmAsOf: string | null;

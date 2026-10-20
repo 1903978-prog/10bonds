@@ -44,7 +44,7 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         id: "risk-score",
         title: "The risk score is not a credit rating",
         paragraphs: [
-          "The risk score from 1 (lowest) to 10 (highest) is 10BONDS' own internal assessment, provided for information only. It is not a credit rating, is not an average of agency ratings, and 10BONDS is not a credit rating agency. It suggests no strategy. Check official ratings with the rating agencies, the issuer and your financial adviser, and do not rely on the 10BONDS risk score.",
+          "The risk score from 1 (lowest) to 10 (highest) is 10BONDS' own internal assessment, provided for information only. It is built by 10BONDS from public credit information. It is not a credit rating, and 10BONDS is not a credit rating agency. It suggests no strategy. Check official ratings with the rating agencies, the issuer and your financial adviser, and do not rely on the 10BONDS risk score.",
         ],
       },
       {
@@ -88,7 +88,7 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         id: "risk-score",
         title: "Il rischio non è un rating",
         paragraphs: [
-          "Il rischio da 1 (più basso) a 10 (più alto) è una valutazione interna di 10BONDS, solo informativa. Non è un rating di credito né una media dei rating delle agenzie, e 10BONDS non è un'agenzia di rating. Non suggerisce alcuna strategia. Verifica i rating ufficiali con le agenzie di rating, l'emittente e il tuo consulente finanziario, e non fare affidamento sul rischio di 10BONDS.",
+          "Il rischio da 1 (più basso) a 10 (più alto) è una valutazione interna di 10BONDS, solo informativa. È costruita da 10BONDS a partire da informazioni pubbliche sul credito. Non è un rating di credito e 10BONDS non è un'agenzia di rating. Non suggerisce alcuna strategia. Verifica i rating ufficiali con le agenzie di rating, l'emittente e il tuo consulente finanziario, e non fare affidamento sul rischio di 10BONDS.",
         ],
       },
       {
@@ -132,7 +132,7 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         id: "risk-score",
         title: "Le risque n'est pas une notation",
         paragraphs: [
-          "Le risque de 1 (le plus faible) à 10 (le plus élevé) est une évaluation interne de 10BONDS, à titre informatif uniquement. Ce n'est pas une notation de crédit ni une moyenne des notations des agences, et 10BONDS n'est pas une agence de notation. Il ne suggère aucune stratégie. Vérifiez les notations officielles auprès des agences de notation, de l'émetteur et de votre conseiller financier, et ne vous fiez pas au risque de 10BONDS.",
+          "Le risque de 1 (le plus faible) à 10 (le plus élevé) est une évaluation interne de 10BONDS, à titre informatif uniquement. Elle est construite par 10BONDS à partir d'informations publiques sur le crédit. Ce n'est pas une notation de crédit et 10BONDS n'est pas une agence de notation. Il ne suggère aucune stratégie. Vérifiez les notations officielles auprès des agences de notation, de l'émetteur et de votre conseiller financier, et ne vous fiez pas au risque de 10BONDS.",
         ],
       },
       {
@@ -176,7 +176,7 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         id: "risk-score",
         title: "Das Risiko ist kein Rating",
         paragraphs: [
-          "Das Risiko von 1 (am geringsten) bis 10 (am höchsten) ist eine interne Einschätzung von 10BONDS, nur zur Information. Es ist kein Kreditrating und kein Durchschnitt von Agenturratings, und 10BONDS ist keine Ratingagentur. Es legt keine Strategie nahe. Prüfen Sie offizielle Ratings bei den Ratingagenturen, beim Emittenten und bei Ihrem Finanzberater und verlassen Sie sich nicht auf das Risiko von 10BONDS.",
+          "Das Risiko von 1 (am geringsten) bis 10 (am höchsten) ist eine interne Einschätzung von 10BONDS, nur zur Information. Sie wird von 10BONDS aus öffentlichen Bonitätsinformationen erstellt. Es ist kein Kreditrating, und 10BONDS ist keine Ratingagentur. Es legt keine Strategie nahe. Prüfen Sie offizielle Ratings bei den Ratingagenturen, beim Emittenten und bei Ihrem Finanzberater und verlassen Sie sich nicht auf das Risiko von 10BONDS.",
         ],
       },
       {

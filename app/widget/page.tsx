@@ -7,7 +7,7 @@ import { embedSnippet, WIDGET_LANGS, WIDGET_TEXT, widgetLang } from "@/lib/seo/w
 
 export const metadata: Metadata = {
   title: "Free bond yields widget for your website · 10BONDS",
-  description: "Show today's EUR bond yields by rating and maturity on your website or blog. Free, no sign-up: copy one line of code.",
+  description: "Show EUR bond yields by risk and maturity on your website or blog. Free, no sign-up: copy one line of code.",
   alternates: { canonical: "/widget" },
 };
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export default async function WidgetPage({ searchParams }: { searchParams: Promi
     <div className="mx-auto max-w-3xl">
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">Free bond yields widget</h1>
       <p className="mt-3 text-[17px] text-mute">
-        Show today&apos;s EUR bond yields by rating and years to maturity on your website or blog. It updates every day by itself. Free, no sign-up.
+        Show EUR bond yields by 10BONDS risk and years to maturity on your website or blog. It updates every day by itself. Free, no sign-up.
       </p>
       <div className="mt-6 flex flex-wrap items-center gap-2" aria-label="Language">
         {WIDGET_LANGS.map((l) => <Link key={l} href={href(l, dark)} className={pill(l === lang)} scroll={false}>{LANG_NAME[l]}</Link>)}

@@ -1,9 +1,12 @@
 import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { accountsConfigured } from "@/lib/accounts";
+import { currentUser } from "@/lib/currentUser";
+import { landsInPro } from "@/lib/proView";
 import Finder from "@/components/Finder";
-import { ComparisonBody, JsonLd, RiskNote } from "@/components/seo/Seo";
+import { ComparisonBody, JsonLd } from "@/components/seo/Seo";
 import { COMPARISONS } from "@/lib/seo/comparisons";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { CALCULATORS } from "@/lib/seo/calculators";
@@ -30,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function LocaleHome({ params }: Props) {
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
+  if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
   const l: Locale = lang;
   const h = HOME[l];
   const t = T[l];
@@ -91,7 +95,6 @@ export default async function LocaleHome({ params }: Props) {
         </div>
         <p className="mt-3 text-sm"><Link href="/pricing" className="text-accent">{h.plansLink} ›</Link> · <Link href={pathOf(l, "method")} className="text-accent">{t.method}</Link> · <Link href={pathOf(l, "team")} className="text-accent">{t.team}</Link></p>
       </section>
-      <div className="mx-auto max-w-3xl"><RiskNote locale={l} /></div>
       <JsonLd data={{ "@context": "https://schema.org", "@type": "WebSite", name: "10BONDS", url: `${SITE_URL}/${l}`, inLanguage: LOCALE[l].hreflang, description: h.description, publisher: ORGANIZATION }} />
       <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />
     </div>

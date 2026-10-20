@@ -20,10 +20,14 @@ async function buildAll() {
   const { seoSql } = await import("./seo/store");
   const { brokerTablesReady } = await import("./brokers/store");
   const { proTableReady } = await import("./pro");
+  const { riskTablesReady } = await import("./riskPremium/store");
+  const { ytmHistoryReady } = await import("./ytmHistory");
   const sql = await accountsSql();
   await seoSql();
   await brokerTablesReady();
   await proTableReady();
+  await riskTablesReady();
+  await ytmHistoryReady();
   return sql;
 }
 
@@ -93,5 +97,35 @@ describe.skipIf(!url)("admin two-factor key on a real database", () => {
     expect(await verifySecondFactor(Number(u.id), totpAt(secret, t0 + 120_000), t0 + 120_000)).toBe(true);
     const [after] = await sql`select totp_secret s from app.users where id = ${u.id}`;
     expect(after.s.startsWith("v1:")).toBe(true);
+  });
+});
+
+describe.skipIf(!url)("risk premium versions on a real database", () => {
+  it("seeds Version 1.0 as active; a draft changes nothing until activated; recorded runs keep their version", async () => {
+    const sql = await buildAll();
+    const store = await import("./riskPremium/store");
+    const { draftFrom } = await import("./riskPremium/versions");
+    const v1 = (await store.listVersions()).find((v) => v.version === "1.0")!;
+    expect(v1).toMatchObject({ status: "active", premiums: { "BBB+": 95, "AA-": 50 }, floor: "BBB-", exceptionalBp: 200, minMaturity: 4, maxMaturity: 6 });
+    expect(await store.getWeight()).toBe(0);
+
+    const version = `9.${Date.now() % 1000}`;
+    const id = await store.createDraft(draftFrom(v1, { version, premiums: { "BBB+": 105 } }), null, "test draft", "test@local");
+    const ev = { isin: "XS0000000001", ytm: 4.3, duration: 4.5, maturityYears: 5, rating: "BBB+", ratingSource: "S&P BBB+", requiredBp: 95, benchmarkYtm: 2.5, spreadBp: 180, riskAdjustedYtm: 3.35, surplusBp: 85, status: "eligible", reason: null, versionId: v1.id } as never;
+    const run = await store.recordRun(v1.id, `test-${version}`, null, [ev], { test: true });
+    expect((await store.liveRiskConfig()).curve?.premiums["BBB+"]).toBe(95);
+
+    expect(await store.activateVersion(id, "test activation", "test@local")).toEqual([]);
+    const after = await store.listVersions();
+    expect(after.find((v) => v.id === v1.id)).toMatchObject({ status: "archived", premiums: { "BBB+": 95 } });
+    expect(after.find((v) => v.id === id)).toMatchObject({ status: "active", premiums: { "BBB+": 105 } });
+    expect(await store.updateDraft(v1.id, v1, null, "edit archived", "test@local")).toBe(false);
+    const [stored] = await sql`select required_bp, version_id from app.risk_calc_results where run_id = ${run}`;
+    expect([Number(stored.required_bp), Number(stored.version_id)]).toEqual([95, v1.id]);
+    const audit = await store.listAudit(5);
+    expect(audit.map((a) => a.action)).toContain("activate");
+    // Put Version 1.0 back for anything that runs after this test.
+    await sql`update app.risk_premium_versions set status = 'archived' where id = ${id}`;
+    await sql`update app.risk_premium_versions set status = 'active' where id = ${v1.id}`;
   });
 });

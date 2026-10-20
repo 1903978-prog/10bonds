@@ -7,7 +7,7 @@ import { FOOTER_LINKS, FOOTER_NOTE, footerLang } from "@/lib/footerNote";
 
 export default function FooterNote() {
   const pathname = usePathname();
-  return <p className="mx-auto max-w-4xl px-4" data-testid="footer-note">{FOOTER_NOTE[footerLang(pathname)]}</p>;
+  return <p className="mx-auto max-w-7xl px-4" data-testid="footer-note">{FOOTER_NOTE[footerLang(pathname)]}</p>;
 }
 
 /** Light grey legal menu: everything legal lives here, not in the top menu. */
@@ -19,6 +19,7 @@ export function FooterLegal() {
     <nav aria-label="Legal" className="mx-auto mt-2 flex max-w-4xl flex-wrap justify-center gap-x-3 gap-y-1 px-4 text-[11px] text-mute" data-testid="footer-legal">
       <Link href={lang === "en" ? "/disclaimer" : `/disclaimer?lang=${lang}`} className={a}>{l.disclaimer}</Link>
       <Link href={lang === "en" ? "/methodology" : `/methodology?lang=${lang}`} className={a}>{l.methodology}</Link>
+      <Link href={lang === "en" ? "/ranking-methodology" : `/ranking-methodology?lang=${lang}`} className={a}>{l.ranking}</Link>
       <Link href="/terms" className={a}>{l.terms}</Link>
       <Link href="/privacy" className={a}>{l.privacy}</Link>
       <Link href="/cookies" className={a}>{l.cookies}</Link>

@@ -14,7 +14,7 @@ const td = "border-t border-line px-3 py-2 align-top";
 
 export default function Privacy() {
   return (
-    <article className="mx-auto max-w-3xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="privacy-page">
+    <article className="mx-auto max-w-6xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="privacy-page">
       <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy</h1>
       <p className="mt-2 text-mute">Last updated: {LEGAL_DRAFT_DATE}</p>
 
@@ -42,7 +42,7 @@ export default function Privacy() {
         <li><strong>E-mail address:</strong> for registration, sign-in, essential service messages and password recovery.</li>
         <li><strong>Password:</strong> for sign-in. We store only a salted scrypt hash of it, an industry-standard one-way cryptographic method. The password itself is never stored, logged or readable by us.</li>
       </ul>
-      <p className="mt-3">We also hold, as part of your account: your plan, sign-up and last sign-in dates, the version and date of the Terms you accepted, whether you confirmed your e-mail, which trial code you used and when, and the time of each counted search so the weekly allowance of the free plan works.</p>
+      <p className="mt-3">We also hold, as part of your account: your plan, sign-up and last sign-in dates, the version and date of the Terms you accepted, whether you confirmed your e-mail, which trial code you used and when, whether you asked for the newsletter (with the date and place of that choice, and of any unsubscribe), and the time of each counted search so the weekly allowance of the free plan works.</p>
       <p className="mt-3"><strong>Technical data.</strong> Your IP address is held briefly in the server&apos;s memory to limit repeated sign-in and sign-up attempts; it is not written to our database. Sign-in uses a session cookie (see section 9). Our hosting provider, Fly.io, receives your IP address with every request in order to deliver the website and may keep it in short-lived technical and security logs. We do not keep access logs of our own.</p>
       <p className="mt-3"><strong>Paid plans.</strong> If you buy Plus, Premium or Pro, payment is handled by Stripe. You enter your card and billing details (name, billing address, country, VAT number if you give one) on Stripe&apos;s own page; Stripe processes them and we never see your card details. We keep only the Stripe customer and subscription reference, the plan, its status, billing period and renewal date. Stripe keeps payment and invoice records as tax law requires.</p>
       <p className="mt-3"><strong>Professional access (Pro).</strong> If you apply for Pro, we hold the firm, role, country, regulator, licence number, website and the declaration you made, to check that you are a regulated professional.</p>
@@ -71,11 +71,12 @@ export default function Privacy() {
             <tr><td className={td}>Checking that Pro users are regulated professionals</td><td className={td}>Contract and legitimate interest in offering the tool only to professionals (6(1)(b) and (f))</td></tr>
             <tr><td className={td}>Account security and fraud prevention</td><td className={td}>Legitimate interest in operating a secure service (6(1)(f))</td></tr>
             <tr><td className={td}>Essential messages: e-mail confirmation, password reset, payment issues</td><td className={td}>Contract (6(1)(b)) or legitimate interest (6(1)(f)), depending on the message</td></tr>
+            <tr><td className={td}>Weekly newsletter, only if you tick the box at sign-up or switch it on in your profile</td><td className={td}>Consent (6(1)(a)), withdrawn at any time with the link in each e-mail or the switch in your profile</td></tr>
             <tr><td className={td}>Usage statistics to improve the site</td><td className={td}>Your consent (6(1)(a)), which you can withdraw at any time under &ldquo;Cookie settings&rdquo;</td></tr>
           </tbody>
         </table>
       </div>
-      <p className="mt-3">We do not use personal financial profiles to give personalised investment recommendations, and we do not send marketing e-mails.</p>
+      <p className="mt-3">We do not use personal financial profiles to give personalised investment recommendations, and we send no marketing e-mails except the newsletter you choose to receive.</p>
 
       <H>6. Data retention</H>
       <ul className="mt-2 list-disc space-y-1.5 pl-5">

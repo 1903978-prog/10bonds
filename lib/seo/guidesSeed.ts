@@ -145,7 +145,7 @@ ${cta("imposta la duration che ti serve e il rendimento che cerchi")}
 <h2 id="rendimento">Quanto rendono</h2>
 <p>Il rendimento di un'obbligazione investment grade dipende dai tassi di mercato, dalla <a href="/it/guide/duration-obbligazioni">duration</a> e dal rating. Di solito, a parità di duration, più il rating scende più il rendimento sale. Puoi vedere i valori di oggi nella pagina delle <a href="/it/obbligazioni/investment-grade">obbligazioni investment grade in euro</a>, aggiornata ogni giorno.</p>
 <h2 id="agenzie-diverse">Quando le agenzie non sono d'accordo</h2>
-<p>Capita che un'obbligazione sia BBB- per un'agenzia e BB+ per un'altra. Su 10BONDS usiamo il rating risolto fornito con i dati quando disponibile, altrimenti quello di S&amp;P, poi Moody's, poi Fitch. Le obbligazioni senza rating non compaiono nei nostri elenchi. Il dettaglio è nella pagina sulla <a href="/it/metodologia">metodologia</a>.</p>
+<p>Capita che un'obbligazione sia BBB- per un'agenzia e BB+ per un'altra. Su 10BONDS mostriamo invece un rischio da 1 a 10, una scala propria che non è un rating. Le obbligazioni senza rating non compaiono nei nostri elenchi. Il dettaglio è nella pagina sulla <a href="/it/metodologia">metodologia</a>.</p>
 ${cta("scegli il rating minimo con il terzo cursore e guarda le 10 obbligazioni")}
 `,
   },

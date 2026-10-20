@@ -61,6 +61,68 @@ table app.refresh_requests
   finished_at timestamp with time zone
   note text
 
+table app.risk_calc_results
+  run_id bigint not null
+  isin text not null
+  calculated_at timestamp with time zone not null default now()
+  raw_ytm numeric
+  duration numeric
+  maturity_years numeric
+  rating text
+  rating_source text
+  required_bp numeric
+  benchmark_ytm numeric
+  spread_bp numeric
+  risk_adjusted_ytm numeric
+  surplus_bp numeric
+  status text not null
+  reason text
+  version_id bigint not null
+
+table app.risk_calc_runs
+  id bigint not null default nextval(...)
+  at timestamp with time zone not null default now()
+  version_id bigint not null
+  signature text not null
+  data_as_of timestamp with time zone
+  summary jsonb
+
+table app.risk_premium_audit
+  id bigint not null default nextval(...)
+  at timestamp with time zone not null default now()
+  by_email text not null
+  version_id bigint
+  action text not null
+  justification text
+  detail jsonb
+
+table app.risk_premium_versions
+  id bigint not null default nextval(...)
+  version text not null
+  status text not null default 'draft'::text
+  currency text not null default 'EUR'::text
+  issuer_category text not null default 'corporate'::text
+  min_maturity numeric not null
+  max_maturity numeric not null
+  floor text not null
+  exceptional_bp numeric not null
+  premiums jsonb not null
+  notes text
+  justification text
+  created_at timestamp with time zone not null default now()
+  created_by text
+  activated_at timestamp with time zone
+  activated_by text
+
+table app.risk_spread_reviews
+  id bigint not null default nextval(...)
+  isin text not null
+  decision text not null
+  note text not null
+  by_email text not null
+  at timestamp with time zone not null default now()
+  version_id bigint
+
 table app.search_usage
   id bigint not null default nextval(...)
   user_id bigint not null
@@ -237,6 +299,10 @@ table app.users
   terms_version text
   terms_accepted_at timestamp with time zone
   email_verified_at timestamp with time zone
+  newsletter_opt_in boolean not null default false
+  newsletter_consent_at timestamp with time zone
+  newsletter_consent_source text
+  newsletter_unsubscribed_at timestamp with time zone
   premium_until timestamp with time zone
   stripe_customer_id text
   stripe_subscription_id text
@@ -249,6 +315,14 @@ table app.users
   totp_backup text
   totp_last_step bigint
   totp_enabled_at timestamp with time zone
+
+table app.ytm_history
+  as_of date not null
+  isin text not null
+  ytm numeric not null
+  duration numeric
+  rating text
+  currency text not null
 
 constraints
   app.best_bonds best_bonds_pkey: PRIMARY KEY (duration, level, rank)
@@ -264,12 +338,22 @@ constraints
   app.pro_access pro_access_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.refresh_requests refresh_requests_pkey: PRIMARY KEY (id)
   app.refresh_requests refresh_requests_status_check: CHECK ((status = ANY (ARRAY['pending'::text, 'running'::text, 'done'::text, 'failed'::text])))
+  app.risk_calc_results risk_calc_results_pkey: PRIMARY KEY (run_id, isin)
+  app.risk_calc_results risk_calc_results_run_id_fkey: FOREIGN KEY (run_id) REFERENCES app.risk_calc_runs(id) ON DELETE CASCADE
+  app.risk_calc_runs risk_calc_runs_pkey: PRIMARY KEY (id)
+  app.risk_calc_runs risk_calc_runs_version_id_signature_key: UNIQUE (version_id, signature)
+  app.risk_premium_audit risk_premium_audit_pkey: PRIMARY KEY (id)
+  app.risk_premium_versions risk_premium_versions_pkey: PRIMARY KEY (id)
+  app.risk_premium_versions risk_premium_versions_status_check: CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'archived'::text])))
+  app.risk_premium_versions risk_premium_versions_version_key: UNIQUE (version)
+  app.risk_spread_reviews risk_spread_reviews_decision_check: CHECK ((decision = ANY (ARRAY['approved'::text, 'rejected'::text])))
+  app.risk_spread_reviews risk_spread_reviews_pkey: PRIMARY KEY (id)
   app.search_usage search_usage_kind_check: CHECK ((kind = ANY (ARRAY['single'::text, 'portfolio'::text])))
   app.search_usage search_usage_pkey: PRIMARY KEY (id)
   app.search_usage search_usage_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.seo_actions seo_actions_pkey: PRIMARY KEY (key)
   app.seo_actions seo_actions_status_check: CHECK ((status = ANY (ARRAY['not_started'::text, 'in_progress'::text, 'completed'::text])))
-  app.seo_assessments seo_assessments_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
+  app.seo_assessments seo_assessments_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text, 'us'::text, 'uk'::text])))
   app.seo_assessments seo_assessments_pkey: PRIMARY KEY (id)
   app.seo_backlinks seo_backlinks_link_type_check: CHECK ((link_type = ANY (ARRAY['editorial'::text, 'directory'::text, 'social'::text, 'forum'::text, 'partner'::text, 'sponsored'::text])))
   app.seo_backlinks seo_backlinks_pkey: PRIMARY KEY (id)
@@ -298,7 +382,7 @@ constraints
   app.seo_keywords seo_keywords_pkey: PRIMARY KEY (id)
   app.seo_keywords seo_keywords_potential_check: CHECK ((potential = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])))
   app.seo_keywords seo_keywords_status_check: CHECK ((status = ANY (ARRAY['target'::text, 'in_progress'::text, 'optimised'::text, 'ranking'::text, 'dropped'::text])))
-  app.seo_manual seo_manual_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
+  app.seo_manual seo_manual_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text, 'us'::text, 'uk'::text])))
   app.seo_manual seo_manual_pkey: PRIMARY KEY (id)
   app.seo_manual seo_manual_points_check: CHECK (((points >= 0) AND (points <= 2)))
   app.seo_opportunities seo_opportunities_kind_check: CHECK ((kind = ANY (ARRAY['publisher'::text, 'blog'::text, 'education'::text, 'youtube'::text, 'mention'::text, 'other'::text])))
@@ -314,6 +398,7 @@ constraints
   app.users users_email_key: UNIQUE (email)
   app.users users_pkey: PRIMARY KEY (id)
   app.users users_plan_check: CHECK ((plan = ANY (ARRAY['free'::text, 'plus'::text, 'premium'::text, 'pro'::text])))
+  app.ytm_history ytm_history_pkey: PRIMARY KEY (as_of, isin)
 
 indexes
   CREATE UNIQUE INDEX best_bonds_pkey ON app.best_bonds USING btree (duration, level, rank)
@@ -327,6 +412,15 @@ indexes
   CREATE UNIQUE INDEX events_pkey ON app.events USING btree (id)
   CREATE UNIQUE INDEX pro_access_pkey ON app.pro_access USING btree (user_id)
   CREATE UNIQUE INDEX refresh_requests_pkey ON app.refresh_requests USING btree (id)
+  CREATE UNIQUE INDEX risk_calc_results_pkey ON app.risk_calc_results USING btree (run_id, isin)
+  CREATE UNIQUE INDEX risk_calc_runs_pkey ON app.risk_calc_runs USING btree (id)
+  CREATE UNIQUE INDEX risk_calc_runs_version_id_signature_key ON app.risk_calc_runs USING btree (version_id, signature)
+  CREATE UNIQUE INDEX risk_premium_audit_pkey ON app.risk_premium_audit USING btree (id)
+  CREATE UNIQUE INDEX risk_premium_one_active ON app.risk_premium_versions USING btree (status) WHERE (status = 'active'::text)
+  CREATE UNIQUE INDEX risk_premium_versions_pkey ON app.risk_premium_versions USING btree (id)
+  CREATE UNIQUE INDEX risk_premium_versions_version_key ON app.risk_premium_versions USING btree (version)
+  CREATE INDEX risk_spread_reviews_isin ON app.risk_spread_reviews USING btree (isin, at DESC)
+  CREATE UNIQUE INDEX risk_spread_reviews_pkey ON app.risk_spread_reviews USING btree (id)
   CREATE INDEX search_usage_user_idx ON app.search_usage USING btree (user_id, kind, at)
   CREATE UNIQUE INDEX search_usage_pkey ON app.search_usage USING btree (id)
   CREATE UNIQUE INDEX seo_actions_pkey ON app.seo_actions USING btree (key)
@@ -351,3 +445,5 @@ indexes
   CREATE UNIQUE INDEX users_email_key ON app.users USING btree (email)
   CREATE UNIQUE INDEX users_pkey ON app.users USING btree (id)
   CREATE UNIQUE INDEX users_username_key ON app.users USING btree (lower(username))
+  CREATE INDEX ytm_history_isin ON app.ytm_history USING btree (isin, as_of)
+  CREATE UNIQUE INDEX ytm_history_pkey ON app.ytm_history USING btree (as_of, isin)
