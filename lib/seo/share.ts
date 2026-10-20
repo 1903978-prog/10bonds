@@ -3,6 +3,7 @@ import { open, seal } from "../secretBox";
 import { SITE_URL } from "./crawl";
 import { serviceAccount, submitSitemap } from "./google";
 import { pathOf } from "./locales";
+import { BOND_SITEMAP, bondPageUrls } from "./bondPages";
 import { getSeoSetting, seoSql, setSeoSetting, type Guide } from "./store";
 
 // When a guide goes live it is sent, by itself, to:
@@ -65,6 +66,20 @@ export async function pingGoogle(): Promise<void> {
   const site = await getSeoSetting("gsc_site");
   if (!serviceAccount() || !site) throw new Error("not configured");
   await submitSitemap(site, `${SITE_URL}/sitemap.xml`);
+  await submitSitemap(site, SITE_URL + BOND_SITEMAP);
+}
+
+/** Sends any number of addresses to IndexNow, 10,000 per call. */
+export async function indexNowAll(urls: string[]): Promise<void> {
+  const list = [...new Set(urls)];
+  for (let i = 0; i < list.length; i += 10_000) await indexNow(list.slice(i, i + 10_000));
+}
+
+/** Sends every bond page (all languages) to IndexNow: weekly, since yields change every day. Logged in Admin -> SEO -> Sharing. */
+export async function shareBondPages(isins: string[]) {
+  const urls = bondPageUrls(SITE_URL, isins).map((e) => e.url);
+  if (!urls.length) return;
+  await attempt(null, `${SITE_URL}${BOND_SITEMAP} (${urls.length} bond pages)`, "indexnow", () => indexNowAll(urls));
 }
 
 // ---------- X (Twitter) ----------

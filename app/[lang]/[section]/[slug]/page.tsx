@@ -1,7 +1,7 @@
 import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumbs, ComparisonBody, JsonLd, prose, ToolCta } from "@/components/seo/Seo";
 import { accountsConfigured } from "@/lib/accounts";
 import { currentUser } from "@/lib/currentUser";
@@ -22,18 +22,26 @@ import { insightsAlternates, insightsPath, INSIGHTS_TEXT } from "@/lib/seo/insig
 import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
 import { alternates, comparisonAlternates, comparisonPages, fmtDate, guideAlternates, indexable, shown } from "@/lib/seo/site";
 import { guideBySlug, listGuides, listPeople, type Guide } from "@/lib/seo/store";
+import BondIsinPage, { bondByIsin } from "@/components/seo/BondIsinPage";
+import { bondAlternates, bondDescription, bondTitle, isIsin } from "@/lib/seo/bondPages";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ lang: string; section: string; slug: string }>; searchParams: Promise<{ preview?: string }> };
 
-type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | { l: Locale; kind: "insights" } | { l: Locale; kind: "map" } | null;
+type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | { l: Locale; kind: "insights" } | { l: Locale; kind: "map" } | { l: Locale; kind: "isin"; isin: string } | null;
 
 /** A published guide (any guide for the admin with ?preview=1), or a comparison page. */
 async function resolve(props: Props): Promise<Resolved> {
   const { lang, section, slug } = await props.params;
-  if (!isLocale(lang) || !/^[a-z0-9-]{1,80}$/.test(slug)) return null;
+  if (!isLocale(lang)) return null;
   const s = sectionOf(lang, section);
+  // One bond by its ISIN (upper case; a lower-case address moves there).
+  if (s === "bonds" && isIsin(slug.toUpperCase())) {
+    if (slug !== slug.toUpperCase()) permanentRedirect(pathOf(lang, "bonds", slug.toUpperCase()));
+    return { l: lang, kind: "isin", isin: slug };
+  }
+  if (!/^[a-z0-9-]{1,80}$/.test(slug)) return null;
   if (s === "bonds") {
     const def = comparisonBySlug(lang, slug);
     return def ? { l: lang, kind: "bonds", def } : null;
@@ -58,6 +66,13 @@ function guideWithEnglish(g: Guide, siblings: Guide[]): Metadata["alternates"] {
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const r = await resolve(props);
   if (!r) return { robots: { index: false } };
+  if (r.kind === "isin") {
+    const hit = await bondByIsin(r.isin).catch(() => null);
+    if (!hit) return { robots: { index: false } };
+    const title = bondTitle(r.l, hit.bond);
+    const description = bondDescription(r.l, hit.bond);
+    return { title: { absolute: title }, description, alternates: bondAlternates(r.l, r.isin), robots: hit.live ? undefined : { index: false, follow: true }, openGraph: { locale: LOCALE[r.l].ogLocale, title, description } };
+  }
   if (r.kind === "map") {
     const c = BOND_MAP_TEXT[r.l];
     return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
@@ -108,6 +123,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 export default async function Detail(props: Props) {
   const r = await resolve(props);
   if (!r) notFound();
+  if (r.kind === "isin") return <BondIsinPage l={r.l} isin={r.isin} />;
   if (r.kind === "tool") return <ToolPage l={r.l} />;
   if (r.kind === "curve") return <CurvePage l={r.l} />;
   if (r.kind === "insights") return <InsightsPage l={r.l} />;

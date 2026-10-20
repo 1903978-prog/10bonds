@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { AI_CRAWLERS } from "@/lib/seo/geo";
+import { BOND_SITEMAP } from "@/lib/seo/bondPages";
 
 const PRIVATE = ["/admin", "/api/", "/redeem", "/account"];
 
@@ -13,7 +14,7 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "*", allow: "/", disallow: PRIVATE },
       { userAgent: AI_CRAWLERS, allow: "/", disallow: PRIVATE },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: [`${SITE_URL}/sitemap.xml`, SITE_URL + BOND_SITEMAP],
     host: SITE_URL,
   };
 }
