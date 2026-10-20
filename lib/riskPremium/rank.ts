@@ -2,10 +2,11 @@ import type { PublicBond, RankedBond } from "../types";
 import { LIMITS, isOpenEnded } from "../limits";
 import { issuerKey, portfolioPool, RESULT_COUNT, withinRisk } from "../ranking";
 import { evaluateBond, type EvalContext, type Evaluation, type RiskStatus } from "./evaluate";
+import { yearsToMaturity } from "./benchmark";
 
 // Risk-adjusted Portfolio ranking (shadow mode until Livio activates it).
 //
-// Candidate pool, documented: the same pool as today's ranking (rated bonds within the risk slider, duration within
+// Candidate pool, documented: only bonds inside the curve's maturity bracket (4-6y), then the same pool as today's ranking (rated bonds within the risk slider, duration within
 // ±20% of the target, widened in half-years when fewer than 10 issuers), then only bonds that pass every check of the
 // risk premium model (lib/riskPremium/evaluate.ts): EUR corporate, investment grade, 4-6y maturity, Bund benchmark,
 // no exceptional spread unless approved, spread strictly above the required premium.
@@ -57,7 +58,12 @@ export function riskOrder(targetDuration: number, targetYtm: number) {
 export function rankRiskAdjusted(
   bonds: PublicBond[], targetDuration: number, targetYtm: number, ctx: EvalContext, count = RESULT_COUNT, risk: number = LIMITS.risk.max,
 ): RiskRanking {
-  const { pool, band } = portfolioPool(withinRisk(bonds, risk), targetDuration, count);
+  // First filter (Livio, 20/10/2026): bonds outside the curve's maturity bracket are never considered at all.
+  const inBracket = bonds.filter((b) => {
+    const m = yearsToMaturity(b.maturity, ctx.asOf);
+    return m !== null && m >= ctx.curve.minMaturity - 1e-9 && m <= ctx.curve.maxMaturity + 1e-9;
+  });
+  const { pool, band } = portfolioPool(withinRisk(inBracket, risk), targetDuration, count);
   const byIsin = new Map(pool.map((b) => [b.isin, b]));
   const evaluations = pool.map((b) => evaluateBond(b, ctx));
   const counts = Object.fromEntries(["eligible", "below_hurdle", "review", "rejected", "below_floor", "insufficient_data", "unsupported"].map((s) => [s, 0])) as Record<RiskStatus, number>;

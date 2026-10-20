@@ -5,6 +5,7 @@ import { bundCurve, bundYieldAt } from "./benchmark";
 import { evaluateBond, type EvalContext } from "./evaluate";
 import { compareBonds, explainPair } from "./compare";
 import { rankRiskAdjusted } from "./rank";
+import { bracketExplain } from "./shadow";
 import { activate, activeOf, draftFrom, type CurveVersion } from "./versions";
 
 // The mandatory examples of the specification (Livio, 20/10/2026), one test each, plus the building blocks.
@@ -117,7 +118,7 @@ describe("mandatory examples", () => {
     const { results } = rankRiskAdjusted([...BUNDS, a, b, c], 4.5, 3.5, ctx());
     expect(results.map((r) => r.risk.rating)).toEqual(["BBB", "AA-", "BBB+"]);
   });
-  it("7: BBB- with a 498 bp spread (surplus 333 bp) needs an exceptional spread review", () => {
+  it("7: BBB- with a 498 bp spread (surplus 333 bp) is an exceptional spread, always left out", () => {
     const cit = bond("Cit Corp", "BBB-", 2.5 + 4.98);
     const e = ev(cit);
     expect(e.spreadBp).toBe(498);
@@ -126,8 +127,8 @@ describe("mandatory examples", () => {
     expect(e.status).toBe("review");
     const { results } = rankRiskAdjusted([...BUNDS, cit, bond("Alpha Corp", "A", 4.0)], 4.5, 3.5, ctx());
     expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
-    // Approved by the admin: it may rank; rejected: it stays out.
-    expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "approved"]]) })).status).toBe("eligible");
+    // Even approved by the admin it stays out (Livio, 20/10/2026).
+    expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "approved"]]) })).status).toBe("review");
     expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "rejected"]]) })).status).toBe("rejected");
   });
   it("8: investment-grade floor: BB+ at 8% is ineligible, A at 4% is not", () => {
@@ -160,14 +161,13 @@ describe("mandatory examples", () => {
     expect(ev(short).status).toBe("unsupported");
     expect(ev(long).status).toBe("unsupported");
   });
-  it("11: a French government bond does not get the corporate curve", () => {
+  it("11: a government bond is judged by its rating like a company (AA gov = AA corp)", () => {
     const oat = bond("French Republic", "AA-", 3.2, { country: "FR", isin: "FR0000000001" });
     const corp = bond("Alpha Corp", "AA-", 3.6, { country: "FR" });
-    expect(ev(oat).status).toBe("unsupported");
-    expect(ev(oat).reason).toMatch(/sovereign/);
+    expect(ev(oat).category).toBe("sovereign");
+    expect(ev(oat).requiredBp).toBe(ev(corp).requiredBp);
+    expect(ev(oat).status).toBe("eligible");
     expect(ev(corp).status).toBe("eligible");
-    const { results } = rankRiskAdjusted([...BUNDS, oat, corp], 4.5, 3.5, ctx());
-    expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
   });
   it("12: at most one bond per issuer", () => {
     const bonds = [...BUNDS, bond("Alpha Corp", "A", 4.4, { years: 4.6 }), bond("Alpha Corp", "A", 4.3, { years: 5 }), bond("Alpha Corp", "A", 4.2, { years: 5.4 }), bond("Beta Corp", "A", 3.9)];
@@ -223,9 +223,37 @@ describe("target yield stays meaningful", () => {
   });
 });
 
+describe("maturity bracket", () => {
+  it("bonds outside the 4-6y bracket are never considered, not even as rows of the pool", () => {
+    const longer = bond("Long Corp", "A", 5.5, { years: 6.3, modifiedDuration: 4.8 });
+    const inside = bond("Alpha Corp", "A", 4.0);
+    const r = rankRiskAdjusted([...BUNDS, longer, inside], 4.5, 3.5, ctx());
+    expect(r.results.map((x) => x.issuer)).toEqual(["Alpha Corp"]);
+    expect(r.evaluations.map((e) => e.isin)).not.toContain(longer.isin);
+  });
+});
+
+describe("bracket explanation", () => {
+  it("lists every EUR bond in the bracket with why it is in or out", () => {
+    const top = bond("Alpha Corp", "A", 4.0), low = bond("Thin Corp", "BBB", 3.4), twin = bond("Alpha Corp", "A", 3.9, { isin: "XS9999999999" });
+    const sub = bond("Bank Corp", "A", 6.8), longer = bond("Long Corp", "A", 4.2, { years: 7 });
+    const sc = { duration: 4.5, ytm: 3.5, risk: 7 };
+    const all = [...BUNDS, top, low, twin, longer];
+    const next = rankRiskAdjusted(all, sc.duration, sc.ytm, ctx(), undefined, sc.risk);
+    const rows = bracketExplain(all, [{ bond: sub, reason: "yield", peerMedian: 4 }], ctx(), sc, next);
+    const why = Object.fromEntries(rows.map((r) => [r.isin, r.why]));
+    expect(rows[0]).toMatchObject({ isin: top.isin, inTop: true });
+    expect(why[top.isin]).toMatch(/^In the top 10/);
+    expect(why[low.isin]).toMatch(/not above the 115 bp/);
+    expect(why[twin.isin]).toMatch(/Issuer already in the list/);
+    expect(why[sub.isin]).toMatch(/^Outlier/);
+    expect(why[longer.isin]).toBeUndefined();
+  });
+});
+
 describe("issuer category", () => {
-  it("German Länder and public development banks are not treated as companies", () => {
-    for (const name of ["Hamburg", "Investitionsbank Berlin", "Nederlandse Waterschapsbank N.V.", "Mecklenburg-Vorpommern"]) expect(ev(bond(name, "AAA", 3.6, { country: "DE" })).status, name).toBe("unsupported");
+  it("German Länder and public development banks are filed as agencies, not companies", () => {
+    for (const name of ["Hamburg", "Investitionsbank Berlin", "Nederlandse Waterschapsbank N.V.", "Mecklenburg-Vorpommern"]) expect(ev(bond(name, "AAA", 3.6, { country: "DE" })).category, name).toBe("agency");
     expect(ev(bond("Hamburg Commercial Bank", "A", 3.9, { country: "DE" })).category).toBe("corporate");
   });
 });
