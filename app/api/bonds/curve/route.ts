@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   if (!allow(`curve:${clientIp(req)}`, 60, 60_000))
     return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
   const user = await currentUser();
-  if (!user || user.confirmBlocked || user.plan === "free") return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  if (!user || user.confirmBlocked || (user.plan === "free" && !user.isAdmin)) return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));

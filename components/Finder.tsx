@@ -11,6 +11,7 @@ import type { AltRow } from "@/lib/alternatives";
 import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import LossChart from "@/components/LossChart";
+import { nearestLoss } from "@/lib/lossCurve";
 import type { CurvePoint } from "@/lib/lossCurve";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
@@ -171,7 +172,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
   const [chartOn, setChartOn] = useState(false);
   const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
-  const chartable = paid && mode === "portfolio" && !!data && data.rows.length > 0 && !data.lockedCount;
+  const chartable = (paid || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
   useEffect(() => {
     if (!chartOn || !chartable) return;
     const ctrl = new AbortController();
@@ -342,8 +343,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
           {chartOn && chartable && (
             <div className="absolute inset-0 bg-white" data-testid="loss-chart">
-              {curve && data?.summary?.lifeLoss != null ? (
-                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data.summary.lifeLoss} xLabel={t.chartX} yLabel={t.chartY} />
+              {curve ? (
+                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} />
               ) : null}
             </div>
           )}

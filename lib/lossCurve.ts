@@ -27,3 +27,10 @@ export function lossCurve(bonds: PublicBond[], duration: number, risk: number): 
   }
   return { points, max };
 }
+
+/** The loss of the curve point closest to a target yield (the chart's dot when the results carry no figure). */
+export function nearestLoss(points: CurvePoint[], ytm: number): number {
+  let best = points[0];
+  for (const p of points) if (Math.abs(p.ytm - ytm) < Math.abs(best.ytm - ytm)) best = p;
+  return best?.loss ?? 0;
+}
