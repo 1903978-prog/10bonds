@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CURVE_RATINGS, type CurveRating } from "@/lib/riskPremium/curve";
-import { STATUS_LABEL, type RiskStatus } from "@/lib/riskPremium/status";
+import { shortStatus, STATUS_LABEL, type RiskStatus } from "@/lib/riskPremium/status";
 import type { CurveVersion } from "@/lib/riskPremium/versions";
 import type { Row } from "@/lib/riskPremium/shadow";
 
@@ -304,7 +304,7 @@ function BondTable({ rows, compact, extra }: { rows: Row[]; compact?: boolean; e
             <td className="text-right">{r.spreadBp === null ? "–" : Math.round(r.spreadBp)}</td>
             <td className={`text-right ${r.surplusBp !== null && r.surplusBp <= 0 ? "text-red-700" : ""}`}>{bp(r.surplusBp)}</td>
             {!compact && <td className="text-right">{r.riskAdjustedYtm?.toFixed(2) ?? "–"}</td>}
-            <td className="truncate pl-2" title={r.reason ?? ""}>{extra ? extra(r) : STATUS_LABEL[r.status]}</td>
+            <td className="truncate pl-2" title={r.reason ?? ""}>{extra ? extra(r) : shortStatus(r.status, r.reason)}</td>
           </tr>
         ))}
       </tbody>

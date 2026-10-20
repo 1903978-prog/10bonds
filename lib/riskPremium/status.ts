@@ -18,3 +18,14 @@ export const STATUS_LABEL: Record<RiskStatus, string> = {
   insufficient_data: "Insufficient data",
   unsupported: "Unsupported methodology",
 };
+
+/** A few words for a table cell: for "unsupported", why the curve does not apply. The full reason stays in the tooltip. */
+export function shortStatus(status: RiskStatus, reason: string | null): string {
+  if (status !== "unsupported" || !reason) return STATUS_LABEL[status];
+  if (reason.startsWith("Government")) return "Government bond";
+  if (reason.startsWith("Agency")) return "Agency / public issuer";
+  if (reason.startsWith("Curve is")) return "Not EUR";
+  if (reason.startsWith("Possible")) return "Possible subordinated";
+  if (reason.startsWith("Maturity")) return reason.replace(" curve", "");
+  return STATUS_LABEL[status];
+}
