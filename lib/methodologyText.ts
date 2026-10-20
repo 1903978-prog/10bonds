@@ -341,7 +341,7 @@ The important distinction is between risk exposure, vulnerability and actual fin
 
 A credible LR framework should therefore combine financial metrics, forward-looking business analysis, event-risk assessment and explicit stress testing, with a transparent separation between observable facts and analytical judgments.
 
-## 1. Architecture
+## 1. Overall methodology architecture
 The published framework should distinguish between the base credit score, the financial consequences of adverse scenarios, and exceptional credit events.
 
 @flow A. Base credit assessment | Financial strength + business resilience + management + structural exposures | LR Base · 0–100
@@ -353,7 +353,7 @@ This is directionally consistent with established rating-agency practice, which 
 
 LR's proposed differentiation: a standardized, transparent, issuer-specific shock-transmission model that makes the consequences of external risks visible to bond investors rather than relying only on a broad qualitative risk judgment.
 
-## 2. Base score
+## 2. Base credit assessment: 100 points
 I recommend the following starting allocation for nonfinancial corporates.
 
 @pillar A. Financial strength | 35 | Leverage 9%; interest coverage 6%; FFO/debt 6%; FCF generation 6%; profitability and volatility 4%; leverage trajectory 4%
@@ -366,10 +366,10 @@ These weights are proposed research hypotheses, not empirically established opti
 
 A crucial rule: factors in Pillar E measure persistent exposure and vulnerability. The scenario engine measures the incremental consequences of shocks. We must not deduct the same risk twice.
 
-## 3. Risk universe
+## 3. Comprehensive corporate risk universe
 The following taxonomy is designed as the master risk register. Each risk receives a materiality assessment, evidence record and defined transmission path into financial performance.
 
-### A. Geopolitical
+### A. Geopolitical, conflict and international trade
 | Risk | What LR must investigate | Financial transmission |
 | Interstate war | Operations, assets, employees or customers in conflict zones | Production losses, asset impairment |
 | Regional military escalation | Exposure to Taiwan Strait, Middle East, Eastern Europe and other flashpoints | Supply interruption, logistics and demand |
@@ -386,7 +386,7 @@ The following taxonomy is designed as the master risk register. Each risk receiv
 
 China risk must be measured at the product and market level, not assigned mechanically based on the issuer's nationality. For example, a European industrial company could have limited sales in China but substantial exposure to Chinese competitors in Europe. Its competitive risk could therefore be high despite low direct Chinese revenue.
 
-### B. Economic and financial
+### B. Economic, financial and monetary risks
 | Risk | What LR must investigate | Financial transmission |
 | Global recession | GDP sensitivity of demand | Revenue and EBITDA decline |
 | Financial crisis | Funding availability and credit spreads | Refinancing failure |
@@ -401,7 +401,7 @@ China risk must be measured at the product and market level, not assigned mechan
 | Counterparty default | Concentrated receivables and hedging counterparties | Cash losses |
 | Pension funding crisis | Defined-benefit deficits and mandatory contributions | Increased cash obligations |
 
-### C. Commodities and energy
+### C. Commodities, energy and natural resources
 | Risk | What LR must investigate | Financial transmission |
 | Oil price spike | Fuel intensity, hedging, price pass-through | Higher costs or revenue |
 | Oil price collapse | Upstream production and energy-linked demand | Lower revenue |
@@ -415,7 +415,7 @@ China risk must be measured at the product and market level, not assigned mechan
 
 Every commodity shock must be assessed for its direction, magnitude, hedging protection, pass-through capacity and time lag.
 
-### D. Technology
+### D. Technology and business-model disruption
 | Risk | What LR must investigate | Financial transmission |
 | AI substitution | Proportion of products/services that AI could replace | Structural revenue loss |
 | Automation | Competitors' ability to reduce costs faster | Margin pressure |
@@ -428,7 +428,7 @@ Every commodity shock must be assessed for its direction, magnitude, hedging pro
 | Product substitution | Alternative technologies or materials | Declining addressable market |
 | Digital infrastructure failure | Dependency on payments, connectivity and digital systems | Revenue interruption |
 
-### E. Supply chain
+### E. Supply chain and operational continuity
 | Risk | What LR must investigate | Financial transmission |
 | Single-source suppliers | Availability of qualified substitutes | Production stoppage |
 | Geographic concentration | Production clustered in one country or region | Correlated disruption |
@@ -442,7 +442,7 @@ Every commodity shock must be assessed for its direction, magnitude, hedging pro
 | Infrastructure failures | Grid, water, telecom and transport dependencies | Operating interruption |
 | Inventory disruption | Just-in-time exposure, safety stock | Working-capital shock |
 
-### F. Health and nature
+### F. Health, environmental and natural-catastrophe risks
 | Risk | What LR must investigate | Financial transmission |
 | Global pandemic | Business shutdown sensitivity and demand shifts | Revenue, labor and liquidity |
 | Regional epidemic | Geographic concentration and workforce exposure | Local interruption |
@@ -455,7 +455,7 @@ Every commodity shock must be assessed for its direction, magnitude, hedging pro
 | Environmental accidents | Pollution and remediation exposure | Fines, cleanup, litigation |
 | Insurance withdrawal | Availability and affordability of catastrophe coverage | Higher retained losses |
 
-### G. Management
+### G. Management, governance and human-capital risks
 This category deserves particular attention because conventional financial statements often fail to capture management concentration and operational fragility.
 
 | Risk | What LR must investigate | Financial transmission |
@@ -475,7 +475,7 @@ This category deserves particular attention because conventional financial state
 
 A key-person event should not automatically cause a major score deduction. A company with a strong succession plan, delegated authority and institutionalized customer relationships may be highly resilient to the loss of an executive. Conversely, a founder-controlled company in which one individual controls technology, funding relationships and customer contracts may have substantial key-person risk.
 
-### H. Legal and strategic
+### H. Legal, regulatory and strategic event risks
 | Risk | What LR must investigate | Financial transmission |
 | Antitrust enforcement | Market dominance and competition investigations | Fines, divestitures |
 | Major litigation | Probability and magnitude of adverse judgments | Cash outflow |
@@ -490,7 +490,7 @@ A key-person event should not automatically cause a major score deduction. A com
 | Guarantee withdrawal | Contractual support and guarantee enforceability | Reduced credit protection |
 | Unexpected capital expenditure | Compliance, environmental or operational requirements | FCF deterioration |
 
-## 4. From risk to numbers
+## 4. How to convert these risks into a quantitative assessment
 A risk checklist is useful, but insufficient. A credible model needs to show how an identified risk can impair the company's capacity to repay debt. I propose a five-stage calculation.
 
 @step Exposure | Determine which portion of revenue, EBITDA, assets, procurement, production or debt is exposed to the event.
@@ -510,7 +510,7 @@ A risk checklist is useful, but insufficient. A credible model needs to show how
 
 Assume oil rises by 50%, the company experiences €200m in incremental gross operating costs, and it recovers €80m through hedging and customer price increases. EBITDA consequently falls by €120m. The credit assessment must then examine whether the company still generates sufficient free cash flow, whether its debt covenants remain satisfied and whether it can refinance or repay upcoming maturities. The model should also test whether the shock persists for one, two or three years.
 
-## 5. Scenario engine
+## 5. Scenario engine: the distinctive LR component
 I recommend a common set of scenarios applied consistently across issuers, with company-specific transmission assumptions.
 
 | Scenario | Standardized shock specification | Primary output |
@@ -541,7 +541,7 @@ For each scenario s, calculate LR(s) = f(stressed financial and business inputs)
 
 This allows an investor to understand that two companies with identical base credit scores may have substantially different vulnerabilities. A manufacturer with LR 78 that falls to 43 under a plausible combined stress may be less resilient than a utility with LR 74 that remains at 66. However, the combined scenario must explicitly model correlated shocks. It cannot be constructed by simply adding the separate losses from every scenario.
 
-## 6. Event likelihood
+## 6. Incorporating event likelihood without false precision
 Not every possible event should receive an invented annual probability. I recommend three classes:
 
 | Risk class | Methodology | Example |
@@ -563,7 +563,7 @@ A weighted-average score has an important weakness: a company could score well o
 
 These should trigger a documented credit committee review, possible score cap or distressed-credit classification. The precise caps must be specified and empirically tested before production use. This approach prevents an otherwise strong average score from concealing a critical repayment problem.
 
-## 8. Validation
+## 8. Model validation and institutional credibility
 A comprehensive taxonomy alone will not make LR credible to an experienced rating-agency analyst. The credibility will come from how the model handles evidence, uncertainty, financial causality and historical performance. I recommend six mandatory methodological controls.
 
 | Control | Required standard |
@@ -586,7 +586,7 @@ Before describing LR as a predictive rating model, I would require:
 
 The fifth test is especially important. It would demonstrate whether the additional complexity of LR produces genuine analytical value.
 
-## 9. Publication
+## 9. How we publish this on 10bonds.com
 I would position LR as a forward-looking corporate credit resilience methodology, rather than claiming it is more accurate than agency ratings before validation. The public methodology should contain four parts:
 
 | Publication | Content |
@@ -604,7 +604,7 @@ For methodological reference, the following published frameworks are particularl
 
 These are methodological references, not endorsements of LR or evidence that the proposed LR weights have been validated.
 
-## 10. Key design decision
+## 10. The key design decision
 I would not publish a final corporate LR formula yet. We now have a substantially more complete risk universe, but three technical questions must be resolved before freezing the methodology:
 
 - Weights: Which risks belong in the 100-point base score, and which should affect only stressed outcomes?
