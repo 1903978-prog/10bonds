@@ -6,7 +6,11 @@ describe("finder translations", () => {
     const keys = Object.keys(FINDER_TEXT.en).sort();
     for (const [lang, t] of Object.entries(FINDER_TEXT)) {
       expect(Object.keys(t).sort(), lang).toEqual(keys);
-      for (const [k, v] of Object.entries(t)) expect(typeof v === "function" ? (v as (...a: unknown[]) => string)(3, 10, true, "Monday") : v, `${lang}.${k}`).toBeTruthy();
+      const why = { spreadBp: 180, requiredBp: 95, surplusBp: 85, adjYtm: 3.35, version: "1.0", asOf: null };
+      for (const [k, v] of Object.entries(t)) {
+        const args = k === "riskWhy" ? [why] : [3, 10, true, "Monday"];
+        expect(typeof v === "function" ? (v as (...a: unknown[]) => string)(...args) : v, `${lang}.${k}`).toBeTruthy();
+      }
     }
   });
 });
