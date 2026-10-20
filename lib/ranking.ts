@@ -30,12 +30,12 @@ const YIELD_TIEBREAK = 0.05;
  * 4. At (or above) the slider maximum the answer is exactly the 10 highest-yielding issuers the maximum is computed from.
  * Shown best score first.
  */
-export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm: number, count = RESULT_COUNT, risk: number = LIMITS.risk.max): { results: RankedBond[]; band: number } {
+export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm: number, count = RESULT_COUNT, risk: number = LIMITS.risk.max, riskCost: (rk: number) => number = (rk) => rk): { results: RankedBond[]; band: number } {
   const { pool, band } = portfolioPool(withinRisk(bonds, risk), targetDuration, count);
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
+    return { ...b, ratingNotch, notch, rk: riskCost(riskOfNotch(notch) ?? LIMITS.risk.max), key: issuerKey(b), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };
