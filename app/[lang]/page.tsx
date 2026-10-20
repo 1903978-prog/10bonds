@@ -1,7 +1,10 @@
 import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { accountsConfigured } from "@/lib/accounts";
+import { currentUser } from "@/lib/currentUser";
+import { landsInPro } from "@/lib/proView";
 import Finder from "@/components/Finder";
 import { ComparisonBody, JsonLd } from "@/components/seo/Seo";
 import { COMPARISONS } from "@/lib/seo/comparisons";
@@ -30,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function LocaleHome({ params }: Props) {
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
+  if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
   const l: Locale = lang;
   const h = HOME[l];
   const t = T[l];

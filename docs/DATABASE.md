@@ -11,13 +11,14 @@ Two logins on one Neon Postgres project:
 
 | Table | Holds | Kept |
 |---|---|---|
-| `users` | account: e-mail, username, scrypt password hash, plan, Stripe links, terms version, two-factor (key encrypted, backup codes hashed) | until the account is deleted |
+| `users` | account: e-mail, username, scrypt password hash, plan, Stripe links, terms version, newsletter opt-in (with consent and unsubscribe dates), two-factor (key encrypted, backup codes hashed) | until the account is deleted |
 | `search_usage` | one row per counted search (weekly allowance) | 30 days |
 | `events` | usage statistics, only with consent, no IP | 13 months |
 | `trial_codes` | one-month Premium codes made by the admin | permanent |
 | `pro_access` | professional access requests | until the account is deleted |
 | `refresh_requests` | "refresh prices" requests read by lm-op-model | permanent (small) |
 | `best_bonds` | cache of the best bonds per horizon and risk, rebuilt from `public_bonds` | rebuilt with each copy |
+| `ytm_history` | one yield per rated EUR bond per day, recorded when a new copy loads (weekly/monthly moves) | 120 days |
 | `settings` | small values the app keeps for itself (Stripe webhook key, one-time markers) | permanent |
 | `broker_*` | broker profiles, tariffs (versioned drafts and approvals), settings | permanent |
 | `seo_*` | guides, their history, keywords, backlinks, assessments | permanent |

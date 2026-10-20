@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ManageButton, PlanButton } from "@/components/PlanButton";
+import { NEWSLETTER_TEXT, type NewsletterLang } from "@/lib/newsletterText";
 import { euro, PLAN_NAMES, priceCents, type Interval, type PaidPlan } from "@/lib/plans";
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
   hasBilling: boolean;
   proApproved: boolean;
   payOn: boolean;
+  newsletter: boolean;
+  lang: NewsletterLang;
 };
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -39,6 +42,8 @@ export default function AccountProfile(p: Props) {
   const [confirmErase, setConfirmErase] = useState(false);
   const [deleteText, setDeleteText] = useState("");
   const [showDelete, setShowDelete] = useState(false);
+  const [news, setNews] = useState(p.newsletter);
+  const nt = NEWSLETTER_TEXT[p.lang];
   const trial = p.premiumUntil && new Date(p.premiumUntil).getTime() > Date.now() && p.storedPlan !== "premium" && p.storedPlan !== "pro" ? p.premiumUntil : null;
   const plans: PaidPlan[] = p.proApproved ? ["plus", "premium", "pro"] : ["plus", "premium"];
   const same = sub && p.storedPlan === plan && sub.interval === interval;
@@ -73,6 +78,32 @@ export default function AccountProfile(p: Props) {
         {sub?.renewsAt && (
           <p className="mt-1 text-sm text-mute">{sub.cancelAtEnd ? `Ends on ${fmt(sub.renewsAt)}. You will not be charged again.` : `Renews on ${fmt(sub.renewsAt)}.`}</p>
         )}
+        <div className="mt-4 flex items-center justify-between gap-4 border-t border-line pt-4">
+          <div className="min-w-0">
+            <p className="text-[15px] font-medium">{nt.label}</p>
+            <p className="text-xs text-mute">{nt.hint}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={news}
+            aria-label={`${nt.label}: ${news ? nt.on : nt.off}`}
+            data-testid="profile-newsletter"
+            disabled={busy !== ""}
+            onClick={async () => {
+              const next = !news;
+              setNews(next);
+              setBusy("newsletter");
+              const r = await post("/api/account/newsletter", { on: next });
+              setBusy("");
+              if (!r.ok) setNews(!next);
+              setMsg(r.ok ? { ok: true, text: nt.saved } : { ok: false, text: r.error ?? "Something went wrong." });
+            }}
+            className={`relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors disabled:opacity-60 ${news ? "bg-[#34c759]" : "bg-[#e9e9eb]"}`}
+          >
+            <span className={`absolute left-[2px] top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow transition-transform ${news ? "translate-x-[20px]" : ""}`} />
+          </button>
+        </div>
         {sub?.status === "past_due" && <p className="mt-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">Your last payment failed. Please update your card under “Card and invoices”.</p>}
       </div>
 
