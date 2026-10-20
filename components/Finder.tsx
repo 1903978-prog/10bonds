@@ -385,13 +385,12 @@ type Show = { row: number; count: number; sim: number };
  * The search, staged for the visitor. Every bond searched has a number 1..N in alphabetical order (from the server).
  * Before each of the 10 picks appears, a counter runs up to that bond's number and stops there; the row then appears
  * and the counter starts again for the next one, while the real Monte Carlo run of the list is drawn. Only for searches
- * the visitor starts; a search that answers mid-show takes it over; quicker while the sliders are being moved;
+ * the visitor starts; a search that answers mid-show takes it over (the show is not restarted); about 1 second per pick;
  * skipped for reduced motion. Rows keep their places throughout (hidden rows are invisible, not removed).
  */
 function useScanShow(data: Response | null, active: boolean): Show | null {
   const [show, setShow] = useState<Show | null>(null);
-  const lastEnd = useRef(0);
-  const run = useRef<{ raf: number; start: number; row: number; quick: boolean } | null>(null);
+  const run = useRef<{ raf: number; start: number } | null>(null);
   const latest = useRef(data);
   latest.current = data;
   const shown = useRef(data);
@@ -402,20 +401,19 @@ function useScanShow(data: Response | null, active: boolean): Show | null {
     if (!active || !data?.found?.length || data === shown.current || run.current) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const now0 = performance.now();
-    const r = { raf: 0, start: now0, row: 0, quick: now0 - lastEnd.current < 4000 };
+    const r = { raf: 0, start: now0 };
     run.current = r;
     const tick = (now: number) => {
       const found = latest.current?.found ?? [];
-      const per = r.quick ? 70 : 230; // ms per pick: counting up, then a short hold on the number
+      const per = 1000; // ms per pick (Livio: the 10 picks in about 10 seconds): counting up, then a hold on the number
       const t = (now - r.start) / per;
       const row = Math.floor(t);
       if (row >= found.length) {
-        lastEnd.current = performance.now();
         run.current = null;
         setShow(null);
         return;
       }
-      const f = Math.min(1, (t - row) / 0.75);
+      const f = Math.min(1, (t - row) / 0.8);
       const count = Math.max(1, Math.round((1 - (1 - f) * (1 - f)) * found[row]));
       setShow({ row, count, sim: Math.min(1, t / found.length) });
       r.raf = requestAnimationFrame(tick);
