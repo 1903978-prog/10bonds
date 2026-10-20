@@ -160,14 +160,13 @@ describe("mandatory examples", () => {
     expect(ev(short).status).toBe("unsupported");
     expect(ev(long).status).toBe("unsupported");
   });
-  it("11: a French government bond does not get the corporate curve", () => {
+  it("11: a government bond is judged by its rating like a company (AA gov = AA corp)", () => {
     const oat = bond("French Republic", "AA-", 3.2, { country: "FR", isin: "FR0000000001" });
     const corp = bond("Alpha Corp", "AA-", 3.6, { country: "FR" });
-    expect(ev(oat).status).toBe("unsupported");
-    expect(ev(oat).reason).toMatch(/sovereign/);
+    expect(ev(oat).category).toBe("sovereign");
+    expect(ev(oat).requiredBp).toBe(ev(corp).requiredBp);
+    expect(ev(oat).status).toBe("eligible");
     expect(ev(corp).status).toBe("eligible");
-    const { results } = rankRiskAdjusted([...BUNDS, oat, corp], 4.5, 3.5, ctx());
-    expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
   });
   it("12: at most one bond per issuer", () => {
     const bonds = [...BUNDS, bond("Alpha Corp", "A", 4.4, { years: 4.6 }), bond("Alpha Corp", "A", 4.3, { years: 5 }), bond("Alpha Corp", "A", 4.2, { years: 5.4 }), bond("Beta Corp", "A", 3.9)];
@@ -224,8 +223,8 @@ describe("target yield stays meaningful", () => {
 });
 
 describe("issuer category", () => {
-  it("German Länder and public development banks are not treated as companies", () => {
-    for (const name of ["Hamburg", "Investitionsbank Berlin", "Nederlandse Waterschapsbank N.V.", "Mecklenburg-Vorpommern"]) expect(ev(bond(name, "AAA", 3.6, { country: "DE" })).status, name).toBe("unsupported");
+  it("German Länder and public development banks are filed as agencies, not companies", () => {
+    for (const name of ["Hamburg", "Investitionsbank Berlin", "Nederlandse Waterschapsbank N.V.", "Mecklenburg-Vorpommern"]) expect(ev(bond(name, "AAA", 3.6, { country: "DE" })).category, name).toBe("agency");
     expect(ev(bond("Hamburg Commercial Bank", "A", 3.9, { country: "DE" })).category).toBe("corporate");
   });
 });

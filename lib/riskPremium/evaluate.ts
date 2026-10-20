@@ -108,8 +108,8 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
   if (ctx.asOf && Date.parse(b.ytmAsOf) < Date.parse(ctx.asOf) - STALE_DAYS * 86_400_000) return stop("insufficient_data", "Stale price");
 
   // 2. Does the Version 1.0 curve apply?
-  if (ev.category === "sovereign") return stop("unsupported", "Government bond: needs the separate sovereign methodology");
-  if (ev.category === "agency") return stop("unsupported", "Agency, supranational or regional issuer: no curve yet");
+  // Governments, agencies, states and supranationals use the same curve: only the rating matters (Livio, 20/10/2026:
+  // "a AA gov bond is the same as a AA corp bond"). The category is still recorded for the admin.
   if (b.currency !== curve.currency) return stop("unsupported", `Curve is ${curve.currency} only`);
   if (NON_STANDARD.test(b.name)) return stop("unsupported", "Possible subordinated, callable, perpetual or floating structure");
 
