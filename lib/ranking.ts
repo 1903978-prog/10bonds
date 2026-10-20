@@ -15,14 +15,13 @@ export const DURATION_WINDOW = 0.2;
 const EXTRA_BAND = 2; // most years the window may widen by
 // The list's average duration should stay within 5% of the target; each year beyond costs this much yield.
 const AVG_DURATION_SLACK = 0.05;
-const AVG_DURATION_PENALTY = 0.5;
-// Below the slider maximum the target sets how much risk the list takes: the lowest chance of a loss over the bonds'
-// life that still reaches it (the owner 20/10: not the average risk score, since 5 bonds at risk 6 plus 5 at risk 1 is
-// riskier than 5 at 3 plus 5 at 4). Default chances grow much faster than the risk score, so a few bonds at the limit
-// cost more than a spread of mid-risk ones. Each bond adds -ln(1 - its default chance), so the sum ranks lists exactly
-// like the list's chance of a loss (lib/expectedLoss.ts listLossChance). Weighted so 1% of chance costs one point.
-const LOSS_WEIGHT = 100;
-const YIELD_TIEBREAK = 0.05;
+const AVG_DURATION_PENALTY = 1000; // as heavy as a missed target yield: the expected loss is only compared between lists that keep the duration
+// Below the slider maximum the target sets how much risk the list takes: the lowest expected loss on your money
+// (lib/expectedLoss.ts listLifeLoss) among the lists that still reach the target. Default chances grow much faster than
+// the risk score, so a few bonds at the limit cost more than a spread of mid-risk ones. Each bond adds its default
+// chance in %, so the sum ranks lists exactly like the expected loss shown in the results.
+// The yield tie-break is kept far smaller than a real difference in expected loss, so it only settles near-ties.
+const YIELD_TIEBREAK = 0.01;
 
 /**
  * Top bonds for a target duration and yield (Portfolio mode).
@@ -36,11 +35,14 @@ const YIELD_TIEBREAK = 0.05;
  * Shown best score first.
  */
 export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm: number, count = RESULT_COUNT, risk: number = LIMITS.risk.max): { results: RankedBond[]; band: number } {
-  const { pool, band } = portfolioPool(withinRisk(bonds, risk), targetDuration, count);
+  // One duration band for every risk limit, so a higher limit only adds bonds to the pool: a list that is allowed at
+  // risk 6 is still allowed at risk 7, and can never end up with a higher expected loss at the same target.
+  const { band } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), targetDuration, count);
+  const pool = withinRisk(bonds, risk).filter((b) => b.grossYtm !== null && b.modifiedDuration !== null && nearHorizon(b.modifiedDuration, targetDuration, band + 1e-9));
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: -LOSS_WEIGHT * Math.log(1 - bondLossChance(notch, lifeYears(b)) / 100 + 1e-12), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
+    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: bondLossChance(notch, lifeYears(b)), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };
