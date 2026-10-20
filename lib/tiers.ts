@@ -1,6 +1,7 @@
 import type { RankedBond, Tier } from "./types";
-import { averages, RESULT_COUNT } from "./ranking";
-import { averageRisk, bondRisk } from "./ratings";
+import { averages, RESULT_COUNT, UNRATED_NOTCH } from "./ranking";
+import { averageRisk, bondNotch, bondRisk } from "./ratings";
+import { lossAdjustedYield } from "./expectedLoss";
 
 /** Rows a visitor without an account sees. A free account sees the full top 10, without ISINs. */
 export const VISITOR_VISIBLE = 3;
@@ -23,6 +24,8 @@ export type ResultRow = {
   sp?: string | null;
   // Paid only, when the risk-adjusted ranking is on: the figures behind the rank (no agency grade).
   why?: RiskWhy;
+  // Premium only: yield after expected losses, the score behind the "why in or out" table.
+  lossAdj?: number;
 };
 
 /** Why a bond ranks where it does under the risk premium model. bp = basis points; adjYtm is a score, not a yield. */
@@ -84,6 +87,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       country: b.country,
       minInvestment: b.minInvestment ?? null,
       ...(whyOf(b) ? { why: whyOf(b) } : {}),
+      ...(tier === "premium" ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
     })),
     lockedCount: 0,
     summary: {

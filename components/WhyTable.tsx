@@ -9,16 +9,17 @@ import type { WhyRow } from "@/lib/whyList";
 // the reason it is in the top 10 or not (Premium, Pro and admin; others see the Plans link). The table scrolls inside
 // the window, so the page itself never scrolls.
 
-const TEXT: Record<FinderLang, { open: string; title: string; sub: (n: number, k: number) => string; issuer: string; yld: string; risk: string; dur: string; over: string; req: string; surplus: string; why: string; close: string; loading: string; premium: string; plans: string; error: string }> = {
-  en: { open: "Why these bonds?", title: "Why in or out", sub: (n, k) => `${k} in the top 10, ${n - k} left out, for this search.`, issuer: "Issuer", yld: "Yield", risk: "Risk", dur: "Dur.", over: "Over AAA", req: "Req.", surplus: "Surplus", why: "Why", close: "Close", loading: "Loading…", premium: "The reasons behind every selection are a Premium feature.", plans: "See plans", error: "Could not load the reasons. Please try again." },
-  it: { open: "Perché queste obbligazioni?", title: "Perché dentro o fuori", sub: (n, k) => `${k} nella top 10, ${n - k} escluse, per questa ricerca.`, issuer: "Emittente", yld: "Rend.", risk: "Rischio", dur: "Dur.", over: "Su AAA", req: "Rich.", surplus: "Surplus", why: "Perché", close: "Chiudi", loading: "Caricamento…", premium: "Le ragioni di ogni selezione sono una funzione Premium.", plans: "Vedi i piani", error: "Impossibile caricare le ragioni. Riprova." },
-  fr: { open: "Pourquoi ces obligations ?", title: "Pourquoi dedans ou dehors", sub: (n, k) => `${k} dans le top 10, ${n - k} écartées, pour cette recherche.`, issuer: "Émetteur", yld: "Rdt", risk: "Risque", dur: "Dur.", over: "Sur AAA", req: "Requis", surplus: "Surplus", why: "Pourquoi", close: "Fermer", loading: "Chargement…", premium: "Les raisons de chaque sélection sont une fonction Premium.", plans: "Voir les offres", error: "Impossible de charger les raisons. Réessayez." },
-  de: { open: "Warum diese Anleihen?", title: "Warum dabei oder nicht", sub: (n, k) => `${k} in den Top 10, ${n - k} ausgeschlossen, für diese Suche.`, issuer: "Emittent", yld: "Rendite", risk: "Risiko", dur: "Dur.", over: "Über AAA", req: "Erf.", surplus: "Überschuss", why: "Warum", close: "Schließen", loading: "Lädt…", premium: "Die Gründe jeder Auswahl sind eine Premium-Funktion.", plans: "Pläne ansehen", error: "Die Gründe konnten nicht geladen werden. Bitte erneut versuchen." },
+const TEXT: Record<FinderLang, { open: string; title: string; sub: (n: number, k: number) => string; issuer: string; yld: string; risk: string; dur: string; over: string; req: string; surplus: string; why: string; close: string; loading: string; premium: string; plans: string; error: string; add: string; addHint: string }> = {
+  en: { open: "Why these bonds?", title: "Why in or out", sub: (n, k) => `${k} in the top 10, ${n - k} left out, for this search.`, issuer: "Issuer", yld: "Yield", risk: "Risk", dur: "Dur.", over: "Over AAA", req: "Req.", surplus: "Surplus", why: "Why", close: "Close", loading: "Loading…", premium: "The reasons behind every selection are a Premium feature.", plans: "See plans", error: "Could not load the reasons. Please try again.", add: "Add", addHint: "Adds it to your top 10 in place of the same issuer's bond, or the one with the lowest yield after losses." },
+  it: { open: "Perché queste obbligazioni?", title: "Perché dentro o fuori", sub: (n, k) => `${k} nella top 10, ${n - k} escluse, per questa ricerca.`, issuer: "Emittente", yld: "Rend.", risk: "Rischio", dur: "Dur.", over: "Su AAA", req: "Rich.", surplus: "Surplus", why: "Perché", close: "Chiudi", loading: "Caricamento…", premium: "Le ragioni di ogni selezione sono una funzione Premium.", plans: "Vedi i piani", error: "Impossibile caricare le ragioni. Riprova.", add: "Aggiungi", addHint: "La aggiunge alla tua top 10 al posto del bond dello stesso emittente, o di quello con il rendimento dopo le perdite più basso." },
+  fr: { open: "Pourquoi ces obligations ?", title: "Pourquoi dedans ou dehors", sub: (n, k) => `${k} dans le top 10, ${n - k} écartées, pour cette recherche.`, issuer: "Émetteur", yld: "Rdt", risk: "Risque", dur: "Dur.", over: "Sur AAA", req: "Requis", surplus: "Surplus", why: "Pourquoi", close: "Fermer", loading: "Chargement…", premium: "Les raisons de chaque sélection sont une fonction Premium.", plans: "Voir les offres", error: "Impossible de charger les raisons. Réessayez.", add: "Ajouter", addHint: "L'ajoute à votre top 10 à la place de l'obligation du même émetteur, ou de celle au rendement après pertes le plus faible." },
+  de: { open: "Warum diese Anleihen?", title: "Warum dabei oder nicht", sub: (n, k) => `${k} in den Top 10, ${n - k} ausgeschlossen, für diese Suche.`, issuer: "Emittent", yld: "Rendite", risk: "Risiko", dur: "Dur.", over: "Über AAA", req: "Erf.", surplus: "Überschuss", why: "Warum", close: "Schließen", loading: "Lädt…", premium: "Die Gründe jeder Auswahl sind eine Premium-Funktion.", plans: "Pläne ansehen", error: "Die Gründe konnten nicht geladen werden. Bitte erneut versuchen.", add: "Hinzufügen", addHint: "Nimmt sie in Ihre Top 10 auf, anstelle der Anleihe desselben Emittenten oder der mit der niedrigsten Rendite nach Verlusten." },
 };
 
 type State = { rows: WhyRow[] } | { upgrade: true } | { error: true } | null;
 
-export default function WhyTable({ query, lang = "en" }: { query: string; lang?: FinderLang }) {
+/** `onAdd` (Premium, while the list can be edited): an Add button on each bond not in `inList`, the list on screen. */
+export default function WhyTable({ query, lang = "en", inList, onAdd }: { query: string; lang?: FinderLang; inList?: string[]; onAdd?: (r: WhyRow) => void }) {
   const t = TEXT[lang];
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<State>(null);
@@ -77,11 +78,12 @@ export default function WhyTable({ query, lang = "en" }: { query: string; lang?:
                       <th className="py-1 pr-2">#</th><th className="pr-2">{t.issuer}</th><th className="pr-2 text-right">{t.yld}</th><th className="pr-2 text-right">{t.risk}</th><th className="pr-2 text-right">{t.dur}</th>
                       {bp && <><th className="pr-2 text-right">{t.over}</th><th className="pr-2 text-right">{t.req}</th><th className="pr-2 text-right">{t.surplus}</th></>}
                       <th>{t.why}</th>
+                      {onAdd && <th />}
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((r) => (
-                      <tr key={r.isin} className={`border-t border-line ${r.inTop ? "font-medium text-ink" : "text-mute"}`}>
+                      <tr key={r.isin} className={`border-t border-line ${(inList ? inList.includes(r.isin) : r.inTop) ? "font-medium text-ink" : "text-mute"}`}>
                         <td className="py-1 pr-2">{r.inTop ? r.rank : "–"}</td>
                         <td className="max-w-[220px] truncate pr-2" title={r.name}>{r.issuer}</td>
                         <td className="pr-2 text-right">{r.ytm.toFixed(2)}</td>
@@ -89,6 +91,13 @@ export default function WhyTable({ query, lang = "en" }: { query: string; lang?:
                         <td className="pr-2 text-right">{r.duration.toFixed(1)}</td>
                         {bp && <><td className="pr-2 text-right">{n(r.overAaaBp)}</td><td className="pr-2 text-right">{n(r.requiredBp)}</td><td className="pr-2 text-right">{n(r.surplusBp, true)}</td></>}
                         <td>{r.why}</td>
+                        {onAdd && (
+                          <td className="py-0.5 pl-2 text-right">
+                            {!inList?.includes(r.isin) && (
+                              <button type="button" title={t.addHint} data-testid="why-add" onClick={() => { onAdd(r); setOpen(false); }} className="whitespace-nowrap rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-accent hover:bg-canvas">+ {t.add}</button>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
