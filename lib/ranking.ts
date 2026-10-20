@@ -1,7 +1,7 @@
 import type { PublicBond, RankedBond } from "./types";
 import { cleanIssuer } from "./issuer";
 import { bondNotch, riskOfNotch } from "./ratings";
-import { riskLevel, LIMITS } from "./limits";
+import { riskLevel, LIMITS, nearHorizon, isOpenEnded } from "./limits";
 import { lossAdjustedYield } from "./expectedLoss";
 
 export const RESULT_COUNT = 10;
@@ -50,7 +50,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
     const n = top.length;
     const slack = AVG_DURATION_SLACK * targetDuration;
     const costOf = (ytm: number, dur: number, rk: number, score: number) =>
-      Math.max(0, targetYtm - ytm / n) * 1000 + Math.max(0, Math.abs(dur / n - targetDuration) - slack) * AVG_DURATION_PENALTY + rk / n - (YIELD_TIEBREAK * score) / n;
+      Math.max(0, targetYtm - ytm / n) * 1000 + Math.max(0, (isOpenEnded(targetDuration) ? targetDuration - dur / n : Math.abs(dur / n - targetDuration)) - slack) * AVG_DURATION_PENALTY + rk / n - (YIELD_TIEBREAK * score) / n;
     const search = (start: typeof cands) => {
       const set = [...start];
       let ytm = set.reduce((s, b) => s + b.grossYtm!, 0);
@@ -99,10 +99,10 @@ export function portfolioPool(bonds: PublicBond[], targetDuration: number, count
   const usable = bonds.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
   const start = DURATION_WINDOW * targetDuration;
   let band = start;
-  let pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band + 1e-9);
+  let pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band + 1e-9));
   while (distinctIssuers(pool) < count && band < start + EXTRA_BAND) {
     band += 0.5;
-    pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band + 1e-9);
+    pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band + 1e-9));
   }
   return { pool, band: Math.round(band * 100) / 100 };
 }
@@ -141,9 +141,9 @@ export function withinRisk(bonds: PublicBond[], risk: number): PublicBond[] {
 }
 
 /** Yield caps per duration step for every risk level: { "1": {...}, ..., "10": {...} }. */
-export function ytmCapsByRisk(bonds: PublicBond[], durLimits: { min: number; max: number; step: number }, ytmLimits: { min: number; max: number; step: number }) {
+export function ytmCapsByRisk(bonds: PublicBond[], durations: readonly number[], ytmLimits: { min: number; max: number; step: number }) {
   const out: Record<string, Record<string, number | null>> = {};
-  for (let r = LIMITS.risk.min; r <= LIMITS.risk.max; r++) out[String(r)] = ytmCaps(withinRisk(bonds, r), durLimits, ytmLimits);
+  for (let r = LIMITS.risk.min; r <= LIMITS.risk.max; r++) out[String(r)] = ytmCaps(withinRisk(bonds, r), durations, ytmLimits);
   return out;
 }
 
@@ -166,10 +166,10 @@ const MAX_BAND = 3;
 export function durationPool(bonds: PublicBond[], targetDuration: number, count = RESULT_COUNT): { pool: PublicBond[]; band: number } {
   const usable = bonds.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
   let band = START_BAND;
-  let pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band);
+  let pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band));
   while (distinctIssuers(pool) < count && band < MAX_BAND) {
     band += 0.5;
-    pool = usable.filter((b) => Math.abs(b.modifiedDuration! - targetDuration) <= band);
+    pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band));
   }
   return { pool, band };
 }
@@ -179,9 +179,9 @@ export function durationPool(bonds: PublicBond[], targetDuration: number, count 
  * 10 highest-yielding issuers in the portfolio pool for that duration (fewer when fewer issuers exist),
  * rounded down to the slider step so the top 10 can really reach it. Null when no bond is there.
  */
-export function ytmCaps(bonds: PublicBond[], limits: { min: number; max: number; step: number }, ytmLimits: { min: number; max: number; step: number }): Record<string, number | null> {
+export function ytmCaps(bonds: PublicBond[], durations: readonly number[], ytmLimits: { min: number; max: number; step: number }): Record<string, number | null> {
   const caps: Record<string, number | null> = {};
-  for (let d = limits.min; d <= limits.max + 1e-9; d += limits.step) {
+  for (const d of durations) {
     const { pool } = portfolioPool(bonds, d);
     const key = String(Math.round(d * 100) / 100);
     if (!pool.length) {
