@@ -5,8 +5,9 @@ import { useFinderText } from "@/lib/finderText";
 import type { Frontier as FrontierData } from "@/lib/frontier";
 
 const RED = "#ff3b30";
+const BLUE = "#0a84ff";
 
-/** Landing chart, shown before the visitor moves a control: every bond as a grey dot, in red the efficient frontier of 5-year bonds, risk 1 to 8. */
+/** Landing chart, shown before the visitor moves a control: every bond as a grey dot, 4-6 year bonds in blue, in red their efficient frontier from risk 1 to 8. */
 export default function Frontier({ currency }: { currency: string }) {
   const t = useFinderText();
   const [data, setData] = useState<FrontierData | null>(null);
@@ -57,6 +58,7 @@ export default function Frontier({ currency }: { currency: string }) {
       <h2 className="text-[17px] font-semibold">{t.frontierTitle}</h2>
       <div className="mt-0.5 flex flex-wrap gap-x-4 text-[11px] text-mute">
         <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#aeaeb2] align-middle" />{t.frontierDots(data ? dots.length : null, currency)}</span>
+        <span><span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: BLUE }} />{t.frontierBlue}</span>
         <span><span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: RED }} />{t.frontierLine}</span>
       </div>
       <div ref={box} className="mt-1 min-h-0 w-full flex-1 overflow-hidden">
@@ -72,7 +74,10 @@ export default function Frontier({ currency }: { currency: string }) {
           ))}
           <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="13" fill="#86868b">{t.riskAxis}</text>
           <g fill="#aeaeb2" fillOpacity="0.5">
-            {dots.map(([, v], i) => <circle key={i} cx={x(rx(i))} cy={y(v)} r="1.8" />)}
+            {dots.map(([, v, b], i) => (b ? null : <circle key={i} cx={x(rx(i))} cy={y(v)} r="1.8" />))}
+          </g>
+          <g fill={BLUE} fillOpacity="0.55">
+            {dots.map(([, v, b], i) => (b ? <circle key={i} cx={x(rx(i))} cy={y(v)} r="1.8" /> : null))}
           </g>
           <path d={path} fill="none" stroke={RED} strokeWidth="2" strokeLinejoin="round" />
           {picks.map((i) => (
