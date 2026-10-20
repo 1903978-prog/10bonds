@@ -353,7 +353,7 @@ constraints
   app.search_usage search_usage_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.seo_actions seo_actions_pkey: PRIMARY KEY (key)
   app.seo_actions seo_actions_status_check: CHECK ((status = ANY (ARRAY['not_started'::text, 'in_progress'::text, 'completed'::text])))
-  app.seo_assessments seo_assessments_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
+  app.seo_assessments seo_assessments_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text, 'us'::text, 'uk'::text])))
   app.seo_assessments seo_assessments_pkey: PRIMARY KEY (id)
   app.seo_backlinks seo_backlinks_link_type_check: CHECK ((link_type = ANY (ARRAY['editorial'::text, 'directory'::text, 'social'::text, 'forum'::text, 'partner'::text, 'sponsored'::text])))
   app.seo_backlinks seo_backlinks_pkey: PRIMARY KEY (id)
@@ -382,7 +382,7 @@ constraints
   app.seo_keywords seo_keywords_pkey: PRIMARY KEY (id)
   app.seo_keywords seo_keywords_potential_check: CHECK ((potential = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])))
   app.seo_keywords seo_keywords_status_check: CHECK ((status = ANY (ARRAY['target'::text, 'in_progress'::text, 'optimised'::text, 'ranking'::text, 'dropped'::text])))
-  app.seo_manual seo_manual_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
+  app.seo_manual seo_manual_market_check: CHECK ((market = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text, 'us'::text, 'uk'::text])))
   app.seo_manual seo_manual_pkey: PRIMARY KEY (id)
   app.seo_manual seo_manual_points_check: CHECK (((points >= 0) AND (points <= 2)))
   app.seo_opportunities seo_opportunities_kind_check: CHECK ((kind = ANY (ARRAY['publisher'::text, 'blog'::text, 'education'::text, 'youtube'::text, 'mention'::text, 'other'::text])))

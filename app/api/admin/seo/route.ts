@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { accountsConfigured } from "@/lib/accounts";
 import { runAssessment } from "@/lib/seo/assess";
-import { marketOf, notFound, seoAdmin } from "@/lib/seo/input";
-import { LOCALES } from "@/lib/seo/locales";
+import { notFound, SEO_MARKETS, seoAdmin, seoMarketOf } from "@/lib/seo/input";
 import { overallScore, recommendations, round2 } from "@/lib/seo/rubric";
 import { actionStatuses, assessmentHistory, latestAssessments, staleSince } from "@/lib/seo/store";
 
@@ -13,27 +12,27 @@ const RANGES: Record<string, number | null> = { "30": 30, "90": 90, "365": 365, 
 const DAY = 86_400_000;
 
 /**
- * Dashboard data for one market (?market=it|fr|de): its last two assessments, history for the chosen range and its
+ * Dashboard data for one market (?market=it|fr|de|us|uk): its last two assessments, history for the chosen range and its
  * roadmap, plus the latest score of every market and their plain average (an internal metric).
  */
 export async function GET(req: Request) {
   if (!(await seoAdmin())) return notFound();
   if (!accountsConfigured()) return NextResponse.json({ error: "The accounts database is not connected, so SEO data cannot be stored." }, { status: 503 });
   const q = new URL(req.url).searchParams;
-  const market = marketOf(q.get("market"));
+  const market = seoMarketOf(q.get("market"));
   const range = q.get("range") ?? "90";
   const days = range in RANGES ? RANGES[range] : 90;
   const [lastByMarket, history, actions, stale] = await Promise.all([
-    Promise.all(LOCALES.map((m) => latestAssessments(m, m === market ? 2 : 1))),
+    Promise.all(SEO_MARKETS.map((m) => latestAssessments(m, m === market ? 2 : 1))),
     assessmentHistory(days),
     actionStatuses(),
     staleSince(),
   ]);
-  const [cur, prev] = lastByMarket[LOCALES.indexOf(market)];
+  const [cur, prev] = lastByMarket[SEO_MARKETS.indexOf(market)];
   const roadmap = cur
     ? recommendations(cur.results).map((r) => ({ ...r, key: `${market}:${r.key}`, status: actions[`${market}:${r.key}`]?.status ?? "not_started" }))
     : [];
-  const markets = LOCALES.map((m, i) => {
+  const markets = SEO_MARKETS.map((m, i) => {
     const a = lastByMarket[i][0];
     return { market: m, overall: a?.row.overall ?? null, at: a?.row.at ?? null, assessed: a?.row.assessed ?? 0, criteria: a?.row.criteria ?? 0 };
   });
@@ -43,7 +42,7 @@ export async function GET(req: Request) {
     {
       market,
       markets,
-      global: scored.length === LOCALES.length ? round2(scored.reduce((s, m) => s + (m.overall ?? 0), 0) / scored.length) : null,
+      global: scored.length === SEO_MARKETS.length ? round2(scored.reduce((s, m) => s + (m.overall ?? 0), 0) / scored.length) : null,
       current: cur ? { ...cur.row, score: overallScore(cur.results), results: cur.results } : null,
       previous: prev ? { ...prev.row, score: overallScore(prev.results) } : null,
       history,

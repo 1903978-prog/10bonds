@@ -2,7 +2,8 @@ import type { CrawlResult, CrawledPage } from "./crawl";
 import type { PsiResult } from "./google";
 import { similarity } from "./page";
 import { comparisonBySlug } from "./comparisons";
-import { LOCALE, type Locale } from "./locales";
+import type { SeoMarket } from "./input";
+import { isLocale, LOCALE } from "./locales";
 import { DIMENSIONS, problems, share, tier, type CriterionResult, type DimensionId, type Points } from "./rubric";
 
 // Automatic evaluation: every point comes from evidence that can be re-checked (the crawled server HTML, the
@@ -13,7 +14,7 @@ export type GuideFact = {
   reviewerId: number | null; reviewedAt: string | null; logCount: number;
 };
 export type Facts = {
-  market: Locale;
+  market: SeoMarket;
   now: Date;
   keywords: { keyword: string; intent: string }[]; // this market's target keywords
   crawl: CrawlResult | null;
@@ -47,8 +48,10 @@ const internal = (href: string) => {
 
 export function evaluate(f: Facts): CriterionResult[] {
   const m = f.market;
-  const seg = LOCALE[m].seg;
-  const home = `/${m}`;
+  // The US and UK share the English pages (Knowledge Center at /knowledge); they differ by their target keywords.
+  const eu = isLocale(m) ? m : null;
+  const seg = eu ? LOCALE[eu].seg : null;
+  const home = eu ? `/${eu}` : "/knowledge";
   const all = f.crawl && !f.crawl.error ? f.crawl : null;
   // Only this language's pages count for this market; site-wide files (robots, sitemap) are shared.
   const inMarket = (p: string) => p === home || p.startsWith(home + "/");
@@ -57,13 +60,16 @@ export function evaluate(f: Facts): CriterionResult[] {
   const noCrawl = na(`The site crawl did not run${f.crawl?.error ? `: ${f.crawl.error}` : ""}.`);
   const ok = (p: CrawledPage) => p.status === 200;
   const indexable = c ? c.pages.filter((p) => ok(p) && !p.noindex) : [];
-  const guideBase = `${home}/${seg.guides}/`;
-  const compBase = `${home}/${seg.bonds}/`;
-  const guidePages = c ? c.pages.filter((p) => p.path.startsWith(guideBase) && !p.path.slice(guideBase.length).includes("/") && ok(p)) : [];
-  const compPages = c ? c.pages.filter((p) => p.path.startsWith(compBase) && !!comparisonBySlug(m, p.path.slice(compBase.length)) && ok(p) && !p.noindex) : [];
+  const guideBase = seg ? `${home}/${seg.guides}/` : `${home}/`;
+  // No English comparison pages exist yet, so the comparison checks find none for the US and UK.
+  const compBase = seg ? `${home}/${seg.bonds}/` : null;
   const published = f.guides;
+  const enSlugs = new Set(published.map((g) => g.slug));
+  const guidePages = c ? c.pages.filter((p) => p.path.startsWith(guideBase) && !p.path.slice(guideBase.length).includes("/") && ok(p) && (eu || enSlugs.has(p.path.slice(guideBase.length)))) : [];
+  const compPages = c && eu && compBase ? c.pages.filter((p) => p.path.startsWith(compBase) && !!comparisonBySlug(eu, p.path.slice(compBase.length)) && ok(p) && !p.noindex) : [];
   const pageOf = (slug: string) => guidePages.find((p) => p.path === guideBase + slug);
-  const methodPath = `${home}/${seg.method}`;
+  const isCompLink = (l: string) => !!compBase && l.startsWith(compBase);
+  const methodPath = seg ? `${home}/${seg.method}` : "/methodology";
 
   const R: Record<DimensionId, Record<string, () => Out>> = {
     guides: {
@@ -142,14 +148,14 @@ export function evaluate(f: Facts): CriterionResult[] {
       },
       methodology: () => {
         if (!c) return noCrawl;
-        const p = c.pages.find((x) => x.path === methodPath);
+        const p = all!.pages.find((x) => x.path === methodPath);
         if (!p || !ok(p)) return { points: 0, evidence: `The methodology page ${methodPath} ${p ? `answers ${p.status}` : "was not found"}.` };
         const full = !p.noindex && p.ids.includes("ranking");
         return { points: full ? 2 : 1, evidence: full ? `${methodPath} is live, indexable and explains the ranking.` : `${methodPath} is live but noindex or has no ranking section.` };
       },
       sources: () => {
         if (!c) return noCrawl;
-        const p = c.pages.find((x) => x.path === methodPath && ok(x));
+        const p = all!.pages.find((x) => x.path === methodPath && ok(x));
         const have = ["sources", "calculations"].filter((id) => p?.ids.includes(id));
         return { points: have.length as Points, evidence: p ? `Sections found on ${methodPath}: ${list(have)} (of sources, calculations).` : "No methodology page." };
       },
@@ -213,8 +219,8 @@ export function evaluate(f: Facts): CriterionResult[] {
           if (can !== p.path) issues.push(`${p.path} ${p.canonical ? "canonical points elsewhere" : "no canonical"}`);
         }
         // hreflang: each language version names itself and the others, and the others point back.
-        const code = LOCALE[m].hreflang;
-        for (const p of indexable.filter((x) => x.path.startsWith(guideBase) || x.path.startsWith(compBase) || x.path === home)) {
+        const code = eu ? LOCALE[eu].hreflang : "en";
+        for (const p of indexable.filter((x) => x.path.startsWith(guideBase) || isCompLink(x.path) || x.path === home)) {
           const self = p.hreflang[code] ? internal(p.hreflang[code]) : null;
           if (self !== p.path) issues.push(`${p.path} hreflang ${code} ${self ? "points elsewhere" : "missing"}`);
           for (const [lang, href] of Object.entries(p.hreflang)) {
@@ -251,11 +257,17 @@ export function evaluate(f: Facts): CriterionResult[] {
     internal: {
       hubs: () => {
         if (!c) return noCrawl;
-        const gPath = `${home}/${seg.guides}`;
-        const oPath = `${home}/${seg.bonds}`;
+        const gPath = seg ? `${home}/${seg.guides}` : home;
+        const oPath = seg ? `${home}/${seg.bonds}` : null;
         const g = c.pages.find((p) => p.path === gPath && ok(p));
-        const o = c.pages.find((p) => p.path === oPath && ok(p));
+        const o = oPath ? c.pages.find((p) => p.path === oPath && ok(p)) : undefined;
         const hp = c.pages.find((p) => p.path === home);
+        if (!oPath) {
+          // English: the Knowledge Center is the guides hub; there is no English comparison hub yet.
+          if (!g) return { points: 0, evidence: `The English hub ${gPath} is missing.` };
+          const missG = published.map((x) => guideBase + x.slug).filter((p) => !g.linksOut.includes(p));
+          return { points: 1, evidence: `${gPath} is live${missG.length ? `; not linked from it: ${list(missG)}` : " and links every English guide"}. No English comparison hub yet.` };
+        }
         if (!g || !o) return { points: 0, evidence: `Hub pages: ${gPath} ${g ? "live" : "missing"}, ${oPath} ${o ? "live" : "missing"}.` };
         const missG = published.map((x) => guideBase + x.slug).filter((p) => !g.linksOut.includes(p));
         const missO = compPages.map((p) => p.path).filter((p) => !o.linksOut.includes(p));
@@ -272,7 +284,7 @@ export function evaluate(f: Facts): CriterionResult[] {
       contextual: () => {
         if (!c) return noCrawl;
         const pages = [...guidePages, ...compPages];
-        const good = pages.filter((p) => (p.path.startsWith(guideBase) ? p.linksOut.some((l) => l.startsWith(compBase)) && toTool(p) : p.linksOut.some((l) => l.startsWith(guideBase))));
+        const good = pages.filter((p) => (p.path.startsWith(guideBase) ? (!compBase || p.linksOut.some(isCompLink)) && toTool(p) : p.linksOut.some((l) => l.startsWith(guideBase))));
         return { points: share(good.length, pages.length), evidence: `${good.length} of ${pages.length} pages have the expected contextual links. Missing: ${list(pages.filter((p) => !good.includes(p)).map((p) => p.path))}.` };
       },
       orphans: () => {

@@ -79,7 +79,7 @@ export default function SeoAdmin() {
     setRefreshing(false);
     setVersion((v) => v + 1);
   }
-  const perMarket = !["countries", "backlinks", "ai", "sharing", "technical", "speed", "fixes"].includes(tab);
+  const perMarket = !["overview", "countries", "backlinks", "ai", "sharing", "technical", "speed", "fixes"].includes(tab);
   const usUk = market === "us" || market === "uk";
   const eu = usUk ? null : market;
   return (
@@ -119,12 +119,12 @@ export default function SeoAdmin() {
           ))}
         </div>
       )}
-      {usUk && (tab === "overview" || tab === "guides" || tab === "performance") && (
+      {usUk && (tab === "guides" || tab === "performance") && (
         <p className="rounded-[20px] bg-white px-5 py-4 text-sm text-mute">
           The US and UK are tracked through their keywords and Google rankings (English pages, searches from that country). This tab covers Italy, France and Germany only.
         </p>
       )}
-      {tab === "overview" && eu && <Overview key={version} market={eu} />}
+      {tab === "overview" && <Overview key={version} market={market} onMarket={setMarket} />}
       {tab === "rankings" && <Rankings market={market} />}
       {tab === "ai" && <AiVisibility />}
       {tab === "countries" && <Countries />}
