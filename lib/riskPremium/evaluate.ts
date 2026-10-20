@@ -50,6 +50,7 @@ const NON_STANDARD = /\b(sub|subord|subordinated|jr|junior|perp|perpetual|hybrid
 const YTM_RANGE = { min: -2, max: 30 };
 // Same rule as lib/bonds.ts dropStale: a quote this many days behind the newest one is stale.
 const STALE_DAYS = 10;
+const MIN_SPREAD_BP = -10;
 
 export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
   const { curve } = ctx;
@@ -118,6 +119,8 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
 
   // 5. Benchmark and surplus.
   if (ev.surplusBp === null) return stop("insufficient_data", "No Bund benchmark at this maturity");
+  // A corporate yielding clearly less than the Bund points to a bad price or a structure the copy does not describe.
+  if (ev.spreadBp! < MIN_SPREAD_BP) return stop("insufficient_data", "Yield below the Bund: price or data likely unreliable");
   if (ev.surplusBp >= curve.exceptionalBp) {
     const d = ctx.reviews?.get(b.isin);
     if (d === "rejected") return stop("rejected", `Surplus ${fmtBp(ev.surplusBp)}: rejected after review`);

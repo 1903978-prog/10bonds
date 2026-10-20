@@ -97,7 +97,7 @@ describe("mandatory examples", () => {
     expect(r.lowerPasses).toBe(false);
     expect(r.preferred.rating).toBe("AA-");
     // The ranking agrees: equal surplus, higher rating first.
-    const { results } = rankRiskAdjusted([...BUNDS, bond("Beta Corp", "BBB+", 4.45), bond("Alpha Corp", "AA-", 4.0)], 4.5, 1, ctx());
+    const { results } = rankRiskAdjusted([...BUNDS, bond("Beta Corp", "BBB+", 4.45), bond("Alpha Corp", "AA-", 4.0)], 4.5, 3.5, ctx());
     expect(results.map((b) => b.risk.rating)).toEqual(["AA-", "BBB+"]);
   });
   it("4: AAA 3.50% vs BBB 4.10%: 60 bp < 80 bp, AAA preferred", () => {
@@ -114,7 +114,7 @@ describe("mandatory examples", () => {
   it("6: risk-adjusted scores 3.50 / 3.35 / 3.55 rank BBB, AA-, BBB+", () => {
     const a = bond("Alpha Corp", "AA-", 4.0), b = bond("Beta Corp", "BBB+", 4.3), c = bond("Gamma Corp", "BBB", 4.7);
     expect([ev(a), ev(b), ev(c)].map((e) => e.riskAdjustedYtm)).toEqual([3.5, 3.35, 3.55]);
-    const { results } = rankRiskAdjusted([...BUNDS, a, b, c], 4.5, 1, ctx());
+    const { results } = rankRiskAdjusted([...BUNDS, a, b, c], 4.5, 3.5, ctx());
     expect(results.map((r) => r.risk.rating)).toEqual(["BBB", "AA-", "BBB+"]);
   });
   it("7: BBB- with a 498 bp spread (surplus 333 bp) needs an exceptional spread review", () => {
@@ -124,7 +124,7 @@ describe("mandatory examples", () => {
     expect(e.requiredBp).toBe(165);
     expect(e.surplusBp).toBe(333);
     expect(e.status).toBe("review");
-    const { results } = rankRiskAdjusted([...BUNDS, cit, bond("Alpha Corp", "A", 4.0)], 4.5, 1, ctx());
+    const { results } = rankRiskAdjusted([...BUNDS, cit, bond("Alpha Corp", "A", 4.0)], 4.5, 3.5, ctx());
     expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
     // Approved by the admin: it may rank; rejected: it stays out.
     expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "approved"]]) })).status).toBe("eligible");
@@ -133,7 +133,7 @@ describe("mandatory examples", () => {
   it("8: investment-grade floor: BB+ at 8% is ineligible, A at 4% is not", () => {
     const hy = bond("Junk Corp", "BB+", 8), a = bond("Alpha Corp", "A", 4);
     expect(ev(hy).status).toBe("below_floor");
-    const { results } = rankRiskAdjusted([...BUNDS, hy, a], 4.5, 1, ctx());
+    const { results } = rankRiskAdjusted([...BUNDS, hy, a], 4.5, 3.5, ctx());
     expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
   });
   it("9: no verified rating: insufficient credit assessment, no rating or premium assigned", () => {
@@ -166,12 +166,12 @@ describe("mandatory examples", () => {
     expect(ev(oat).status).toBe("unsupported");
     expect(ev(oat).reason).toMatch(/sovereign/);
     expect(ev(corp).status).toBe("eligible");
-    const { results } = rankRiskAdjusted([...BUNDS, oat, corp], 4.5, 1, ctx());
+    const { results } = rankRiskAdjusted([...BUNDS, oat, corp], 4.5, 3.5, ctx());
     expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
   });
   it("12: at most one bond per issuer", () => {
     const bonds = [...BUNDS, bond("Alpha Corp", "A", 4.4, { years: 4.6 }), bond("Alpha Corp", "A", 4.3, { years: 5 }), bond("Alpha Corp", "A", 4.2, { years: 5.4 }), bond("Beta Corp", "A", 3.9)];
-    const { results } = rankRiskAdjusted(bonds, 4.5, 1, ctx());
+    const { results } = rankRiskAdjusted(bonds, 4.5, 3.5, ctx());
     expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp", "Beta Corp"]);
   });
   it("13: the user's 5y / 4% target stays in force: a 10y speculative bond at 10% does not enter", () => {
@@ -203,5 +203,22 @@ describe("mandatory examples", () => {
     expect(ev(b, ctx(activeOf(after)!))).toMatchObject({ requiredBp: 105, versionId: 2, version: "1.1" });
     expect(JSON.stringify(recorded)).toBe(snapshot); // the historical record is unchanged
     expect(() => activate(after, 1, "admin", AS_OF)).toThrow(/draft/);
+  });
+});
+
+describe("target yield stays meaningful", () => {
+  it("a lower target gives a lower-yield list; no bond far above the target", () => {
+    const names = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon".split(" ");
+    const bonds = [...BUNDS, ...names.map((x, i) => bond(`${x} Corp`, i % 2 ? "A" : "A-", 3.3 + i * 0.1))];
+    const low = rankRiskAdjusted(bonds, 4.5, 3.4, ctx());
+    const high = rankRiskAdjusted(bonds, 4.5, 4.2, ctx());
+    const avg = (r: typeof low) => r.results.reduce((s, b) => s + b.grossYtm!, 0) / r.results.length;
+    expect([low.targetReached, high.targetReached, low.results.length, high.results.length]).toEqual([true, true, 10, 10]);
+    expect(avg(low)).toBeLessThan(avg(high));
+    expect(avg(low)).toBeLessThanOrEqual(3.4 + 0.5 + 1e-9);
+    expect(Math.max(...low.results.map((b) => b.grossYtm!))).toBeLessThanOrEqual(3.4 + 2 + 1e-9);
+  });
+  it("a corporate yielding well below the Bund is treated as unreliable data", () => {
+    expect(ev(bond("Odd Corp", "A", 1.4)).status).toBe("insufficient_data");
   });
 });
