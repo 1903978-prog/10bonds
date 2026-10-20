@@ -210,15 +210,13 @@ export default function RiskPremiumAdmin() {
 
         {tab === "Review" && (
           <section className={card}>
-            <h2 className="font-semibold">Exceptional spread: review required</h2>
-            <p className="mb-2 text-xs text-mute">Before approving, check rating currency, issuer condition, seniority, call features, maturity, liquidity and the price. Every decision is logged.</p>
+            <h2 className="font-semibold">Exceptional spread: always left out</h2>
+            <p className="mb-2 text-xs text-mute">A surplus this wide usually means a structure the rating misses, so these bonds never enter the list. Shown for information only.</p>
             <BondTable rows={data.universe.exceptional} extra={(r) => {
               const d = data.reviews.find((x) => x.isin === r.isin);
               return (
                 <span className="flex items-center gap-1 whitespace-nowrap">
                   {d && <span className="text-xs text-mute">{d.decision} {d.at.slice(0, 10)}</span>}
-                  <button className={btn} disabled={busy} onClick={() => post({ action: "review", isin: r.isin, decision: "approved" }, `${r.issuer} approved.`, "Why is this spread acceptable? (what you checked)")}>Approve</button>
-                  <button className={btn} disabled={busy} onClick={() => post({ action: "review", isin: r.isin, decision: "rejected" }, `${r.issuer} rejected.`, "Why is it rejected?")}>Reject</button>
                 </span>
               );
             }} />

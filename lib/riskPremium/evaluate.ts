@@ -129,7 +129,8 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
   if (ev.surplusBp >= curve.exceptionalBp) {
     const d = ctx.reviews?.get(b.isin);
     if (d === "rejected") return stop("rejected", `Surplus ${fmtBp(ev.surplusBp)}: rejected after review`);
-    if (d !== "approved") return stop("review", `Surplus ${fmtBp(ev.surplusBp)} at or above ${curve.exceptionalBp} bp`);
+    // Always left out, even after an approval (Livio, 20/10/2026): a spread this wide usually means a structure the rating misses.
+    return stop("review", `Surplus ${fmtBp(ev.surplusBp)} at or above ${curve.exceptionalBp} bp: left out`);
   }
   // The bond passes only when its spread is strictly above the hurdle; equality does not pass.
   if (ev.surplusBp <= 0) return stop("below_hurdle", `Spread ${fmtBp(ev.spreadBp!)} vs ${ev.requiredBp} bp required`);

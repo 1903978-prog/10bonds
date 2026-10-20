@@ -117,7 +117,7 @@ describe("mandatory examples", () => {
     const { results } = rankRiskAdjusted([...BUNDS, a, b, c], 4.5, 3.5, ctx());
     expect(results.map((r) => r.risk.rating)).toEqual(["BBB", "AA-", "BBB+"]);
   });
-  it("7: BBB- with a 498 bp spread (surplus 333 bp) needs an exceptional spread review", () => {
+  it("7: BBB- with a 498 bp spread (surplus 333 bp) is an exceptional spread, always left out", () => {
     const cit = bond("Cit Corp", "BBB-", 2.5 + 4.98);
     const e = ev(cit);
     expect(e.spreadBp).toBe(498);
@@ -126,8 +126,8 @@ describe("mandatory examples", () => {
     expect(e.status).toBe("review");
     const { results } = rankRiskAdjusted([...BUNDS, cit, bond("Alpha Corp", "A", 4.0)], 4.5, 3.5, ctx());
     expect(results.map((r) => r.issuer)).toEqual(["Alpha Corp"]);
-    // Approved by the admin: it may rank; rejected: it stays out.
-    expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "approved"]]) })).status).toBe("eligible");
+    // Even approved by the admin it stays out (Livio, 20/10/2026).
+    expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "approved"]]) })).status).toBe("review");
     expect(ev(cit, ctx(V1_CURVE, { reviews: new Map([[cit.isin, "rejected"]]) })).status).toBe("rejected");
   });
   it("8: investment-grade floor: BB+ at 8% is ineligible, A at 4% is not", () => {
