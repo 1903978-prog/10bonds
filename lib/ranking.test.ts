@@ -123,16 +123,16 @@ describe("one bond per issuer", () => {
 describe("ytmCaps", () => {
   it("follows the yields near each duration, rounded down to 0.01", () => {
     const bonds = [bond("S", 3.04, 2, "A"), bond("L", 5.51, 10, "A")];
-    const caps = ytmCaps(bonds, { min: 2, max: 10, step: 4 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCaps(bonds, [2, 6, 10], { min: 1, max: 12, step: 0.1 });
     expect(caps).toEqual({ "2": 3.04, "6": null, "10": 5.51 });
   });
   it("is the average of the 10 best issuers, not the single best bond (Livio's 5.8% vs 4.72% case)", () => {
     const bonds = [{ ...bond("SA", 5.76, 5, "A-"), issuer: "Saudi" }, { ...bond("SA2", 5.9, 5.2, "A-"), issuer: "Saudi" }, ...Array.from({ length: 11 }, (_, i) => bond(`X${i}`, 4.6, 5, "A-"))];
-    const caps = ytmCaps(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCaps(bonds, [5], { min: 1, max: 12, step: 0.1 });
     expect(caps["5"]).toBe(4.73); // (5.9 + 9 x 4.6) / 10 = 4.73
   });
   it("never goes above the slider's own maximum", () => {
-    const caps = ytmCaps([bond("J", 40, 5, null)], { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCaps([bond("J", 40, 5, null)], [5], { min: 1, max: 12, step: 0.1 });
     expect(caps["5"]).toBe(12);
   });
 });
@@ -176,7 +176,7 @@ describe("risk slider", () => {
     expect(rankBonds(bonds, 5, 5, 10, 5).results.map((r) => r.isin).sort()).toEqual(["A1", "AAA1"]);
   });
   it("yield caps follow the level", () => {
-    const caps = ytmCapsByRisk(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCapsByRisk(bonds, [5], { min: 1, max: 12, step: 0.1 });
     expect(caps["1"]["5"]).toBe(3.0);
     expect(caps["6"]["5"]).toBe(3.5);
     expect(caps["7"]["5"]).toBe(3.77); // (3 + 3.5 + 4 + 4.6) / 4, unrated left out
@@ -190,7 +190,7 @@ describe("the list's average matches the target and the maximum", () => {
   const many = Array.from({ length: 30 }, (_, i) => ({ ...bond(`I${i}`, 2 + i * 0.2, 4.5 + (i % 3) * 0.4, grades[i % 6]), issuer: `Issuer ${i}` }));
   const mean = (rs: { grossYtm: number | null }[]) => rs.reduce((s, r) => s + r.grossYtm!, 0) / rs.length;
   it("at the slider maximum the 10 shown are the 10 the maximum is computed from", () => {
-    const cap = ytmCaps(many, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 })["5"]!;
+    const cap = ytmCaps(many, [5], { min: 1, max: 12, step: 0.1 })["5"]!;
     const { results } = rankBonds(many, 5, cap);
     const top10 = [...many].sort((a, b) => b.grossYtm! - a.grossYtm!).slice(0, 10).map((b) => b.isin).sort();
     expect(results.map((r) => r.isin).sort()).toEqual(top10);

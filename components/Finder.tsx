@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
-import { LIMITS } from "@/lib/limits";
+import { DURATION_STEPS, LIMITS, isOpenEnded } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
@@ -182,14 +182,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <Slider
           label={t.horizon}
           hint={t.horizonHint}
-          value={duration}
-          display={`${duration % 1 === 0 ? duration : duration.toFixed(1)} ${t.years}`}
-          min={LIMITS.duration.min}
-          max={LIMITS.duration.max}
-          step={LIMITS.duration.step}
+          value={DURATION_STEPS.indexOf(duration)}
+          display={isOpenEnded(duration) ? t.years30 : `${duration} ${t.years}`}
+          min={0}
+          max={DURATION_STEPS.length - 1}
+          step={1}
           minLabel={t.year1}
-          maxLabel={t.years15}
-          onChange={changeDuration}
+          maxLabel={t.years30}
+          onChange={(i) => changeDuration(DURATION_STEPS[i])}
         />
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
         <div className={mode === "portfolio" ? "" : "invisible"} aria-hidden={mode !== "portfolio"}>
