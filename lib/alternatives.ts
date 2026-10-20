@@ -2,11 +2,11 @@ import type { PublicBond, RankedBond } from "./types";
 import { issuerKey, portfolioPool, withinRisk, UNRATED_NOTCH } from "./ranking";
 import { bondNotch, bondRisk } from "./ratings";
 import { lossAdjustedYield } from "./expectedLoss";
-import type { ResultRow } from "./tiers";
+import { lossOf, type ResultRow } from "./tiers";
 
 /** A bond left out of the top 10 that could take a place in it: Plus swaps it in. */
 export type AltRow = Required<Pick<ResultRow, "issuer" | "ytm" | "name" | "isin" | "duration">> &
-  Pick<ResultRow, "risk" | "coupon" | "maturity" | "country" | "minInvestment"> & { adjYtm?: number };
+  Pick<ResultRow, "risk" | "coupon" | "maturity" | "country" | "minInvestment" | "loss"> & { adjYtm?: number };
 
 export const MAX_ALTERNATIVES = 40;
 
@@ -41,6 +41,7 @@ export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], durat
       maturity: b.maturity,
       country: b.country,
       minInvestment: b.minInvestment ?? null,
+      loss: lossOf(b),
     };
     if (withScore) row.adjYtm = Math.round(adj * 100) / 100;
     out.push(row);

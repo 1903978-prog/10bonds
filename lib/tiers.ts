@@ -1,7 +1,7 @@
-import type { RankedBond, Tier } from "./types";
+import type { PublicBond, RankedBond, Tier } from "./types";
 import { averages, RESULT_COUNT, UNRATED_NOTCH } from "./ranking";
 import { averageRisk, bondNotch, bondRisk } from "./ratings";
-import { lossAdjustedYield } from "./expectedLoss";
+import { expectedLoss, lossAdjustedYield } from "./expectedLoss";
 
 /** Rows a visitor without an account sees. A free account sees the full top 10, without ISINs. */
 export const VISITOR_VISIBLE = 3;
@@ -26,6 +26,8 @@ export type ResultRow = {
   why?: RiskWhy;
   // Premium only: yield after expected losses, the score behind the "why in or out" table.
   lossAdj?: number;
+  // Paid: expected default loss in % a year (historical default rate for its rating x 60% loss), for the list's KPI box.
+  loss?: number;
 };
 
 /** Why a bond ranks where it does under the risk premium model. bp = basis points; adjYtm is a score, not a yield. */
@@ -42,8 +44,11 @@ export type ResultsPayload = {
   tier: Tier;
   rows: ResultRow[];
   lockedCount: number;
-  summary: { count: number; avgYtm: number | null; avgDuration: number | null; avgRisk: number | null } | null;
+  summary: { count: number; avgYtm: number | null; avgDuration: number | null; avgRisk: number | null; avgLoss: number | null } | null;
 };
+
+/** Expected default loss in % a year, rounded to 0.001. */
+export const lossOf = (b: PublicBond) => Math.round(expectedLoss(bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 1000) / 1000;
 
 /** Cut the ranked list down to what this tier may see. Done on the server so hidden data never reaches the browser. */
 export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
@@ -86,6 +91,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       risk: bondRisk(b),
       country: b.country,
       minInvestment: b.minInvestment ?? null,
+      loss: lossOf(b),
       ...(whyOf(b) ? { why: whyOf(b) } : {}),
       ...(tier === "premium" ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
     })),
@@ -95,6 +101,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       avgYtm: avg.ytm,
       avgDuration: avg.duration,
       avgRisk: averageRisk(ranked.map(bondRisk)),
+      avgLoss: ranked.length ? ranked.reduce((s, b) => s + lossOf(b), 0) / ranked.length : null,
     },
   };
 }
