@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { METHOD_LANGS, methodLang } from "@/lib/methodology";
+import { pickedLang } from "@/lib/pageLang";
+import { methodLang } from "@/lib/methodology";
 import { fill, RANKING_TEXT } from "@/lib/rankingMethod";
 import { CURVE_RATINGS, V1_CURVE, type CurveConfig } from "@/lib/riskPremium/curve";
 import { OUTLIER_SD } from "@/lib/outliers";
@@ -9,8 +9,6 @@ import { notchOf, riskOfNotch } from "@/lib/ratings";
 
 export const metadata: Metadata = { title: "Ranking methodology · 10BONDS", alternates: { canonical: "/ranking-methodology" } };
 export const dynamic = "force-dynamic";
-
-const LANG_NAME = { en: "English", it: "Italiano", fr: "Français", de: "Deutsch" } as const;
 
 /** The active curve version (Version 1.0 when the accounts database is not reachable). */
 async function activeCurve(): Promise<{ curve: CurveConfig; on: boolean; sd: number }> {
@@ -23,7 +21,7 @@ async function activeCurve(): Promise<{ curve: CurveConfig; on: boolean; sd: num
 }
 
 export default async function RankingMethodology({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
-  const lang = methodLang((await searchParams).lang);
+  const lang = methodLang(await pickedLang((await searchParams).lang));
   const t = RANKING_TEXT[lang];
   const { curve, on, sd } = await activeCurve();
   const p = curve.premiums;
@@ -41,13 +39,6 @@ export default async function RankingMethodology({ searchParams }: { searchParam
 
   return (
     <article lang={lang} className="mx-auto max-w-6xl">
-      <nav aria-label="Language" className="flex gap-3 text-xs text-mute">
-        {METHOD_LANGS.map((l) => (
-          <Link key={l} href={l === "en" ? "/ranking-methodology" : `/ranking-methodology?lang=${l}`} hrefLang={l} className={l === lang ? "text-ink" : "hover:text-ink"} aria-current={l === lang ? "page" : undefined}>
-            {LANG_NAME[l]}
-          </Link>
-        ))}
-      </nav>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
       <p className="mt-1 max-w-3xl text-[13px] leading-snug text-mute">{t.intro} <span className="text-ink">{on ? t.status.on : t.status.shadow}</span></p>
 
