@@ -9,7 +9,7 @@ const bonds: PublicBond[] = [];
 for (let i = 0; i < 400; i++) { const g = Math.floor(rnd() * 14); for (let k = 0; k < 3; k++) { const d = 0.5 + rnd() * 15;
   bonds.push({ isin: `X${i}_${k}`, name: "", issuer: `Issuer ${i}`, country: null, currency: "EUR", coupon: null, maturity: null, ratingSp: grades[g], ratingMoodys: null, ratingFitch: null, ratingResolved: null, grossYtm: 2 + 0.12 * d + 0.12 * g + (rnd() - 0.5) * 0.8, modifiedDuration: d, ytmAsOf: null }); } }
 describe("more risk accepted", () => it("at the maximum never gives a lower average yield; below it the target is always met (Livio's risk 4 -> 5 case)", () => {
-  const caps = ytmCapsByRisk(bonds, { min: 1, max: 15, step: 1 }, { min: 1, max: 12, step: 0.01 });
+  const caps = ytmCapsByRisk(bonds, Array.from({ length: 15 }, (_, i) => i + 1), { min: 1, max: 12, step: 0.01 });
   for (const d of [2, 5, 10, 13]) for (const mode of ["fixed", "atMax", "keptAtRisk3Max"]) {
     let prev = -1;
     for (let r = 3; r <= 7; r++) {
@@ -23,7 +23,7 @@ describe("more risk accepted", () => it("at the maximum never gives a lower aver
 
 describe("lower target yield", () => it("gives a safer list: average risk never rises as the target falls", () => {
   for (const d of [2, 5, 10]) {
-    const cap = ytmCapsByRisk(bonds, { min: d, max: d, step: 1 }, { min: 1, max: 12, step: 0.01 })["7"][String(d)]!;
+    const cap = ytmCapsByRisk(bonds, [d], { min: 1, max: 12, step: 0.01 })["7"][String(d)]!;
     let prevRisk = Infinity;
     for (let t = cap; t >= cap - 1.5; t -= 0.1) {
       const res = rankBonds(bonds, d, Math.round(t * 100) / 100, undefined, 7).results;
