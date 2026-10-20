@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { SeoMarket } from "@/lib/seo/input";
 import { bingLinks } from "@/lib/seo/bing";
 import AiVisibility from "./AiVisibility";
 import Backlinks from "./Backlinks";
 import Countries from "./Countries";
+import Fixes from "./Fixes";
 import Guides from "./Guides";
 import Keywords from "./Keywords";
 import Overview from "./Overview";
@@ -14,6 +15,10 @@ import Performance from "./Performance";
 import Rankings from "./Rankings";
 import SearchKpis from "./SearchKpis";
 import Sharing from "./Sharing";
+import Speed from "./Speed";
+import Summary, { type SummaryData } from "./Summary";
+import Technical from "./Technical";
+import { api, btn, ErrorNote, when } from "./ui";
 
 const MARKETS: { id: SeoMarket; label: string }[] = [
   { id: "it", label: "🇮🇹 Italy" },
@@ -26,6 +31,9 @@ const TABS = [
   ["overview", "Score & roadmap"],
   ["rankings", "Google rankings"],
   ["ai", "AI visibility"],
+  ["technical", "Pages & technical"],
+  ["speed", "Speed"],
+  ["fixes", "Fixes to paste"],
   ["countries", "Countries & Languages"],
   ["keywords", "Keywords & Knowledge Center"],
   ["guides", "Guides & authors"],
@@ -54,17 +62,38 @@ export default function SeoAdmin() {
     const t = new URLSearchParams(window.location.search).get("tab");
     if (TABS.some(([id]) => id === t)) setTab(t as Tab);
   }, []);
-  const perMarket = tab !== "countries" && tab !== "backlinks" && tab !== "ai" && tab !== "sharing";
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0); // bumped after "Refresh now" so every tab reloads
+  const [refreshing, setRefreshing] = useState(false);
+  const loadSummary = useCallback(() => api<SummaryData>("/api/admin/seo/summary").then(setSummary, (e: Error) => setSummaryError(e.message)), []);
+  useEffect(() => { loadSummary(); }, [loadSummary, version]);
+  async function refresh() {
+    setRefreshing(true);
+    setSummaryError(null);
+    try {
+      await api("/api/admin/seo", { trigger: "manual" });
+    } catch (e) {
+      setSummaryError((e as Error).message);
+    }
+    setRefreshing(false);
+    setVersion((v) => v + 1);
+  }
+  const perMarket = !["countries", "backlinks", "ai", "sharing", "technical", "speed", "fixes"].includes(tab);
   const usUk = market === "us" || market === "uk";
   const eu = usUk ? null : market;
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-[32px] font-semibold tracking-tight">SEO Management</h1>
-        <p className="mt-1 text-sm text-mute">
-          Only you can see this page. · <Link href="/admin" className="text-accent">Back to Admin</Link>
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[32px] font-semibold tracking-tight">SEO &amp; GEO</h1>
+          <p className="mt-1 text-sm text-mute">
+            10bonds.com · last check: {when(summary?.lastCheck)} · repeats every Monday · <Link href="/admin" className="text-accent">Back to Admin</Link>
+          </p>
+        </div>
+        <button onClick={refresh} disabled={refreshing} className={`${btn} w-44`} data-testid="seo-refresh">{refreshing ? "Refreshing…" : "↻ Refresh now"}</button>
       </div>
+      <ErrorNote error={summaryError} />
       <SearchKpis />
       <div className="flex flex-wrap items-center gap-2 rounded-[20px] bg-white px-4 py-3" aria-label="Reports">
         <span className="text-xs text-mute">Open the reports:</span>
@@ -79,6 +108,7 @@ export default function SeoAdmin() {
           </button>
         ))}
       </nav>
+      {tab === "overview" && summary && <Summary data={summary} />}
       {perMarket && (
         <div className="flex flex-wrap items-center gap-2" aria-label="Market">
           <span className="text-xs text-mute">Market:</span>
@@ -94,7 +124,7 @@ export default function SeoAdmin() {
           The US and UK are tracked through their keywords and Google rankings (English pages, searches from that country). This tab covers Italy, France and Germany only.
         </p>
       )}
-      {tab === "overview" && eu && <Overview market={eu} />}
+      {tab === "overview" && eu && <Overview key={version} market={eu} />}
       {tab === "rankings" && <Rankings market={market} />}
       {tab === "ai" && <AiVisibility />}
       {tab === "countries" && <Countries />}
@@ -103,6 +133,9 @@ export default function SeoAdmin() {
       {tab === "backlinks" && <Backlinks />}
       {tab === "performance" && eu && <Performance market={eu} />}
       {tab === "sharing" && <Sharing />}
+      {tab === "technical" && <Technical version={version} />}
+      {tab === "speed" && <Speed version={version} />}
+      {tab === "fixes" && <Fixes version={version} summary={summary} />}
     </div>
   );
 }

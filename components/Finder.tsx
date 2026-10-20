@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
-import { LIMITS } from "@/lib/limits";
+import { DURATION_STEPS, LIMITS, isOpenEnded } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultsPayload } from "@/lib/tiers";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
+import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
@@ -47,6 +48,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [size, setSize] = useState<BondFilter["size"]>("100k");
   const [minKnown, setMinKnown] = useState<boolean | null>(null);
   const sizeTouched = useRef(false);
+  // Until the visitor moves a control, the results box shows the efficient-frontier chart (Livio, 19/10/2026).
+  const [touched, setTouched] = useState(false);
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
   const [resultsH, setResultsH] = useState<number | null>(null);
@@ -56,6 +59,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
+  // The highest risk level that has bonds at each horizon: the risk slider stops there (no risk-7 bonds = 6 to 1).
+  const [maxRisk, setMaxRisk] = useState<Record<string, number | null> | null>(null);
+  const riskTopFor = (d: number, m = maxRisk) => Math.max(LIMITS.risk.min + 1, m?.[String(Math.round(d * 100) / 100)] ?? LIMITS.risk.max);
+  const riskTop = riskTopFor(duration);
 
   useEffect(() => {
     fetch(`/api/bonds/caps?${new URLSearchParams({ currency, size })}`)
@@ -63,6 +70,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       .then((b) => {
         if (!b?.caps) return;
         setCaps(b.caps);
+        if (b.maxRisk) {
+          setMaxRisk(b.maxRisk);
+          setRisk((r) => Math.min(r, riskTopFor(duration, b.maxRisk)));
+        }
         setMinKnown(Boolean(b.minKnown));
         if (!b.minKnown) setSize("100k");
         // Small orders (1k-10k) is the default once the data says which bonds they are.
@@ -77,10 +88,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // A target at the maximum stays at the maximum when the horizon or risk changes, so more risk shows more yield.
   const followCap = (cap: number) => setYtm((y) => (y > cap || y >= ytmMax - 1e-9 ? cap : y));
   const changeDuration = (d: number) => {
+    setTouched(true);
     setDuration(d);
-    followCap(capFor(d, risk));
+    const r = Math.min(risk, riskTopFor(d));
+    if (r !== risk) setRisk(r);
+    followCap(capFor(d, r));
   };
   const changeRisk = (r: number) => {
+    setTouched(true);
     setRisk(r);
     followCap(capFor(duration, r));
   };
@@ -146,7 +161,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               key={m}
               role="tab"
               aria-selected={mode === m}
-              onClick={() => setMode(m)}
+              onClick={() => { setTouched(true); setMode(m); }}
               className={`rounded-full px-4 py-1.5 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
             >
               {label}
@@ -155,12 +170,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => setCurrency(v as BondFilter["currency"])} testId="toggle-currency" />
+          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" />
           <Toggle
             label={t.minOrder}
             value={size}
             options={[["1k", t.small], ["100k", t.allSizes]]}
-            onChange={(v) => { sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
+            onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
             testId="toggle-size"
             disabled={minKnown === false ? ["1k"] : []}
             disabledTitle={t.minNoData}
@@ -170,14 +185,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <Slider
           label={t.horizon}
           hint={t.horizonHint}
-          value={duration}
-          display={`${duration % 1 === 0 ? duration : duration.toFixed(1)} ${t.years}`}
-          min={LIMITS.duration.min}
-          max={LIMITS.duration.max}
-          step={LIMITS.duration.step}
+          value={DURATION_STEPS.indexOf(duration)}
+          display={isOpenEnded(duration) ? t.years30 : `${duration} ${t.years}`}
+          min={0}
+          max={DURATION_STEPS.length - 1}
+          step={1}
           minLabel={t.year1}
-          maxLabel={t.years15}
-          onChange={changeDuration}
+          maxLabel={t.years30}
+          onChange={(i) => changeDuration(DURATION_STEPS[i])}
         />
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
         <div className={mode === "portfolio" ? "" : "invisible"} aria-hidden={mode !== "portfolio"}>
@@ -191,20 +206,20 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           step={LIMITS.ytm.step}
           minLabel="1.0%"
           maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
-          onChange={setYtm}
+          onChange={(v) => { setTouched(true); setYtm(v); }}
         />
-        {/* Risk 1 (lowest) always on the right: the slider position is 11 - risk. */}
+        {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
         <Slider
           label={t.ratingLabel}
           hint={t.ratingHint}
-          value={LIMITS.risk.max + LIMITS.risk.min - risk}
+          value={riskTop + LIMITS.risk.min - risk}
           display={<RiskBadge risk={risk} />}
           min={LIMITS.risk.min}
-          max={LIMITS.risk.max}
+          max={riskTop}
           step={LIMITS.risk.step}
-          minLabel={t.highRiskLabel}
+          minLabel={t.highRiskLabel.replace(/^\d+/, String(riskTop))}
           maxLabel={t.lowRiskLabel}
-          onChange={(pos) => changeRisk(LIMITS.risk.max + LIMITS.risk.min - pos)}
+          onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
 
@@ -220,7 +235,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
         </section>
       ) : (
-      <section ref={resultsBox} className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+      <section ref={resultsBox} className="relative flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+        {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
+        {!touched && (
+          <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
+            <Frontier currency={currency} />
+          </div>
+        )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
@@ -259,7 +280,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {t.stale(ageDays(data.asOf) ?? 0)}
             </p>
           ) : data?.source === "sample" ? (
-            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-sample">{t.sample}</p>
+            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-date">{t.sample} {t.gross}</p>
           ) : (
             <p className="text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
@@ -464,7 +485,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                   <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="px-3 py-0 text-center font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="px-3 py-0 text-center font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
               <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
@@ -498,7 +519,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                     : t.detailsFree}
               </div>
             </div>
-            <span className="font-semibold tabular-nums">{pct(r.ytm)}</span>
+            <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (

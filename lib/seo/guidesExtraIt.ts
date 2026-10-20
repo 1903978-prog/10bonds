@@ -176,7 +176,7 @@ export const EXTRA_IT: Record<string, string> = {
 
   "probabilita-default-rating": `
 <h2 id="esempio-portafoglio">Un esempio su un portafoglio</h2>
-<p>Immaginiamo dieci obbligazioni BBB di emittenti diversi, ognuna con scadenza a cinque anni. Con un tasso di default cumulato medio dell'1,44% a cinque anni, il numero di default atteso nel gruppo è circa 0,14: in media meno di un default ogni settanta obbligazioni di questo tipo. Ma la media non dice quanto sarà fortunato o sfortunato un singolo portafoglio, e i default tendono a concentrarsi negli stessi periodi di crisi economica.</p>
+<p>Immaginiamo dieci obbligazioni BBB di emittenti diversi, ognuna con scadenza a cinque anni. Con un tasso di default cumulato medio dell'1,40% a cinque anni, il numero di default atteso nel gruppo è circa 0,14: in media meno di un default ogni settanta obbligazioni di questo tipo. Ma la media non dice quanto sarà fortunato o sfortunato un singolo portafoglio, e i default tendono a concentrarsi negli stessi periodi di crisi economica.</p>
 <p>Se un'obbligazione va in default, la perdita dipende da quanto si recupera: con un recupero del 40%, perdere un titolo su dieci costerebbe circa il 6% del portafoglio prima delle cedole già incassate.</p>
 `,
 };

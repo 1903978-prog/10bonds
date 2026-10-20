@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { solveChallenge } from "@/lib/solveChallenge";
 import { flushNow, track } from "@/lib/track";
-import TermsText from "./TermsText";
+
+// Sign-up agreement line: [before link, link text, after link], in the visitor's chosen language.
+const AGREE = {
+  en: ["By signing up I agree to the ", "Terms and Conditions", ""],
+  it: ["Registrandomi accetto i ", "Termini e Condizioni", ""],
+  fr: ["En m'inscrivant, j'accepte les ", "Conditions générales", ""],
+  de: ["Mit der Registrierung stimme ich den ", "Allgemeinen Geschäftsbedingungen", " zu"],
+} as const;
+type AgreeLang = keyof typeof AGREE;
 
 export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [email, setEmail] = useState("");
@@ -19,6 +27,11 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [ticket, setTicket] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
   const signup = mode === "signup";
+  const [lang, setLang] = useState<AgreeLang>("en");
+  useEffect(() => {
+    const c = document.cookie.match(/(?:^|; )tb_lang=(\w+)/)?.[1];
+    if (c && c in AGREE) setLang(c as AgreeLang);
+  }, []);
   // After sign-in, back to the page that asked for it (same site only).
   const after = () => {
     const n = new URLSearchParams(window.location.search).get("next");
@@ -183,28 +196,22 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
           />
         )}
         {signup && (
-          <div>
-            <div className="max-h-32 overflow-y-auto rounded-xl border border-line bg-canvas p-4" data-testid="terms-box" tabIndex={0} role="region" aria-label="Terms summary">
-              <p className="mb-3 text-sm font-semibold">Terms of Use and Risk Disclosure</p>
-              <TermsText compact />
-            </div>
-            <label className="mt-3 flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
-                required
-                checked={accept}
-                onChange={(e) => setAccept(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#0071e3]"
-              />
-              <span>
-                I have read and accept the{" "}
-                <Link href="/terms" target="_blank" className="text-accent">
-                  Terms of Use and Risk Disclosure
-                </Link>
-                . I understand 10BONDS gives information only, not investment advice, and that I can lose money investing in bonds.
-              </span>
-            </label>
-          </div>
+          <label className="flex min-h-[20px] items-center gap-3 text-sm" data-testid="terms-tick">
+            <input
+              type="checkbox"
+              required
+              checked={accept}
+              onChange={(e) => setAccept(e.target.checked)}
+              className="h-4 w-4 shrink-0 accent-[#0071e3]"
+            />
+            <span>
+              {AGREE[lang][0]}
+              <Link href="/terms" target="_blank" rel="noopener" className="text-accent">
+                {AGREE[lang][1]}
+              </Link>
+              {AGREE[lang][2]}
+            </span>
+          </label>
         )}
         {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
         <button

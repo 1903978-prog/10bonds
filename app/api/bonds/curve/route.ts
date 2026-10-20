@@ -39,8 +39,11 @@ export async function GET(req: Request) {
   const usage = user && tier === user.plan ? await consumeSearch(user, "single") : null;
   if (usage && !usage.allowed)
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
+  // How many bonds this filter has at all, and their duration span, so an empty chart can say why.
+  const durs = data.bonds.map((b) => b.modifiedDuration).filter((d): d is number => d !== null);
+  const coverage = { count: durs.length, min: durs.length ? Math.min(...durs) : null, max: durs.length ? Math.max(...durs) : null };
   return NextResponse.json(
-    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier, user?.isAdmin === true), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
+    { tier, coverage, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier, user?.isAdmin === true), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

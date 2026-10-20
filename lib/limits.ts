@@ -1,8 +1,24 @@
 export const LIMITS = {
-  duration: { min: 1, max: 15, step: 0.5, initial: 5 },
+  duration: { min: 1, max: 30, step: 1, initial: 5 },
   ytm: { min: 1, max: 12, step: 0.01, initial: 4 },
   risk: { min: 1, max: 10, step: 1, initial: 7 },
 } as const;
+
+// Horizon slider stops (Livio, 20/10/2026): every year up to 15, then 20, 25 and "30+" (30 years and longer).
+export const DURATION_STEPS: readonly number[] = [...Array.from({ length: 15 }, (_, i) => i + 1), 20, 25, 30];
+
+/** The slider stop nearest to `d`. */
+export function snapDuration(d: number): number {
+  return DURATION_STEPS.reduce((best, s) => (Math.abs(s - d) < Math.abs(best - d) ? s : best), DURATION_STEPS[0]);
+}
+
+/** True at the last stop, "30+": every longer bond fits it too. */
+export const isOpenEnded = (target: number) => target >= LIMITS.duration.max - 1e-9;
+
+/** A bond's duration fits a horizon within `band` years; at "30+" anything longer fits as well. */
+export function nearHorizon(duration: number, target: number, band: number): boolean {
+  return isOpenEnded(target) ? duration >= target - band : Math.abs(duration - target) <= band;
+}
 
 // Highest risk accepted, slider level 1..10 = the risk score itself (1 lowest risk, 10 highest).
 // maxNotch is the weakest internal notch inside that score. Unrated bonds and bonds in default never appear.

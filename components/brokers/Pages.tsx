@@ -274,7 +274,7 @@ export async function BrokerPage({ country, id }: { country: Country; id: string
   );
   const path = sectionPath(country);
   return (
-    <article lang={t.lang} className="mx-auto max-w-4xl space-y-6">
+    <article lang={t.lang} className="mx-auto max-w-6xl space-y-6">
       <Preview t={t} on={preview} />
       <Crumbs t={t} items={[{ name: t.sectionTitle, href: path }, { name: r.profile.name, href: brokerPath(country, id) }]} />
       <header className="space-y-2">
@@ -480,7 +480,7 @@ export async function MethodologyPage({ country }: { country: Country }) {
   const w = data.methodology.weights;
   const path = sectionPath(country);
   return (
-    <article lang={t.lang} className={`mx-auto max-w-3xl ${card}`}>
+    <article lang={t.lang} className={`mx-auto max-w-6xl ${card}`}>
       <Preview t={t} on={preview} />
       <Crumbs t={t} items={[{ name: t.sectionTitle, href: path }, { name: t.ui.methodology, href: methodologyPath(country) }]} />
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">{t.ui.methodology}</h1>

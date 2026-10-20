@@ -2,11 +2,13 @@ import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Breadcrumbs, ComparisonBody, JsonLd, prose, RiskNote, ToolCta } from "@/components/seo/Seo";
+import { Breadcrumbs, ComparisonBody, JsonLd, prose, ToolCta } from "@/components/seo/Seo";
 import { accountsConfigured } from "@/lib/accounts";
 import { currentUser } from "@/lib/currentUser";
 import CurveSection from "@/components/seo/CurveSection";
 import InsightsSection from "@/components/seo/InsightsSection";
+import BondMapSection from "@/components/seo/BondMapSection";
+import { bondMapAlternates, bondMapPath, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import YieldCalculator from "@/components/seo/YieldCalculator";
 import { CALCULATORS } from "@/lib/seo/calculators";
 import { comparisonById, comparisonBySlug, type ComparisonDef } from "@/lib/seo/comparisons";
@@ -25,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ lang: string; section: string; slug: string }>; searchParams: Promise<{ preview?: string }> };
 
-type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | { l: Locale; kind: "insights" } | null;
+type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | { l: Locale; kind: "insights" } | { l: Locale; kind: "map" } | null;
 
 /** A published guide (any guide for the admin with ?preview=1), or a comparison page. */
 async function resolve(props: Props): Promise<Resolved> {
@@ -36,7 +38,7 @@ async function resolve(props: Props): Promise<Resolved> {
     const def = comparisonBySlug(lang, slug);
     return def ? { l: lang, kind: "bonds", def } : null;
   }
-  if (s === "tools") return CALCULATORS[lang].slug === slug ? { l: lang, kind: "tool" } : CURVE_TEXT[lang].slug === slug ? { l: lang, kind: "curve" } : INSIGHTS_TEXT[lang].slug === slug ? { l: lang, kind: "insights" } : null;
+  if (s === "tools") return CALCULATORS[lang].slug === slug ? { l: lang, kind: "tool" } : CURVE_TEXT[lang].slug === slug ? { l: lang, kind: "curve" } : INSIGHTS_TEXT[lang].slug === slug ? { l: lang, kind: "insights" } : BOND_MAP_TEXT[lang].slug === slug ? { l: lang, kind: "map" } : null;
   if (s !== "guides" || !accountsConfigured()) return null;
   const g = await guideBySlug(lang, slug).catch(() => null);
   if (!g) return null;
@@ -56,6 +58,10 @@ function guideWithEnglish(g: Guide, siblings: Guide[]): Metadata["alternates"] {
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const r = await resolve(props);
   if (!r) return { robots: { index: false } };
+  if (r.kind === "map") {
+    const c = BOND_MAP_TEXT[r.l];
+    return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
+  }
   if (r.kind === "insights") {
     const c = INSIGHTS_TEXT[r.l];
     return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
@@ -105,7 +111,21 @@ export default async function Detail(props: Props) {
   if (r.kind === "tool") return <ToolPage l={r.l} />;
   if (r.kind === "curve") return <CurvePage l={r.l} />;
   if (r.kind === "insights") return <InsightsPage l={r.l} />;
+  if (r.kind === "map") return <BondMapPage l={r.l} />;
   return r.kind === "bonds" ? <ComparisonPage l={r.l} def={r.def} /> : <GuidePage l={r.l} g={r.guide} />;
+}
+
+function BondMapPage({ l }: { l: Locale }) {
+  const t = T[l];
+  const c = BOND_MAP_TEXT[l];
+  return (
+    <div>
+      <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.knowledge, href: pathOf(l, "knowledge") }, { name: c.h1, href: bondMapPath(l) }]} />
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+      <p className="mt-1 text-[15px] text-mute">{c.lead}</p>
+      <BondMapSection locale={l} text={c} />
+    </div>
+  );
 }
 
 function InsightsPage({ l }: { l: Locale }) {
@@ -117,7 +137,6 @@ function InsightsPage({ l }: { l: Locale }) {
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
       <InsightsSection locale={l} text={c} curveHref={curvePath(l)} methodHref={pathOf(l, "method")} />
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
     </div>
   );
 }
@@ -132,7 +151,6 @@ function CurvePage({ l }: { l: Locale }) {
       {c.intro.map((p) => <p key={p.slice(0, 30)} className="mt-3 text-[17px] text-mute">{p}</p>)}
       <CurveSection locale={l} text={c} />
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + curvePath(l), inLanguage: LOCALE[l].hreflang, creator: ORGANIZATION }} />
     </div>
   );
@@ -157,7 +175,6 @@ function ToolPage({ l }: { l: Locale }) {
         <p className="mt-3"><Link href={pathOf(l, "bonds")} className="text-accent">{t.bonds} ›</Link> · <Link href={pathOf(l, "guides")} className="text-accent">{t.guides} ›</Link></p>
       </section>
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "WebApplication", name: c.h1, url, inLanguage: LOCALE[l].hreflang, applicationCategory: "FinanceApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, description: c.description }} />
     </div>
   );
@@ -200,7 +217,6 @@ async function ComparisonPage({ l, def }: { l: Locale; def: ComparisonDef }) {
       )}
       <p className="mt-6 text-sm text-mute"><Link href={pathOf(l, "method")} className="text-accent">{t.method}</Link></p>
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -254,7 +270,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
   const org = ORGANIZATION;
   const team = pathOf(l, "team");
   return (
-    <article className="mx-auto max-w-3xl">
+    <article className="mx-auto max-w-6xl">
       {g.status !== "published" && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.preview} ({g.status}{g.machineTranslated ? ", machine translation" : ""})</p>}
       <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.guides, href: pathOf(l, "guides") }, { name: g.title, href: pathOf(l, "guides", g.slug) }]} />
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
@@ -288,7 +304,6 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
         </section>
       )}
       <ToolCta locale={l} />
-      <RiskNote locale={l} />
       <JsonLd
         data={{
           "@context": "https://schema.org",

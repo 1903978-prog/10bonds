@@ -14,7 +14,7 @@ const td = "border-t border-line px-3 py-2 align-top";
 
 export default function Privacy() {
   return (
-    <article className="mx-auto max-w-3xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="privacy-page">
+    <article className="mx-auto max-w-6xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="privacy-page">
       <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy</h1>
       <p className="mt-2 text-mute">Last updated: {LEGAL_DRAFT_DATE}</p>
 

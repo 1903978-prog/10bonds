@@ -27,7 +27,9 @@ const nextConfig = {
       ["oat-obligations-etat-francaises", "oat-obligations-etat"],
       ["rendement-a-l-echeance", "calcul-rendement-obligation"],
       ["obligations-ou-etf", "obligations-ou-etf-obligataires"],
-    ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }));
+    ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }))
+      // The menu says "Plans"; the page stays at /pricing so old links keep working.
+      .concat({ source: "/plans", destination: "/pricing", permanent: false });
   },
   async headers() {
     // /embed/... is shown inside other websites' frames, so it skips the "never in a frame" and same-origin rules.

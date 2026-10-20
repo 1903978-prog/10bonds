@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (plan === "pro" && !user.isAdmin && (await proStatus(user).catch(() => "none")) !== "approved")
     return NextResponse.json({ error: "The Pro plan is for approved professionals. Please request access first." }, { status: 403 });
   const subId = await subscriptionIdOf(user.id);
-  if (!subId) return NextResponse.json({ error: "You have no active subscription. Choose a plan on the pricing page." }, { status: 404 });
+  if (!subId) return NextResponse.json({ error: "You have no active subscription. Choose a plan on the Plans page." }, { status: 404 });
   try {
     const { prices } = await ensureStripeSetup();
     const current = await stripe("GET", `/subscriptions/${subId}`);

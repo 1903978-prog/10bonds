@@ -7,7 +7,7 @@ import { FOOTER_LINKS, FOOTER_NOTE, footerLang } from "@/lib/footerNote";
 
 export default function FooterNote() {
   const pathname = usePathname();
-  return <p className="mx-auto max-w-4xl px-4" data-testid="footer-note">{FOOTER_NOTE[footerLang(pathname)]}</p>;
+  return <p className="mx-auto max-w-7xl px-4" data-testid="footer-note">{FOOTER_NOTE[footerLang(pathname)]}</p>;
 }
 
 /** Light grey legal menu: everything legal lives here, not in the top menu. */

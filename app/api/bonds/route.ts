@@ -10,6 +10,9 @@ import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
 import { publicQuota, consumeSearch } from "@/lib/searchQuota";
+import { liveRiskConfig } from "@/lib/riskPremium/store";
+import { rankRiskAdjusted } from "@/lib/riskPremium/rank";
+import { contextFor } from "@/lib/riskPremium/shadow";
 
 export const dynamic = "force-dynamic";
 
@@ -46,13 +49,25 @@ export async function GET(req: Request) {
   const usage = user && tier === user.plan ? await consumeSearch(user, "portfolio") : null;
   if (usage && !usage.allowed)
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
-  const { results, band } = rankBonds(data.bonds, duration, ytm, undefined, risk);
+  // Risk-adjusted ranking (lib/riskPremium) only when the admin has switched it on; otherwise, and wherever its curve
+  // does not apply (no eligible bond at this horizon), the current ranking. Every answer names the method it used.
+  let ranked = rankBonds(data.bonds, duration, ytm, undefined, risk);
+  let engine: { method: "current" | "risk-adjusted"; version: string | null } = { method: "current", version: null };
+  const live = await liveRiskConfig().catch(() => null);
+  if (live?.mode === "on" && live.curve) {
+    const r = rankRiskAdjusted(data.bonds, duration, ytm, contextFor(data.bonds, data.asOf, live.curve, live.reviews), undefined, risk);
+    if (r.results.length) {
+      ranked = { results: r.results, band: r.band };
+      engine = { method: "risk-adjusted", version: r.version };
+    }
+  }
+  const { results, band } = ranked;
   // A real Monte Carlo run of defaults on this top 10 over the chosen horizon. Its averages are a paid feature like the others.
   const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b) })), duration);
   const paid = tier === "plus" || tier === "premium";
-  const monteCarlo = paid ? sim : { paths: sim.paths, expYield: null, p5: null };
+  const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null };
   return NextResponse.json(
-    { ...shapeForTier(results, tier), monteCarlo, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk } },
+    { ...shapeForTier(results, tier), monteCarlo, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

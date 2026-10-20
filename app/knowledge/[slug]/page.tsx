@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { JsonLd, prose } from "@/components/seo/Seo";
 import CurveSection from "@/components/seo/CurveSection";
 import InsightsSection from "@/components/seo/InsightsSection";
+import BondMapSection from "@/components/seo/BondMapSection";
+import { bondMapAlternates, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import { insightsAlternates, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import YieldCalculator from "@/components/seo/YieldCalculator";
 import { curveAlternates, CURVE_TEXT } from "@/lib/seo/yieldCurves";
@@ -29,6 +31,10 @@ async function languageVersions(group: string): Promise<Partial<Record<Locale, s
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (slug === BOND_MAP_TEXT.en.slug) {
+    const c = BOND_MAP_TEXT.en;
+    return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+  }
   if (slug === INSIGHTS_TEXT.en.slug) {
     const c = INSIGHTS_TEXT.en;
     return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
@@ -59,10 +65,20 @@ const crumbs = (name: string, href: string) => (
   </nav>
 );
 
-const risk = <p className="mt-8 text-xs leading-relaxed text-mute">Information and education only, not investment advice or an offer to buy or sell. Yields are gross and indicative and can change. Bonds can lose value and issuers can default. <Link href="/disclaimer" className="underline">Disclaimer</Link></p>;
 
 export default async function EnglishKnowledgePage({ params }: Props) {
   const { slug } = await params;
+  if (slug === BOND_MAP_TEXT.en.slug) {
+    const c = BOND_MAP_TEXT.en;
+    return (
+      <div>
+        {crumbs(c.h1, enPath(c.slug))}
+        <h1 className="text-[28px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+        <p className="mt-1 text-[15px] text-mute">{c.lead}</p>
+        <BondMapSection locale="en" text={c} />
+      </div>
+    );
+  }
   if (slug === INSIGHTS_TEXT.en.slug) {
     const c = INSIGHTS_TEXT.en;
     return (
@@ -70,7 +86,6 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         {crumbs(c.h1, enPath(c.slug))}
         <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
         <InsightsSection locale="en" text={c} curveHref={enPath(CURVE_TEXT.en.slug)} methodHref="/it/metodologia" />
-        {risk}
       </div>
     );
   }
@@ -82,7 +97,6 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
         {c.intro.map((p) => <p key={p} className="mt-3 text-[17px] text-mute">{p}</p>)}
         <CurveSection locale="en" text={c} />
-        {risk}
         <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + enPath(c.slug), inLanguage: "en", creator: ORGANIZATION }} />
       </div>
     );
@@ -100,7 +114,6 @@ export default async function EnglishKnowledgePage({ params }: Props) {
           {c.how.paras.map((p) => <p key={p} className="mt-3">{p}</p>)}
           <p className="mt-3 text-sm text-mute">{c.taxNote}</p>
         </section>
-        {risk}
         <JsonLd data={{ "@context": "https://schema.org", "@type": "WebApplication", name: c.h1, url: SITE_URL + enPath(c.slug), inLanguage: "en", applicationCategory: "FinanceApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, description: c.description }} />
       </div>
     );
@@ -112,7 +125,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
   const related = EN_GUIDES.filter((x) => x.section === g.section && x.slug !== g.slug).slice(0, 4);
   const url = SITE_URL + enPath(g.slug);
   return (
-    <article className="mx-auto max-w-3xl">
+    <article className="mx-auto max-w-6xl">
       {crumbs(g.title, enPath(g.slug))}
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
         <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{g.title}</h1>
@@ -128,7 +141,6 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         </section>
       )}
       <p className="mt-6 text-sm"><Link href={enPath()} className="text-accent">{KC_TEXT_EN.h1} ›</Link></p>
-      {risk}
       <JsonLd data={{ "@context": "https://schema.org", "@type": "Article", headline: g.title, description: g.metaDescription, inLanguage: "en", mainEntityOfPage: url, url, ...(g.published ? { datePublished: g.published } : {}), author: ORGANIZATION, publisher: ORGANIZATION, keywords: g.primaryKeyword }} />
       {faq.length > 0 && <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />}
     </article>
