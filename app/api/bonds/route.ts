@@ -13,6 +13,8 @@ import { publicQuota, consumeSearch } from "@/lib/searchQuota";
 import { liveRiskConfig } from "@/lib/riskPremium/store";
 import { rankRiskAdjusted } from "@/lib/riskPremium/rank";
 import { contextFor } from "@/lib/riskPremium/shadow";
+import { parseShifts, shiftPremiums } from "@/lib/riskPremium/bands";
+import { V1_CURVE } from "@/lib/riskPremium/curve";
 
 export const dynamic = "force-dynamic";
 
@@ -52,9 +54,18 @@ export async function GET(req: Request) {
   // Risk-adjusted ranking (lib/riskPremium) only when the admin has switched it on; otherwise, and wherever its curve
   // does not apply (no eligible bond at this horizon), the current ranking. Every answer names the method it used.
   let ranked = rankBonds(data.bonds, duration, ytm, undefined, risk);
-  let engine: { method: "current" | "risk-adjusted"; version: string | null } = { method: "current", version: null };
+  let engine: { method: "current" | "risk-adjusted"; version: string | null; preview?: boolean; premiums?: Record<string, number> } = { method: "current", version: null };
   const live = await liveRiskConfig().catch(() => null);
-  if (live?.mode === "on" && live.curve) {
+  // Admin tuning (search page, admin only): the risk-adjusted list with the active curve moved per risk score. Only
+  // the admin's own answer changes; nothing is saved until a draft is created from the panel.
+  const shifts = user?.isAdmin ? parseShifts(url.searchParams.get("rp")) : null;
+  if (shifts) {
+    const base = live?.curve ?? V1_CURVE;
+    const curve = { ...base, premiums: shiftPremiums(base.premiums, shifts) };
+    const r = rankRiskAdjusted(data.bonds, duration, ytm, contextFor(data.bonds, data.asOf, curve, live?.reviews), undefined, risk);
+    engine = { method: r.results.length ? "risk-adjusted" : "current", version: base.version, preview: true, premiums: curve.premiums };
+    if (r.results.length) ranked = { results: r.results, band: r.band };
+  } else if (live?.mode === "on" && live.curve) {
     const r = rankRiskAdjusted(data.bonds, duration, ytm, contextFor(data.bonds, data.asOf, live.curve, live.reviews), undefined, risk);
     if (r.results.length) {
       ranked = { results: r.results, band: r.band };

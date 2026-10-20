@@ -15,6 +15,8 @@ import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
 import { MC_PATHS } from "@/lib/monteCarlo";
+import { loadMe } from "@/lib/me";
+import AdminTuner, { TUNER_OFF, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -25,6 +27,7 @@ type Response = ResultsPayload & {
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
+  engine?: { method: string; version: string | null; preview?: boolean; premiums?: Record<string, number> };
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -43,6 +46,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
+  // Admin only: the risk premium tuning panel (yellow). Everyone else never sees or sends it.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [tuner, setTuner] = useState<TunerState>(TUNER_OFF);
+  useEffect(() => { loadMe().then((me) => setIsAdmin(!!me?.isAdmin)); }, []);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
   const [currency, setCurrency] = useState<BondFilter["currency"]>("EUR");
@@ -116,6 +123,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (preview.current) qs.set("preview", preview.current);
+        if (tuner.on) qs.set("rp", tuner.shifts.join(","));
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
         if (res.status === 402 && body.limitReached) {
@@ -138,7 +146,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size]);
+  }, [duration, ytm, risk, mode, currency, size, tuner]);
 
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
@@ -225,6 +233,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
+        {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} />}
 
       </section>
 
