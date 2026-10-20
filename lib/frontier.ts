@@ -2,19 +2,21 @@ import type { PublicBond } from "./types";
 import { bondRisk } from "./ratings";
 import { rankBonds } from "./ranking";
 
-/** The search the landing chart shows in red: 5-year horizon, risk up to 5, highest yield (slider at its maximum). */
-export const FRONTIER_SEARCH = { duration: 5, risk: 5 };
+/** The red line (Livio, 20/10/2026): the efficient frontier of 5-year bonds from risk 1 to risk 8. */
+export const FRONTIER_SEARCH = { duration: 5, minRisk: 1, maxRisk: 8 };
 
 export type Frontier = {
   // Every rated bond with a yield: [risk 1..10, yield %], rounded so the payload stays small.
   dots: [number, number][];
-  // The bonds of that search, as positions in `dots`.
+  // The frontier bonds, safest first, as positions in `dots`.
   picks: number[];
 };
 
 /**
- * The landing chart (Livio, 19/10/2026): one grey dot per bond of every duration, and in red the 10 bonds a real
- * search for 5 years and risk up to 5 returns, to show the efficient frontier the finder works on.
+ * The landing chart: one grey dot per bond of every duration and, in red, the efficient frontier for a 5-year horizon.
+ * For each risk level 1..8 the finder's own top-yield search at that level gives its 10 best bonds; the middle one of
+ * those stands for the level, so a lone outlier never sets the curve. Levels that pay no more than a safer one are left
+ * out, so the line rises at every step.
  */
 export function frontierOf(bonds: PublicBond[]): Frontier {
   const dots: [number, number][] = [];
@@ -25,9 +27,13 @@ export function frontierOf(bonds: PublicBond[]): Frontier {
     at.set(b.isin, dots.length);
     dots.push([risk, Math.round(b.grossYtm * 100) / 100]);
   }
-  const { results } = rankBonds(bonds, FRONTIER_SEARCH.duration, Number.MAX_VALUE, undefined, FRONTIER_SEARCH.risk);
-  const picks = results.map((b) => at.get(b.isin)).filter((i): i is number => i !== undefined);
-  return { dots, picks };
+  const levels: number[] = [];
+  for (let r = FRONTIER_SEARCH.minRisk; r <= FRONTIER_SEARCH.maxRisk; r++) {
+    const { results } = rankBonds(bonds.filter((b) => bondRisk(b) === r), FRONTIER_SEARCH.duration, Number.MAX_VALUE, undefined, r);
+    const ys = results.map((b) => at.get(b.isin)).filter((i): i is number => i !== undefined).sort((a, b) => dots[a][1] - dots[b][1]);
+    if (ys.length) levels.push(ys[Math.floor(ys.length / 2)]);
+  }
+  return { dots, picks: monotonicRun(levels, (i) => dots[i][1]) };
 }
 
 /**

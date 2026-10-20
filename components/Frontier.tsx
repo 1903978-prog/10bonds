@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFinderText } from "@/lib/finderText";
-import { monotonicRun, type Frontier as FrontierData } from "@/lib/frontier";
+import type { Frontier as FrontierData } from "@/lib/frontier";
 
 const RED = "#ff3b30";
 
-/** Landing chart, shown before the visitor moves a control: every bond as a grey dot, in red the 10 bonds of a 5-year, risk-5 search. */
+/** Landing chart, shown before the visitor moves a control: every bond as a grey dot, in red the efficient frontier of 5-year bonds, risk 1 to 8. */
 export default function Frontier({ currency }: { currency: string }) {
   const t = useFinderText();
   const [data, setData] = useState<FrontierData | null>(null);
@@ -34,8 +34,8 @@ export default function Frontier({ currency }: { currency: string }) {
   // Each bond sits anywhere across the width of its risk score (fixed per dot), so the bonds read as one continuous cloud.
   const spread = (i: number) => ((((Math.sin(i * 12.9898 + 78.233) * 43758.5453) % 1) + 1) % 1) - 0.5;
   const rx = (i: number) => dots[i][0] + spread(i);
-  // Only the picks whose yield rises with every step up in risk, joined from the riskiest (left) to the safest (right).
-  const picks = monotonicRun((data?.picks ?? []).filter((i) => dots[i]).sort((a, b) => rx(a) - rx(b)), (i) => dots[i][1]).reverse();
+  // The frontier bonds, safest first, each drawn at the centre of its risk level.
+  const picks = (data?.picks ?? []).filter((i) => dots[i]);
   // The axis follows the bulk of the bonds (a few distressed yields would flatten everything else) and always the red bonds.
   const sorted = dots.map((d) => d[1]).sort((a, b) => a - b);
   const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
@@ -50,7 +50,7 @@ export default function Frontier({ currency }: { currency: string }) {
   const step = hi - lo > 10 ? 2 : hi - lo > 4 ? 1 : 0.5;
   const ticks: number[] = [];
   for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 10) / 10);
-  const path = picks.map((i, k) => `${k ? "L" : "M"}${x(rx(i)).toFixed(1)},${y(dots[i][1]).toFixed(1)}`).join(" ");
+  const path = picks.map((i, k) => `${k ? "L" : "M"}${x(dots[i][0]).toFixed(1)},${y(dots[i][1]).toFixed(1)}`).join(" ");
 
   return (
     <div className="flex h-full flex-col" data-testid="frontier">
@@ -76,11 +76,11 @@ export default function Frontier({ currency }: { currency: string }) {
           </g>
           <path d={path} fill="none" stroke={RED} strokeWidth="2" strokeLinejoin="round" />
           {picks.map((i) => (
-            <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r="4.5" fill={RED} stroke="#fff" strokeWidth="1.5" data-testid="frontier-pick" />
+            <circle key={i} cx={x(dots[i][0])} cy={y(dots[i][1])} r="4.5" fill={RED} stroke="#fff" strokeWidth="1.5" data-testid="frontier-pick" />
           ))}
         </svg>
       </div>
-      <p className="mt-1 text-[11px] text-mute">{t.frontierStart}</p>
+      <p className="mt-1 text-[11px] text-mute">{t.frontierHow} {t.frontierStart}</p>
     </div>
   );
 }
