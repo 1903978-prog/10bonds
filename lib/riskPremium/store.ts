@@ -2,6 +2,7 @@ import { accountsConfigured, accountsSql } from "../accounts";
 import { V1_CURVE, type CurveConfig, type CurveRating } from "./curve";
 import { activationProblems, type CurveVersion, type VersionStatus } from "./versions";
 import type { Evaluation } from "./evaluate";
+import { cleanSd, OUTLIER_SD } from "../outliers";
 
 // Risk premium model data in schema "app": curve versions, the audit trail of every change, admin decisions on
 // exceptional spreads, and recorded calculation runs (every evaluated bond with the version it used).
@@ -203,21 +204,42 @@ export async function listAudit(limit = 100): Promise<AuditRow[]> {
   return rows.map((r) => ({ id: Number(r.id), at: new Date(r.at).toISOString(), by: r.by_email, versionId: r.version_id === null ? null : Number(r.version_id), action: r.action, justification: r.justification, detail: r.detail }));
 }
 
-// Ranking mode, in app.settings: "shadow" (default: users see the current ranking, the new one runs for the admin
-// comparison only) or "on" (users see the risk-adjusted ranking where the curve applies).
-export type RiskMode = "shadow" | "on";
-const MODE_KEY = "risk_ranking_mode";
+// Risk premium weight, in app.settings (Livio, 20/10/2026, replaces the on/off mode): 0 = users get the current
+// ranking exactly; above 0 the active curve's premiums are scaled by it (1 = the curve as stored, up to MAX_WEIGHT)
+// and the risk-adjusted ranking is used wherever the curve applies. Set with the yellow admin slider on the search page.
+export const MAX_WEIGHT = 3;
+const WEIGHT_KEY = "risk_premium_weight";
 
-export async function getMode(): Promise<RiskMode> {
+export async function getWeight(): Promise<number> {
   const s = await db();
-  const [r] = await s<{ value: string }[]>`select value from app.settings where key = ${MODE_KEY}`;
-  return r?.value === "on" ? "on" : "shadow";
+  const [r] = await s<{ value: string }[]>`select value from app.settings where key = ${WEIGHT_KEY}`;
+  const w = Number(r?.value);
+  return Number.isFinite(w) ? Math.min(MAX_WEIGHT, Math.max(0, w)) : 0;
 }
 
-export async function setMode(mode: RiskMode, justification: string, by: string) {
+export async function setWeight(weight: number, justification: string, by: string) {
   const s = await db();
-  await s`insert into app.settings (key, value) values (${MODE_KEY}, ${mode}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
-  await audit(s, by, `mode_${mode}`, null, justification);
+  const w = String(Math.round(Math.min(MAX_WEIGHT, Math.max(0, weight)) * 100) / 100);
+  await s`insert into app.settings (key, value) values (${WEIGHT_KEY}, ${w}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+  await audit(s, by, "weight", null, justification, { weight: Number(w) });
+  modeCache = null;
+}
+
+// Outlier rule (lib/outliers.ts): how many standard deviations above its cohort's average yield a bond must be to be
+// left out everywhere. Set with the yellow admin slider on the search page (Livio, 20/10/2026: 0.5 to 5, default 2).
+const OUTLIER_SD_KEY = "outlier_sd";
+
+export async function getOutlierSd(): Promise<number> {
+  const s = await db();
+  const [r] = await s<{ value: string }[]>`select value from app.settings where key = ${OUTLIER_SD_KEY}`;
+  return cleanSd(r?.value);
+}
+
+export async function setOutlierSd(sd: number, justification: string, by: string) {
+  const s = await db();
+  const v = String(cleanSd(sd));
+  await s`insert into app.settings (key, value) values (${OUTLIER_SD_KEY}, ${v}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+  await audit(s, by, "outlier_sd", null, justification, { sd: Number(v) });
   modeCache = null;
 }
 
@@ -270,15 +292,20 @@ export async function listRuns(limit = 10) {
 }
 
 // What the public ranking needs, cached for a minute so a slider move does not hit the database each time.
-type Live = { mode: RiskMode; curve: CurveVersion | null; reviews: Map<string, "approved" | "rejected"> };
+type Live = { weight: number; outlierSd: number; curve: CurveVersion | null; reviews: Map<string, "approved" | "rejected"> };
 let modeCache: { at: number; live: Live } | null = null;
 
 /** Mode, active curve and review decisions for the public ranking. Without an accounts database: shadow, no curve. */
 export async function liveRiskConfig(): Promise<Live> {
-  if (!accountsConfigured()) return { mode: "shadow", curve: null, reviews: new Map() };
+  if (!accountsConfigured()) return { weight: 0, outlierSd: OUTLIER_SD.default, curve: null, reviews: new Map() };
   if (modeCache && Date.now() - modeCache.at < 60_000) return modeCache.live;
-  const [mode, versions, reviews] = await Promise.all([getMode(), listVersions(), latestReviews()]);
-  const live: Live = { mode, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])) };
+  const [weight, outlierSd, versions, reviews] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews()]);
+  const live: Live = { weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])) };
   modeCache = { at: Date.now(), live };
   return live;
+}
+
+/** The outlier setting users get (cached with the rest for a minute). */
+export async function liveOutlierSd(): Promise<number> {
+  return (await liveRiskConfig()).outlierSd;
 }

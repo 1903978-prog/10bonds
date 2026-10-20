@@ -15,6 +15,9 @@ import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
 import { MC_PATHS } from "@/lib/monteCarlo";
+import { loadMe } from "@/lib/me";
+import WhyTable from "./WhyTable";
+import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -25,6 +28,8 @@ type Response = ResultsPayload & {
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
+  outliers?: { sd: number; liveSd: number; count: number; liveCount: number };
+  engine?: { method: string; version: string | null; weight: number; liveWeight: number; preview?: boolean; premiums?: Record<string, number> };
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -43,6 +48,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
+  // Admin only: the risk premium tuning panel (yellow). Everyone else never sees or sends it.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [tuner, setTuner] = useState<TunerState>(TUNER_START);
+  const [tunerSaved, setTunerSaved] = useState(0);
+  useEffect(() => { loadMe().then((me) => setIsAdmin(!!me?.isAdmin)); }, []);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
   const [currency, setCurrency] = useState<BondFilter["currency"]>("EUR");
@@ -116,6 +126,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (preview.current) qs.set("preview", preview.current);
+        if (isAdmin && tuner.weight !== null) {
+          qs.set("rw", String(tuner.weight));
+          qs.set("rp", tuner.shifts.join(","));
+        }
+        if (isAdmin && tuner.sd !== null) qs.set("os", String(tuner.sd));
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
         if (res.status === 402 && body.limitReached) {
@@ -138,11 +153,20 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size]);
+  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved]);
 
   const tier = data?.tier ?? "visitor";
   const paid = tier === "plus" || tier === "premium";
   const signedIn = tier !== "visitor";
+  // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
+  const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
+  if (isAdmin && tuner.weight !== null) {
+    why.set("rw", String(tuner.weight));
+    why.set("rp", tuner.shifts.join(","));
+  }
+  if (isAdmin && tuner.sd !== null) why.set("os", String(tuner.sd));
+  if (preview.current) why.set("preview", preview.current);
+  const whyQuery = why.toString();
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
   const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: "/signup", label: t.avgSignUp };
 
@@ -225,6 +249,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
+        {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
 
       </section>
 
@@ -268,6 +293,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             data={data}
             paid={paid}
             signedIn={signedIn}
+            whyQuery={whyQuery}
             currency={currency}
             message={
               limit ? <LimitReached quota={limit} />
@@ -524,7 +550,7 @@ const HEAD_H = 30;
 const ROW_H = 34;
 const CARD_H = 64;
 
-function Results({ data, paid, signedIn, currency, message, show, lang }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang }) {
+function Results({ data, paid, signedIn, currency, message, show, lang, whyQuery }: { data: Response | null; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string }) {
   const t = useFinderText();
   const rows = message ? [] : (data?.rows ?? []).slice(0, SLOTS);
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
@@ -652,6 +678,7 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
             <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
           </Link>
         ) : null}
+        {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} />}
       </div>
     </div>
   );

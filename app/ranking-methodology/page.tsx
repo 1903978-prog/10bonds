@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { METHOD_LANGS, methodLang } from "@/lib/methodology";
 import { fill, RANKING_TEXT } from "@/lib/rankingMethod";
 import { CURVE_RATINGS, V1_CURVE, type CurveConfig } from "@/lib/riskPremium/curve";
+import { OUTLIER_SD } from "@/lib/outliers";
 import { liveRiskConfig } from "@/lib/riskPremium/store";
 import { notchOf, riskOfNotch } from "@/lib/ratings";
 
@@ -12,21 +13,21 @@ export const dynamic = "force-dynamic";
 const LANG_NAME = { en: "English", it: "Italiano", fr: "Français", de: "Deutsch" } as const;
 
 /** The active curve version (Version 1.0 when the accounts database is not reachable). */
-async function activeCurve(): Promise<{ curve: CurveConfig; on: boolean }> {
+async function activeCurve(): Promise<{ curve: CurveConfig; on: boolean; sd: number }> {
   try {
     const live = await liveRiskConfig();
-    return { curve: live.curve ?? V1_CURVE, on: live.mode === "on" && !!live.curve };
+    return { curve: live.curve ?? V1_CURVE, on: live.weight > 0 && !!live.curve, sd: live.outlierSd };
   } catch {
-    return { curve: V1_CURVE, on: false };
+    return { curve: V1_CURVE, on: false, sd: OUTLIER_SD.default };
   }
 }
 
 export default async function RankingMethodology({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
   const lang = methodLang((await searchParams).lang);
   const t = RANKING_TEXT[lang];
-  const { curve, on } = await activeCurve();
+  const { curve, on, sd } = await activeCurve();
   const p = curve.premiums;
-  const v = { version: curve.version, min: curve.minMaturity, max: curve.maxMaturity, floor: curve.floor, exceptional: curve.exceptionalBp, a: p["AA-"], b: p["BBB+"], diff: p["BBB+"] - p["AA-"] };
+  const v = { version: curve.version, min: curve.minMaturity, max: curve.maxMaturity, floor: curve.floor, exceptional: curve.exceptionalBp, a: p["AA-"], b: p["BBB+"], diff: p["BBB+"] - p["AA-"], sd: sd.toFixed(1) };
   const card = "overflow-hidden rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
   const head = "px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-mute";
 

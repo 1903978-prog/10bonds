@@ -3,34 +3,35 @@ import { bondRisk } from "./ratings";
 
 // Bonds whose yield is far above every comparable bond usually carry a structure the rating of the issuer does not
 // describe (subordinated / Tier 2 / AT1 bank debt, hybrids, perpetuals). The copy has no seniority column, so two rules
-// leave them out everywhere on the site (Livio, 20/10/2026: "remove outliers as they must have risky structures"):
+// leave them out everywhere on the site, before any ranking, Pareto or frontier step (Livio, 20/10/2026):
 // 1. The name says so (subordinated, junior, Tier 1/2, AT1, hybrid, perpetual, CoCo).
-// 2. Its yield is an outlier among its peers: same currency, same 10BONDS risk score, similar duration. It is left out
-//    when it yields more than OUTLIER_MIN_GAP points above the peers' median and more than OUTLIER_MADS times their
-//    typical spread (median absolute deviation) above it. Needs at least OUTLIER_MIN_PEERS peers to judge.
+// 2. Statistical outlier: its yield is more than k standard deviations above the average yield of its cohort (same
+//    currency, same 10BONDS risk score, duration within ±20% or ±1 year, the bond itself not counted). k is set by the
+//    admin (yellow slider, 0.5 to 5, default 2). Needs at least OUTLIER_MIN_PEERS bonds in the cohort to judge.
 
 export const RISKY_STRUCTURE = /\b(sub|subord|subordinated|jr|junior|perp|perpetual|hybrid|tier ?[12]|t[12]|at1|lt2|coco)\b/i;
-export const OUTLIER_MIN_GAP = 1.5;
-export const OUTLIER_MADS = 3;
+export const OUTLIER_SD = { min: 0.5, max: 5, step: 0.1, default: 2 };
 export const OUTLIER_MIN_PEERS = 8;
 const PEER_DURATION = 0.2; // ±20% of the bond's duration
 const PEER_DURATION_MIN = 1; // but at least ±1 year
 
-export type Outlier = { bond: PublicBond; reason: "name" | "yield"; peerMedian: number | null };
+export type Outlier = { bond: PublicBond; reason: "name" | "yield"; peerMean: number | null; peerSd: number | null };
 
-const median = (xs: number[]) => {
-  const s = [...xs].sort((a, b) => a - b);
-  const m = s.length >> 1;
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-};
+/** A valid number of standard deviations, or the default. */
+export function cleanSd(v: unknown): number {
+  const n = Number(v);
+  if (v === null || v === undefined || v === "" || !Number.isFinite(n)) return OUTLIER_SD.default;
+  return Math.round(Math.min(OUTLIER_SD.max, Math.max(OUTLIER_SD.min, n)) * 10) / 10;
+}
 
 /** The bonds the two rules leave out, with the reason. */
-export function findOutliers(bonds: PublicBond[]): Outlier[] {
+export function findOutliers(bonds: PublicBond[], sd = OUTLIER_SD.default): Outlier[] {
+  const k = cleanSd(sd);
   const out: Outlier[] = [];
   const groups = new Map<string, PublicBond[]>();
   for (const b of bonds) {
     if (RISKY_STRUCTURE.test(b.name)) {
-      out.push({ bond: b, reason: "name", peerMedian: null });
+      out.push({ bond: b, reason: "name", peerMean: null, peerSd: null });
       continue;
     }
     const risk = bondRisk(b);
@@ -44,16 +45,16 @@ export function findOutliers(bonds: PublicBond[]): Outlier[] {
       const band = Math.max(PEER_DURATION_MIN, PEER_DURATION * d);
       const peers = group.filter((p) => p !== b && Math.abs(p.modifiedDuration! - d) <= band).map((p) => p.grossYtm!);
       if (peers.length < OUTLIER_MIN_PEERS) continue;
-      const med = median(peers);
-      const mad = median(peers.map((y) => Math.abs(y - med)));
-      if (b.grossYtm! - med > Math.max(OUTLIER_MIN_GAP, OUTLIER_MADS * mad)) out.push({ bond: b, reason: "yield", peerMedian: med });
+      const mean = peers.reduce((s, y) => s + y, 0) / peers.length;
+      const sdev = Math.sqrt(peers.reduce((s, y) => s + (y - mean) ** 2, 0) / peers.length);
+      if (b.grossYtm! > mean + k * sdev + 1e-9) out.push({ bond: b, reason: "yield", peerMean: mean, peerSd: sdev });
     }
   }
   return out;
 }
 
 /** Every bond except the outliers. */
-export function dropOutliers(bonds: PublicBond[]): PublicBond[] {
-  const gone = new Set(findOutliers(bonds).map((o) => o.bond.isin));
+export function dropOutliers(bonds: PublicBond[], sd = OUTLIER_SD.default): PublicBond[] {
+  const gone = new Set(findOutliers(bonds, sd).map((o) => o.bond.isin));
   return gone.size ? bonds.filter((b) => !gone.has(b.isin)) : bonds;
 }

@@ -13,7 +13,7 @@ import type { BracketRow, Row } from "@/lib/riskPremium/shadow";
 type Summary = { count: number; ytm: number | null; duration: number | null; risk: number | null; surplusBp: number | null };
 type Compare = { scenario: { duration: number; ytm: number; risk: number }; current: { rows: Row[]; summary: Summary }; riskAdjusted: { rows: Row[]; summary: Summary; targetReached: boolean; counts: Record<RiskStatus, number> }; overlap: number; bracket: BracketRow[] };
 type Payload = {
-  mode: "shadow" | "on"; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
+  weight: number; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
   reviews: { isin: string; decision: string; note: string; by: string; at: string }[];
   audit: { id: number; at: string; by: string; versionId: number | null; action: string; justification: string | null }[];
   runs: { id: number; at: string; version: string | null; dataAsOf: string | null; bonds: number }[];
@@ -78,17 +78,10 @@ export default function RiskPremiumAdmin() {
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className={`rounded-full px-3 py-1 text-xs font-medium ${data.mode === "on" ? "bg-green-100 text-green-800" : "bg-amber-50 text-amber-900"}`} data-testid="risk-mode">
-            {data.mode === "on" ? "Public ranking: risk-adjusted (on)" : "Public ranking: current (shadow mode)"}
+          <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-ink ring-1 ring-yellow-300" data-testid="risk-weight">
+            Risk premium weight for users: {Math.round(data.weight * 100)}%{data.weight === 0 ? " (current ranking)" : ""}
           </span>
-          {data.mode === "on" ? (
-            <button disabled={busy} className={btn} onClick={() => post({ action: "mode", mode: "shadow" }, "Back to shadow mode: users see the current ranking.")}>Switch back to shadow</button>
-          ) : (
-            <button disabled={busy || !active} className={btn} onClick={() => {
-              const confirm = window.prompt("This changes the ranking every user sees. Type ACTIVATE to continue.");
-              if (confirm === "ACTIVATE") post({ action: "mode", mode: "on", confirm }, "Risk-adjusted ranking is now live for users.");
-            }}>Turn on for users…</button>
-          )}
+          <Link href="/" className={btn}>Change it on the search page</Link>
         </div>
       </div>
 
@@ -129,7 +122,7 @@ export default function RiskPremiumAdmin() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className={btn} disabled={busy} onClick={() => startEdit(active, null, nextVersion(data.versions))}>New draft from active</button>
                 <button className={btn} disabled={busy} onClick={() => post({ action: "restore_defaults", version: nextVersion(data.versions) }, "Draft with the Version 1.0 defaults created.")}>Restore Version 1.0 defaults (as draft)</button>
-                {active && <button className={btn} disabled={busy || data.mode === "on"} onClick={() => post({ action: "deactivate" }, "Active curve archived.")}>Deactivate active</button>}
+                {active && <button className={btn} disabled={busy || data.weight > 0} onClick={() => post({ action: "deactivate" }, "Active curve archived.")}>Deactivate active</button>}
               </div>
               {drafts.length > 0 && (
                 <ul className="mt-3 space-y-1 text-sm">

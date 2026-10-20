@@ -105,7 +105,7 @@ describe.skipIf(!url)("risk premium versions on a real database", () => {
     const { draftFrom } = await import("./riskPremium/versions");
     const v1 = (await store.listVersions()).find((v) => v.version === "1.0")!;
     expect(v1).toMatchObject({ status: "active", premiums: { "BBB+": 95, "AA-": 50 }, floor: "BBB-", exceptionalBp: 200, minMaturity: 4, maxMaturity: 6 });
-    expect(await store.getMode()).toBe("shadow");
+    expect(await store.getWeight()).toBe(0);
 
     const version = `9.${Date.now() % 1000}`;
     const id = await store.createDraft(draftFrom(v1, { version, premiums: { "BBB+": 105 } }), null, "test draft", "test@local");
