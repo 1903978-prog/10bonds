@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { RiskWhy } from "./tiers";
 
 // Words of the bond finder screen in each site language. Only text lives here: ranking, limits and data are shared.
 
@@ -32,6 +33,7 @@ const en = {
   quotaLeft: (left: number, limit: number, single: boolean) => `${left} of ${limit} ${single ? "single-bond" : "portfolio"} searches left this week`,
   limitTitle: "You've used this week's free searches",
   limitBody: (limit: number, single: boolean, date: string) => `The free account includes ${limit} ${single ? "single-bond" : "portfolio"} searches a week. Your next one is available on ${date}.`,
+  riskWhy: (w: RiskWhy) => `Spread over German government bonds: ${w.spreadBp} bp. Minimum our comparison method requires for this credit risk: ${w.requiredBp} bp. Surplus: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} bp. Risk-adjusted score ${w.adjYtm.toFixed(2)}% (a comparison measure, not a yield you earn). Method v${w.version}.`,
   limitCta: "Get unlimited searches with Plus", locale: "en-GB",
 };
 export type FinderText = typeof en;
@@ -64,6 +66,7 @@ const it: FinderText = {
   quotaLeft: (left: number, limit: number, single: boolean) => `${left} di ${limit} ricerche ${single ? "di singole obbligazioni" : "di portafoglio"} rimaste questa settimana`,
   limitTitle: "Hai usato le ricerche gratuite di questa settimana",
   limitBody: (limit: number, single: boolean, date: string) => `L'account gratuito include ${limit} ricerche ${single ? "di singole obbligazioni" : "di portafoglio"} a settimana. La prossima sarà disponibile il ${date}.`,
+  riskWhy: (w: RiskWhy) => `Spread sui titoli di Stato tedeschi: ${w.spreadBp} pb. Minimo richiesto dal nostro metodo di confronto per questo rischio di credito: ${w.requiredBp} pb. Eccedenza: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} pb. Punteggio corretto per il rischio ${w.adjYtm.toFixed(2)}% (una misura di confronto, non un rendimento che si ottiene). Metodo v${w.version}.`,
   limitCta: "Ricerche illimitate con Plus", locale: "it-IT",
 };
 
@@ -95,6 +98,7 @@ const fr: FinderText = {
   quotaLeft: (left: number, limit: number, single: boolean) => `${left} recherche${left === 1 ? "" : "s"} ${single ? "d'obligation" : "de portefeuille"} sur ${limit} restante${left === 1 ? "" : "s"} cette semaine`,
   limitTitle: "Vous avez utilisé les recherches gratuites de la semaine",
   limitBody: (limit: number, single: boolean, date: string) => `Le compte gratuit comprend ${limit} recherches ${single ? "d'obligation" : "de portefeuille"} par semaine. La prochaine sera disponible le ${date}.`,
+  riskWhy: (w: RiskWhy) => `Écart sur les emprunts d'État allemands : ${w.spreadBp} pb. Minimum exigé par notre méthode de comparaison pour ce risque de crédit : ${w.requiredBp} pb. Excédent : ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} pb. Score ajusté du risque ${w.adjYtm.toFixed(2)} % (une mesure de comparaison, pas un rendement obtenu). Méthode v${w.version}.`,
   limitCta: "Recherches illimitées avec Plus", locale: "fr-FR",
 };
 
@@ -126,6 +130,7 @@ const de: FinderText = {
   quotaLeft: (left: number, limit: number, single: boolean) => `Noch ${left} von ${limit} ${single ? "Einzelanleihe" : "Portfolio"}-Suchen diese Woche`,
   limitTitle: "Sie haben die kostenlosen Suchen dieser Woche genutzt",
   limitBody: (limit: number, single: boolean, date: string) => `Das kostenlose Konto umfasst ${limit} ${single ? "Einzelanleihe" : "Portfolio"}-Suchen pro Woche. Die nächste ist ab ${date} verfügbar.`,
+  riskWhy: (w: RiskWhy) => `Aufschlag auf Bundesanleihen: ${w.spreadBp} Bp. Mindestaufschlag unserer Vergleichsmethode für dieses Kreditrisiko: ${w.requiredBp} Bp. Überschuss: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} Bp. Risikobereinigter Wert ${w.adjYtm.toFixed(2)} % (eine Vergleichsgröße, keine erzielbare Rendite). Methode v${w.version}.`,
   limitCta: "Unbegrenzte Suchen mit Plus", locale: "de-DE",
 };
 

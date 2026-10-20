@@ -421,7 +421,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                   <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>
-              <td className="px-3 py-0 text-center font-semibold tabular-nums">{pct(r.ytm)}</td>
+              <td className="px-3 py-0 text-center font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
               <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
@@ -455,7 +455,7 @@ function Results({ data, paid, signedIn, currency, message }: { data: Response |
                     : t.detailsFree}
               </div>
             </div>
-            <span className="font-semibold tabular-nums">{pct(r.ytm)}</span>
+            <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (
