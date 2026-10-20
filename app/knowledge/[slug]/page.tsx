@@ -129,7 +129,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
   const related = EN_GUIDES.filter((x) => x.section === g.section && x.slug !== g.slug).slice(0, 4);
   const url = SITE_URL + enPath(g.slug);
   return (
-    <article className="mx-auto max-w-3xl">
+    <article className="mx-auto max-w-6xl">
       {crumbs(g.title, enPath(g.slug))}
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
         <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{g.title}</h1>

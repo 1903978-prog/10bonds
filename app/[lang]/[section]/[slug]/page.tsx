@@ -274,7 +274,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
   const org = ORGANIZATION;
   const team = pathOf(l, "team");
   return (
-    <article className="mx-auto max-w-3xl">
+    <article className="mx-auto max-w-6xl">
       {g.status !== "published" && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.preview} ({g.status}{g.machineTranslated ? ", machine translation" : ""})</p>}
       <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.guides, href: pathOf(l, "guides") }, { name: g.title, href: pathOf(l, "guides", g.slug) }]} />
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
