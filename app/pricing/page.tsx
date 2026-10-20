@@ -8,7 +8,7 @@ import { euro, priceCents, YEARLY_DISCOUNT, type Interval, type PaidPlan } from 
 import { proStatus } from "@/lib/pro";
 import { SEARCH_LIMITS } from "@/lib/limits";
 
-export const metadata: Metadata = { title: "Pricing · 10BONDS", alternates: { canonical: "/pricing" } };
+export const metadata: Metadata = { title: "Plans · 10BONDS", alternates: { canonical: "/pricing" } };
 export const dynamic = "force-dynamic";
 
 const PLANS = [
