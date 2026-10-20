@@ -27,7 +27,7 @@ export function FooterLegal() {
       <UsageStatsSetting label={l.settings} className={a} />
       <Link href="/pro" className={a}>{l.pro}</Link>
       <Link href="/widget" className={a}>{l.widget}</Link>
-      <span>· <Link href="/it" hrefLang="it-IT" className={a}>Italiano</Link> · <Link href="/fr" hrefLang="fr-FR" className={a}>Français</Link> · <Link href="/de" hrefLang="de-DE" className={a}>Deutsch</Link> · © {new Date().getFullYear()} 10BONDS</span>
+      <span>· © {new Date().getFullYear()} 10BONDS</span>
     </nav>
   );
 }
