@@ -95,6 +95,7 @@ async function reload() {
     ratingMoodys: r.rating_moodys,
     ratingFitch: r.rating_fitch,
     ratingResolved: r.rating_resolved,
+    lrScore: num(r.lr_score),
     grossYtm: num(r.gross_ytm),
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
