@@ -11,7 +11,7 @@ import { bondRisk } from "./ratings";
 
 export const RISKY_STRUCTURE = /\b(sub|subord|subordinated|jr|junior|perp|perpetual|hybrid|tier ?[12]|t[12]|at1|lt2|coco)\b/i;
 export const OUTLIER_MIN_GAP = 1.5;
-export const OUTLIER_MADS = 4;
+export const OUTLIER_MADS = 3;
 export const OUTLIER_MIN_PEERS = 8;
 const PEER_DURATION = 0.2; // ±20% of the bond's duration
 const PEER_DURATION_MIN = 1; // but at least ±1 year
