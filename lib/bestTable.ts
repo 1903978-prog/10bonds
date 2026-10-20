@@ -5,6 +5,7 @@ import { DURATION_STEPS, LIMITS, snapDuration } from "./limits";
 import { curveByLevel } from "./singleBond";
 import { ytmCapsByRisk } from "./ranking";
 import type { RankedBond } from "./types";
+import { recordYields } from "./ytmHistory";
 
 /**
  * The "best bonds" table: for every duration step of the slider and every risk step (1 .. 10),
@@ -87,6 +88,7 @@ async function load(src: BondSource, sig: string): Promise<BestTable> {
           await tx`insert into app.settings (key, value) values (${k}, ${v}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
         }
       });
+      void recordYields(src);
       return (memo = table);
     }
     const rows = await sql`select duration, level, bond from app.best_bonds order by duration, level, rank`;

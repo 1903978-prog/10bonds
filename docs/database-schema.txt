@@ -299,6 +299,10 @@ table app.users
   terms_version text
   terms_accepted_at timestamp with time zone
   email_verified_at timestamp with time zone
+  newsletter_opt_in boolean not null default false
+  newsletter_consent_at timestamp with time zone
+  newsletter_consent_source text
+  newsletter_unsubscribed_at timestamp with time zone
   premium_until timestamp with time zone
   stripe_customer_id text
   stripe_subscription_id text
@@ -311,6 +315,14 @@ table app.users
   totp_backup text
   totp_last_step bigint
   totp_enabled_at timestamp with time zone
+
+table app.ytm_history
+  as_of date not null
+  isin text not null
+  ytm numeric not null
+  duration numeric
+  rating text
+  currency text not null
 
 constraints
   app.best_bonds best_bonds_pkey: PRIMARY KEY (duration, level, rank)
@@ -386,6 +398,7 @@ constraints
   app.users users_email_key: UNIQUE (email)
   app.users users_pkey: PRIMARY KEY (id)
   app.users users_plan_check: CHECK ((plan = ANY (ARRAY['free'::text, 'plus'::text, 'premium'::text, 'pro'::text])))
+  app.ytm_history ytm_history_pkey: PRIMARY KEY (as_of, isin)
 
 indexes
   CREATE UNIQUE INDEX best_bonds_pkey ON app.best_bonds USING btree (duration, level, rank)
@@ -432,3 +445,5 @@ indexes
   CREATE UNIQUE INDEX users_email_key ON app.users USING btree (email)
   CREATE UNIQUE INDEX users_pkey ON app.users USING btree (id)
   CREATE UNIQUE INDEX users_username_key ON app.users USING btree (lower(username))
+  CREATE INDEX ytm_history_isin ON app.ytm_history USING btree (isin, as_of)
+  CREATE UNIQUE INDEX ytm_history_pkey ON app.ytm_history USING btree (as_of, isin)
