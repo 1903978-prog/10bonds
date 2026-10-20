@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFinderText } from "@/lib/finderText";
-import type { Frontier as FrontierData } from "@/lib/frontier";
+import { monotonicRun, type Frontier as FrontierData } from "@/lib/frontier";
 
 const RED = "#ff3b30";
 
@@ -34,8 +34,8 @@ export default function Frontier({ currency }: { currency: string }) {
   // Each bond sits anywhere across the width of its risk score (fixed per dot), so the bonds read as one continuous cloud.
   const spread = (i: number) => ((((Math.sin(i * 12.9898 + 78.233) * 43758.5453) % 1) + 1) % 1) - 0.5;
   const rx = (i: number) => dots[i][0] + spread(i);
-  // Joined from the riskiest to the safest, as they sit from left to right.
-  const picks = (data?.picks ?? []).filter((i) => dots[i]).sort((a, b) => rx(b) - rx(a));
+  // Only the picks whose yield rises with every step up in risk, joined from the riskiest (left) to the safest (right).
+  const picks = monotonicRun((data?.picks ?? []).filter((i) => dots[i]).sort((a, b) => rx(a) - rx(b)), (i) => dots[i][1]).reverse();
   // The axis follows the bulk of the bonds (a few distressed yields would flatten everything else) and always the red bonds.
   const sorted = dots.map((d) => d[1]).sort((a, b) => a - b);
   const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
