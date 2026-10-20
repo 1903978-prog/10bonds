@@ -4,7 +4,7 @@ import { bondRisk } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
 
 describe("efficient frontier chart", () => {
-  it("dots every rated bond and draws a rising frontier of real bonds from risk 1 to 8", () => {
+  it("dots every rated bond, marks the 4-6 year ones and draws their rising frontier from risk 1 to 8", () => {
     const eur = SAMPLE_BONDS.filter((b) => b.currency === "EUR");
     const f = frontierOf(eur);
     expect(f.dots).toHaveLength(eur.filter((b) => bondRisk(b) !== null && b.grossYtm !== null).length);
@@ -14,6 +14,9 @@ describe("efficient frontier chart", () => {
       expect(f.dots[f.picks[k]][1]).toBeGreaterThan(f.dots[f.picks[k - 1]][1]);
     }
     for (const i of f.picks) expect(f.dots[i][0]).toBeLessThanOrEqual(8);
+    for (const i of f.picks) expect(f.dots[i][2]).toBe(1);
+    const blue = eur.filter((b) => bondRisk(b) !== null && b.grossYtm !== null && b.modifiedDuration !== null && b.modifiedDuration >= 4 && b.modifiedDuration <= 6);
+    expect(f.dots.filter((d) => d[2] === 1)).toHaveLength(blue.length);
   });
 });
 
