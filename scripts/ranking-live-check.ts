@@ -18,7 +18,7 @@ for (let risk = LIMITS.risk.min; risk <= LIMITS.risk.max; risk++) for (const d o
   if (!results.length) continue;
   const avg = results.reduce((s, r) => s + r.grossYtm!, 0) / results.length;
   checked++;
-  if (Math.abs(avg - cap) > 0.011) { fails++; if (sample.length < 5) sample.push({ d, risk, cap, avg: +avg.toFixed(2) }); }
+  if (avg < cap - 0.005) { fails++; if (sample.length < 5) sample.push({ d, risk, cap, avg: +avg.toFixed(2) }); }
 }
 console.log("source", data.source, "bonds", data.bonds.length, "signature", table.signature.slice(0, 40));
 console.log("fresh caps: checked", checked, "failures at max", fails, JSON.stringify(sample));

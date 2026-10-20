@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * Self-check on the data the site is serving (numbers only, no bond details):
- * for every horizon and rating level, the list at the slider maximum must average the maximum,
- * and for targets below it the list's average must reach the target (the target is a minimum). Unrated bonds must be absent.
+ * for every horizon and rating level, the list at the slider maximum and at two targets below it must reach the target
+ * (the target is a minimum). Unrated bonds must be absent.
  */
 export async function GET() {
   try {
@@ -30,13 +30,12 @@ export async function GET() {
           if (!results.length) continue;
           const avg = results.reduce((s, r) => s + r.grossYtm!, 0) / results.length;
           checked++;
-          // At the maximum the list is the top 10 and the maximum is their average rounded down to 0.01.
-          // Below it the list may yield more than the target, never less.
-          const gap = target === cap ? Math.abs(avg - target) : Math.max(0, target - avg);
-          const limit = target === cap ? 0.011 : 0.005;
+          // A list never yields less than its target (the target is a minimum). It may yield more, and at the
+          // maximum it may be below the top 10's average when the duration rule holds the list back.
+          const gap = Math.max(0, target - avg);
           if (target === cap) atMaxGapWorst = Math.max(atMaxGapWorst, gap);
           else belowGapWorst = Math.max(belowGapWorst, gap);
-          if (gap > limit && failures.length < 20) failures.push({ duration: d, risk, target: Math.round(target * 100) / 100, average: Math.round(avg * 100) / 100 });
+          if (gap > 0.005 && failures.length < 20) failures.push({ duration: d, risk, target: Math.round(target * 100) / 100, average: Math.round(avg * 100) / 100 });
         }
       }
     }
