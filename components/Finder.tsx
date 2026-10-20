@@ -268,7 +268,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           style={resultsH ? { ["--results-h" as string]: `${resultsH}px` } : undefined}
         >
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
-          <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle} {t.riskNote} {t.gross}</p>
+          <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle}</p>
         </section>
       ) : (
       <section ref={resultsBox} className="relative flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
@@ -321,14 +321,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {t.stale(ageDays(data.asOf) ?? 0)}
             </p>
           ) : data?.source === "sample" ? (
-            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-date">{t.sample} {t.gross}</p>
+            <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-date">{t.sample}</p>
           ) : (
             <p className="text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
-              {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}. {t.gross}
+              {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.
             </p>
           )}
-          <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio} {t.riskNote}</p>
+          <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>
           <MonteCarloNote data={data} lang={lang} edited={list !== null} />
         </div>
       </section>

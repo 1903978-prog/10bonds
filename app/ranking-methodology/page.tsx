@@ -97,7 +97,6 @@ export default async function RankingMethodology({ searchParams }: { searchParam
         </dl>
       </details>
 
-      <p className="mt-3 text-center text-[11px] text-mute">{t.note}</p>
     </article>
   );
 }

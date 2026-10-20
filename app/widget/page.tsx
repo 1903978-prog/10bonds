@@ -39,7 +39,7 @@ export default async function WidgetPage({ searchParams }: { searchParams: Promi
         <p className="mb-2 mt-1 text-sm text-mute">Paste it where the widget should appear (in WordPress: an &quot;HTML&quot; block). Please keep the link under it.</p>
         <CopySnippet code={embedSnippet(lang, dark)} label="Embed code" />
       </section>
-      <p className="mt-4 text-[11px] text-mute">Median gross yields computed from the bonds 10BONDS tracks. Information only, not investment advice.</p>
+      <p className="mt-4 text-[11px] text-mute">Median gross yields computed from the bonds 10BONDS tracks.</p>
     </div>
   );
 }

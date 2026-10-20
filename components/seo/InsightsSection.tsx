@@ -37,7 +37,6 @@ export default async function InsightsSection({ locale, text, curveHref, methodH
           <li>{text.ig}: <strong>{i.ig.median === null ? "–" : pct(i.ig.median)}</strong> <span className="text-mute">({n(i.ig.bonds)})</span></li>
           <li>{text.hy}: <strong>{i.hy.median === null ? "–" : pct(i.hy.median)}</strong> <span className="text-mute">({n(i.hy.bonds)})</span></li>
         </ul>
-        <p className="mt-2 text-xs text-mute">{text.riskNote}</p>
       </section>
       {(i.spreads.length > 0 || i.topGov10.length > 0) && (
         <section className={box}>
