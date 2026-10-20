@@ -222,6 +222,16 @@ describe("target yield stays meaningful", () => {
   });
 });
 
+describe("maturity bracket", () => {
+  it("bonds outside the 4-6y bracket are never considered, not even as rows of the pool", () => {
+    const longer = bond("Long Corp", "A", 5.5, { years: 6.3, modifiedDuration: 4.8 });
+    const inside = bond("Alpha Corp", "A", 4.0);
+    const r = rankRiskAdjusted([...BUNDS, longer, inside], 4.5, 3.5, ctx());
+    expect(r.results.map((x) => x.issuer)).toEqual(["Alpha Corp"]);
+    expect(r.evaluations.map((e) => e.isin)).not.toContain(longer.isin);
+  });
+});
+
 describe("issuer category", () => {
   it("German Länder and public development banks are filed as agencies, not companies", () => {
     for (const name of ["Hamburg", "Investitionsbank Berlin", "Nederlandse Waterschapsbank N.V.", "Mecklenburg-Vorpommern"]) expect(ev(bond(name, "AAA", 3.6, { country: "DE" })).category, name).toBe("agency");
