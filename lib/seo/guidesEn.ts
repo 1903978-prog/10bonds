@@ -1,7 +1,7 @@
 import type { KcSection } from "./knowledge";
 
 // English versions of the published guides, for the international (English) Knowledge Center at /knowledge.
-// Translated from the Italian originals (and Livio's own article); `group` matches the translation group of the
+// Translated from the Italian originals (and the owner's own article); `group` matches the translation group of the
 // Italian/French/German versions so the pages point to each other with hreflang.
 
 export type EnGuide = { slug: string; group: string; section: KcSection; title: string; seoTitle: string; metaDescription: string; primaryKeyword: string; bodyHtml: string; published?: string };
@@ -427,7 +427,7 @@ export const EN_GUIDES: EnGuide[] = [
 <p><a class="cta" href="/">Compare bonds by risk, yield and duration</a></p>`,
   },
   {
-    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "treasury-bills-notes-bonds",
     group: "us-treasuries",
     section: "government",
@@ -503,7 +503,7 @@ export const EN_GUIDES: EnGuide[] = [
 `,
   },
   {
-    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "corporate-bonds-vs-treasuries",
     group: "us-corporate-vs-treasuries",
     section: "government",
@@ -596,7 +596,7 @@ export const EN_GUIDES: EnGuide[] = [
 `,
   },
   {
-    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "tips-vs-treasury-bonds",
     group: "us-tips-vs-treasuries",
     section: "government",
@@ -681,7 +681,7 @@ export const EN_GUIDES: EnGuide[] = [
 `,
   },
   {
-    // Livio's own article for the US market (19 Oct 2026), published word for word.
+    // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "municipal-bonds-vs-treasuries",
     group: "us-municipal-vs-treasuries",
     section: "government",

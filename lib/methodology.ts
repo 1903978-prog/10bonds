@@ -1,6 +1,6 @@
 /**
- * The Rating methodology page (/methodology): a plain-words summary of Livio's sovereign rating manual
- * ("Livio Rating for sovereign credit", v1.0, 12 October 2026). Scores run 0..100, higher = safer.
+ * The Rating methodology page (/methodology): a plain-words summary of the owner's sovereign rating manual
+ * ("10bonds.com rating for sovereign credit", v1.0, 12 October 2026). Scores run 0..100, higher = safer.
  * Country values are rounded, indicative examples for illustration only, not live data.
  */
 export type MethodLang = "en" | "it" | "fr" | "de";
@@ -231,14 +231,14 @@ type CorpText = {
   note: string;
 };
 
-/** Pillar weights of the corporate LR Base score (Livio's corporate methodology v2.0). */
+/** Pillar weights of the corporate Base score (the owner's corporate methodology v2.0). */
 export const CORP_WEIGHTS = [35, 20, 20, 10, 15];
 
 export const CORP: Record<MethodLang, CorpText> = {
   en: {
     title: "Rating methodology",
     intro: "How 10BONDS assesses a company: can it repay today, will it stay competitive over the life of the bond, and can it survive plausible shocks?",
-    base: "LR Base · 100 points",
+    base: "Base score · 100 points",
     pillars: [
       ["Financial strength", "Leverage, interest coverage, FFO/debt, free cash flow, profitability, leverage trend"],
       ["Liquidity and repayment", "24-month liquidity, maturity profile, refinancing flexibility, covenants"],
@@ -262,7 +262,7 @@ export const CORP: Record<MethodLang, CorpText> = {
   it: {
     title: "Metodologia del rating",
     intro: "Come 10BONDS valuta un'azienda: può rimborsare oggi, resterà competitiva per tutta la vita del bond, può superare shock plausibili?",
-    base: "LR Base · 100 punti",
+    base: "Base score · 100 punti",
     pillars: [
       ["Solidità finanziaria", "Leva, copertura interessi, FFO/debito, flusso di cassa libero, redditività, andamento della leva"],
       ["Liquidità e rimborso", "Liquidità a 24 mesi, profilo delle scadenze, flessibilità di rifinanziamento, covenant"],
@@ -286,7 +286,7 @@ export const CORP: Record<MethodLang, CorpText> = {
   fr: {
     title: "Méthodologie de notation",
     intro: "Comment 10BONDS évalue une entreprise : peut-elle rembourser aujourd'hui, restera-t-elle compétitive pendant la vie de l'obligation, peut-elle survivre à des chocs plausibles ?",
-    base: "LR Base · 100 points",
+    base: "Base score · 100 points",
     pillars: [
       ["Solidité financière", "Levier, couverture des intérêts, FFO/dette, flux de trésorerie disponible, rentabilité, tendance du levier"],
       ["Liquidité et remboursement", "Liquidité à 24 mois, profil des échéances, flexibilité de refinancement, covenants"],
@@ -310,7 +310,7 @@ export const CORP: Record<MethodLang, CorpText> = {
   de: {
     title: "Rating-Methodik",
     intro: "So bewertet 10BONDS ein Unternehmen: Kann es heute zurückzahlen, bleibt es über die Laufzeit der Anleihe wettbewerbsfähig, übersteht es plausible Schocks?",
-    base: "LR Base · 100 Punkte",
+    base: "Base score · 100 Punkte",
     pillars: [
       ["Finanzkraft", "Verschuldung, Zinsdeckung, FFO/Schulden, freier Cashflow, Profitabilität, Verschuldungstrend"],
       ["Liquidität und Rückzahlung", "24-Monats-Liquidität, Fälligkeitsprofil, Refinanzierungsspielraum, Covenants"],

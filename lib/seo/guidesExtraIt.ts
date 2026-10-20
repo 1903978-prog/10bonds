@@ -1,4 +1,4 @@
-// Sections added under Livio's Italian guides (he agreed on 19 Oct 2026, so each guide reaches 600+ words). His text
+// Sections added under the owner's Italian guides (he agreed on 19 Oct 2026, so each guide reaches 600+ words). His text
 // stays word for word above them; these only follow it. Educational only: no recommendation, no invented data.
 
 export const EXTRA_IT: Record<string, string> = {

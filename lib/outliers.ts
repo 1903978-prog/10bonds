@@ -3,7 +3,7 @@ import { bondRisk } from "./ratings";
 
 // Bonds whose yield is far above every comparable bond usually carry a structure the rating of the issuer does not
 // describe (subordinated / Tier 2 / AT1 bank debt, hybrids, perpetuals). The copy has no seniority column, so two rules
-// leave them out everywhere on the site, before any ranking, Pareto or frontier step (Livio, 20/10/2026):
+// leave them out everywhere on the site, before any ranking, Pareto or frontier step (the owner, 20/10/2026):
 // 1. The name says so (subordinated, junior, Tier 1/2, AT1, hybrid, perpetual, CoCo).
 // 2. Statistical outlier: its yield is more than k standard deviations above the average yield of its cohort (same
 //    currency, same 10BONDS risk score, duration within ±20% or ±1 year, the bond itself not counted). k is set by the

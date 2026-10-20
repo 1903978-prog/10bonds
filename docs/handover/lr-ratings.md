@@ -1,6 +1,6 @@
-# Handover: Livio Rating (LR) for every bond
+# Handover: 10bonds.com rating for every bond
 
-For the lm-op-model team. Livio (20/10/2026): the site's 1-10 risk score must come from LR, his own methodology,
+For the lm-op-model team. The owner (20/10/2026): the site's 1-10 risk score must come from LR, his own methodology,
 not from S&P, Moody's or Fitch (legal audit: the score must not copy agency ratings). The site is ready; it only
 needs the number in the nightly copy.
 

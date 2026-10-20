@@ -1,7 +1,7 @@
 import type { SeedGuide } from "./guidesSeed";
 
 // Guides written for French investors (OAT, French taxation and vocabulary), not translations of the Italian ones.
-// OAT and yield-to-maturity guides were replaced by Livio's articles (guidesLivioFr.ts) on 19 Oct 2026.
+// OAT and yield-to-maturity guides were replaced by the owner's articles (guidesOwnerFr.ts) on 19 Oct 2026.
 // Added in "review": the tax paragraphs in particular must be checked before publication.
 
 const cta = (text: string) => `<p><strong>Essayez :</strong> <a href="/fr">${text}</a>. Deux curseurs, dix obligations, sans engagement.</p>`;

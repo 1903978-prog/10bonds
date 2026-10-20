@@ -1,13 +1,13 @@
 /**
- * Full text of the two 10BONDS methodologies, as Livio wrote them, in a tiny markdown dialect parsed by
+ * Full text of the two 10BONDS methodologies, as the owner wrote them, in a tiny markdown dialect parsed by
  * parseMethodDoc(): "## " section, "### " subsection, "| a | b |" table rows (first row = header), "1. " / "- " lists,
  * "@formula" a formula line, "@flow" / "@pillar" / "@step" / "@stress" special rows, anything else a paragraph.
- * Sovereign: "Livio Rating for sovereign credit", v1.0, 12 October 2026 (converted from the Word file).
- * Corporate: "Livio Rating (LR) Corporate Credit Risk Methodology", v2.0, 19 October 2026.
+ * Sovereign: "10bonds.com rating for sovereign credit", v1.0, 12 October 2026 (converted from the Word file).
+ * Corporate: "10bonds.com rating Corporate Credit Risk Methodology", v2.0, 19 October 2026.
  */
-export const SOVEREIGN_TITLE = "Livio Rating for sovereign credit";
+export const SOVEREIGN_TITLE = "10bonds.com rating for sovereign credit";
 export const SOVEREIGN_SUBTITLE = "Complete calculation and research manual · Version 1.0 · 12 October 2026 · General government model · Annual horizon 2027 to 2047";
-export const CORPORATE_TITLE = "Livio Rating (LR) — Corporate Credit Risk Methodology";
+export const CORPORATE_TITLE = "10bonds.com rating — Corporate Credit Risk Methodology";
 export const CORPORATE_SUBTITLE = "Proposed institutional-grade framework · Version 2.0 · 19 October 2026";
 
 export const SOVEREIGN_MD = `
@@ -15,14 +15,14 @@ export const SOVEREIGN_MD = `
 ### Purpose and result
 This manual defines how to calculate a comparable internal sovereign credit score from 0 to 100, where higher means safer. It combines fiscal strength, refinancing protection, usable natural resources, accessible official financial support and the sovereign’s postwar default record. It specifies the inputs, linear scoring endpoints, weights, evidence requirements, annual projections and publication checks.
 
-The result is an analytical screening score, not a probability of default, an agency rating or a recommendation to buy a bond. All LR weights, endpoints, stress sizes and default-history penalties below are internal design choices. They are fully specified for reproducibility but have not been statistically calibrated or validated against subsequent sovereign defaults.
+The result is an analytical screening score, not a probability of default, an agency rating or a recommendation to buy a bond. All rating weights, endpoints, stress sizes and default-history penalties below are internal design choices. They are fully specified for reproducibility but have not been statistically calibrated or validated against subsequent sovereign defaults.
 
 ### The complete formula
-@formula LRcore = (14S1 + 10S2 + 7S3 + 9S4 + 6S5 + 5S6 + 5S7 + 8S8 + 6S9 + 5S10 + 5S11 + 5S12 + 4S13 + 4S14 + 4S15 + 3S16) / 100
+@formula Core score = (14S1 + 10S2 + 7S3 + 9S4 + 6S5 + 5S6 + 5S7 + 8S8 + 6S9 + 5S10 + 5S11 + 5S12 + 4S13 + 4S14 + 4S15 + 3S16) / 100
 
-@formula LRfinal = max(0, LRcore - H)
+@formula Final score = max(0, the core score - H)
 
-Each S is a score between 0 and 100. H is the postwar default-history deduction, between 0 and 10 points, defined on page 7. Retaining the original 16 weights preserves the 70% solvency and 30% repayment split. History is a separately disclosed overlay rather than a hidden change to those weights. Publish both LRcore and LRfinal; use LRfinal when a single LR is required.
+Each S is a score between 0 and 100. H is the postwar default-history deduction, between 0 and 10 points, defined on page 7. Retaining the original 16 weights preserves the 70% solvency and 30% repayment split. History is a separately disclosed overlay rather than a hidden change to those weights. Publish both the core score and the final score; use the final score when a single rating is required.
 
 ### How to apply this manual
 Collect official evidence, reconcile the debt schedule, calculate each input, apply the continuous score formulas, calculate the weighted core, then deduct the history adjustment. Run the annual base and stress paths separately. If an essential input is missing, publish a bounded result or N/A, not a fabricated point score. The method is complete even when the available country evidence is not.
@@ -59,7 +59,7 @@ L is used when lower is safer: a earns 100 and b earns 0. U is used when higher 
 | 15 | Market access and funding flexibility | 4% | 0.5A + 0.5M |
 | 16 | Accessible official financial support | 3% | U(coverage ratio; 0, 1) |
 
-Example: debt/GDP of 30 gives S1 = 100; 31 gives 99; 60 gives 70; 130 or more gives 0. A one-point change in S1 changes LRcore by 0.14, not by one point. The raw overall fiscal balance is still collected, but factor 2 uses debt trajectory to reduce overlap with primary balance and interest burden.
+Example: debt/GDP of 30 gives S1 = 100; 31 gives 99; 60 gives 70; 130 or more gives 0. A one-point change in S1 changes the core score by 0.14, not by one point. The raw overall fiscal balance is still collected, but factor 2 uses debt trajectory to reduce overlap with primary balance and interest burden.
 
 ## 2. Fiscal and external strength
 For a score dated at the end of year t, debt stocks and annual fiscal flows refer to t. Forward factors use the periods explicitly stated below. For a current snapshot, select the latest completed actual fiscal year as t; forecasts must remain visibly marked as forecasts, not relabelled actuals.
@@ -103,7 +103,7 @@ c is the UNCTAD normalized merchandise-export product concentration index, on it
 
 r is the arithmetic mean of the latest three actual annual ratios of government extractive-resource receipts to GDP, in percent. Include oil, gas and mining taxes, royalties, production-sharing receipts and dividends paid to government from extractive activities. Avoid double-counting tax and dividend transfers already consolidated. Exclude borrowing, proceeds from asset sales, private-sector export receipts and the estimated underground value of reserves.
 
-A country with resource receipts equal to 2% of GDP receives R = 20; one at 10% or more receives R = 100. Natural resources can add at most 1.8 points to LRcore because 6% × 30% = 1.8%. A country without extractive receipts has R = 0 only when zero is verified; missing evidence is N/A. The absent bonus is not itself evidence of distress.
+A country with resource receipts equal to 2% of GDP receives R = 20; one at 10% or more receives R = 100. Natural resources can add at most 1.8 points to the core score because 6% × 30% = 1.8%. A country without extractive receipts has R = 0 only when zero is verified; missing evidence is N/A. The absent bonus is not itself evidence of distress.
 
 ### Required resource disclosures
 Alongside the score, record oil, gas and major mineral types; the official reserve measure and year; recent production; government share of receipts; and any documented extraction, infrastructure or legal constraints. These disclosures do not create additional points. Proven reserves must not be converted into spendable fiscal wealth by multiplying them by today’s commodity price.
@@ -172,14 +172,14 @@ Publish total post-1945 episode count, start and cure dates, domestic/external a
 
 @formula H = min(10, 2 × E)
 
-a is years since the documented cure date, using days / 365.25 and floored at zero. An ongoing episode has a = 0. A cured episode retains weight 1 at cure, 0.75 after 10 years, 0.50 after 20 years and 0.25 from 30 years onward. Thus one episode deducts 2, 1.5, 1 or 0.5 LR points respectively. Repetition accumulates up to a maximum deduction of 10 points. Include a pre-1946 episode still ongoing in 1946 once in E and disclose it separately from the count of new postwar defaults.
+a is years since the documented cure date, using days / 365.25 and floored at zero. An ongoing episode has a = 0. A cured episode retains weight 1 at cure, 0.75 after 10 years, 0.50 after 20 years and 0.25 from 30 years onward. Thus one episode deducts 2, 1.5, 1 or 0.5 rating points respectively. Repetition accumulates up to a maximum deduction of 10 points. Include a pre-1946 episode still ongoing in 1946 once in E and disclose it separately from the count of new postwar defaults.
 
-These penalty sizes are internal, uncalibrated choices. They preserve a lasting but modest historical penalty and a larger recent penalty. If history coverage is incomplete, report a verified minimum count and a range for LRfinal; do not turn “not found” into zero defaults. Unknown cure dates imply an episode weight range of 0.25 to 1, not an invented date.
+These penalty sizes are internal, uncalibrated choices. They preserve a lasting but modest historical penalty and a larger recent penalty. If history coverage is incomplete, report a verified minimum count and a range for the final score; do not turn “not found” into zero defaults. Unknown cure dates imply an episode weight range of 0.25 to 1, not an invented date.
 
 ### Sources and current distress
-Use the Bank of Canada–Bank of England database for coverage from 1960, cross-checked with IMF reports, national debt-office records and official creditor notices. IMF restructuring research helps for the 1950s but counts restructurings, not necessarily distinct defaults. Investigate 1946–1959 separately; neither dataset alone establishes a complete postwar count. Any unresolved default, debt-service moratorium or material debt arrears must carry a prominent CURRENT DEFAULT flag. A high numerical LR must not override that status or qualify the sovereign as performing debt.
+Use the Bank of Canada–Bank of England database for coverage from 1960, cross-checked with IMF reports, national debt-office records and official creditor notices. IMF restructuring research helps for the 1950s but counts restructurings, not necessarily distinct defaults. Investigate 1946–1959 separately; neither dataset alone establishes a complete postwar count. Any unresolved default, debt-service moratorium or material debt arrears must carry a prominent CURRENT DEFAULT flag. A high numerical rating must not override that status or qualify the sovereign as performing debt.
 
-## 7. Annual LR from 2027 to 2047
+## 7. Annual rating from 2027 to 2047
 Produce a separate end-year score for every year 2027–2047, using only information available at the stated research cutoff. A score for 2047 needs macro inputs through 2050 because debt trajectory and growth look three years ahead. These are conditional scenario scores, not verified future ratings.
 
 ### Official forecasts first and explicit extensions second
@@ -216,16 +216,16 @@ For the growth stress, maintain base revenue/GDP but keep nominal primary expend
 For base and stress paths, calculate financing need before financing. Show how much funding is assumed to be available and the residual gap. A debt path that mechanically assumes all borrowing succeeds is a financing requirement, not proof of market access. Do not change S15 purely because issuance was assumed; disclose that its carried value is conditional. In a separate access-loss test, set new voluntary market funding to zero for one year and show unmet payments, without treating the resulting borrowing shortfall as debt reduction or an improvement in solvency.
 
 ### How to interpret the output
-Publish LRcore, history deduction H, LRfinal, solvency subscore and repayment subscore, plus all raw inputs and scenario labels. Solvency subscore equals the weighted sum of factors 1–9 divided by 0.70; repayment subscore equals the weighted sum of factors 10–16 divided by 0.30. Each block therefore remains on a 0–100 scale.
+Publish the core score, history deduction H, the final score, solvency subscore and repayment subscore, plus all raw inputs and scenario labels. Solvency subscore equals the weighted sum of factors 1–9 divided by 0.70; repayment subscore equals the weighted sum of factors 10–16 divided by 0.30. Each block therefore remains on a 0–100 scale.
 
-Do not translate LR 75 into a specific agency rating or probability of default. That requires an independent historical calibration with observation dates, out-of-sample tests and a defined default horizon. Do not use 100 minus LR as default probability. Similarly, higher LR is not a guarantee of repayment, lower volatility or a higher expected investment return.
+Do not translate a score of 75 into a specific agency rating or probability of default. That requires an independent historical calibration with observation dates, out-of-sample tests and a defined default horizon. Do not use 100 minus the rating as default probability. Similarly, higher rating is not a guarantee of repayment, lower volatility or a higher expected investment return.
 
-For a EUR bond, show currency, legal issuer, guarantee, seniority, contractual maturity and current agency rating separately. A country LR does not automatically rate a state-owned company or every security issued by the country. Portfolio loss probabilities require issuer-level default probabilities, dependence and recovery assumptions; this manual supplies none of those probabilities.
+For a EUR bond, show currency, legal issuer, guarantee, seniority, contractual maturity and current agency rating separately. A country rating does not automatically rate a state-owned company or every security issued by the country. Portfolio loss probabilities require issuer-level default probabilities, dependence and recovery assumptions; this manual supplies none of those probabilities.
 
 ## 9. Worked example and arithmetic tests
 This is an illustrative country, not an estimate for any real sovereign. All raw inputs below are hypothetical. It uses the FX-reserve branch for factor 14 and complete historical coverage.
 
-| No | Raw input | Score | LR contribution |
+| No | Raw input | Score | Rating contribution |
 | 1 | 60% debt/GDP | 70.0000 | 9.8000 |
 | 2 | 0 pp three year debt change | 66.6667 | 6.6667 |
 | 3 | 1% primary surplus | 60.0000 | 4.2000 |
@@ -243,30 +243,30 @@ This is an illustrative country, not an estimate for any real sovereign. All raw
 | 15 | Issuance plan 90% met and market share 80% | 80.0000 | 3.2000 |
 | 16 | Official undrawn support covers 25% GFN | 25.0000 | 0.7500 |
 
-Using unrounded values, LRcore = 65.490476, displayed as 65.5. Factor 2: 100 × (20 − 0) / 30 = 66.6667. Factor 9: D = 60, R = 20, so S9 = 48.
+Using unrounded values, the core score = 65.490476, displayed as 65.5. Factor 2: 100 × (20 − 0) / 30 = 66.6667. Factor 9: D = 60, R = 20, so S9 = 48.
 
-Assume two cured default episodes, one 10 years ago and one 40 years ago. E = 0.75 + 0.25 = 1; H = 2. LRfinal = 63.490476, displayed as 63.5. The postwar count is 2 and the last cure was 10 years ago. There is no current-default flag.
+Assume two cured default episodes, one 10 years ago and one 40 years ago. E = 0.75 + 0.25 = 1; H = 2. The final score = 63.490476, displayed as 63.5. The postwar count is 2 and the last cure was 10 years ago. There is no current-default flag.
 
 ### Minimum automated checks
-Weights must sum to 100%; block weights must sum to 70% and 30%. Every score must lie in [0,100]. Test both endpoints, their midpoint and out-of-range values. Confirm debt 31% scores 99, a 0 pp debt change scores 66.6667, and a 20-year-old episode deducts one LR point. Recalculate totals from unrounded values, and verify a worsening raw input cannot improve its own score with all other inputs held fixed.
+Weights must sum to 100%; block weights must sum to 70% and 30%. Every score must lie in [0,100]. Test both endpoints, their midpoint and out-of-range values. Confirm debt 31% scores 99, a 0 pp debt change scores 66.6667, and a 20-year-old episode deducts one rating point. Recalculate totals from unrounded values, and verify a worsening raw input cannot improve its own score with all other inputs held fixed.
 
 ## 10. Evidence missing data and output records
 ### Required evidence for every input
 Store country ISO code; parameter number; raw value and unit; observation date or fiscal year; actual/estimate/official forecast/scenario status; government perimeter; source institution; document title and publication vintage; exact table, page or series identifier; direct URL; access date; and all transformations. Save the original download and its SHA-256 hash. For derived figures, preserve numerator and denominator with their separate evidence.
 
-Use the latest actual year available by the cutoff for each observed non-forward input. If fiscal inputs refer to different years or perimeters, do not combine them in a ratio. Financial stocks and schedules older than 18 months, or annual governance, NIIP, export and resource data older than 36 months, are stale for a current snapshot: publish their age and withhold an unqualified point LR. In a forward scenario, carrying a value is permitted only with an explicit assumption label; it does not make the data current.
+Use the latest actual year available by the cutoff for each observed non-forward input. If fiscal inputs refer to different years or perimeters, do not combine them in a ratio. Financial stocks and schedules older than 18 months, or annual governance, NIIP, export and resource data older than 36 months, are stale for a current snapshot: publish their age and withhold an unqualified point rating. In a forward scenario, carrying a value is permitted only with an explicit assumption label; it does not make the data current.
 
 ### Missing information is not zero
 @formula Core lower bound = sum of known weight × score
 
 @formula Core upper bound = core lower bound + 100 × sum of missing weights
 
-Weights in these equations are fractions of one. Do not renormalize the known weights. A composite with missing components is missing in full. Publish data coverage as the percentage of total weight with valid inputs. Only publish a fully supported point LR when all 16 components and the history adjustment are supported, and the debt-schedule coverage condition is met where schedule-derived measures are used.
+Weights in these equations are fractions of one. Do not renormalize the known weights. A composite with missing components is missing in full. Publish data coverage as the percentage of total weight with valid inputs. Only publish a fully supported point rating when all 16 components and the history adjustment are supported, and the debt-schedule coverage condition is met where schedule-derived measures are used.
 
-For uncertain history use Hmin from documented episodes and their minimum supported penalties; Hmax is 10 if additional episodes cannot be ruled out. Then LRfinal lies between max(0, core lower − Hmax) and max(0, core upper − Hmin). Clearly label bounds as missing-information limits, not statistical confidence intervals. With complete core but incomplete history, core can be published independently.
+For uncertain history use Hmin from documented episodes and their minimum supported penalties; Hmax is 10 if additional episodes cannot be ruled out. Then the final score lies between max(0, core lower − Hmax) and max(0, core upper − Hmin). Clearly label bounds as missing-information limits, not statistical confidence intervals. With complete core but incomplete history, core can be published independently.
 
 ### Required annual output table
-One record per country, year and scenario: LRcore; H; LRfinal or bounds; solvency and repayment subscores; all 16 raw inputs, scores and weighted contributions; postwar episode count or verified minimum; last cure date; current-default flag; debt due by year; GFN; planned financing; funding gap; currency-regime branch; data coverage; and actual/forecast/scenario labels. Retain every year from 2027 to 2047, without implying precision beyond the assumptions.
+One record per country, year and scenario:  the core score; H; the final score or bounds; solvency and repayment subscores; all 16 raw inputs, scores and weighted contributions; postwar episode count or verified minimum; last cure date; current-default flag; debt due by year; GFN; planned financing; funding gap; currency-regime branch; data coverage; and actual/forecast/scenario labels. Retain every year from 2027 to 2047, without implying precision beyond the assumptions.
 
 ### Operational workflow
 1. Freeze cutoff and source vintages. 2. Collect and reconcile debt, macro, institutions, resources, facilities and history. 3. Calculate the current snapshot. 4. Build the debt and macro path through at least 2050. 5. Calculate every annual component and history adjustment. 6. Run the stresses. 7. Apply all validation tests. 8. Export the evidence table, debt ledger, history ledger, assumption register and score table alongside the rating summary.
@@ -274,7 +274,7 @@ One record per country, year and scenario: LRcore; H; LRfinal or bounds; solvenc
 Update after a new major macro release, debt-management plan, official programme decision, default event or material revision. Never replace old results silently: preserve version, date and a bridge explaining each change. A reproducible implementation must use these formulas directly; Monte Carlo is neither required nor appropriate for calculating this score.
 
 ## 11. Official source register and application limits
-The links below identify official source families and methodology. They are starting points, not substitutes for the exact country observation link. Archive the table actually used. Source institutions do not endorse the LR weights, thresholds or deductions.
+The links below identify official source families and methodology. They are starting points, not substitutes for the exact country observation link. Archive the table actually used. Source institutions do not endorse the rating weights, thresholds or deductions.
 
 **IMF WEO and Fiscal Monitor.** Factors 1–6 and macro forecasts. Use the full database and vintage appendix; verify the actual-versus-estimate boundary. https://data.imf.org/Datasets/WEO
 
@@ -282,11 +282,11 @@ The links below identify official source families and methodology. They are star
 
 **IMF IIP.** Factor 7 external assets and liabilities; cross-check the national central bank. https://data.imf.org/Datasets/IIP
 
-**World Bank WGI.** Factor 8 absolute scores and usage advisory; the LR blend is internal. https://www.worldbank.org/en/publication/worldwide-governance-indicators
+**World Bank WGI.** Factor 8 absolute scores and usage advisory; the rating blend is internal. https://www.worldbank.org/en/publication/worldwide-governance-indicators
 
 **UNCTAD Data Centre.** Factor 9 merchandise export concentration; finance ministries supply extractive receipts. https://unctadstat.unctad.org/datacentre/reportInfo/US.ConcentStructIndices
 
-**IMF sovereign risk framework.** Debt sustainability, financing needs and contingent-liability context; not LR thresholds. https://www.imf.org/en/publications/dsa/sovereign-risk-and-debt-sustainability-analysis-for-market-access-countries
+**IMF sovereign risk framework.** Debt sustainability, financing needs and contingent-liability context; not rating thresholds. https://www.imf.org/en/publications/dsa/sovereign-risk-and-debt-sustainability-analysis-for-market-access-countries
 
 **World Bank debt statistics.** QPSD government debt structure and QEDS external debt remaining-maturity data. https://www.worldbank.org/en/programs/debt-statistics
 
@@ -300,7 +300,7 @@ The links below identify official source families and methodology. They are star
 Release a score only with its information cutoff, model version, source coverage and status flags. A default history is complete only when the full applicable postwar period has been checked. Do not claim zero defaults from a database that starts in 1960. Do not claim a 2047 forecast is official when it is a constant-assumption extension. Country ratings, probabilities of default and investment decisions remain separate outputs requiring their own evidence and validation.
 
 ## 12. Ideas adapted from corporate credit analysis
-Corporate credit ratios offer useful questions about cash, repayment and financial discipline. Governments have no directly comparable EBITDA, and taxing powers, monetary arrangements and official financing change the interpretation. The adaptations below are mandatory supporting diagnostics, not additional weighted factors in version 1.0. Publish them beside LR; do not add their scores to LRcore or deduct them again from LRfinal.
+Corporate credit ratios offer useful questions about cash, repayment and financial discipline. Governments have no directly comparable EBITDA, and taxing powers, monetary arrangements and official financing change the interpretation. The adaptations below are mandatory supporting diagnostics, not additional weighted factors in version 1.0. Publish them beside the rating; do not add their scores to the core score or deduct them again from the final score.
 
 ### Twenty four month liquidity coverage
 @formula Q24 = (C + F24) / (GFN year 1 + GFN year 2)
@@ -322,9 +322,9 @@ Use five consecutive completed actual years of primary balance on one government
 For each of the same five completed years, compare the original approved government budget’s overall balance/GDP forecast with the latest official actual outcome, in percentage points. Take each absolute difference, then their arithmetic mean. Error of 0, 1, 2.5 and 5 points scores 100, 80, 50 and 0. Use the original budget, not a revised in-year forecast. Missing an original forecast or actual means N/A. Disclose perimeter changes and exceptional shocks; the mechanical measure assesses predictability, not intent or blame.
 
 ### Ideas already covered and ideas not transferred
-Corporate leverage maps broadly to debt/GDP and its trajectory; interest coverage to interest/revenue; earnings trend to growth and primary balance; business and industry quality to governance, export concentration and resource exposure. These are conceptual parallels, not numerical equivalences. Importing their corporate weights would duplicate existing factors. Do not derive sovereign business quality from an agency rating and then claim LR is an independent rating.
+Corporate leverage maps broadly to debt/GDP and its trajectory; interest coverage to interest/revenue; earnings trend to growth and primary balance; business and industry quality to governance, export concentration and resource exposure. These are conceptual parallels, not numerical equivalences. Importing their corporate weights would duplicate existing factors. Do not derive sovereign business quality from an agency rating and then claim the 10bonds.com rating is an independent rating.
 
-The corporate macro block is better used as named scenarios than six unsupported judgements. Growth, energy, interest-rate and currency shocks are specified on page 9. Document country-specific war, trade, China-competition and pandemic exposures qualitatively; add a numerical scenario only with explicit transmission assumptions. Do not award arbitrary 0–100 scores to those narratives. The threshold ladders in the corporate table are not imported: all continuous LR inputs retain the linear rules in this manual.
+The corporate macro block is better used as named scenarios than six unsupported judgements. Growth, energy, interest-rate and currency shocks are specified on page 9. Document country-specific war, trade, China-competition and pandemic exposures qualitatively; add a numerical scenario only with explicit transmission assumptions. Do not award arbitrary 0–100 scores to those narratives. The threshold ladders in the corporate table are not imported: all continuous rating inputs retain the linear rules in this manual.
 `;
 
 export const CORPORATE_MD = `
@@ -339,19 +339,19 @@ I would build the methodology around three fundamental questions:
 
 The important distinction is between risk exposure, vulnerability and actual financial impact. For example, an increase in oil prices can be harmful to an airline, beneficial to an oil producer and relatively neutral to a software company. The methodology must capture these differences quantitatively wherever possible.
 
-A credible LR framework should therefore combine financial metrics, forward-looking business analysis, event-risk assessment and explicit stress testing, with a transparent separation between observable facts and analytical judgments.
+A credible rating framework should therefore combine financial metrics, forward-looking business analysis, event-risk assessment and explicit stress testing, with a transparent separation between observable facts and analytical judgments.
 
 ## 1. Overall methodology architecture
 The published framework should distinguish between the base credit score, the financial consequences of adverse scenarios, and exceptional credit events.
 
-@flow A. Base credit assessment | Financial strength + business resilience + management + structural exposures | LR Base · 0–100
+@flow A. Base credit assessment | Financial strength + business resilience + management + structural exposures | Base score · 0–100
 @flow B. Scenario engine | Recalculate cash flows, liquidity and leverage under defined shocks |
 @flow C. Event-risk overlay | Governance failures, litigation, extraordinary transactions and other discrete events |
-@flow D. Final corporate credit assessment | With separate scenario results, confidence indicators and critical-risk flags | LR Final · 0–100
+@flow D. Final corporate credit assessment | With separate scenario results, confidence indicators and critical-risk flags | Final score · 0–100
 
 This is directionally consistent with established rating-agency practice, which distinguishes business and financial risk, modifiers and group support, evaluates financial policy and event risk, and separates foreseeable vulnerabilities from unforeseen event risks.
 
-LR's proposed differentiation: a standardized, transparent, issuer-specific shock-transmission model that makes the consequences of external risks visible to bond investors rather than relying only on a broad qualitative risk judgment.
+The rating's proposed differentiation: a standardized, transparent, issuer-specific shock-transmission model that makes the consequences of external risks visible to bond investors rather than relying only on a broad qualitative risk judgment.
 
 ## 2. Base credit assessment: 100 points
 I recommend the following starting allocation for nonfinancial corporates.
@@ -370,7 +370,7 @@ A crucial rule: factors in Pillar E measure persistent exposure and vulnerabilit
 The following taxonomy is designed as the master risk register. Each risk receives a materiality assessment, evidence record and defined transmission path into financial performance.
 
 ### A. Geopolitical, conflict and international trade
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | Interstate war | Operations, assets, employees or customers in conflict zones | Production losses, asset impairment |
 | Regional military escalation | Exposure to Taiwan Strait, Middle East, Eastern Europe and other flashpoints | Supply interruption, logistics and demand |
 | Trade wars | Tariff exposure by product and destination | Margin compression, lost volumes |
@@ -387,7 +387,7 @@ The following taxonomy is designed as the master risk register. Each risk receiv
 China risk must be measured at the product and market level, not assigned mechanically based on the issuer's nationality. For example, a European industrial company could have limited sales in China but substantial exposure to Chinese competitors in Europe. Its competitive risk could therefore be high despite low direct Chinese revenue.
 
 ### B. Economic, financial and monetary risks
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | Global recession | GDP sensitivity of demand | Revenue and EBITDA decline |
 | Financial crisis | Funding availability and credit spreads | Refinancing failure |
 | Banking-system crisis | Deposit concentration and reliance on bank facilities | Liquidity constraints |
@@ -402,7 +402,7 @@ China risk must be measured at the product and market level, not assigned mechan
 | Pension funding crisis | Defined-benefit deficits and mandatory contributions | Increased cash obligations |
 
 ### C. Commodities, energy and natural resources
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | Oil price spike | Fuel intensity, hedging, price pass-through | Higher costs or revenue |
 | Oil price collapse | Upstream production and energy-linked demand | Lower revenue |
 | Natural gas disruption | Gas dependence, contracted supply | Higher costs, shutdown |
@@ -416,7 +416,7 @@ China risk must be measured at the product and market level, not assigned mechan
 Every commodity shock must be assessed for its direction, magnitude, hedging protection, pass-through capacity and time lag.
 
 ### D. Technology and business-model disruption
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | AI substitution | Proportion of products/services that AI could replace | Structural revenue loss |
 | Automation | Competitors' ability to reduce costs faster | Margin pressure |
 | Platform disintermediation | Dependence on distributors, marketplaces and aggregators | Loss of customer ownership |
@@ -429,7 +429,7 @@ Every commodity shock must be assessed for its direction, magnitude, hedging pro
 | Digital infrastructure failure | Dependency on payments, connectivity and digital systems | Revenue interruption |
 
 ### E. Supply chain and operational continuity
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | Single-source suppliers | Availability of qualified substitutes | Production stoppage |
 | Geographic concentration | Production clustered in one country or region | Correlated disruption |
 | Semiconductor shortages | Critical electronic components | Production reduction |
@@ -443,7 +443,7 @@ Every commodity shock must be assessed for its direction, magnitude, hedging pro
 | Inventory disruption | Just-in-time exposure, safety stock | Working-capital shock |
 
 ### F. Health, environmental and natural-catastrophe risks
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | Global pandemic | Business shutdown sensitivity and demand shifts | Revenue, labor and liquidity |
 | Regional epidemic | Geographic concentration and workforce exposure | Local interruption |
 | Earthquakes | Facilities in seismic zones | Physical losses |
@@ -458,7 +458,7 @@ Every commodity shock must be assessed for its direction, magnitude, hedging pro
 ### G. Management, governance and human-capital risks
 This category deserves particular attention because conventional financial statements often fail to capture management concentration and operational fragility.
 
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | CEO death/incapacity | Succession plan and delegation of authority | Strategic and operating disruption |
 | Founder dependency | Critical relationships, knowledge and decisions held by one person | Business continuity risk |
 | CFO departure | Financial controls and funding relationships | Reporting and financing disruption |
@@ -476,7 +476,7 @@ This category deserves particular attention because conventional financial state
 A key-person event should not automatically cause a major score deduction. A company with a strong succession plan, delegated authority and institutionalized customer relationships may be highly resilient to the loss of an executive. Conversely, a founder-controlled company in which one individual controls technology, funding relationships and customer contracts may have substantial key-person risk.
 
 ### H. Legal, regulatory and strategic event risks
-| Risk | What LR must investigate | Financial transmission |
+| Risk | What the rating must investigate | Financial transmission |
 | Antitrust enforcement | Market dominance and competition investigations | Fines, divestitures |
 | Major litigation | Probability and magnitude of adverse judgments | Cash outflow |
 | Product liability | Potential claims and insurance protection | Liabilities |
@@ -510,7 +510,7 @@ A risk checklist is useful, but insufficient. A credible model needs to show how
 
 Assume oil rises by 50%, the company experiences €200m in incremental gross operating costs, and it recovers €80m through hedging and customer price increases. EBITDA consequently falls by €120m. The credit assessment must then examine whether the company still generates sufficient free cash flow, whether its debt covenants remain satisfied and whether it can refinance or repay upcoming maturities. The model should also test whether the shock persists for one, two or three years.
 
-## 5. Scenario engine: the distinctive LR component
+## 5. Scenario engine: the distinctive rating component
 I recommend a common set of scenarios applied consistently across issuers, with company-specific transmission assumptions.
 
 | Scenario | Standardized shock specification | Primary output |
@@ -534,12 +534,12 @@ I recommend a common set of scenarios applied consistently across issuers, with 
 These shock magnitudes are illustrative scenario design choices, not estimated forecasts or calibrated tail-event quantiles. They should be refined using historical observations, sector characteristics and empirical testing.
 
 ### Scenario impact should not be an arbitrary score
-For each scenario s, calculate LR(s) = f(stressed financial and business inputs), then measure ΔLR(s) = LR(base) − LR(s). The model should report both the score change and the underlying financial deterioration.
+For each scenario s, calculate score(s) = f(stressed financial and business inputs), then measure Δscore(s) = score(base) − score(s). The model should report both the score change and the underlying financial deterioration.
 
 @stress Manufacturer | 78 | 43
 @stress Utility | 74 | 66
 
-This allows an investor to understand that two companies with identical base credit scores may have substantially different vulnerabilities. A manufacturer with LR 78 that falls to 43 under a plausible combined stress may be less resilient than a utility with LR 74 that remains at 66. However, the combined scenario must explicitly model correlated shocks. It cannot be constructed by simply adding the separate losses from every scenario.
+This allows an investor to understand that two companies with identical base credit scores may have substantially different vulnerabilities. A manufacturer with a score of 78 that falls to 43 under a plausible combined stress may be less resilient than a utility with a score of 74 that remains at 66. However, the combined scenario must explicitly model correlated shocks. It cannot be constructed by simply adding the separate losses from every scenario.
 
 ## 6. Incorporating event likelihood without false precision
 Not every possible event should receive an invented annual probability. I recommend three classes:
@@ -564,7 +564,7 @@ A weighted-average score has an important weakness: a company could score well o
 These should trigger a documented credit committee review, possible score cap or distressed-credit classification. The precise caps must be specified and empirically tested before production use. This approach prevents an otherwise strong average score from concealing a critical repayment problem.
 
 ## 8. Model validation and institutional credibility
-A comprehensive taxonomy alone will not make LR credible to an experienced rating-agency analyst. The credibility will come from how the model handles evidence, uncertainty, financial causality and historical performance. I recommend six mandatory methodological controls.
+A comprehensive taxonomy alone will not make the 10bonds.com rating credible to an experienced rating-agency analyst. The credibility will come from how the model handles evidence, uncertainty, financial causality and historical performance. I recommend six mandatory methodological controls.
 
 | Control | Required standard |
 | Data traceability | Every material input must have a source, observation date, definition and calculation record |
@@ -575,22 +575,22 @@ A comprehensive taxonomy alone will not make LR credible to an experienced ratin
 | Uncertainty disclosure | Publish data coverage, confidence, assumptions and unquantifiable risks |
 
 ### Validation tests
-Before describing LR as a predictive rating model, I would require:
+Before describing the 10bonds.com rating as a predictive rating model, I would require:
 
-1. Discrimination: Do lower LR scores precede defaults more frequently than higher scores? Test with ROC-AUC and related ranking metrics.
+1. Discrimination: Do lower rating scores precede defaults more frequently than higher scores? Test with ROC-AUC and related ranking metrics.
 2. Calibration: If the model eventually estimates default probabilities, do predicted probabilities match observed frequencies?
-3. Early-warning performance: Does LR identify deterioration 12–36 months before default or restructuring?
+3. Early-warning performance: Does the rating identify deterioration 12–36 months before default or restructuring?
 4. Stability: Does the score change for economically meaningful reasons rather than minor reporting differences?
 5. Incremental value: Do geopolitical, technology and management-risk factors improve predictive performance beyond conventional financial metrics?
-6. Benchmark comparison: How does LR perform relative to published agency ratings, accounting-based models and simpler financial-ratio benchmarks?
+6. Benchmark comparison: How does the 10bonds.com rating perform relative to published agency ratings, accounting-based models and simpler financial-ratio benchmarks?
 
-The fifth test is especially important. It would demonstrate whether the additional complexity of LR produces genuine analytical value.
+The fifth test is especially important. It would demonstrate whether the additional complexity of the 10bonds.com rating produces genuine analytical value.
 
 ## 9. How we publish this on 10bonds.com
-I would position LR as a forward-looking corporate credit resilience methodology, rather than claiming it is more accurate than agency ratings before validation. The public methodology should contain four parts:
+I would position the 10bonds.com rating as a forward-looking corporate credit resilience methodology, rather than claiming it is more accurate than agency ratings before validation. The public methodology should contain four parts:
 
 | Publication | Content |
-| 1. Corporate LR Methodology | Objectives, 100-point framework, all factors, definitions, formulas and scoring rules |
+| 1. Corporate rating Methodology | Objectives, 100-point framework, all factors, definitions, formulas and scoring rules |
 | 2. Global Risk and Scenario Manual | Full taxonomy, shock assumptions, transmission formulas, scenario selection and correlation treatment |
 | 3. Data and Model Governance | Sources, missing data, confidence, updates, version control, overrides and validation |
 | 4. Worked Corporate Credit Assessment | One complete issuer example with historical inputs, base score, stress scenarios, repayment analysis and audit trail |
@@ -602,16 +602,16 @@ For methodological reference, the following published frameworks are particularl
 - Published corporate rating methodologies of the major credit rating agencies
 - Their published management and governance criteria
 
-These are methodological references, not endorsements of LR or evidence that the proposed LR weights have been validated.
+These are methodological references, not endorsements of the 10bonds.com rating or evidence that the proposed rating weights have been validated.
 
 ## 10. The key design decision
-I would not publish a final corporate LR formula yet. We now have a substantially more complete risk universe, but three technical questions must be resolved before freezing the methodology:
+I would not publish a final corporate rating formula yet. We now have a substantially more complete risk universe, but three technical questions must be resolved before freezing the methodology:
 
 - Weights: Which risks belong in the 100-point base score, and which should affect only stressed outcomes?
 - Quantification: How do we convert structural disruption, geopolitical exposure and key-person dependency into repeatable, evidence-based assessments?
-- Aggregation: Should the final LR score reflect expected outcomes, downside resilience or a combination, and how do we avoid double-counting correlated risks?
+- Aggregation: Should the final rating score reflect expected outcomes, downside resilience or a combination, and how do we avoid double-counting correlated risks?
 
-My proposed solution is to preserve LR Base as a transparent 0–100 credit-strength score, publish LR Stress as a separate resilience profile, and develop a final composite only after historical calibration establishes defensible aggregation rules.
+My proposed solution is to preserve Base score as a transparent 0–100 credit-strength score, publish Stress score as a separate resilience profile, and develop a final composite only after historical calibration establishes defensible aggregation rules.
 
 That separation would make the methodology more credible than attaching arbitrary numerical penalties to every conceivable event. It would also give 10bonds a useful investor-facing distinction: a company's current financial strength versus its ability to survive future disruptions.
 

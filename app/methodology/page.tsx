@@ -67,7 +67,7 @@ function Corporate({ lang }: { lang: MethodLang }) {
                   <p className="text-[13px] font-medium leading-tight">{title}</p>
                   <p className="truncate text-[11px] text-mute" title={line}>{line}</p>
                 </div>
-                {(i === 0 || i === 3) && <span className="shrink-0 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-white">{i === 0 ? "LR Base" : "LR Final"} 0–100</span>}
+                {(i === 0 || i === 3) && <span className="shrink-0 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-white">{i === 0 ? "Base score" : "Final score"} 0–100</span>}
               </li>
             ))}
           </ol>

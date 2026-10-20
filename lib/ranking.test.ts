@@ -126,7 +126,7 @@ describe("ytmCaps", () => {
     const caps = ytmCaps(bonds, [2, 6, 10], { min: 1, max: 12, step: 0.1 });
     expect(caps).toEqual({ "2": 3.04, "6": null, "10": 5.51 });
   });
-  it("is the average of the 10 best issuers, not the single best bond (Livio's 5.8% vs 4.72% case)", () => {
+  it("is the average of the 10 best issuers, not the single best bond (the owner's 5.8% vs 4.72% case)", () => {
     const bonds = [{ ...bond("SA", 5.76, 5, "A-"), issuer: "Saudi" }, { ...bond("SA2", 5.9, 5.2, "A-"), issuer: "Saudi" }, ...Array.from({ length: 11 }, (_, i) => bond(`X${i}`, 4.6, 5, "A-"))];
     const caps = ytmCaps(bonds, [5], { min: 1, max: 12, step: 0.1 });
     expect(caps["5"]).toBe(4.73); // (5.9 + 9 x 4.6) / 10 = 4.73
@@ -206,7 +206,7 @@ describe("the list's average matches the target and the maximum", () => {
   });
 });
 
-describe("chance of a loss, not average risk (Livio 20/10)", () => {
+describe("chance of a loss, not average risk (the owner 20/10)", () => {
   it("prefers mid-risk bonds to a barbell of very safe and limit-risk bonds with the same average yield", () => {
     const safe = Array.from({ length: 5 }, (_, i) => ({ ...bond(`S${i}`, 3.0, 5, "AAA"), issuer: `Safe ${i}` }));
     const risky = Array.from({ length: 5 }, (_, i) => ({ ...bond(`R${i}`, 5.0, 5, "BBB-"), issuer: `Risky ${i}` }));

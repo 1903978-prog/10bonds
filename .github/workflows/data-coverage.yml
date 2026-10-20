@@ -33,7 +33,7 @@ jobs:
           q "select min_denomination, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1 order by 2 desc limit 10"
           echo "== USD rating samples"
           q "select rating_resolved, rating_sp, rating_moodys, rating_fitch, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1,2,3,4 order by 5 desc limit 15"
-          echo "== Livio Rating (lr_score): bonds with / without an LR, by currency"
+          echo "== 10bonds.com rating (lr_score): bonds with / without an LR, by currency"
           if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='lr_score'")" = 1 ]; then
             q "select currency, count(*), count(lr_score), count(*) - count(lr_score) from public_bonds group by 1 order by 2 desc"
           else

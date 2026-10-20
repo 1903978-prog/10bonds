@@ -4,7 +4,7 @@ export const LIMITS = {
   risk: { min: 1, max: 10, step: 1, initial: 7 },
 } as const;
 
-// Horizon slider stops (Livio, 20/10/2026): every year up to 15, then 20, 25 and "30+" (30 years and longer).
+// Horizon slider stops (the owner, 20/10/2026): every year up to 15, then 20, 25 and "30+" (30 years and longer).
 export const DURATION_STEPS: readonly number[] = [...Array.from({ length: 15 }, (_, i) => i + 1), 20, 25, 30];
 
 /** The slider stop nearest to `d`. */

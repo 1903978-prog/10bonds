@@ -4,7 +4,7 @@ import { issuerKey, portfolioPool, RESULT_COUNT, withinRisk } from "../ranking";
 import { evaluateBond, type EvalContext, type Evaluation, type RiskStatus } from "./evaluate";
 import { yearsToMaturity } from "./benchmark";
 
-// Risk-adjusted Portfolio ranking (shadow mode until Livio activates it).
+// Risk-adjusted Portfolio ranking (shadow mode until the owner activates it).
 //
 // Candidate pool, documented: only bonds inside the curve's maturity bracket (4-6y), then the same pool as today's ranking (rated bonds within the risk slider, duration within
 // ±20% of the target, widened in half-years when fewer than 10 issuers), then only bonds that pass every check of the
@@ -58,7 +58,7 @@ export function riskOrder(targetDuration: number, targetYtm: number) {
 export function rankRiskAdjusted(
   bonds: PublicBond[], targetDuration: number, targetYtm: number, ctx: EvalContext, count = RESULT_COUNT, risk: number = LIMITS.risk.max,
 ): RiskRanking {
-  // First filter (Livio, 20/10/2026): bonds outside the curve's maturity bracket are never considered at all.
+  // First filter (the owner, 20/10/2026): bonds outside the curve's maturity bracket are never considered at all.
   const inBracket = bonds.filter((b) => {
     const m = yearsToMaturity(b.maturity, ctx.asOf);
     return m !== null && m >= ctx.curve.minMaturity - 1e-9 && m <= ctx.curve.maxMaturity + 1e-9;

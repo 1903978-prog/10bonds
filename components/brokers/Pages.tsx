@@ -10,7 +10,7 @@ import { brokerView, countryView, type Row } from "@/lib/brokers/view";
 import CostTable, { type TableRow } from "./CostTable";
 import { formatters } from "./format";
 import { prose } from "@/components/seo/Seo";
-import { landingFor } from "@/lib/seo/landingLivio";
+import { landingFor } from "@/lib/seo/landingOwner";
 import { sanitizeHtml } from "@/lib/seo/sanitize";
 
 // Server-rendered pages of the Brokers & Trading Fees section, shared by the /it, /fr and /de routes.

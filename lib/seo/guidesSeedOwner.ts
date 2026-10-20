@@ -1,10 +1,10 @@
 import type { SeedGuide } from "./guidesSeed";
 
-// Articles Livio wrote himself for the Knowledge Center. They are his own text, approved by him, so they go in
+// Articles the owner wrote himself for the Knowledge Center. They are his own text, approved by him, so they go in
 // published. Kept word for word; only turned into HTML. The default-rate page was built on the S&P table he sent
 // (19 Oct 2026), with our Risk 1-10 column added; since 20 Oct 2026 it shows the combined table of lib/seo/defaultRates.ts.
 
-export const SEED_GUIDES_LIVIO: SeedGuide[] = [
+export const SEED_GUIDES_OWNER: SeedGuide[] = [
   {
     locale: "it", topic: "compare", group: "compare-bonds-2026", status: "published",
     slug: "obbligazioni-2026-come-confrontare",

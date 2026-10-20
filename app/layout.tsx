@@ -19,7 +19,7 @@ const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  // Bing Webmaster Tools site verification (Livio, 19 Oct 2026). Public by design, not a secret.
+  // Bing Webmaster Tools site verification (the owner, 19 Oct 2026). Public by design, not a secret.
   verification: { other: { "msvalidate.01": "ADA17531835A822BB9A6870BCE68531B" } },
   title: "10BONDS · Find 10 bonds that match your goals",
   description: "Pick a duration and a target yield. 10BONDS turns thousands of euro bonds into a clear shortlist of 10.",
@@ -51,7 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <PlansNavLink />
               {/* Fixed-width slot for the links that load after the page (Retail/Pro switch, Admin, Sign in, profile), so the menu never shifts. */}
               <div className="flex min-w-[128px] items-center justify-end gap-1.5 sm:min-w-[232px] sm:gap-5">
-                {/* Language sits right before the account links (profile icon), as Livio asked. */}
+                {/* Language sits right before the account links (profile icon), as the owner asked. */}
                 <LangSwitch />
                 <AccountNav hasSession={hasSession} />
               </div>

@@ -127,7 +127,7 @@ async function postX(text: string): Promise<string> {
 }
 
 // ---------- LinkedIn company page ----------
-// Livio connects once from Admin -> SEO -> Sharing (LinkedIn sign-in); the token is kept encrypted in app.settings.
+// The owner connects once from Admin -> SEO -> Sharing (LinkedIn sign-in); the token is kept encrypted in app.settings.
 
 export const linkedInRedirect = () => `${SITE_URL}/api/admin/social/linkedin`;
 export const linkedInApp = () => (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET ? { id: process.env.LINKEDIN_CLIENT_ID, secret: process.env.LINKEDIN_CLIENT_SECRET } : null);

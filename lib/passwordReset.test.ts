@@ -15,8 +15,8 @@ describe("password reset link", () => {
     expect(new URL(link).searchParams.get("lang")).toBe("it");
   });
   it("writes the e-mail in the chosen language", () => {
-    expect(resetEmail("de", "Livio", "https://x").subject).toMatch(/Passwort/);
-    expect(resetEmail("fr", "Livio", "https://x").text).toMatch(/mot de passe/);
-    expect(resetEmail("it", "Livio", "https://x").html).toContain("lang=\"it\"");
+    expect(resetEmail("de", "Anna", "https://x").subject).toMatch(/Passwort/);
+    expect(resetEmail("fr", "Anna", "https://x").text).toMatch(/mot de passe/);
+    expect(resetEmail("it", "Anna", "https://x").html).toContain("lang=\"it\"");
   });
 });

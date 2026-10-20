@@ -2,7 +2,7 @@ import { notchOf, spGradeOf } from "../ratings";
 
 // 10BONDS Risk Premium Curve: the minimum yearly yield premium over a maturity-matched German government (Bund) yield
 // that a bond of each rating must offer before the risk-adjusted ranking counts it as paid for its credit risk.
-// Internal screening hurdles set by 10BONDS (Livio, 20/10/2026), not observed market spreads or expected losses.
+// Internal screening hurdles set by 10BONDS (the owner, 20/10/2026), not observed market spreads or expected losses.
 //
 // Units: premiums are stored and computed in basis points (1 bp = 0.01 percentage point = 0.0001 in decimal).
 // Yields on the site are in percent (4.12 = 4.12%). Convert only with bpToPct / pctToBp below.

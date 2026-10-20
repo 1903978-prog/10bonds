@@ -33,7 +33,7 @@ export function lossAdjustedYield(ytm: number, notch: number, years: number): nu
 }
 
 /**
- * Chance of a loss over a list's life (Livio 20/10): each bond's chance of defaulting year by year until it matures
+ * Chance of a loss over a list's life (the owner 20/10): each bond's chance of defaulting year by year until it matures
  * (year t = cum(t) - cum(t-1) from the default table), so its chance of surviving every year is 1 - cum(years to
  * maturity). The list loses nothing only if every bond survives every year, so, treating bonds as independent:
  * chance of a loss = 1 - product over bonds of (1 - cum_i). In %.

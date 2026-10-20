@@ -21,7 +21,7 @@ const nextConfig = {
   // Title, description, canonical and hreflang always in the page <head> for every visitor and crawler
   // (no streamed metadata), so every search engine and the SEO check read them without running scripts.
   htmlLimitedBots: /.*/,
-  // French guides replaced by Livio's articles on 19 Oct 2026 (lib/seo/guidesLivioFr.ts).
+  // French guides replaced by the owner's articles on 19 Oct 2026 (lib/seo/guidesOwnerFr.ts).
   async redirects() {
     return [
       ["oat-obligations-etat-francaises", "oat-obligations-etat"],

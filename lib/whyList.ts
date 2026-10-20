@@ -8,7 +8,7 @@ import { bracketExplain, outlierWhy, type Scenario } from "./riskPremium/shadow"
 import type { RiskRanking } from "./riskPremium/rank";
 import type { EvalContext } from "./riskPremium/evaluate";
 
-// "Why in or out" for one search (Premium, Pro and admin; Livio, 20/10/2026): every bond of the search window with the
+// "Why in or out" for one search (Premium, Pro and admin; the owner, 20/10/2026): every bond of the search window with the
 // reason it is in the top 10 or not, in the order the ranking applies its rules. Built from the same ranking the
 // results came from (lib/pickRanking.ts), so the table always matches the list on screen.
 

@@ -24,7 +24,7 @@ function blocks(bs) {
         case "pillar":
           return `<div class="card"><div class="row"><b>${esc(b.name)}</b><span class="bar"><i style="width:${(b.weight / 35) * 100}%"></i></span><b>${b.weight}%</b></div><small>${esc(b.parts)}</small></div>`;
         case "step": step++; return `<p><b>Stage ${step} — ${esc(b.title)}.</b> ${esc(b.text)}</p>`;
-        case "stress": return `<p>${esc(b.name)}: LR ${b.base} → ${b.stressed} under combined stress.</p>`;
+        case "stress": return `<p>${esc(b.name)}: score ${b.base} → ${b.stressed} under combined stress.</p>`;
       }
     })
     .join("\n");
