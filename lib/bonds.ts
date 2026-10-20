@@ -100,6 +100,9 @@ async function reload() {
     modifiedDuration: num(r.modified_duration),
     ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null,
     minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot), r.currency)),
+    cleanPrice: num(r.clean_price),
+    high52w: num(r.high_52w),
+    low52w: num(r.low_52w),
   }));
   // Unrated bonds never appear on the site (the owner, 18/10/2026).
   const current = dropStale(bonds);

@@ -10,7 +10,8 @@ export default function SearchNavLink() {
   const l = LOCALES.find((x) => pathname === `/${x}` || pathname.startsWith(`/${x}/`)) ?? null;
   const href = l ? `/${l}` : "/";
   return (
-    <NavLink href={href} match={(p) => p === href} testId="nav-search">
+    // On phones the logo already leads home, so the word is left out to keep the menu on one line.
+    <NavLink href={href} match={(p) => p === href} testId="nav-search" className="hidden sm:inline-grid">
       10BONDS
     </NavLink>
   );

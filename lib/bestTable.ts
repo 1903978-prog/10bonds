@@ -6,6 +6,7 @@ import { curveByLevel } from "./singleBond";
 import { ytmCapsByRisk } from "./ranking";
 import type { RankedBond } from "./types";
 import { recordYields } from "./ytmHistory";
+import { recordPrices } from "./priceHistory";
 
 /**
  * The "best bonds" table: for every duration step of the slider and every risk step (1 .. 10),
@@ -70,6 +71,8 @@ export async function bestTableFor(f: BondFilter): Promise<BestTable> {
 
 async function load(src: BondSource, sig: string): Promise<BestTable> {
   if (!accountsConfigured()) return (memo = computeBestTable(src));
+  // A new copy: add its prices to the price history too (for the biggest-drops page).
+  void recordPrices().catch(() => {});
   try {
     const sql = await accountsSql();
     const [stored] = await sql`select value from app.settings where key = 'best_bonds_signature'`;
