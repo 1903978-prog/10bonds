@@ -15,7 +15,7 @@ const ROWS: [string, string, string, string, string][] = [
 
 export default function Cookies() {
   return (
-    <article className="mx-auto max-w-3xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="cookies-page">
+    <article className="mx-auto max-w-6xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="cookies-page">
       <h1 className="text-3xl font-semibold tracking-tight">Cookie policy</h1>
       <p className="mt-2 text-mute">Which cookies and similar storage 10BONDS uses, and how to change your choice.</p>
       <h2 className="mt-8 text-lg font-semibold">Categories</h2>

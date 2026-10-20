@@ -10,7 +10,7 @@ export default async function Disclaimer({ searchParams }: { searchParams: Promi
   const lang = disclaimerLang((await searchParams).lang);
   const d = DISCLAIMER[lang];
   return (
-    <article lang={lang} className="mx-auto max-w-2xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
+    <article lang={lang} className="mx-auto max-w-6xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
       <nav aria-label="Language" className="flex gap-3 text-xs text-mute">
         {DISCLAIMER_LANGS.map((l) => (
           <Link key={l} href={l === "en" ? "/disclaimer" : `/disclaimer?lang=${l}`} hrefLang={l} className={l === lang ? "text-ink" : "hover:text-ink"} aria-current={l === lang ? "page" : undefined}>
