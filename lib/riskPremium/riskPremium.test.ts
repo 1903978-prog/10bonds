@@ -222,3 +222,10 @@ describe("target yield stays meaningful", () => {
     expect(ev(bond("Odd Corp", "A", 1.4)).status).toBe("insufficient_data");
   });
 });
+
+describe("issuer category", () => {
+  it("German Länder and public development banks are not treated as companies", () => {
+    for (const name of ["Hamburg", "Investitionsbank Berlin", "Nederlandse Waterschapsbank N.V.", "Mecklenburg-Vorpommern"]) expect(ev(bond(name, "AAA", 3.6, { country: "DE" })).status, name).toBe("unsupported");
+    expect(ev(bond("Hamburg Commercial Bank", "A", 3.9, { country: "DE" })).category).toBe("corporate");
+  });
+});

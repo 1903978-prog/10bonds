@@ -1,6 +1,7 @@
 import type { PublicBond } from "../types";
 import { bondNotch, ratingSourceLabel } from "../ratings";
 import { issuerClass, type IssuerClass } from "../seo/classify";
+import { issuerKey } from "../ranking";
 import { bpToPct, cleanBp, curveRatingOf, notchOfCurve, pctToBp, type CurveConfig, type CurveRating } from "./curve";
 import { bundYieldAt, yearsToMaturity, type BundCurve } from "./benchmark";
 
@@ -47,6 +48,10 @@ export type EvalContext = {
 // Names that suggest a structure the plain YTM-minus-Bund spread cannot judge (subordinated, hybrid, perpetual,
 // callable, contingent convertible, floating). The copy has no seniority or call columns, so the name is all there is.
 const NON_STANDARD = /\b(sub|subord|subordinated|jr|junior|perp|perpetual|hybrid|tier ?[12]|t[12]|at1|lt2|coco|contingent|callable|call|nc\d+|frn|float|floating|var|variable|fix to float|resettable)\b/i;
+// Public-sector issuers the shared name check (lib/seo/classify.ts) files as companies: German Länder by their bare
+// name, and state or municipal development banks. Seen on the live copy 20/10/2026 (Hamburg, Investitionsbank Berlin).
+const LAENDER = /^(freie und hansestadt |freistaat |land )?(baden wurttemberg|bayern|berlin|brandenburg|bremen|hamburg|hessen|mecklenburg vorpommern|niedersachsen|nordrhein westfalen|rheinland pfalz|saarland|sachsen|sachsen anhalt|schleswig holstein|thuringen)$/;
+const PUBLIC_BANKS = /\b(investitionsbank|waterschapsbank|nederlandse gemeenten|bng bank|kommunalbanken|kommuninvest|municipality finance|foerderbank|forderbank|wirtschafts und infrastrukturbank|action logement)\b/;
 const YTM_RANGE = { min: -2, max: 30 };
 // Same rule as lib/bonds.ts dropStale: a quote this many days behind the newest one is stale.
 const STALE_DAYS = 10;
@@ -62,7 +67,7 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
     issuer: b.issuer ?? b.name,
     name: b.name,
     currency: b.currency,
-    category: issuerClass(b),
+    category: categoryOf(b),
     status: "eligible",
     reason: null,
     rating,
@@ -129,6 +134,13 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
   // The bond passes only when its spread is strictly above the hurdle; equality does not pass.
   if (ev.surplusBp <= 0) return stop("below_hurdle", `Spread ${fmtBp(ev.spreadBp!)} vs ${ev.requiredBp} bp required`);
   return ev;
+}
+
+function categoryOf(b: PublicBond): IssuerClass {
+  const c = issuerClass(b);
+  if (c !== "corporate") return c;
+  const k = issuerKey(b);
+  return LAENDER.test(k) || PUBLIC_BANKS.test(k) ? "agency" : c;
 }
 
 export const fmtBp = (bp: number) => `${bp > 0 ? "+" : ""}${Math.round(bp)} bp`;
