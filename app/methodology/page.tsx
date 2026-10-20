@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CORP, CORP_WEIGHTS, COUNTRIES, FACTORS, METHOD, SOLVENCY_COUNT, coreScore, historyDeduction, methodLang, type Country, type MethodLang } from "@/lib/methodology";
-import { PillarRow, StressRow } from "@/components/MethodDoc";
+import { PillarRow, StressRow } from "@/components/MethodRows";
 import { MethodNav, kindOf } from "@/components/MethodNav";
 
 export const metadata: Metadata = { title: "Rating methodology · 10BONDS", alternates: { canonical: "/methodology" } };

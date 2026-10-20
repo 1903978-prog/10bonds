@@ -218,7 +218,7 @@ For base and stress paths, calculate financing need before financing. Show how m
 ### How to interpret the output
 Publish LRcore, history deduction H, LRfinal, solvency subscore and repayment subscore, plus all raw inputs and scenario labels. Solvency subscore equals the weighted sum of factors 1–9 divided by 0.70; repayment subscore equals the weighted sum of factors 10–16 divided by 0.30. Each block therefore remains on a 0–100 scale.
 
-Do not translate LR 75 into a specific S&P rating or probability of default. That requires an independent historical calibration with observation dates, out-of-sample tests and a defined default horizon. Do not use 100 minus LR as default probability. Similarly, higher LR is not a guarantee of repayment, lower volatility or a higher expected investment return.
+Do not translate LR 75 into a specific agency rating or probability of default. That requires an independent historical calibration with observation dates, out-of-sample tests and a defined default horizon. Do not use 100 minus LR as default probability. Similarly, higher LR is not a guarantee of repayment, lower volatility or a higher expected investment return.
 
 For a EUR bond, show currency, legal issuer, guarantee, seniority, contractual maturity and current agency rating separately. A country LR does not automatically rate a state-owned company or every security issued by the country. Portfolio loss probabilities require issuer-level default probabilities, dependence and recovery assumptions; this manual supplies none of those probabilities.
 
@@ -349,7 +349,7 @@ The published framework should distinguish between the base credit score, the fi
 @flow C. Event-risk overlay | Governance failures, litigation, extraordinary transactions and other discrete events |
 @flow D. Final corporate credit assessment | With separate scenario results, confidence indicators and critical-risk flags | LR Final · 0–100
 
-This is directionally consistent with established agency practice: S&P distinguishes business and financial risk, modifiers and group support; Moody's evaluates financial policy and event risk; Fitch explicitly distinguishes foreseeable vulnerabilities from unforeseen event risks.
+This is directionally consistent with established rating-agency practice, which distinguishes business and financial risk, modifiers and group support, evaluates financial policy and event risk, and separates foreseeable vulnerabilities from unforeseen event risks.
 
 LR's proposed differentiation: a standardized, transparent, issuer-specific shock-transmission model that makes the consequences of external risks visible to bond investors rather than relying only on a broad qualitative risk judgment.
 
@@ -564,7 +564,7 @@ A weighted-average score has an important weakness: a company could score well o
 These should trigger a documented credit committee review, possible score cap or distressed-credit classification. The precise caps must be specified and empirically tested before production use. This approach prevents an otherwise strong average score from concealing a critical repayment problem.
 
 ## 8. Validation
-A comprehensive taxonomy alone will not make LR credible to an experienced S&P, Moody's or Fitch analyst. The credibility will come from how the model handles evidence, uncertainty, financial causality and historical performance. I recommend six mandatory methodological controls.
+A comprehensive taxonomy alone will not make LR credible to an experienced rating-agency analyst. The credibility will come from how the model handles evidence, uncertainty, financial causality and historical performance. I recommend six mandatory methodological controls.
 
 | Control | Required standard |
 | Data traceability | Every material input must have a source, observation date, definition and calculation record |
@@ -599,10 +599,8 @@ All published scores should also distinguish the issuer's creditworthiness from 
 
 For methodological reference, the following published frameworks are particularly relevant:
 
-- S&P Global Ratings — Corporate methodology model
-- S&P Global Ratings — Management and governance methodology
-- Fitch Ratings — Corporate rating criteria
-- Moody's Ratings — Corporates methodology
+- Published corporate rating methodologies of the major credit rating agencies
+- Their published management and governance criteria
 
 These are methodological references, not endorsements of LR or evidence that the proposed LR weights have been validated.
 

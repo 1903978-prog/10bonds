@@ -51,3 +51,9 @@ describe("corporate methodology", () => {
     expect(CORPORATE_MD).not.toMatch(/favicon|Illustrative only|\+2\n|&#x20;/);
   });
 });
+
+describe("legal", () => {
+  it("names no rating agency in either methodology", () => {
+    for (const md of [CORPORATE_MD, SOVEREIGN_MD]) expect(md).not.toMatch(/S&P|Moody|Fitch/);
+  });
+});

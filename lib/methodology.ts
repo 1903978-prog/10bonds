@@ -209,12 +209,12 @@ export const METHOD: Record<MethodLang, Text> = {
   },
 };
 
-/** Shared labels of the summary page: the Countries / Companies switch and the link to the full text. */
-export const METHOD_UI: Record<MethodLang, { countries: string; companies: string; full: string; fullNote: string; summary: string }> = {
-  en: { countries: "Countries", companies: "Companies", full: "Read the full methodology →", fullNote: "Full text in English.", summary: "← Summary" },
-  it: { countries: "Paesi", companies: "Aziende", full: "Leggi la metodologia completa →", fullNote: "Testo completo in inglese.", summary: "← Sintesi" },
-  fr: { countries: "Pays", companies: "Entreprises", full: "Lire la méthodologie complète →", fullNote: "Texte complet en anglais.", summary: "← Résumé" },
-  de: { countries: "Länder", companies: "Unternehmen", full: "Vollständige Methodik lesen →", fullNote: "Volltext auf Englisch.", summary: "← Übersicht" },
+/** Shared labels of the summary page: the Countries / Companies switch and the full-text PDF download. */
+export const METHOD_UI: Record<MethodLang, { countries: string; companies: string; full: string; fullNote: string }> = {
+  en: { countries: "Countries", companies: "Companies", full: "Download the full methodology (PDF)", fullNote: "Full text in English." },
+  it: { countries: "Paesi", companies: "Aziende", full: "Scarica la metodologia completa (PDF)", fullNote: "in inglese" },
+  fr: { countries: "Pays", companies: "Entreprises", full: "Télécharger la méthodologie complète (PDF)", fullNote: "en anglais" },
+  de: { countries: "Länder", companies: "Unternehmen", full: "Vollständige Methodik herunterladen (PDF)", fullNote: "auf Englisch" },
 };
 
 type CorpText = {
