@@ -246,11 +246,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? pct(data.summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? (data.summary?.avgRisk != null ? <RiskBadge risk={data.summary.avgRisk} size="lg" /> : "—") : null} label={t.avgRisk} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? yrs(data.summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
+          <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">
           {data && !paid && (
@@ -381,6 +382,25 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
 
 type Show = { row: number; count: number; sim: number };
 
+/** Fifth box of the row: the bond counter while the search show runs (pick number → its A–Z place), else how many bonds were searched. Same size always. */
+function ScanBox({ data, show, lang, currency }: { data: Response | null; show: Show | null; lang: FinderLang; currency: string }) {
+  const t = useFinderText();
+  const fmt = new Intl.NumberFormat(lang);
+  const n = data?.scanned ?? 0;
+  const bar = show ? show.count / Math.max(n, 1) : n ? 1 : 0;
+  return (
+    <div className="col-span-2 flex h-[60px] flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-1.5 text-center sm:col-span-1" data-testid="scan-box">
+      <div className="text-xl font-semibold leading-none tabular-nums tracking-tight">
+        {show ? <><span className="text-[12px] font-normal text-mute">#{show.row + 1} → </span>{fmt.format(show.count)}</> : n ? fmt.format(n) : "—"}
+      </div>
+      <div className="my-1.5 h-1 w-full max-w-[140px] overflow-hidden rounded-full bg-canvas">
+        <div className="h-full rounded-full bg-accent" style={{ width: `${bar * 100}%` }} />
+      </div>
+      <div className="w-full truncate text-[11px] leading-none text-mute">{show ? `${t.scanOf} ${fmt.format(n)} · A→Z` : t.scanBox(currency)}</div>
+    </div>
+  );
+}
+
 /**
  * The search, staged for the visitor. Every bond searched has a number 1..N in alphabetical order (from the server).
  * Before each of the 10 picks appears, a counter runs up to that bond's number and stops there; the row then appears
@@ -430,11 +450,10 @@ function useScanShow(data: Response | null, active: boolean): Show | null {
   return show;
 }
 
-/** The counter and the Monte Carlo drawing, laid over the slots of the picks not shown yet. */
-function ScanPanel({ data, show, lang, currency }: { data: Response; show: Show; lang: FinderLang; currency: string }) {
+/** The Monte Carlo drawing, laid over the slots of the picks not shown yet (the bond counter is the fifth box above). */
+function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: FinderLang }) {
   const t = useFinderText();
   const fmt = new Intl.NumberFormat(lang);
-  const n = data.scanned ?? 0;
   const mc = data.monteCarlo;
   const sims = mc?.paths ?? 0;
   const samples = mc?.samples ?? [];
@@ -451,17 +470,8 @@ function ScanPanel({ data, show, lang, currency }: { data: Response; show: Show;
       className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-canvas text-center top-[var(--m)] sm:top-[var(--d)]"
       style={{ ["--m" as string]: `${show.row * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + show.row * ROW_H}px` }}
     >
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-mute">{t.scanTitle(currency)} · A→Z</p>
-      <p className="mt-1 text-[30px] font-semibold leading-none tracking-tight tabular-nums">
-        <span className="text-[15px] font-normal text-mute">#{show.row + 1} → </span>
-        {fmt.format(show.count)}
-        <span className="text-[15px] font-normal text-mute"> {t.scanOf} {fmt.format(n)}</span>
-      </p>
-      <div className="mt-2 h-1 w-[260px] max-w-[80%] overflow-hidden rounded-full bg-white">
-        <div className="h-full rounded-full bg-accent" style={{ width: `${(show.count / Math.max(n, 1)) * 100}%` }} />
-      </div>
-      {sims > 0 && left >= 5 && (
-        <div className="mt-3 w-[280px] max-w-[85%]">
+      {sims > 0 && left >= 3 && (
+        <div className="w-[280px] max-w-[85%]">
           <svg viewBox={`0 0 ${W} ${H}`} className="block h-[70px] w-full" preserveAspectRatio="none">
             <defs>
               <clipPath id="mc-reveal"><rect x={0} y={0} width={W * show.sim} height={H} /></clipPath>
@@ -611,7 +621,7 @@ function Results({ data, paid, signedIn, currency, message, show, lang }: { data
       </ul>
 
       {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
-      {show && data && !message && <ScanPanel data={data} show={show} lang={lang} currency={currency} />}
+      {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
           {message}
