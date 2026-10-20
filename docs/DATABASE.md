@@ -19,6 +19,7 @@ Two logins on one Neon Postgres project:
 | `refresh_requests` | "refresh prices" requests read by lm-op-model | permanent (small) |
 | `best_bonds` | cache of the best bonds per horizon and risk, rebuilt from `public_bonds` | rebuilt with each copy |
 | `ytm_history` | one yield per rated EUR bond per day, recorded when a new copy loads (weekly/monthly moves) | 120 days |
+| `bond_price_weeks` | weekly lowest and highest yield of each shown bond, for the 52-week price high on the Price drops page | about 60 weeks |
 | `settings` | small values the app keeps for itself (Stripe webhook key, one-time markers) | permanent |
 | `broker_*` | broker profiles, tariffs (versioned drafts and approvals), settings | permanent |
 | `seo_*` | guides, their history, keywords, backlinks, assessments | permanent |

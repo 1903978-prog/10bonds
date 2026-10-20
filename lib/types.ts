@@ -16,6 +16,10 @@ export type PublicBond = {
   modifiedDuration: number | null; // years
   ytmAsOf: string | null;
   minInvestment?: number | null; // smallest amount that can be bought, in the bond's currency; null = unknown
+  // Real prices, once the nightly copy carries them (docs/handover/price-history.md); undefined until then.
+  cleanPrice?: number | null; // per 100 nominal
+  high52w?: number | null;
+  low52w?: number | null;
 };
 
 // visitor = not signed in; free = signed-in free account.

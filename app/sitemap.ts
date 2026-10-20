@@ -23,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ pages, asOf, source }, guides, brokers] = await Promise.all([comparisonPages(), publishedGuides(), loadPublicData()]);
   const out: MetadataRoute.Sitemap = [
     { url: SITE_URL + "/", changeFrequency: "daily", priority: 1, alternates: { languages: { ...langs((l) => `/${l}`), "x-default": SITE_URL + "/" } } },
-    ...["/pricing", "/widget", "/disclaimer", "/methodology", "/ranking-methodology", "/selection-methodology", "/terms", "/privacy", "/cookies"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
+    ...["/pricing", "/price-drops", "/it/ribassi", "/fr/baisses", "/de/kursrueckgaenge", "/widget", "/disclaimer", "/methodology", "/ranking-methodology", "/selection-methodology", "/terms", "/privacy", "/cookies"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
   ];
   // English Knowledge Center.
   out.push({ url: SITE_URL + enPath(), changeFrequency: "weekly", priority: 0.7, alternates: { languages: { ...langs((x) => pathOf(x, "knowledge")), en: SITE_URL + enPath() } } });

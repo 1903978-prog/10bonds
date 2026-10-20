@@ -6,6 +6,12 @@ table app.best_bonds
   isin text not null
   bond jsonb not null
 
+table app.bond_price_weeks
+  isin text not null
+  week date not null
+  min_ytm real not null
+  max_ytm real not null
+
 table app.broker_profiles
   id text not null
   data jsonb not null
@@ -326,6 +332,7 @@ table app.ytm_history
 
 constraints
   app.best_bonds best_bonds_pkey: PRIMARY KEY (duration, level, rank)
+  app.bond_price_weeks bond_price_weeks_pkey: PRIMARY KEY (isin, week)
   app.broker_profiles broker_profiles_pkey: PRIMARY KEY (id)
   app.broker_settings broker_settings_pkey: PRIMARY KEY (key)
   app.broker_tariffs broker_tariffs_country_check: CHECK ((country = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
@@ -402,6 +409,7 @@ constraints
 
 indexes
   CREATE UNIQUE INDEX best_bonds_pkey ON app.best_bonds USING btree (duration, level, rank)
+  CREATE UNIQUE INDEX bond_price_weeks_pkey ON app.bond_price_weeks USING btree (isin, week)
   CREATE UNIQUE INDEX broker_profiles_pkey ON app.broker_profiles USING btree (id)
   CREATE UNIQUE INDEX broker_settings_pkey ON app.broker_settings USING btree (key)
   CREATE INDEX broker_tariffs_lookup ON app.broker_tariffs USING btree (country, broker_id, status, effective_from DESC)

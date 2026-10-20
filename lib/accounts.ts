@@ -96,6 +96,17 @@ async function setup(sql: ReturnType<typeof postgres>) {
       bond jsonb not null,
       primary key (duration, level, rank)
     )`;
+  // Weekly lowest and highest yield of each bond (lib/priceHistory.ts): the daily copy holds today's yield only, so the
+  // site keeps its own history for the 52-week price high (the lowest yield, repriced today). About 60 weeks are kept.
+  await sql`
+    create table if not exists app.bond_price_weeks (
+      isin text not null,
+      week date not null,
+      min_ytm real not null,
+      max_ytm real not null,
+      primary key (isin, week)
+    )`;
+  await sql`delete from app.bond_price_weeks where week < current_date - 420`;
   await sql`create index if not exists events_kind_at_idx on app.events (kind, at)`;
   // Lookups by account (data export, account deletion) and by Stripe customer (payment webhooks).
   await sql`create index if not exists events_user_idx on app.events (user_id) where user_id is not null`;
