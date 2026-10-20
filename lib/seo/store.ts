@@ -3,6 +3,7 @@ import { accountsSql } from "../accounts";
 import type { CriterionResult, Points, Status } from "./rubric";
 import { SEED_GUIDES } from "./guidesSeed";
 import { DEFAULT_RATE_TEXT_FIXES } from "./defaultRatesTextFixes";
+import { LEGAL_TEXT_FIXES } from "./legalTextFixes";
 import { SEED_GUIDES_LIVIO_FR } from "./guidesLivioFr";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
@@ -301,6 +302,13 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
     for (const [from, to] of DEFAULT_RATE_TEXT_FIXES) {
       await s`update app.seo_guides set body_html = replace(body_html, ${from}, ${to}), meta_description = replace(meta_description, ${from}, ${to}), updated_at = now()
         where strpos(body_html, ${from}) > 0 or strpos(meta_description, ${from}) > 0`;
+    }
+  }
+  // The guides stop naming the agency the risk score is read from (legal review, Livio, 20 Oct 2026), once, the same way.
+  const [legal] = await s`insert into app.settings (key, value) values ('seo_legal_text_fixes', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (legal) {
+    for (const [from, to] of LEGAL_TEXT_FIXES) {
+      await s`update app.seo_guides set body_html = replace(body_html, ${from}, ${to}), updated_at = now() where strpos(body_html, ${from}) > 0`;
     }
   }
   for (const k of SEED_KEYWORDS) {

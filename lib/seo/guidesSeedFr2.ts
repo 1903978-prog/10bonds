@@ -93,7 +93,7 @@ ${disclaimer}
 <p>Le rendement dépend du niveau général des taux (celui de l'OAT et du Bund), de la <a href="/fr/guides/duration-obligations">duration</a> et de la notation. En règle générale, à duration égale, plus la note baisse, plus le rendement monte. Les valeurs du jour figurent sur la page des <a href="/fr/obligations/investment-grade">obligations investment grade en euros</a>, mise à jour chaque jour, et sur celle des <a href="/fr/obligations/meilleures-obligations">obligations investment grade les mieux rémunérées</a>.</p>
 <p>Pour un particulier résident en France, les coupons perçus en compte-titres relèvent en principe du prélèvement forfaitaire unique (la « flat tax »), avec option possible pour le barème progressif ; vérifiez le taux en vigueur. Les rendements affichés sur 10BONDS sont bruts.</p>
 <h2 id="agences">Que faire quand les agences ne sont pas d'accord ?</h2>
-<p>Il arrive qu'une obligation soit BBB- pour une agence et BB+ pour une autre. Sur 10BONDS, nous utilisons la note consolidée fournie avec les données lorsqu'elle existe, sinon celle de S&amp;P, puis de Moody's, puis de Fitch. Les obligations sans notation n'apparaissent pas dans nos listes.</p>
+<p>Il arrive qu'une obligation soit BBB- pour une agence et BB+ pour une autre. Sur 10BONDS, nous affichons plutôt un risque de 1 à 10, une échelle propre qui n'est pas une notation. Les obligations sans notation n'apparaissent pas dans nos listes.</p>
 ${cta("réglez la notation minimale avec le curseur de risque et comparez les 10 obligations")}
 ${disclaimer}
 `,

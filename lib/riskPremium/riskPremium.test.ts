@@ -244,7 +244,8 @@ describe("bracket explanation", () => {
     const why = Object.fromEntries(rows.map((r) => [r.isin, r.why]));
     expect(rows[0]).toMatchObject({ isin: top.isin, inTop: true });
     expect(why[top.isin]).toMatch(/^In the top 10/);
-    expect(why[low.isin]).toMatch(/not above the 115 bp/);
+    expect(why[low.isin]).toMatch(/not above what its risk requires/);
+    expect(Object.values(why).join(" ")).not.toMatch(/\d+ bp required|AAA/);
     expect(why[twin.isin]).toMatch(/Issuer already in the list/);
     expect(why[sub.isin]).toMatch(/^Outlier/);
     expect(why[longer.isin]).toBeUndefined();

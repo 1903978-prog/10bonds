@@ -14,7 +14,7 @@ import type { EvalContext } from "./riskPremium/evaluate";
 
 export type WhyRow = {
   rank: number; inTop: boolean; issuer: string; name: string; isin: string; ytm: number; duration: number; risk: number | null;
-  overAaaBp?: number | null; requiredBp?: number | null; surplusBp?: number | null; why: string;
+  surplusBp?: number | null; why: string;
 };
 export const WHY_MAX_ROWS = 400;
 
@@ -53,7 +53,7 @@ export function explainRiskAdjusted(bonds: PublicBond[], outliers: Outlier[], sc
   const currency = new Set(bonds.map((b) => b.currency));
   return order(bracketExplain(bonds, outliers.filter((o) => currency.has(o.bond.currency)), ctx, sc, ranking).map((r) => ({
     rank: r.rank, inTop: r.inTop, issuer: r.issuer, name: r.name, isin: r.isin, ytm: r.ytm, duration: r.duration, risk: r.risk,
-    overAaaBp: r.spreadBp, requiredBp: r.requiredBp, surplusBp: r.surplusBp, why: r.why,
+    surplusBp: r.surplusBp, why: r.why,
   })));
 }
 

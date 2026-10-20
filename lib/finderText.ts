@@ -7,7 +7,7 @@ export type FinderLang = "en" | "it" | "fr" | "de";
 
 const en = {
   frontierTitle: "We find the efficient frontier for your investments", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("en-GB")} ${c} bonds, one grey dot each (all durations)`, frontierBlue: "4–6 year bonds", frontierLine: "Efficient frontier of the blue bonds, risk 1 to 8", frontierHow: "Your top 10 is chosen with Pareto rules and a Monte Carlo simulation.", frontierStart: "Move any control to see your bonds.",
-  h1: "Find the best bonds for your goals",
+  h1: "Find bonds that match your goals",
   intro: "Choose how long you want to invest, the yield you are after and the highest risk you accept. We rank bonds by yield after expected default losses, our own method.",
   mode: "Mode", single: "1 bond", portfolio: "Portfolio",
   horizon: "Investment horizon", horizonHint: "Target duration", years: "years", year1: "1 year", years30: "30+ years",
@@ -48,7 +48,7 @@ export type FinderText = typeof en;
 
 const it: FinderText = {
   frontierTitle: "Troviamo la frontiera efficiente per i tuoi investimenti", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("it-IT")} obbligazioni in ${c}, un punto grigio ciascuna (tutte le duration)`, frontierBlue: "Obbligazioni a 4–6 anni", frontierLine: "Frontiera efficiente dei punti blu, rischio da 1 a 8", frontierHow: "La tua top 10 è scelta con regole di Pareto e una simulazione Monte Carlo.", frontierStart: "Muovi un comando per vedere le tue obbligazioni.",
-  h1: "Trova le obbligazioni giuste per i tuoi obiettivi",
+  h1: "Trova le obbligazioni in linea con i tuoi criteri",
   intro: "Scegli per quanto tempo vuoi investire, il rendimento che cerchi e il rischio massimo che accetti. Ordiniamo le obbligazioni per rendimento al netto delle perdite attese da default, un nostro metodo.",
   mode: "Modalità", single: "1 obbligazione", portfolio: "Portafoglio",
   horizon: "Orizzonte di investimento", horizonHint: "Duration obiettivo", years: "anni", year1: "1 anno", years30: "30+ anni",
@@ -88,7 +88,7 @@ const it: FinderText = {
 
 const fr: FinderText = {
   frontierTitle: "Nous trouvons la frontière efficiente pour vos investissements", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("fr-FR")} obligations en ${c}, un point gris chacune (toutes durations)`, frontierBlue: "Obligations à 4–6 ans", frontierLine: "Frontière efficiente des points bleus, risque de 1 à 8", frontierHow: "Votre top 10 est choisi avec des règles de Pareto et une simulation de Monte-Carlo.", frontierStart: "Déplacez un réglage pour voir vos obligations.",
-  h1: "Trouvez les obligations adaptées à vos objectifs",
+  h1: "Trouvez les obligations qui correspondent à vos critères",
   intro: "Choisissez la durée de votre placement, le rendement visé et le risque maximal accepté. Nous classons les obligations par rendement net des pertes attendues de défaut, notre propre méthode.",
   mode: "Mode", single: "1 obligation", portfolio: "Portefeuille",
   horizon: "Horizon de placement", horizonHint: "Duration cible", years: "ans", year1: "1 an", years30: "30+ ans",
@@ -128,7 +128,7 @@ const fr: FinderText = {
 
 const de: FinderText = {
   frontierTitle: "Wir finden die Effizienzkurve für Ihre Anlagen", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("de-DE")} ${c}-Anleihen, je ein grauer Punkt (alle Laufzeiten)`, frontierBlue: "Anleihen mit 4–6 Jahren", frontierLine: "Effizienzkurve der blauen Punkte, Risiko 1 bis 8", frontierHow: "Ihre Top 10 wird mit Pareto-Regeln und einer Monte-Carlo-Simulation ausgewählt.", frontierStart: "Bewegen Sie einen Regler, um Ihre Anleihen zu sehen.",
-  h1: "Finden Sie die passenden Anleihen für Ihre Ziele",
+  h1: "Finden Sie Anleihen, die zu Ihren Kriterien passen",
   intro: "Wählen Sie Anlagedauer, Zielrendite und das höchste akzeptierte Risiko. Wir sortieren Anleihen nach Rendite nach erwarteten Ausfallverlusten, unserer eigenen Methode.",
   mode: "Modus", single: "1 Anleihe", portfolio: "Portfolio",
   horizon: "Anlagehorizont", horizonHint: "Ziel-Duration", years: "Jahre", year1: "1 Jahr", years30: "30+ Jahre",

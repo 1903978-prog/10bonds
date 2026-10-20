@@ -80,7 +80,7 @@ export default function ReplacementEngine() {
         <p className="text-sm font-medium text-accent">For professional wealth managers</p>
         <h1 className="mt-1 text-[32px] font-semibold leading-[1.1] tracking-tight sm:text-[40px]">Bond Replacement Engine</h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-mute sm:text-base">
-          Upload a client portfolio. We check every bond against the alternatives in our data and show, one by one, which bond to sell, which to buy and why.
+          Upload a client portfolio. We compare every bond with similar bonds in our data and show, one by one, any alternative with a higher yield or lower risk and how it differs. The decision stays with you.
           A swap is only shown when the gain is clear after trading costs. Otherwise we say <strong className="text-ink">keep</strong>.
         </p>
 
@@ -135,7 +135,7 @@ export default function ReplacementEngine() {
                   <option value="risk">Lower risk, similar yield</option>
                 </select>
               </label>
-              <Num label="Trading cost, sell + buy (%)" value={settings.costPct} step={0.05} onChange={(v) => set("costPct", v)} />
+              <Num label="Round-trip trading cost (%)" value={settings.costPct} step={0.05} onChange={(v) => set("costPct", v)} />
               <Num label="Max share of one issuer (%)" value={settings.maxIssuerPct} step={1} onChange={(v) => set("maxIssuerPct", v)} />
               <Num label="Similar duration: within (years)" value={settings.durationTolerance} step={0.1} onChange={(v) => set("durationTolerance", v)} />
               <Num label="Min. extra yield after costs (% a year)" value={settings.minPickupPct} step={0.05} onChange={(v) => set("minPickupPct", v)} />
@@ -180,10 +180,10 @@ function Results({ data }: { data: Response }) {
 
       <div className={card}>
         <h2 className="text-xl font-semibold tracking-tight">
-          {data.swaps === 0 ? "Keep the portfolio as it is" : `${data.swaps} ${data.swaps === 1 ? "swap" : "swaps"} suggested`}
+          {data.swaps === 0 ? "No alternative meets the rules" : `${data.swaps} ${data.swaps === 1 ? "alternative" : "alternatives"} found`}
         </h2>
         <p className="mt-1 text-sm text-mute">
-          {data.lines.length} bonds checked · {data.swaps} swap · {keeps} keep{unknown ? ` · ${unknown} not in our data` : ""}
+          {data.lines.length} bonds checked · {data.swaps} with an alternative · {keeps} without{unknown ? ` · ${unknown} not in our data` : ""}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Compare label="Yield (YTM)" before={pct(data.before.ytm)} after={pct(data.after.ytm)} />
@@ -238,7 +238,7 @@ function LineCard({ line }: { line: Line }) {
   if (line.action === "keep")
     return (
       <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="pro-keep">
-        <Badge tone="gray">Keep</Badge>
+        <Badge tone="gray">No alternative</Badge>
         <BondRow b={line.sell} amount={line.amount} />
         <p className="mt-2 text-sm text-mute">{line.reason}</p>
       </div>
@@ -254,11 +254,11 @@ function LineCard({ line }: { line: Line }) {
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl bg-red-50/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Sell</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Held</p>
           <BondRow b={line.sell} amount={line.amount} />
         </div>
         <div className="rounded-2xl bg-green-50/70 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Buy</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Alternative</p>
           <BondRow b={line.buy} />
         </div>
       </div>
@@ -299,11 +299,11 @@ export function ProNotice() {
 }
 
 function swapRows(data: Response): string[][] {
-  const rows = [["Action", "Type", "Amount EUR", "Sell ISIN", "Sell bond", "Sell YTM", "Sell duration", "Sell risk", "Buy ISIN", "Buy bond", "Buy YTM", "Buy duration", "Buy risk", "Net yield change % a year", "Reason"]];
+  const rows = [["Result", "Type", "Amount EUR", "Held ISIN", "Held bond", "Held YTM", "Held duration", "Held risk", "Alternative ISIN", "Alternative bond", "Alternative YTM", "Alternative duration", "Alternative risk", "Net yield change % a year", "Reason"]];
   for (const l of data.lines) {
     if (l.action === "swap")
-      rows.push(["Swap", l.kind === "yield" ? "Higher yield" : "Lower risk", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.risk === null ? "" : String(l.sell.risk), l.buy.isin, l.buy.name, l.buy.ytm.toFixed(2), l.buy.duration.toFixed(2), l.buy.risk === null ? "" : String(l.buy.risk), l.netYtmChange.toFixed(2), l.rationale.join(" ")]);
-    else if (l.action === "keep") rows.push(["Keep", "", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.risk === null ? "" : String(l.sell.risk), "", "", "", "", "", "", l.reason]);
+      rows.push(["Alternative", l.kind === "yield" ? "Higher yield" : "Lower risk", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.risk === null ? "" : String(l.sell.risk), l.buy.isin, l.buy.name, l.buy.ytm.toFixed(2), l.buy.duration.toFixed(2), l.buy.risk === null ? "" : String(l.buy.risk), l.netYtmChange.toFixed(2), l.rationale.join(" ")]);
+    else if (l.action === "keep") rows.push(["No alternative", "", String(l.amount), l.sell.isin, l.sell.name, l.sell.ytm.toFixed(2), l.sell.duration.toFixed(2), l.sell.risk === null ? "" : String(l.sell.risk), "", "", "", "", "", "", l.reason]);
     else rows.push(["Not covered", "", String(l.amount), l.isin, "", "", "", "", "", "", "", "", "", "", l.reason]);
   }
   return rows;

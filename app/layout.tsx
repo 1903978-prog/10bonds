@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Bing Webmaster Tools site verification (Livio, 19 Oct 2026). Public by design, not a secret.
   verification: { other: { "msvalidate.01": "ADA17531835A822BB9A6870BCE68531B" } },
-  title: "10BONDS · Find the 10 best bonds for your goals",
+  title: "10BONDS · Find 10 bonds that match your goals",
   description: "Pick a duration and a target yield. 10BONDS turns thousands of euro bonds into a clear shortlist of 10.",
   openGraph: {
     title: "10BONDS · 10 bonds, 2 sliders",
