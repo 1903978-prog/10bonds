@@ -2,48 +2,43 @@ import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { loadBondsFor } from "@/lib/bonds";
 import { parseFilter } from "@/lib/bondFilter";
-import { shapeCurve } from "@/lib/singleBond";
-import { bestTableFor, curveAt } from "@/lib/bestTable";
-import { RISK_LEVELS } from "@/lib/limits";
-import type { Tier } from "@/lib/types";
-import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
-import { publicQuota, consumeSearch } from "@/lib/searchQuota";
+import { LIMITS } from "@/lib/limits";
+import { lossCurve, type CurvePoint } from "@/lib/lossCurve";
 
 export const dynamic = "force-dynamic";
 
-/** Best yield per risk step for one duration, with the bonds behind each dot (cut to the caller's plan). */
-export async function GET(req: Request) {
-  // Sliders send one request per move; 240 a minute per address (both bond routes together) is far above normal use.
-  if (!allow(`bonds:${clientIp(req)}`, 240, 60_000))
-    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
-  const url = new URL(req.url);
-  const raw = Number(url.searchParams.get("duration"));
-  const { min, max, initial } = LIMITS.duration;
-  const duration = Number.isFinite(raw) && url.searchParams.get("duration") !== null ? Math.min(max, Math.max(min, raw)) : initial;
+// The curve depends only on the horizon, risk limit and bond filter (and the data copy), so it is remembered per key.
+const cache = new Map<string, { points: CurvePoint[]; max: number }>();
 
-  let data, table;
+function clampParam(raw: string | null, { min, max, initial }: { min: number; max: number; initial: number }) {
+  const n = raw === null ? NaN : Number(raw);
+  if (!Number.isFinite(n)) return initial;
+  return Math.min(max, Math.max(min, n));
+}
+
+/** Expected loss on your money against target yield, for paid plans only (the same figure as the results box). */
+export async function GET(req: Request) {
+  if (!allow(`curve:${clientIp(req)}`, 60, 60_000))
+    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+  const user = await currentUser();
+  if (!user || user.confirmBlocked || user.plan === "free") return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  const url = new URL(req.url);
+  const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
+  const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
+  const filter = parseFilter(url.searchParams);
+  let data;
   try {
-    const f = parseFilter(url.searchParams);
-    [data, table] = await Promise.all([loadBondsFor(f), bestTableFor(f)]);
+    data = await loadBondsFor(filter);
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-  const user = await currentUser();
-  if (user?.confirmBlocked) return NextResponse.json({ error: "Please confirm your e-mail address first.", confirmBlocked: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  let tier: Tier = user ? user.plan : "visitor";
-  const preview = url.searchParams.get("preview");
-  if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
-
-  // Weekly allowance per plan (Free: limited; Plus and Premium: see SEARCH_LIMITS). Visitors keep their short preview.
-  const usage = user && tier === user.plan ? await consumeSearch(user, "single") : null;
-  if (usage && !usage.allowed)
-    return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
-  // How many bonds this filter has at all, and their duration span, so an empty chart can say why.
-  const durs = data.bonds.map((b) => b.modifiedDuration).filter((d): d is number => d !== null);
-  const coverage = { count: durs.length, min: durs.length ? Math.min(...durs) : null, max: durs.length ? Math.max(...durs) : null };
-  return NextResponse.json(
-    { tier, coverage, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier, user?.isAdmin === true), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
-    { headers: { "Cache-Control": "no-store" } },
-  );
+  const key = `${data.asOf}|${filter.currency}|${filter.size}|${duration}|${risk}`;
+  let hit = cache.get(key);
+  if (!hit) {
+    hit = lossCurve(data.bonds, duration, risk);
+    if (cache.size >= 200) cache.delete(cache.keys().next().value!);
+    cache.set(key, hit);
+  }
+  return NextResponse.json({ ...hit, duration, risk }, { headers: { "Cache-Control": "private, no-store" } });
 }
