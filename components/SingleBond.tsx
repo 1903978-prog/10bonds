@@ -11,7 +11,8 @@ import { downloadXlsx } from "@/lib/xlsx";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import { dominatedLevels, dropDominated } from "@/lib/curveFilter";
 
-type Payload = { tier: Tier; points: CurvePoint[]; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
+type Coverage = { count: number; min: number | null; max: number | null };
+type Payload = { tier: Tier; points: CurvePoint[]; coverage?: Coverage; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 
@@ -95,7 +96,12 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
           onBack={index > 0 ? () => setIndex(0) : undefined}
         />
       ) : (
-        !loading && data && !points.some((p) => p.ytm !== null) && <p className="mt-4 text-center text-sm text-mute">{t.noneSingle}</p>
+        !loading && data && !points.some((p) => p.ytm !== null) && (
+          <p className="mt-4 text-center text-sm text-mute">
+            {t.noneSingle}
+            {data.coverage && data.coverage.count < 200 && <><br />{t.noneCoverage(data.coverage.count, currency, data.coverage.min ?? 0, data.coverage.max ?? 0)}</>}
+          </p>
+        )
       )}
       <QuotaNote quota={data?.quota} />
     </div>
