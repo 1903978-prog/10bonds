@@ -2,7 +2,7 @@ import type { SeedGuide } from "./guidesSeed";
 
 // Second batch of French guides, written for French investors (OAT, Bund, compte-titres, PEA, flat tax) from the
 // Italian and English versions of the same translation groups. No yields, prices or statistics beyond those in the
-// source guides; the default-rate table reproduces the S&P figures of the Italian page exactly.
+// source guides; the default-rate table reproduces the combined figures of the Italian page exactly.
 
 const cta = (text: string) => `<p><strong>Essayez :</strong> <a href="/fr">${text}</a>. Deux curseurs, dix obligations, sans engagement.</p>`;
 
@@ -86,7 +86,7 @@ ${disclaimer}
 </table>
 <p>À partir de BB+ (Ba1 chez Moody's), on entre dans le <a href="/fr/guides/obligations-haut-rendement">haut rendement</a>, ou <em>high yield</em>, aussi appelé « spéculatif ».</p>
 <h2 id="ce-que-dit">Que dit vraiment une notation ?</h2>
-<p>La notation est l'opinion d'une agence sur la capacité de l'émetteur à payer ses coupons et à rembourser son capital. Ce n'est ni une garantie ni un conseil d'achat. Historiquement, les défauts ont été beaucoup plus rares parmi les émetteurs investment grade que parmi les émetteurs high yield, mais ils ne sont pas impossibles : notre page sur les <a href="/fr/guides/probabilite-defaut-notation">probabilités de défaut par notation</a> donne les moyennes de S&amp;P. Une note peut aussi changer pendant que vous détenez l'obligation : la France elle-même a vu sa note abaissée ces dernières années.</p>
+<p>La notation est l'opinion d'une agence sur la capacité de l'émetteur à payer ses coupons et à rembourser son capital. Ce n'est ni une garantie ni un conseil d'achat. Historiquement, les défauts ont été beaucoup plus rares parmi les émetteurs investment grade que parmi les émetteurs high yield, mais ils ne sont pas impossibles : notre page sur les <a href="/fr/guides/probabilite-defaut-notation">probabilités de défaut par notation</a> donne les moyennes issues des études historiques publiques sur les défauts. Une note peut aussi changer pendant que vous détenez l'obligation : la France elle-même a vu sa note abaissée ces dernières années.</p>
 <h2 id="seuil">Pourquoi le seuil BBB- compte-t-il autant ?</h2>
 <p>Quand un émetteur passe de BBB- à BB+, il devient un <strong>fallen angel</strong> (« ange déchu »). Beaucoup d'investisseurs sont alors contraints de vendre, et le prix peut baisser plus que ne le justifierait la seule dégradation du crédit. C'est pourquoi les obligations notées BBB- rapportent en général un peu plus que les obligations notées A : le marché intègre le risque de franchir le seuil.</p>
 <h2 id="rendement">Combien rapportent les obligations investment grade ?</h2>
@@ -123,7 +123,7 @@ ${disclaimer}
 <li><strong>La dégradation</strong> : une nouvelle baisse de la note fait chuter le prix.</li>
 </ul>
 <h2 id="bb-b">Tout le high yield se vaut-il ?</h2>
-<p>Non. La catégorie BB est la plus proche de l'investment grade et a connu historiquement des défauts beaucoup moins fréquents que les catégories B et CCC. Les moyennes de S&amp;P sont reprises dans notre tableau des <a href="/fr/guides/probabilite-defaut-notation">probabilités de défaut par notation</a>.</p>
+<p>Non. La catégorie BB est la plus proche de l'investment grade et a connu historiquement des défauts beaucoup moins fréquents que les catégories B et CCC. Les moyennes historiques publiques sont reprises dans notre tableau des <a href="/fr/guides/probabilite-defaut-notation">probabilités de défaut par notation</a>.</p>
 <table>
 <thead><tr><th scope="col">Catégorie</th><th scope="col">Position</th><th scope="col">Sur 10BONDS</th></tr></thead>
 <tbody>
@@ -221,37 +221,37 @@ ${disclaimer}
     slug: "probabilite-defaut-notation",
     title: "Quelle est la probabilité historique de défaut d'une note BBB ?",
     seoTitle: "Probabilité de défaut par notation : BBB, A, BB…",
-    metaDescription: "Probabilité historique de défaut par notation, de AAA à CCC : un émetteur BBB a fait défaut dans 1,44 % des cas à 5 ans et 3,52 % à 10 ans (S&P).",
+    metaDescription: "Probabilité historique de défaut par notation, de AAA à CCC : un émetteur BBB a fait défaut dans 1,40 % des cas à 5 ans et 3,40 % à 10 ans (moyennes de long terme).",
     primaryKeyword: "probabilité de défaut notation bbb",
     relatedKeywords: ["probabilité de défaut par notation", "taux de défaut par notation", "défaut obligation bbb"],
     relatedSlugs: ["risque-de-credit-obligataire", "obligations-investment-grade", "obligations-haut-rendement"],
     bodyHtml: `
-<p><strong>En bref :</strong> selon les moyennes historiques de S&amp;P, un émetteur noté BBB a fait défaut dans 0,16 % des cas en 1 an, 1,44 % en 5 ans et 3,52 % en 10 ans. Sur 100 émetteurs BBB, moins de 4 en moyenne ont fait défaut en dix ans.</p>
+<p><strong>En bref :</strong> d'après les études historiques publiques sur les défauts, un émetteur noté BBB a fait défaut dans 0,15 % des cas en 1 an, 1,40 % en 5 ans et 3,40 % en 10 ans. Sur 100 émetteurs BBB, moins de 4 en moyenne ont fait défaut en dix ans.</p>
 <p>Le tableau ci-dessous donne les taux de défaut cumulés moyens pour chaque cran de notation, de 1 à 15 ans. Un taux cumulé est la part des émetteurs ayant cette note au début de la période qui ont fait défaut avant la fin de la période.</p>
 <h2 id="tableau">Quels sont les taux de défaut cumulés par notation ?</h2>
 <table><thead><tr><th scope="col">Note</th><th scope="col">Risque 10BONDS</th><th scope="col">1 an</th><th scope="col">3 ans</th><th scope="col">5 ans</th><th scope="col">7 ans</th><th scope="col">10 ans</th><th scope="col">15 ans</th></tr></thead><tbody>
-<tr><td>AAA</td><td>1</td><td>0,00 %</td><td>0,03 %</td><td>0,13 %</td><td>0,25 %</td><td>0,44 %</td><td>0,58 %</td></tr>
-<tr><td>AA+</td><td>2</td><td>0,00 %</td><td>0,05 %</td><td>0,15 %</td><td>0,29 %</td><td>0,52 %</td><td>0,77 %</td></tr>
-<tr><td>AA</td><td>2</td><td>0,02 %</td><td>0,10 %</td><td>0,25 %</td><td>0,43 %</td><td>0,70 %</td><td>1,05 %</td></tr>
-<tr><td>AA−</td><td>2</td><td>0,03 %</td><td>0,15 %</td><td>0,36 %</td><td>0,57 %</td><td>0,88 %</td><td>1,34 %</td></tr>
-<tr><td>A+</td><td>3</td><td>0,04 %</td><td>0,18 %</td><td>0,39 %</td><td>0,65 %</td><td>1,10 %</td><td>1,82 %</td></tr>
-<tr><td>A</td><td>3</td><td>0,05 %</td><td>0,22 %</td><td>0,48 %</td><td>0,81 %</td><td>1,38 %</td><td>2,19 %</td></tr>
-<tr><td>A−</td><td>3</td><td>0,07 %</td><td>0,28 %</td><td>0,57 %</td><td>0,98 %</td><td>1,65 %</td><td>2,52 %</td></tr>
-<tr><td>BBB+</td><td>4</td><td>0,11 %</td><td>0,46 %</td><td>0,98 %</td><td>1,58 %</td><td>2,54 %</td><td>4,02 %</td></tr>
-<tr><td>BBB</td><td>5</td><td>0,16 %</td><td>0,71 %</td><td>1,44 %</td><td>2,27 %</td><td>3,52 %</td><td>5,38 %</td></tr>
-<tr><td>BBB−</td><td>6</td><td>0,27 %</td><td>1,22 %</td><td>2,84 %</td><td>4,08 %</td><td>5,92 %</td><td>8,44 %</td></tr>
-<tr><td>BB+</td><td>7</td><td>0,39 %</td><td>1,85 %</td><td>3,65 %</td><td>5,52 %</td><td>8,05 %</td><td>11,22 %</td></tr>
-<tr><td>BB</td><td>7</td><td>0,63 %</td><td>2,87 %</td><td>5,48 %</td><td>7,92 %</td><td>11,08 %</td><td>14,88 %</td></tr>
-<tr><td>BB−</td><td>7</td><td>0,95 %</td><td>4,22 %</td><td>7,98 %</td><td>11,25 %</td><td>15,18 %</td><td>19,65 %</td></tr>
-<tr><td>B+</td><td>8</td><td>1,75 %</td><td>6,20 %</td><td>10,42 %</td><td>13,95 %</td><td>18,22 %</td><td>23,40 %</td></tr>
-<tr><td>B</td><td>8</td><td>3,32 %</td><td>10,32 %</td><td>15,65 %</td><td>19,68 %</td><td>24,33 %</td><td>29,50 %</td></tr>
-<tr><td>B−</td><td>8</td><td>6,25 %</td><td>16,48 %</td><td>23,10 %</td><td>27,95 %</td><td>33,15 %</td><td>38,80 %</td></tr>
-<tr><td>CCC+</td><td>9</td><td>15,40 %</td><td>28,50 %</td><td>35,80 %</td><td>40,10 %</td><td>44,90 %</td><td>49,50 %</td></tr>
-<tr><td>CCC / C</td><td>9–10</td><td>26,63 %</td><td>40,85 %</td><td>46,90 %</td><td>50,41 %</td><td>54,21 %</td><td>57,86 %</td></tr>
+<tr><td>AAA</td><td>1</td><td>0,00 %</td><td>0,01 %</td><td>0,07 %</td><td>0,17 %</td><td>0,31 %</td><td>0,51 %</td></tr>
+<tr><td>AA+</td><td>2</td><td>0,00 %</td><td>0,04 %</td><td>0,14 %</td><td>0,26 %</td><td>0,46 %</td><td>0,69 %</td></tr>
+<tr><td>AA</td><td>2</td><td>0,01 %</td><td>0,07 %</td><td>0,20 %</td><td>0,36 %</td><td>0,60 %</td><td>0,97 %</td></tr>
+<tr><td>AA−</td><td>2</td><td>0,03 %</td><td>0,12 %</td><td>0,30 %</td><td>0,49 %</td><td>0,78 %</td><td>1,20 %</td></tr>
+<tr><td>A+</td><td>3</td><td>0,04 %</td><td>0,17 %</td><td>0,38 %</td><td>0,62 %</td><td>1,10 %</td><td>1,80 %</td></tr>
+<tr><td>A</td><td>3</td><td>0,05 %</td><td>0,21 %</td><td>0,48 %</td><td>0,80 %</td><td>1,40 %</td><td>2,20 %</td></tr>
+<tr><td>A−</td><td>3</td><td>0,07 %</td><td>0,28 %</td><td>0,59 %</td><td>0,98 %</td><td>1,70 %</td><td>2,60 %</td></tr>
+<tr><td>BBB+</td><td>4</td><td>0,10 %</td><td>0,44 %</td><td>0,93 %</td><td>1,50 %</td><td>2,40 %</td><td>3,90 %</td></tr>
+<tr><td>BBB</td><td>5</td><td>0,15 %</td><td>0,65 %</td><td>1,40 %</td><td>2,10 %</td><td>3,40 %</td><td>5,30 %</td></tr>
+<tr><td>BBB−</td><td>6</td><td>0,26 %</td><td>1,10 %</td><td>2,40 %</td><td>3,70 %</td><td>5,50 %</td><td>8,00 %</td></tr>
+<tr><td>BB+</td><td>7</td><td>0,41 %</td><td>1,80 %</td><td>3,60 %</td><td>5,40 %</td><td>7,90 %</td><td>11,20 %</td></tr>
+<tr><td>BB</td><td>7</td><td>0,63 %</td><td>2,70 %</td><td>5,20 %</td><td>7,60 %</td><td>10,80 %</td><td>14,80 %</td></tr>
+<tr><td>BB−</td><td>7</td><td>1,00 %</td><td>4,30 %</td><td>8,00 %</td><td>11,20 %</td><td>15,20 %</td><td>20,10 %</td></tr>
+<tr><td>B+</td><td>8</td><td>1,60 %</td><td>6,00 %</td><td>10,30 %</td><td>14,00 %</td><td>18,40 %</td><td>23,80 %</td></tr>
+<tr><td>B</td><td>8</td><td>2,60 %</td><td>8,80 %</td><td>14,00 %</td><td>18,20 %</td><td>23,10 %</td><td>28,50 %</td></tr>
+<tr><td>B−</td><td>8</td><td>4,60 %</td><td>13,20 %</td><td>19,70 %</td><td>24,50 %</td><td>29,90 %</td><td>35,40 %</td></tr>
+<tr><td>CCC+</td><td>9</td><td>12,00 %</td><td>24,50 %</td><td>32,30 %</td><td>37,40 %</td><td>42,60 %</td><td>47,50 %</td></tr>
+<tr><td>CCC / C</td><td>9–10</td><td>24,50 %</td><td>38,90 %</td><td>45,60 %</td><td>49,80 %</td><td>54,10 %</td><td>58,00 %</td></tr>
 </tbody></table>
-<p><em>Source : S&amp;P, taux de défaut cumulés moyens des entreprises par cran de notation (moyenne historique de long terme). La colonne « Risque 10BONDS » indique à quel score de risque de 1 à 10 correspond chaque note dans notre comparateur.</em></p>
+<p><em>Source : 10BONDS, d'après les études historiques publiques sur les défauts : taux de défaut cumulés moyens des entreprises par cran de notation (moyennes de long terme, combinées et arrondies). La colonne « Risque 10BONDS » indique à quel score de risque de 1 à 10 correspond chaque note dans notre comparateur.</em></p>
 <h2 id="lire">Comment lire ce tableau ?</h2>
-<p>Plus la note baisse, plus la probabilité de défaut augmente, et pas de façon linéaire : à 5 ans, elle passe de 1,44 % pour BBB à 2,84 % pour BBB−, puis saute à 5,48 % pour BB, premier cran pleinement spéculatif. La frontière entre <a href="/fr/guides/obligations-investment-grade">investment grade</a> (jusqu'à BBB−) et catégorie spéculative (à partir de BB+) est l'endroit où le risque change de rythme.</p>
+<p>Plus la note baisse, plus la probabilité de défaut augmente, et pas de façon linéaire : à 5 ans, elle passe de 1,40 % pour BBB à 2,40 % pour BBB−, puis saute à 5,20 % pour BB, premier cran pleinement spéculatif. La frontière entre <a href="/fr/guides/obligations-investment-grade">investment grade</a> (jusqu'à BBB−) et catégorie spéculative (à partir de BB+) est l'endroit où le risque change de rythme.</p>
 <p>La durée compte autant que la note. Une probabilité à 1 an ne se compare pas à une probabilité à 10 ans : pour une obligation BBB remboursable dans 5 ans, c'est la colonne des 5 ans qu'il faut regarder. Dans le <a href="/fr">comparateur 10BONDS</a>, le curseur de risque reprend la correspondance de la deuxième colonne.</p>
 <h2 id="limites">Que ne dit pas ce tableau ?</h2>
 <ul>
@@ -261,7 +261,7 @@ ${disclaimer}
 </ul>
 <h2 id="faq">Questions fréquentes</h2>
 <h3>Une obligation BBB est-elle risquée ?</h3>
-<p>Elle reste investment grade. D'après les moyennes de S&amp;P, le taux de défaut cumulé à 10 ans d'un émetteur BBB est de 3,52 %, contre 11,08 % pour BB et 24,33 % pour B.</p>
+<p>Elle reste investment grade. D'après les moyennes historiques publiques, le taux de défaut cumulé à 10 ans d'un émetteur BBB est de 3,40 %, contre 10,80 % pour BB et 23,10 % pour B.</p>
 <h3>Comment relier probabilité de défaut et rendement ?</h3>
 <p>Le spread d'une obligation rémunère notamment la perte attendue, qui combine probabilité de défaut et montant perdu en cas de défaut. Le guide sur le <a href="/fr/guides/risque-de-credit-obligataire">risque de crédit</a> explique comment ces éléments s'articulent, et celui sur les <a href="/fr/guides/obligations-haut-rendement">obligations à haut rendement</a> détaille les catégories spéculatives.</p>
 ${cta("comparez des obligations par risque, rendement et duration")}

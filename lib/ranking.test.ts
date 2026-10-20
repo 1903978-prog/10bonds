@@ -48,10 +48,10 @@ describe("rankBonds", () => {
   });
 
   it("scores yield after expected losses, worked by hand", () => {
-    // A- over 5 years: 0.57% cumulative default -> 0.114% a year x 60% loss = 0.0684 points.
+    // A- over 5 years: 0.59% cumulative default -> 0.118% a year x 60% loss = 0.0708 points.
     const [r] = rankBonds([bond("X", 4.5, 5, "A-")], 5, 4).results;
-    expect(r.score).toBeCloseTo(4.5 - 0.0684, 10);
-    expect(expectedLoss(6, 5)).toBeCloseTo(0.0684, 10);
+    expect(r.score).toBeCloseTo(4.5 - 0.0708, 10);
+    expect(expectedLoss(6, 5)).toBeCloseTo(0.0708, 10);
   });
 
   it("widens the duration band when fewer than 10 bonds are near", () => {
