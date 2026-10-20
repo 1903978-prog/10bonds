@@ -240,7 +240,7 @@ describe("bracket explanation", () => {
     const sc = { duration: 4.5, ytm: 3.5, risk: 7 };
     const all = [...BUNDS, top, low, twin, longer];
     const next = rankRiskAdjusted(all, sc.duration, sc.ytm, ctx(), undefined, sc.risk);
-    const rows = bracketExplain(all, [{ bond: sub, reason: "yield", peerMedian: 4 }], ctx(), sc, next);
+    const rows = bracketExplain(all, [{ bond: sub, reason: "yield", peerMean: 4, peerSd: 0.5 }], ctx(), sc, next);
     const why = Object.fromEntries(rows.map((r) => [r.isin, r.why]));
     expect(rows[0]).toMatchObject({ isin: top.isin, inTop: true });
     expect(why[top.isin]).toMatch(/^In the top 10/);

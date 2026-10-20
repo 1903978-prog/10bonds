@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublicBond } from "./types";
-import { dropOutliers, findOutliers } from "./outliers";
+import { cleanSd, dropOutliers, findOutliers } from "./outliers";
 
 const bond = (isin: string, ytm: number, duration = 5, name = `Bank ${isin} 3% 2031`, rating = "A"): PublicBond => ({
   isin, name, issuer: name, country: "DE", currency: "EUR", coupon: 3, maturity: "2031-06-01",
@@ -13,8 +13,15 @@ describe("outlier rule", () => {
     const out = findOutliers([...peers, bond("HIGH", 6.8)]);
     expect(out.map((o) => [o.bond.isin, o.reason])).toEqual([["HIGH", "yield"]]);
   });
-  it("keeps a bond only a little above its peers", () => {
-    expect(findOutliers([...peers, bond("OK", 4.2)])).toEqual([]);
+  it("keeps a bond within k standard deviations of its cohort's average", () => {
+    // peers: average 3.275%, std dev about 0.173
+    expect(findOutliers([...peers, bond("OK", 3.6)])).toEqual([]);
+    expect(findOutliers([...peers, bond("OK", 3.6)], 1).map((o) => o.bond.isin)).toContain("OK");
+    expect(findOutliers([...peers, bond("HIGH", 4.1)], 5)).toEqual([]);
+    expect(findOutliers([...peers, bond("HIGH", 4.3)], 5).map((o) => o.bond.isin)).toEqual(["HIGH"]);
+  });
+  it("keeps k between 0.5 and 5", () => {
+    expect([cleanSd(0.1), cleanSd(9), cleanSd("x"), cleanSd(2.34)]).toEqual([0.5, 5, 2, 2.3]);
   });
   it("leaves out subordinated, Tier 2, AT1 and perpetual names whatever the yield", () => {
     const named = ["Bank X 5% Sub 2031", "Bank Y T2 2032", "Bank Z AT1 Perp", "Corp Hybrid 2080", "Bank W Tier 2 2030"].map((n, i) => bond(`N${i}`, 3.2, 5, n));

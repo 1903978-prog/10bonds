@@ -31,3 +31,16 @@ export function shiftPremiums(premiums: Readonly<Record<CurveRating, number>>, s
   for (const r of CURVE_RATINGS) out[r] ??= premiums[r];
   return out;
 }
+
+/** Weight from the search request ("rw"), 0..3; null when absent or malformed. */
+export function parseWeight(raw: string | null): number | null {
+  if (raw === null || raw === "") return null;
+  const w = Number(raw);
+  return Number.isFinite(w) ? Math.min(3, Math.max(0, Math.round(w * 100) / 100)) : null;
+}
+
+/** The premiums scaled by the weight (1 = as stored), then each risk band moved by its shift; never below 0 bp. */
+export function tunedPremiums(premiums: Readonly<Record<CurveRating, number>>, weight: number, shifts?: readonly number[] | null): Record<CurveRating, number> {
+  const scaled = Object.fromEntries(CURVE_RATINGS.map((r) => [r, Math.round(premiums[r] * weight)])) as Record<CurveRating, number>;
+  return shifts ? shiftPremiums(scaled, shifts) : scaled;
+}
