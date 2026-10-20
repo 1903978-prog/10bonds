@@ -208,3 +208,127 @@ export const METHOD: Record<MethodLang, Text> = {
     note: "Nur Information, kein Kreditrating und keine Anlageberatung. Länderwerte sind gerundete Beispielwerte, keine Live-Daten.",
   },
 };
+
+/** Shared labels of the summary page: the Countries / Companies switch and the full-text PDF download. */
+export const METHOD_UI: Record<MethodLang, { countries: string; companies: string; full: string; fullNote: string }> = {
+  en: { countries: "Countries", companies: "Companies", full: "Download the full methodology (PDF)", fullNote: "Full text in English." },
+  it: { countries: "Paesi", companies: "Aziende", full: "Scarica la metodologia completa (PDF)", fullNote: "in inglese" },
+  fr: { countries: "Pays", companies: "Entreprises", full: "Télécharger la méthodologie complète (PDF)", fullNote: "en anglais" },
+  de: { countries: "Länder", companies: "Unternehmen", full: "Vollständige Methodik herunterladen (PDF)", fullNote: "auf Englisch" },
+};
+
+type CorpText = {
+  title: string;
+  intro: string;
+  base: string; // card title of the 5 pillars
+  pillars: [string, string][]; // [name, components]
+  how: string;
+  flow: [string, string][]; // A..D [title, line]
+  stress: string;
+  stressRows: [string, string];
+  stressNote: string;
+  overrides: string;
+  note: string;
+};
+
+/** Pillar weights of the corporate LR Base score (Livio's corporate methodology v2.0). */
+export const CORP_WEIGHTS = [35, 20, 20, 10, 15];
+
+export const CORP: Record<MethodLang, CorpText> = {
+  en: {
+    title: "Rating methodology",
+    intro: "How 10BONDS assesses a company: can it repay today, will it stay competitive over the life of the bond, and can it survive plausible shocks?",
+    base: "LR Base · 100 points",
+    pillars: [
+      ["Financial strength", "Leverage, interest coverage, FFO/debt, free cash flow, profitability, leverage trend"],
+      ["Liquidity and repayment", "24-month liquidity, maturity profile, refinancing flexibility, covenants"],
+      ["Business model resilience", "Competitive position, industry outlook, concentration, tech and China disruption, diversification"],
+      ["Management and governance", "Governance, financial policy, key-person risk and succession, execution"],
+      ["Structural and external exposure", "Geopolitics, commodities and energy, financial system, climate, legal and regulatory"],
+    ],
+    how: "How it works",
+    flow: [
+      ["Base credit assessment", "Financial strength, business resilience, management, exposures"],
+      ["Scenario engine", "Cash flow, liquidity and leverage recalculated under 16 defined shocks"],
+      ["Event-risk overlay", "Governance failures, litigation, extraordinary transactions"],
+      ["Final assessment", "With scenario results, confidence indicators and critical-risk flags"],
+    ],
+    stress: "Same base score, different resilience",
+    stressRows: ["Manufacturer", "Utility"],
+    stressNote: "Combined stress: the utility stays stronger despite a lower base score.",
+    overrides: "Critical risks (no 12-month liquidity, covenant breach, no refinancing access, fraud, sanctions) trigger a mandatory review, not just a few points.",
+    note: "Information only, not a credit rating or investment advice. Weights are research hypotheses still to be validated; example scores are hypothetical.",
+  },
+  it: {
+    title: "Metodologia del rating",
+    intro: "Come 10BONDS valuta un'azienda: può rimborsare oggi, resterà competitiva per tutta la vita del bond, può superare shock plausibili?",
+    base: "LR Base · 100 punti",
+    pillars: [
+      ["Solidità finanziaria", "Leva, copertura interessi, FFO/debito, flusso di cassa libero, redditività, andamento della leva"],
+      ["Liquidità e rimborso", "Liquidità a 24 mesi, profilo delle scadenze, flessibilità di rifinanziamento, covenant"],
+      ["Resilienza del modello di business", "Posizione competitiva, prospettive del settore, concentrazione, disruption tecnologica e cinese, diversificazione"],
+      ["Management e governance", "Governance, politica finanziaria, persone chiave e successione, esecuzione"],
+      ["Esposizioni strutturali ed esterne", "Geopolitica, materie prime ed energia, sistema finanziario, clima, aspetti legali e normativi"],
+    ],
+    how: "Come funziona",
+    flow: [
+      ["Valutazione di base", "Solidità finanziaria, resilienza del business, management, esposizioni"],
+      ["Motore di scenari", "Cassa, liquidità e leva ricalcolate con 16 shock definiti"],
+      ["Rischi di evento", "Problemi di governance, contenziosi, operazioni straordinarie"],
+      ["Valutazione finale", "Con risultati degli scenari, indicatori di affidabilità e segnali di rischio critico"],
+    ],
+    stress: "Stesso punteggio, resilienza diversa",
+    stressRows: ["Industria", "Utility"],
+    stressNote: "Stress combinato: la utility resta più solida pur partendo da un punteggio più basso.",
+    overrides: "I rischi critici (liquidità insufficiente a 12 mesi, violazione dei covenant, nessun accesso al rifinanziamento, frodi, sanzioni) attivano una revisione obbligatoria, non solo qualche punto in meno.",
+    note: "Solo informazione, non è un rating né una consulenza. I pesi sono ipotesi di ricerca ancora da validare; i punteggi di esempio sono ipotetici.",
+  },
+  fr: {
+    title: "Méthodologie de notation",
+    intro: "Comment 10BONDS évalue une entreprise : peut-elle rembourser aujourd'hui, restera-t-elle compétitive pendant la vie de l'obligation, peut-elle survivre à des chocs plausibles ?",
+    base: "LR Base · 100 points",
+    pillars: [
+      ["Solidité financière", "Levier, couverture des intérêts, FFO/dette, flux de trésorerie disponible, rentabilité, tendance du levier"],
+      ["Liquidité et remboursement", "Liquidité à 24 mois, profil des échéances, flexibilité de refinancement, covenants"],
+      ["Résilience du modèle économique", "Position concurrentielle, perspectives du secteur, concentration, disruption technologique et chinoise, diversification"],
+      ["Direction et gouvernance", "Gouvernance, politique financière, personnes clés et succession, exécution"],
+      ["Expositions structurelles et externes", "Géopolitique, matières premières et énergie, système financier, climat, juridique et réglementaire"],
+    ],
+    how: "Fonctionnement",
+    flow: [
+      ["Évaluation de base", "Solidité financière, résilience, direction, expositions"],
+      ["Moteur de scénarios", "Trésorerie, liquidité et levier recalculés sous 16 chocs définis"],
+      ["Risques d'événement", "Défaillances de gouvernance, litiges, opérations exceptionnelles"],
+      ["Évaluation finale", "Avec résultats des scénarios, indicateurs de confiance et alertes de risque critique"],
+    ],
+    stress: "Même score de base, résilience différente",
+    stressRows: ["Industriel", "Utility"],
+    stressNote: "Stress combiné : l'utility reste plus solide malgré un score de base plus bas.",
+    overrides: "Les risques critiques (liquidité insuffisante à 12 mois, bris de covenant, pas d'accès au refinancement, fraude, sanctions) déclenchent une revue obligatoire, pas seulement quelques points.",
+    note: "Information uniquement, ni notation de crédit ni conseil. Les pondérations sont des hypothèses de recherche à valider ; les scores d'exemple sont hypothétiques.",
+  },
+  de: {
+    title: "Rating-Methodik",
+    intro: "So bewertet 10BONDS ein Unternehmen: Kann es heute zurückzahlen, bleibt es über die Laufzeit der Anleihe wettbewerbsfähig, übersteht es plausible Schocks?",
+    base: "LR Base · 100 Punkte",
+    pillars: [
+      ["Finanzkraft", "Verschuldung, Zinsdeckung, FFO/Schulden, freier Cashflow, Profitabilität, Verschuldungstrend"],
+      ["Liquidität und Rückzahlung", "24-Monats-Liquidität, Fälligkeitsprofil, Refinanzierungsspielraum, Covenants"],
+      ["Widerstandskraft des Geschäftsmodells", "Wettbewerbsposition, Branchenausblick, Konzentration, Technologie- und China-Disruption, Diversifizierung"],
+      ["Management und Governance", "Governance, Finanzpolitik, Schlüsselpersonen und Nachfolge, Umsetzung"],
+      ["Strukturelle und externe Risiken", "Geopolitik, Rohstoffe und Energie, Finanzsystem, Klima, Recht und Regulierung"],
+    ],
+    how: "So funktioniert es",
+    flow: [
+      ["Basisbewertung", "Finanzkraft, Widerstandskraft, Management, Risiken"],
+      ["Szenario-Engine", "Cashflow, Liquidität und Verschuldung unter 16 definierten Schocks neu berechnet"],
+      ["Ereignisrisiken", "Governance-Versagen, Rechtsstreite, außergewöhnliche Transaktionen"],
+      ["Endbewertung", "Mit Szenarioergebnissen, Vertrauensindikatoren und Warnsignalen"],
+    ],
+    stress: "Gleicher Basiswert, andere Widerstandskraft",
+    stressRows: ["Industrie", "Versorger"],
+    stressNote: "Kombinierter Stress: Der Versorger bleibt trotz niedrigerem Basiswert stärker.",
+    overrides: "Kritische Risiken (keine Liquidität für 12 Monate, Covenant-Bruch, kein Refinanzierungszugang, Betrug, Sanktionen) lösen eine Pflichtprüfung aus, nicht nur ein paar Punkte Abzug.",
+    note: "Nur Information, kein Kreditrating und keine Anlageberatung. Die Gewichte sind noch zu validierende Forschungshypothesen; Beispielwerte sind hypothetisch.",
+  },
+};
