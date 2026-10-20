@@ -176,7 +176,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   useEffect(() => {
     if (!chartOn || !chartable) return;
     const ctrl = new AbortController();
-    fetch(`/api/bonds/curve?${new URLSearchParams({ duration: String(duration), risk: String(risk), currency, size })}`, { signal: ctrl.signal })
+    fetch(`/api/bonds/loss-curve?${new URLSearchParams({ duration: String(duration), risk: String(risk), currency, size })}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => j && setCurve(j))
       .catch(() => {});
