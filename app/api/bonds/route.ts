@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
-import { loadBondsFor } from "@/lib/bonds";
+import { currentOutlierSd, loadBondsFor, loadOutliers } from "@/lib/bonds";
+import { cleanSd } from "@/lib/outliers";
 import { parseFilter } from "@/lib/bondFilter";
-import { rankBonds } from "@/lib/ranking";
 import { shapeForTier } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
 import { simulateCached } from "@/lib/monteCarlo";
@@ -11,9 +11,8 @@ import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
 import { publicQuota, consumeSearch } from "@/lib/searchQuota";
-import { liveRiskConfig } from "@/lib/riskPremium/store";
-import { rankRiskAdjusted } from "@/lib/riskPremium/rank";
-import { contextFor } from "@/lib/riskPremium/shadow";
+import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
+import { pickRanking } from "@/lib/pickRanking";
 
 export const dynamic = "force-dynamic";
 
@@ -32,15 +31,18 @@ export async function GET(req: Request) {
   const ytm = clampParam(url.searchParams.get("ytm"), LIMITS.ytm);
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
 
+  // The tier comes from the signed-in account (server side). Other views can be previewed on sample data only.
+  const user = await currentUser();
+  // Outlier rule (lib/outliers.ts): users get the saved number of standard deviations; the admin can try another (os).
+  const liveSd = await currentOutlierSd();
+  const trySd = user?.isAdmin && url.searchParams.get("os") ? cleanSd(url.searchParams.get("os")) : null;
+  const sd = trySd ?? liveSd;
   let data;
   try {
-    data = await loadBondsFor(parseFilter(url.searchParams));
+    data = await loadBondsFor(parseFilter(url.searchParams), sd);
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-
-  // The tier comes from the signed-in account (server side). Other views can be previewed on sample data only.
-  const user = await currentUser();
   if (user?.confirmBlocked) return NextResponse.json({ error: "Please confirm your e-mail address first.", confirmBlocked: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
   let tier: Tier = user ? user.plan : "visitor";
   const preview = url.searchParams.get("preview");
@@ -50,19 +52,11 @@ export async function GET(req: Request) {
   const usage = user && tier === user.plan ? await consumeSearch(user, "portfolio") : null;
   if (usage && !usage.allowed)
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
-  // Risk-adjusted ranking (lib/riskPremium) only when the admin has switched it on; otherwise, and wherever its curve
-  // does not apply (no eligible bond at this horizon), the current ranking. Every answer names the method it used.
-  let ranked = rankBonds(data.bonds, duration, ytm, undefined, risk);
-  let engine: { method: "current" | "risk-adjusted"; version: string | null } = { method: "current", version: null };
-  const live = await liveRiskConfig().catch(() => null);
-  if (live?.mode === "on" && live.curve) {
-    const r = rankRiskAdjusted(data.bonds, duration, ytm, contextFor(data.bonds, data.asOf, live.curve, live.reviews), undefined, risk);
-    if (r.results.length) {
-      ranked = { results: r.results, band: r.band };
-      engine = { method: "risk-adjusted", version: r.version };
-    }
-  }
-  const { results, band } = ranked;
+  const tryW = user?.isAdmin ? parseWeight(url.searchParams.get("rw")) : null;
+  const { results, band, engine } = await pickRanking(data.bonds, data.asOf, duration, ytm, risk, tryW, tryW !== null ? parseShifts(url.searchParams.get("rp")) : null);
+  const outliers = user?.isAdmin
+    ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
+    : undefined;
   // A real Monte Carlo run of defaults on this top 10 over the chosen horizon. Its averages are a paid feature like the others.
   const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b) })), duration);
   // Every bond searched numbered 1..N in alphabetical order (issuer, then name, then ISIN); the show on the page counts up to each pick's number.
@@ -76,7 +70,7 @@ export async function GET(req: Request) {
   // Plus and up: the bonds left out, to swap into the list; Premium (and Pro) also see why each one is out.
   const alternatives = paid ? alternativesFor(data.bonds, results, duration, risk, tier === "premium") : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier), alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine },
+    { ...shapeForTier(results, tier), alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

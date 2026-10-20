@@ -54,7 +54,7 @@ export function bracketExplain(bonds: PublicBond[], outliers: Outlier[], ctx: Ev
   const out: BracketRow[] = [];
 
   for (const o of outliers.filter((o) => inBracket(o.bond))) {
-    const why = o.reason === "name" ? "Outlier: name says subordinated, hybrid or perpetual" : `Outlier: yield ${o.bond.grossYtm!.toFixed(2)}% vs ${o.peerMedian!.toFixed(2)}% for similar bonds (hidden risk, e.g. subordinated)`;
+    const why = o.reason === "name" ? "Outlier: name says subordinated, hybrid or perpetual" : outlierWhy(o);
     out.push({ ...toRow(0, o.bond, evaluateBond(o.bond, ctx)), inTop: false, why });
   }
   for (const b of bonds.filter(inBracket)) {
@@ -69,14 +69,23 @@ export function bracketExplain(bonds: PublicBond[], outliers: Outlier[], ctx: Ev
     else if (e.ytm! > sc.ytm + MAX_ABOVE_TARGET + 1e-9) why = `Yield more than ${MAX_ABOVE_TARGET} points above the ${sc.ytm}% target`;
     else if (topIssuers.has(issuerKey(b))) why = `Issuer already in the list with a better bond (${topIssuers.get(issuerKey(b))!.name})`;
     else {
+      // Outliers were removed before this point (lib/bonds.ts), so an outlier can never dominate another bond.
       const dom = cands.find((c) => c.isin !== b.isin && c.ytm! >= e.ytm! && riskOf(c) <= riskOf(e) && (c.ytm! > e.ytm! || riskOf(c) < riskOf(e)));
+      const domBond = dom ? bonds.find((x) => x.isin === dom.isin) : undefined;
       why = dom
-        ? `Not Pareto-efficient: another bond pays ${dom.ytm!.toFixed(2)}% at the same or lower risk`
+        ? `Not Pareto-efficient: ${domBond ? `${domBond.issuer ?? domBond.name} (${dom.isin})` : "another bond"} pays ${dom.ytm!.toFixed(2)}% at the same or lower risk`
         : `Not picked: ${pts(e.surplusBp!)} surplus is lower than the bonds chosen to keep the average near ${sc.ytm}%`;
     }
     out.push({ ...row, inTop: top.has(b.isin), why });
   }
   return out.sort((a, b) => Number(b.inTop) - Number(a.inTop) || (a.inTop ? a.rank - b.rank : (b.surplusBp ?? -1e9) - (a.surplusBp ?? -1e9)));
+}
+
+/** Why an outlier is left out, in words. */
+export function outlierWhy(o: Outlier): string {
+  if (o.reason === "name") return "Outlier: name says subordinated, hybrid or perpetual";
+  const z = o.peerSd ? (o.bond.grossYtm! - o.peerMean!) / o.peerSd : Infinity;
+  return `Outlier: yield ${o.bond.grossYtm!.toFixed(2)}% is ${Number.isFinite(z) ? z.toFixed(1) : "far more than"} std dev above the ${o.peerMean!.toFixed(2)}% average of similar bonds (hidden risk, e.g. subordinated)`;
 }
 
 const STATUS_TEXT: Record<RiskStatus, string> = {

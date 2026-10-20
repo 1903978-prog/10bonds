@@ -15,9 +15,9 @@ describe("alternativesFor", () => {
     expect(new Set(alts.map((a) => a.isin)).size).toBe(alts.length);
   });
 
-  it("gives the reasons and scores only when asked (Premium)", () => {
-    expect(alternativesFor(SAMPLE_BONDS, results, 5, 7, false).every((a) => a.reason === undefined && a.adjYtm === undefined)).toBe(true);
-    expect(alternativesFor(SAMPLE_BONDS, results, 5, 7, true).every((a) => a.reason && typeof a.adjYtm === "number")).toBe(true);
+  it("gives the yield after losses only when asked (Premium)", () => {
+    expect(alternativesFor(SAMPLE_BONDS, results, 5, 7, false).every((a) => a.adjYtm === undefined)).toBe(true);
+    expect(alternativesFor(SAMPLE_BONDS, results, 5, 7, true).every((a) => typeof a.adjYtm === "number")).toBe(true);
   });
 
   it("keeps the yield after losses out of Plus results", () => {

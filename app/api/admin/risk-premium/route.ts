@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
 import { loadBonds, loadOutliers } from "@/lib/bonds";
+import { OUTLIER_SD } from "@/lib/outliers";
 import { signatureOf } from "@/lib/bestTable";
 import { LIMITS } from "@/lib/limits";
 import { curveProblems, CURVE_RATINGS, V1_CURVE, type CurveRating } from "@/lib/riskPremium/curve";
 import { draftFrom, type DraftInput } from "@/lib/riskPremium/versions";
 import { compareScenario, contextFor, DEFAULT_SCENARIO, sensitivity, universeReport } from "@/lib/riskPremium/shadow";
 import {
-  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getMode, latestReviews, listAudit, listRuns, listVersions, recordRun, setMode, updateDraft,
+  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getWeight, latestReviews, MAX_WEIGHT, listAudit, listRuns, listVersions, recordRun, setOutlierSd, setWeight, updateDraft,
 } from "@/lib/riskPremium/store";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
     ytm: num(url.searchParams.get("ytm"), DEFAULT_SCENARIO.ytm, LIMITS.ytm.min, LIMITS.ytm.max),
     risk: Math.round(num(url.searchParams.get("risk"), DEFAULT_SCENARIO.risk, LIMITS.risk.min, LIMITS.risk.max)),
   };
-  const [versions, mode, reviews, audit, data, outliers] = await Promise.all([listVersions(), getMode(), latestReviews(), listAudit(60), loadBonds(), loadOutliers()]);
+  const [versions, weight, reviews, audit, data, outliers] = await Promise.all([listVersions(), getWeight(), latestReviews(), listAudit(60), loadBonds(), loadOutliers()]);
   const active = versions.find((v) => v.status === "active") ?? null;
   const reviewMap = new Map(reviews.map((r) => [r.isin, r.decision]));
   const curve = active ?? V1_CURVE;
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
   const draft = versions.find((v) => v.id === draftId && v.status === "draft");
   return NextResponse.json(
     {
-      mode, versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
+      weight, versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
       source: data.source, asOf: data.asOf, bund: ctx.bund.points.map((p) => ({ years: Math.round(p.years * 100) / 100, ytm: p.ytm })),
       compare: compareScenario(data.bonds, ctx, sc, outliers),
       draftCompare: draft ? { id: draft.id, version: draft.version, ...compareScenario(data.bonds, contextFor(data.bonds, data.asOf, draft, reviewMap, ctx.bund), sc) } : null,
@@ -106,7 +107,7 @@ export async function POST(req: Request) {
       return problems.length ? bad("This version cannot be activated", problems) : NextResponse.json({ ok: true });
     }
     case "deactivate": {
-      if ((await getMode()) === "on") return bad("Switch the public ranking back to shadow mode first.");
+      if ((await getWeight()) > 0) return bad("Set the risk premium weight to 0 first (search page, yellow slider).");
       return (await deactivateActive(why, by)) ? NextResponse.json({ ok: true }) : bad("No active version");
     }
     case "review": {
@@ -116,13 +117,19 @@ export async function POST(req: Request) {
       await addReview(b.isin, b.decision, why, active?.id ?? null, by);
       return NextResponse.json({ ok: true });
     }
-    case "mode": {
-      if (b.mode !== "on" && b.mode !== "shadow") return bad("Unknown mode");
-      if (b.mode === "on") {
-        if (b.confirm !== "ACTIVATE") return bad('Type ACTIVATE to switch the public ranking.');
-        if (!versions.some((v) => v.status === "active")) return bad("Activate a curve version first.");
-      }
-      await setMode(b.mode, why, by);
+    case "weight": {
+      // The weight every user gets (yellow slider on the search page). 0 = the current ranking.
+      const w = Number(b.weight);
+      if (!Number.isFinite(w) || w < 0 || w > MAX_WEIGHT) return bad(`Weight must be between 0 and ${MAX_WEIGHT}`);
+      if (w > 0 && !versions.some((v) => v.status === "active")) return bad("Activate a curve version first.");
+      await setWeight(w, why, by);
+      return NextResponse.json({ ok: true });
+    }
+    case "outlier_sd": {
+      // Outlier rule for every user (yellow slider on the search page): k standard deviations above the cohort average.
+      const k = Number(b.sd);
+      if (!Number.isFinite(k) || k < OUTLIER_SD.min || k > OUTLIER_SD.max) return bad(`Must be between ${OUTLIER_SD.min} and ${OUTLIER_SD.max}`);
+      await setOutlierSd(k, why, by);
       return NextResponse.json({ ok: true });
     }
     default:

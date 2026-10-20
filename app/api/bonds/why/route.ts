@@ -1,0 +1,49 @@
+import { NextResponse } from "next/server";
+import { allow, clientIp } from "@/lib/rateLimit";
+import { currentOutlierSd, loadBondsFor, loadOutliers } from "@/lib/bonds";
+import { parseFilter } from "@/lib/bondFilter";
+import { LIMITS } from "@/lib/limits";
+import { cleanSd } from "@/lib/outliers";
+import { currentUser } from "@/lib/currentUser";
+import { canSeeRationale } from "@/lib/rationaleAccess";
+import { pickRanking } from "@/lib/pickRanking";
+import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
+import { explainCurrent, explainRiskAdjusted } from "@/lib/whyList";
+
+export const dynamic = "force-dynamic";
+
+const clamp = (raw: string | null, { min, max, initial }: { min: number; max: number; initial: number }) => {
+  const n = raw === null ? NaN : Number(raw);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : initial;
+};
+
+/** Every bond of one search's window with why it is in the top 10 or not. Premium, Pro and admin only. Not a search. */
+export async function GET(req: Request) {
+  if (!allow(`bonds:${clientIp(req)}`, 240, 60_000)) return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+  const url = new URL(req.url);
+  const user = await currentUser();
+  let data;
+  const admin = !!user?.isAdmin;
+  const sd = admin && url.searchParams.get("os") ? cleanSd(url.searchParams.get("os")) : await currentOutlierSd();
+  try {
+    data = await loadBondsFor(parseFilter(url.searchParams), sd);
+  } catch {
+    return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
+  }
+  // On sample data (local checks only) the table can be previewed without an account.
+  const sampleOk = data.source === "sample" && url.searchParams.get("preview") === "premium";
+  if (!sampleOk && !(await canSeeRationale(user))) return NextResponse.json({ error: "Premium feature", upgrade: true }, { status: 402, headers: { "Cache-Control": "no-store" } });
+
+  const sc = {
+    duration: clamp(url.searchParams.get("duration"), LIMITS.duration),
+    ytm: clamp(url.searchParams.get("ytm"), LIMITS.ytm),
+    risk: Math.round(clamp(url.searchParams.get("risk"), LIMITS.risk)),
+  };
+  const tryW = admin ? parseWeight(url.searchParams.get("rw")) : null;
+  const picked = await pickRanking(data.bonds, data.asOf, sc.duration, sc.ytm, sc.risk, tryW, tryW !== null ? parseShifts(url.searchParams.get("rp")) : null);
+  const outliers = await loadOutliers(sd);
+  const rows = picked.risky
+    ? explainRiskAdjusted(data.bonds, outliers, sc, picked.risky.ranking, picked.risky.ctx)
+    : explainCurrent(data.bonds, outliers, sc, picked.results, picked.band);
+  return NextResponse.json({ method: picked.engine.method, band: picked.band, rows }, { headers: { "Cache-Control": "no-store" } });
+}

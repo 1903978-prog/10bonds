@@ -17,6 +17,10 @@ import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
 import { MC_PATHS } from "@/lib/monteCarlo";
+import { loadMe } from "@/lib/me";
+import WhyTable from "./WhyTable";
+import type { WhyRow } from "@/lib/whyList";
+import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -28,6 +32,8 @@ type Response = ResultsPayload & {
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
   alternatives?: AltRow[]; // Plus and up: bonds left out, to swap in
+  outliers?: { sd: number; liveSd: number; count: number; liveCount: number };
+  engine?: { method: string; version: string | null; weight: number; liveWeight: number; preview?: boolean; premiums?: Record<string, number> };
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -46,6 +52,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
+  // Admin only: the risk premium tuning panel (yellow). Everyone else never sees or sends it.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [tuner, setTuner] = useState<TunerState>(TUNER_START);
+  const [tunerSaved, setTunerSaved] = useState(0);
+  useEffect(() => { loadMe().then((me) => setIsAdmin(!!me?.isAdmin)); }, []);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
   const [currency, setCurrency] = useState<BondFilter["currency"]>("EUR");
@@ -119,6 +130,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (preview.current) qs.set("preview", preview.current);
+        if (isAdmin && tuner.weight !== null) {
+          qs.set("rw", String(tuner.weight));
+          qs.set("rp", tuner.shifts.join(","));
+        }
+        if (isAdmin && tuner.sd !== null) qs.set("os", String(tuner.sd));
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
         if (res.status === 402 && body.limitReached) {
@@ -141,7 +157,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size]);
+  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -150,6 +166,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const paid = tier === "plus" || tier === "premium";
   const summary = list ? listSummary(list) : data?.summary;
   const signedIn = tier !== "visitor";
+  // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
+  const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
+  if (isAdmin && tuner.weight !== null) {
+    why.set("rw", String(tuner.weight));
+    why.set("rp", tuner.shifts.join(","));
+  }
+  if (isAdmin && tuner.sd !== null) why.set("os", String(tuner.sd));
+  if (preview.current) why.set("preview", preview.current);
+  const whyQuery = why.toString();
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
   const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: "/signup", label: t.avgSignUp };
 
@@ -232,6 +257,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
+        {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
 
       </section>
 
@@ -275,9 +301,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             data={data}
             list={list}
             setList={setList}
-            atMax={ytm >= ytmMax - 1e-9}
             paid={paid}
             signedIn={signedIn}
+            whyQuery={whyQuery}
             currency={currency}
             message={
               limit ? <LimitReached quota={limit} />
@@ -542,18 +568,25 @@ const HEAD_H = 30;
 const ROW_H = 34;
 const CARD_H = 64;
 
-function Results({ data, list, setList, atMax, paid, signedIn, currency, message, show, lang }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; atMax: boolean; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang }) {
+function Results({ data, list, setList, paid, signedIn, currency, message, show, lang, whyQuery }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string }) {
   const t = useFinderText();
   const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
   const premium = data?.tier === "premium";
-  // The swap panel (for one slot) or the Premium "why in or out" table, drawn over the rows so nothing moves.
-  const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | { kind: "why" } | null>(null);
+  // The swap panel for one slot, drawn over the rows so nothing moves.
+  const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | null>(null);
   useEffect(() => setPanel(null), [data]);
   const swapIn = (slot: number, b: ResultRow) => {
     setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
     setPanel(null);
   };
   const canEdit = paid && !show && !message && rows.length > 0;
+  // Premium: a bond from the "why in or out" table comes in, in place of the same issuer's bond, else the weakest one.
+  const addFromWhy = (w: WhyRow) => {
+    if (!data || rows.some((r) => r.isin === w.isin)) return;
+    const full = [...data.rows, ...(data.alternatives ?? []).map((a) => ({ ...a, rank: 0, lossAdj: a.adjYtm }))].find((b) => b.isin === w.isin);
+    const same = rows.findIndex((r) => r.issuer === w.issuer);
+    swapIn(same >= 0 ? same : weakestSlot(rows), full ?? { rank: 0, issuer: w.issuer, name: w.name, isin: w.isin, ytm: w.ytm, duration: w.duration, risk: w.risk });
+  };
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
   // While the search show runs, picks from this slot on are kept in place but not shown yet.
@@ -655,9 +688,7 @@ function Results({ data, list, setList, atMax, paid, signedIn, currency, message
       {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
       {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
       {panel && data && canEdit && (
-        panel.kind === "swap"
-          ? <SwapPanel row={rows[panel.slot]} options={swapOptions(rows[panel.slot], available(data, rows))} onPick={(b) => swapIn(panel.slot, b)} onClose={() => setPanel(null)} />
-          : <WhyPanel rows={rows} out={available(data, rows)} atMax={atMax} onAdd={(b) => swapIn(weakestSlot(rows), b)} onClose={() => setPanel(null)} />
+        <SwapPanel row={rows[panel.slot]} options={swapOptions(rows[panel.slot], available(data, rows))} onPick={(b) => swapIn(panel.slot, b)} onClose={() => setPanel(null)} />
       )}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
@@ -684,13 +715,6 @@ function Results({ data, list, setList, atMax, paid, signedIn, currency, message
           >
             ⬇ {t.excel}
           </button>
-          {premium ? (
-            <button type="button" data-testid="why-open" disabled={!canEdit} onClick={() => setPanel({ kind: "why" })} className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas disabled:opacity-50">
-              {t.why}
-            </button>
-          ) : (
-            <Link href="/pricing" className="inline-flex items-center gap-1 text-xs text-accent"><Lock /> {t.whyPremium}</Link>
-          )}
           {list && (
             <button type="button" data-testid="list-reset" onClick={() => setList(null)} className="truncate text-xs text-accent hover:underline">
               ↺ {t.resetList}
@@ -703,6 +727,7 @@ function Results({ data, list, setList, atMax, paid, signedIn, currency, message
             <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
           </Link>
         ) : null}
+        {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={premium && canEdit ? addFromWhy : undefined} />}
       </div>
     </div>
   );
@@ -766,7 +791,7 @@ function listSummary(list: ResultRow[]): ResultsPayload["summary"] {
   };
 }
 
-type OutRow = ResultRow & { reason?: AltRow["reason"] };
+type OutRow = ResultRow;
 
 /** Bonds that can come into the list now: those left out plus any the user swapped out, never an issuer already in it. */
 function available(data: Response, rows: ResultRow[]): OutRow[] {
@@ -845,62 +870,6 @@ function SwapPanel({ row, options, onPick, onClose }: { row: ResultRow; options:
           ))}
         </ul>
       )}
-    </PanelShell>
-  );
-}
-
-/** Premium: why each bond is in the list or left out, and an Add button to bring a left-out bond in. */
-function WhyPanel({ rows, out, atMax, onAdd, onClose }: { rows: ResultRow[]; out: OutRow[]; atMax: boolean; onAdd: (b: ResultRow) => void; onClose: () => void }) {
-  const t = useFinderText();
-  const [tab, setTab] = useState<"in" | "out">("in");
-  const shown: OutRow[] = tab === "in" ? rows : out.slice(0, SLOTS - 1);
-  const reason = (b: OutRow) =>
-    tab === "in" ? (atMax ? t.inTop : t.inTarget) : b.reason === "moreRisk" ? t.outRisk : b.reason === "lowerYield" ? t.outYield : t.outYou;
-  return (
-    <PanelShell
-      title={
-        <span className="inline-flex rounded-full bg-canvas p-0.5 text-xs font-medium">
-          {(["in", "out"] as const).map((k) => (
-            <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-full px-3 py-0.5 ${tab === k ? "bg-white shadow-sm" : "text-mute"}`}>
-              {k === "in" ? t.inTab : t.outTab}
-            </button>
-          ))}
-        </span>
-      }
-      onClose={onClose}
-    >
-      <table className="w-full table-fixed text-[13px]" data-testid="why-table">
-        <colgroup>
-          <col className="w-[30%]" /><col className="w-16" /><col className="w-10" /><col className="w-20" /><col /><col className="w-20" />
-        </colgroup>
-        <thead>
-          <tr className="border-b border-line text-left text-[11px] text-mute" style={{ height: 24 }}>
-            <th className="font-medium">{t.issuer}</th>
-            <th className="text-right font-medium">{t.yield}</th>
-            <th className="text-center font-medium">{t.risk}</th>
-            <th className="text-right font-medium">{t.afterLoss}</th>
-            <th className="pl-3 font-medium" />
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((b) => (
-            <tr key={b.isin} className="border-b border-line/60" style={{ height: 29 }}>
-              <td className="truncate font-medium" title={`${b.name} · ${b.isin}`}>{b.issuer}</td>
-              <td className="text-right tabular-nums">{pct(b.ytm)}</td>
-              <td className="text-center"><RiskBadge risk={b.risk} /></td>
-              <td className="text-right tabular-nums">{pct(b.lossAdj)}</td>
-              <td className="truncate pl-3 text-[11px] text-mute" title={reason(b)}>{reason(b)}</td>
-              <td className="text-right">
-                {tab === "out" && (
-                  <button type="button" onClick={() => onAdd(b)} data-testid="why-add" className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-accent hover:bg-canvas">+ {t.addBond}</button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {tab === "out" && <p className="mt-auto truncate pt-1 text-[11px] text-mute">{t.addNote}</p>}
     </PanelShell>
   );
 }
