@@ -2,6 +2,8 @@
 import { loadBondsFor } from "@/lib/bonds";
 import { rankBonds, portfolioPool, withinRisk, issuerKey } from "@/lib/ranking";
 import { bondRisk } from "@/lib/ratings";
+import { listLossChance } from "@/lib/expectedLoss";
+import { pdOf } from "@/lib/tiers";
 
 const { bonds } = await loadBondsFor({ currency: "EUR", size: "100k" }, 2);
 for (const d of [3, 5, 7]) for (const risk of [6, 8]) {
@@ -14,13 +16,13 @@ for (const d of [3, 5, 7]) for (const risk of [6, 8]) {
     const { results } = rankBonds(bonds, d, t, 10, risk);
     const rs = results.map((r) => bondRisk(r) as number);
     const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
-    console.log(` t=${t} risks ${rs.join(",")} avgY ${avg(results.map((r) => r.grossYtm!)).toFixed(2)} avgR ${avg(rs).toFixed(2)} avgD ${avg(results.map((r) => r.modifiedDuration!)).toFixed(1)}`);
+    console.log(` t=${t} risks ${rs.join(",")} avgY ${avg(results.map((r) => r.grossYtm!)).toFixed(2)} avgR ${avg(rs).toFixed(2)} avgD ${avg(results.map((r) => r.modifiedDuration!)).toFixed(1)} loss% ${listLossChance(results.map(pdOf)).toFixed(1)}`);
   }
 }
 // Monotonic: more risk accepted never gives a higher average risk for the same target.
 for (const d of [2, 5, 10]) for (const t of [3.5, 4.0, 4.48]) {
   const row: string[] = [];
-  for (let risk = 1; risk <= 8; risk++) { const { results } = rankBonds(bonds, d, t, 10, risk); row.push(results.length ? (results.reduce((s, r) => s + (bondRisk(r) as number), 0) / results.length).toFixed(2) + "/" + (results.reduce((s, r) => s + r.grossYtm!, 0) / results.length).toFixed(2) : "-"); }
+  for (let risk = 1; risk <= 8; risk++) { const { results } = rankBonds(bonds, d, t, 10, risk); row.push(results.length ? listLossChance(results.map(pdOf)).toFixed(1) + "%/" + (results.reduce((s, r) => s + r.grossYtm!, 0) / results.length).toFixed(2) : "-"); }
   console.log(`${d}y t=${t}: ${row.join("  ")}`);
 }
 const t0 = Date.now(); rankBonds(bonds, 5, 4.48, 10, 8); console.log("ms", Date.now() - t0);

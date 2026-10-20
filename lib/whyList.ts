@@ -20,7 +20,7 @@ export const WHY_MAX_ROWS = 400;
 
 const pct = (x: number) => `${x.toFixed(2)}%`;
 
-/** The reasons for today's ranking (lowest expected default losses that reach the target yield, one bond per issuer). */
+/** The reasons for today's ranking (lowest chance of a loss that reaches the target yield, one bond per issuer). */
 export function explainCurrent(bonds: PublicBond[], outliers: Outlier[], sc: Scenario, results: RankedBond[], band: number): WhyRow[] {
   const inWindow = (b: PublicBond) => b.modifiedDuration !== null && nearHorizon(b.modifiedDuration, sc.duration, band + 1e-9);
   const top = new Map(results.map((r) => [r.isin, r]));

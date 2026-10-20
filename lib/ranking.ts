@@ -2,7 +2,8 @@ import type { PublicBond, RankedBond } from "./types";
 import { cleanIssuer } from "./issuer";
 import { bondNotch, riskOfNotch } from "./ratings";
 import { riskLevel, LIMITS, nearHorizon, isOpenEnded } from "./limits";
-import { expectedLoss, lossAdjustedYield } from "./expectedLoss";
+import { bondLossChance, lossAdjustedYield } from "./expectedLoss";
+import { lifeYears } from "./lifeYears";
 
 export const RESULT_COUNT = 10;
 
@@ -15,11 +16,12 @@ const EXTRA_BAND = 2; // most years the window may widen by
 // The list's average duration should stay within 5% of the target; each year beyond costs this much yield.
 const AVG_DURATION_SLACK = 0.05;
 const AVG_DURATION_PENALTY = 0.5;
-// Below the slider maximum the target sets how much risk the list takes: the lowest expected default losses that still
-// reach it (Livio 20/10: not the average risk score, since 5 bonds at risk 6 plus 5 at risk 1 is riskier than 5 at 3
-// plus 5 at 4). Expected losses grow much faster than the risk score, so a few bonds at the limit cost more than a
-// spread of mid-risk ones. Weighted so one risk step costs about one point; yield after losses only breaks near-ties.
-const LOSS_WEIGHT = 10;
+// Below the slider maximum the target sets how much risk the list takes: the lowest chance of a loss over the bonds'
+// life that still reaches it (Livio 20/10: not the average risk score, since 5 bonds at risk 6 plus 5 at risk 1 is
+// riskier than 5 at 3 plus 5 at 4). Default chances grow much faster than the risk score, so a few bonds at the limit
+// cost more than a spread of mid-risk ones. Each bond adds -ln(1 - its default chance), so the sum ranks lists exactly
+// like the list's chance of a loss (lib/expectedLoss.ts listLossChance). Weighted so 1% of chance costs one point.
+const LOSS_WEIGHT = 100;
 const YIELD_TIEBREAK = 0.05;
 
 /**
@@ -27,8 +29,8 @@ const YIELD_TIEBREAK = 0.05;
  * 1. Pool: rated bonds within the risk level, duration within ±20% of the target, one bond per issuer.
  * 2. Each bond scores its yield after expected losses (lib/expectedLoss.ts): yield minus the yearly historical default
  *    rate for its rating over its duration times a 60% loss. More yield wins unless it does not pay for the extra risk.
- * 3. Below the slider maximum: the 10 with the lowest average expected default loss whose average yield still reaches
- *    the target and whose average duration stays close to the horizon; ties go to the higher yield after losses.
+ * 3. Below the slider maximum: the 10 with the lowest chance of any default before they mature whose average yield
+ *    still reaches the target and whose average duration stays close to the horizon; ties go to the higher yield after losses.
  *    A lower target gives a safer list with a lower yield; a higher one takes more risk for more yield.
  * 4. At (or above) the slider maximum the answer is exactly the 10 highest-yielding issuers the maximum is computed from.
  * Shown best score first.
@@ -38,7 +40,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: LOSS_WEIGHT * expectedLoss(notch, b.modifiedDuration!), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
+    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: -LOSS_WEIGHT * Math.log(1 - bondLossChance(notch, lifeYears(b)) / 100 + 1e-12), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };
@@ -48,7 +50,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
     chosen = top;
   } else {
     // Swap bonds in and out while that improves the set: reach the target yield first, keep the average duration near
-    // the target, then the lowest expected default losses, then the highest yield after losses. One swap at a time can get
+    // the target, then the lowest chance of a default, then the highest yield after losses. One swap at a time can get
     // stuck on a "barbell" (very safe bonds plus a few at the risk limit) because dropping a risky bond for a mid-risk
     // one loses yield until a second swap makes it up. So the search also starts from every lower risk limit: a list
     // that works with risk up to 5 is also a candidate at 6, and accepting more risk can never give a riskier list
