@@ -355,7 +355,7 @@ describe("Livio's Italian landing pages", () => {
   });
   it("default-rate page answers BBB first and maps every notch to a risk score", () => {
     const g = SEED_GUIDES.find((x) => x.slug === "probabilita-default-rating")!;
-    expect(g.bodyHtml).toMatch(/^<p><strong>Risposta breve:<\/strong>.*1,44%.*3,52%/);
+    expect(g.bodyHtml).toMatch(/^<p><strong>Risposta breve:<\/strong>.*1,40%.*3,40%/);
     expect((g.bodyHtml.match(/<tr>/g) ?? []).length).toBe(19);
   });
 });

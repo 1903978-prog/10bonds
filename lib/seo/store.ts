@@ -2,6 +2,7 @@ import type { SeoMarket } from "./input";
 import { accountsSql } from "../accounts";
 import type { CriterionResult, Points, Status } from "./rubric";
 import { SEED_GUIDES } from "./guidesSeed";
+import { DEFAULT_RATE_TEXT_FIXES } from "./defaultRatesTextFixes";
 import { SEED_GUIDES_LIVIO_FR } from "./guidesLivioFr";
 import { SEED_GUIDES_DE2 } from "./guidesSeedDe2";
 import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
@@ -286,6 +287,15 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       const [row] = await s`update app.seo_guides set status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
         where locale = ${g.locale} and slug = ${g.slug} and status in ('draft', 'review') and body_html not like ${"%<blockquote><strong>%"} returning id`;
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Published at Livio's request (19 Oct 2026)."})`;
+    }
+  }
+  // The default-rate table and its "Source: S&P" wording become the combined 10BONDS table (Livio, 20 Oct 2026), once,
+  // as text replacements, so any other edit made in Admin is kept.
+  const [rates] = await s`insert into app.settings (key, value) values ('seo_default_rates_combined', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (rates) {
+    for (const [from, to] of DEFAULT_RATE_TEXT_FIXES) {
+      await s`update app.seo_guides set body_html = replace(body_html, ${from}, ${to}), meta_description = replace(meta_description, ${from}, ${to}), updated_at = now()
+        where strpos(body_html, ${from}) > 0 or strpos(meta_description, ${from}) > 0`;
     }
   }
   for (const k of SEED_KEYWORDS) {
