@@ -9,7 +9,7 @@ import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
 import { averageRisk } from "@/lib/ratings";
-import { listLifeLoss } from "@/lib/expectedLoss";
+import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
 import { track } from "@/lib/track";
 import SingleBond from "./SingleBond";
@@ -66,7 +66,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (the owner, 19/10/2026).
   const [touched, setTouched] = useState(false);
-  const show = useScanShow(data, touched);
+  // The owner watches the show 3x faster.
+  const show = useScanShow(data, touched, isAdmin ? 1000 / 3 : 1000);
 
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
@@ -331,11 +332,42 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>
           <MonteCarloNote data={data} lang={lang} edited={list !== null} />
+          {isAdmin && data && <AdminLossCalc rows={(list ?? data.rows).slice(0, 10)} />}
         </div>
       </section>
       )}
     </div>
     </FinderLangContext.Provider>
+  );
+}
+
+/** Admin only (Livio): the expected loss on your money worked out bond by bond, in the yellow admin style. */
+function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
+  if (!rows.length || rows.some((r) => r.pd == null)) return null;
+  const share = (r: ResultRow) => (r.pd! * LOSS_GIVEN_DEFAULT) / rows.length;
+  const pct = (x: number, d = 2) => `${x.toFixed(d)}%`;
+  return (
+    <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-900" data-testid="admin-loss-calc">
+      <p className="font-medium">Expected loss on your money = Σ default chance to maturity × {LOSS_GIVEN_DEFAULT * 100}% ÷ {rows.length} bonds</p>
+      <table className="mt-1 w-full tabular-nums">
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.isin ?? i}>
+              <td className="pr-2">{i + 1}. {r.issuer}</td>
+              <td className="pr-2 text-right">risk {r.risk ?? "–"}</td>
+              <td className="pr-2 text-right">{r.life != null ? `${r.life.toFixed(1)} yrs` : "–"}</td>
+              <td className="pr-2 text-right">default {pct(r.pd!)}</td>
+              <td className="pr-2 text-right">× {LOSS_GIVEN_DEFAULT * 100}% = {pct(r.pd! * LOSS_GIVEN_DEFAULT)}</td>
+              <td className="text-right">÷ {rows.length} = {pct(share(r), 3)}</td>
+            </tr>
+          ))}
+          <tr className="border-t border-amber-300 font-medium">
+            <td colSpan={5} className="pr-2">Expected loss on your money (sum) · chance of any default {pct(listLossChance(rows.map((r) => r.pd!)), 1)}</td>
+            <td className="text-right">{pct(listLifeLoss(rows.map((r) => r.pd!)), 3)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -445,7 +477,9 @@ function ScanBox({ data, show, lang, currency }: { data: Response | null; show: 
  * the visitor starts; a search that answers mid-show takes it over (the show is not restarted); about 1 second per pick;
  * skipped for reduced motion. Rows keep their places throughout (hidden rows are invisible, not removed).
  */
-function useScanShow(data: Response | null, active: boolean): Show | null {
+function useScanShow(data: Response | null, active: boolean, perMs = 1000): Show | null {
+  const per = useRef(perMs);
+  per.current = perMs;
   const [show, setShow] = useState<Show | null>(null);
   const run = useRef<{ raf: number; start: number } | null>(null);
   const latest = useRef(data);
@@ -462,8 +496,8 @@ function useScanShow(data: Response | null, active: boolean): Show | null {
     run.current = r;
     const tick = (now: number) => {
       const found = latest.current?.found ?? [];
-      const per = 1000; // ms per pick (the owner: the 10 picks in about 10 seconds): counting up, then a hold on the number
-      const t = (now - r.start) / per;
+      // ms per pick (the owner: the 10 picks in about 10 seconds): counting up, then a hold on the number
+      const t = (now - r.start) / per.current;
       const row = Math.floor(t);
       if (row >= found.length) {
         run.current = null;

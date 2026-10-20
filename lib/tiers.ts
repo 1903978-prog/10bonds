@@ -29,6 +29,8 @@ export type ResultRow = {
   lossAdj?: number;
   // Paid: chance in % the bond defaults before it matures (historical default table), for the list's KPI box.
   pd?: number;
+  // Paid: years left until it matures (the horizon of pd), for the admin's calculation box.
+  life?: number;
 };
 
 /** Why a bond ranks where it does under the risk premium model. bp = basis points; adjYtm is a score, not a yield. */
@@ -93,6 +95,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       country: b.country,
       minInvestment: b.minInvestment ?? null,
       pd: pdOf(b),
+      life: Math.round(lifeYears(b) * 100) / 100,
       ...(whyOf(b) ? { why: whyOf(b) } : {}),
       ...(tier === "premium" ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
     })),
