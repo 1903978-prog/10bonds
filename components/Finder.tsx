@@ -83,6 +83,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
+  // With the chart open, a click on a dot sets the target to that point and shows its 10 bonds below the chart.
+  const [picked, setPicked] = useState(false);
+  const pickYtm = (y: number) => {
+    setYtm(Math.min(ytmMax, Math.max(LIMITS.ytm.min, Math.round(y * 100) / 100)));
+    setPicked(true);
+  };
   // The highest risk level that has bonds at each horizon: the risk slider stops there (no risk-7 bonds = 6 to 1).
   const [maxRisk, setMaxRisk] = useState<Record<string, number | null> | null>(null);
   const riskTopFor = (d: number, m = maxRisk) => Math.max(LIMITS.risk.min + 1, m?.[String(Math.round(d * 100) / 100)] ?? LIMITS.risk.max);
@@ -171,6 +177,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const paid = tier === "plus" || tier === "premium";
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
   const [chartOn, setChartOn] = useState(false);
+  useEffect(() => { if (!chartOn) setPicked(false); }, [chartOn]);
   const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
   // Admin only: every horizon from 2 to 10 years on one chart, in place of the single curve.
   const [showAll, setShowAll] = useState(false);
@@ -355,8 +362,18 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             )}
           </div>
           <div className="relative">
-          <div className={chartOn && chartable ? "invisible" : undefined}>
+          {chartOn && chartable && (
+            <div className="relative h-[200px] bg-white" data-testid="loss-chart">
+              {showAll && isAdmin && allCurves ? (
+                <AllCurvesChart curves={allCurves} xLabel={t.chartX} yLabel={t.chartY} yearsLabel="yrs" />
+              ) : curve && !(showAll && isAdmin) ? (
+                <LossChart compact points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
+              ) : null}
+            </div>
+          )}
+          <div className={chartOn && chartable && !picked ? "invisible" : undefined}>
           <Results
+            dense={chartOn && chartable}
             show={show}
             lang={lang}
             data={data}
@@ -374,14 +391,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             }
           />
           </div>
-          {chartOn && chartable && (
-            <div className="absolute inset-0 bg-white" data-testid="loss-chart">
-              {showAll && isAdmin && allCurves ? (
-                <AllCurvesChart curves={allCurves} xLabel={t.chartX} yLabel={t.chartY} yearsLabel="yrs" />
-              ) : curve && !(showAll && isAdmin) ? (
-                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} />
-              ) : null}
-            </div>
+          {chartOn && chartable && !picked && (
+            <p className="pointer-events-none absolute inset-x-0 bottom-0 top-[200px] flex items-center justify-center text-sm text-mute" data-testid="chart-pick-hint">{t.chartPick}</p>
           )}
           </div>
           <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
@@ -672,9 +683,14 @@ function MonteCarloNote({ data, lang, edited }: { data: Response | null; lang: F
 const SLOTS = 10;
 const HEAD_H = 30;
 const ROW_H = 34;
+const DENSE_HEAD_H = 24;
+const DENSE_ROW_H = 22;
 const CARD_H = 64;
 
-function Results({ data, list, setList, paid, signedIn, currency, message, show, lang, whyQuery }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string }) {
+function Results({ data, list, setList, paid, signedIn, currency, message, show, lang, whyQuery, dense = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string; dense?: boolean }) {
+  // Dense: shorter rows, used under the chart so the chart and the 10 bonds fit one screen.
+  const rowH = dense ? DENSE_ROW_H : ROW_H;
+  const headH = dense ? DENSE_HEAD_H : HEAD_H;
   const t = useFinderText();
   const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
   const premium = data?.tier === "premium";
@@ -714,7 +730,7 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
           <col className="w-8" />
         </colgroup>
         <thead>
-          <tr className="border-b border-line text-left text-xs text-mute" style={{ height: HEAD_H }}>
+          <tr className="border-b border-line text-left text-xs text-mute" style={{ height: headH }}>
             <th className="py-0 pl-2 font-medium">#</th>
             <th className="truncate py-0 pr-3 font-medium">{t.issuer}</th>
             <th className="truncate py-0 pr-3 font-medium">{t.bond}</th>
@@ -727,7 +743,7 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: ROW_H }}>
+            <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: rowH }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
               <td className="overflow-hidden py-0 pr-3">
@@ -747,7 +763,7 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
-            <tr key={`l${i}`} aria-hidden className={`select-none border-b border-line/60 blur-[5px]${hide(rows.length + i)}`} style={{ height: ROW_H }}>
+            <tr key={`l${i}`} aria-hidden className={`select-none border-b border-line/60 blur-[5px]${hide(rows.length + i)}`} style={{ height: rowH }}>
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
               <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
@@ -755,7 +771,7 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: ROW_H }}><td colSpan={8} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={8} /></tr>
           ))}
         </tbody>
       </table>
