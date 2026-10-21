@@ -195,8 +195,10 @@ export function durationPool(bonds: PublicBond[], targetDuration: number, count 
  * The highest target yield worth asking for at each duration step: the average yield of the best bond of each of the
  * 10 highest-yielding issuers in the portfolio pool for that duration (fewer when fewer issuers exist),
  * rounded down to the slider step so the top 10 can really reach it. Null when no bond is there.
+ * `refine: false` skips lowering the maximum until the list reaches it: that runs the ranking many times per cell
+ * (seconds each on a full copy), too slow to do while a visitor waits. The quick maximum is the top 10's average.
  */
-export function ytmCaps(bonds: PublicBond[], durations: readonly number[], ytmLimits: { min: number; max: number; step: number }): Record<string, number | null> {
+export function ytmCaps(bonds: PublicBond[], durations: readonly number[], ytmLimits: { min: number; max: number; step: number }, refine = true): Record<string, number | null> {
   const caps: Record<string, number | null> = {};
   for (const d of durations) {
     const { pool } = portfolioPool(bonds, d);
@@ -209,7 +211,7 @@ export function ytmCaps(bonds: PublicBond[], durations: readonly number[], ytmLi
     // The top 10 can break the duration rule, so the maximum is lowered until the list really reaches it, and
     // the targets just below it too (the post-deploy check looks at these). Never higher than the top 10's average.
     let cap = capOf(top.map((b) => b.grossYtm!));
-    for (let i = 0; i < MAX_CAP_STEPS && cap > ytmLimits.min && !reachesCap(pool, d, cap); i++) cap = Math.round((cap - ytmLimits.step) * 100) / 100;
+    for (let i = 0; refine && i < MAX_CAP_STEPS && cap > ytmLimits.min && !reachesCap(pool, d, cap); i++) cap = Math.round((cap - ytmLimits.step) * 100) / 100;
     caps[key] = cap;
   }
   return caps;

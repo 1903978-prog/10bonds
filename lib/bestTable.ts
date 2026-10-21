@@ -50,13 +50,13 @@ export function computeBestTable(src: BondSource): BestTable {
  * The same slider maximums as ytmCapsByRisk, one cell at a time with a pause between cells. They run the ranking many
  * times per cell (seconds on a full copy), so computing them in one go held up every other request, the one-bond chart included.
  */
-export async function capsInSteps(bonds: BondSource["bonds"]): Promise<BestTable["caps"]> {
+export async function capsInSteps(bonds: BondSource["bonds"], refine = true): Promise<BestTable["caps"]> {
   const out: BestTable["caps"] = {};
   for (let r = LIMITS.risk.min; r <= LIMITS.risk.max; r++) {
     const pool = withinRisk(bonds, r);
     out[String(r)] = {};
     for (const d of DURATION_STEPS) {
-      Object.assign(out[String(r)], ytmCaps(pool, [d], LIMITS.ytm));
+      Object.assign(out[String(r)], ytmCaps(pool, [d], LIMITS.ytm, refine));
       await new Promise((done) => setImmediate(done));
     }
   }
@@ -99,7 +99,10 @@ export async function bestTableFor(f: BondFilter): Promise<BestTable> {
   return t;
 }
 
-/** The slider maximums for one filter, computed in steps and kept until the copy changes. */
+/**
+ * The slider maximums for one filter, kept until the copy changes. Other filters than the default (USD, other minimum
+ * orders) use the quick maximum: the refined one stalled the server for every visitor, the one-bond chart included.
+ */
 export async function capsFor(f: BondFilter): Promise<BestTable["caps"]> {
   if (isDefaultFilter(f)) return (await bestTable()).caps;
   const src = await loadBondsFor(f);
@@ -107,7 +110,7 @@ export async function capsFor(f: BondFilter): Promise<BestTable["caps"]> {
   let p = filteredCaps.get(k);
   if (!p) {
     if (filteredCaps.size > 8) filteredCaps.clear();
-    p = capsInSteps(src.bonds);
+    p = capsInSteps(src.bonds, false);
     p.catch(() => filteredCaps.delete(k));
     filteredCaps.set(k, p);
   }

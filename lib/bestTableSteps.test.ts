@@ -27,3 +27,15 @@ describe("best table in steps", () => {
     expect(ticks).toBeGreaterThan(10);
   }, 60_000);
 });
+
+describe("quick slider maximums", () => {
+  it("are fast on a full-size copy and never below the refined ones", async () => {
+    const big = Array.from({ length: 3000 }, (_, i) => ({ ...bonds[i % bonds.length], isin: `XS${String(i).padStart(10, "0")}`, issuer: `Issuer ${i % 900}`, modifiedDuration: 0.5 + ((i * 7919) % 2900) / 100, grossYtm: 2 + ((i * 37) % 500) / 100 }));
+    const t = Date.now();
+    await capsInSteps(big as never, false);
+    expect(Date.now() - t).toBeLessThan(5000);
+    const quick = await capsInSteps(src.bonds, false);
+    const refined = await capsInSteps(src.bonds);
+    for (const r of Object.keys(refined)) for (const d of Object.keys(refined[r])) if (refined[r][d] !== null) expect(quick[r][d]!).toBeGreaterThanOrEqual(refined[r][d]!);
+  }, 60_000);
+});
