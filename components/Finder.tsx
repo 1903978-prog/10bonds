@@ -342,7 +342,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {chartOn && chartable && (
             <div className="absolute inset-0 bg-white" data-testid="loss-chart">
               {curve ? (
-                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} hoverText={t.chartHover} />
+                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} />
               ) : null}
             </div>
           )}
