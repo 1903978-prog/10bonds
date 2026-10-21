@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 type Row = {
   id: number; email: string; username: string | null; plan: string; premiumUntil: string | null; promoCode: string | null;
   createdAt: string; emailConfirmed: boolean; lastLoginAt: string | null; lastSeenAt: string | null;
-  secondsOnSite: number | null; searches: number | null; isAdmin: boolean;
+  secondsOnSite: number | null; searches: number | null; isAdmin: boolean; cameFrom: string | null;
 };
-type Key = "email" | "username" | "plan" | "promoCode" | "createdAt" | "emailConfirmed" | "lastSeenAt" | "secondsOnSite" | "searches";
+type Key = "email" | "username" | "plan" | "promoCode" | "createdAt" | "emailConfirmed" | "lastSeenAt" | "secondsOnSite" | "searches" | "cameFrom";
 
 const card = "rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
 const day = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -30,6 +30,7 @@ const COLS: { key: Key; label: string }[] = [
   { key: "lastSeenAt", label: "Last seen" },
   { key: "secondsOnSite", label: "Time on site" },
   { key: "searches", label: "Searches" },
+  { key: "cameFrom", label: "Came from" },
 ];
 
 function csv(rows: Row[]): string {
@@ -37,8 +38,8 @@ function csv(rows: Row[]): string {
     const s = v === null || v === undefined ? "" : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const head = ["email", "username", "plan", "premium_until", "promo_code", "registered", "email_confirmed", "last_login", "last_seen", "seconds_on_site", "searches"];
-  const lines = rows.map((r) => [r.email, r.username, r.plan, r.premiumUntil, r.promoCode, r.createdAt, r.emailConfirmed ? "yes" : "no", r.lastLoginAt, r.lastSeenAt, r.secondsOnSite, r.searches].map(cell).join(","));
+  const head = ["email", "username", "plan", "premium_until", "promo_code", "registered", "email_confirmed", "last_login", "last_seen", "seconds_on_site", "searches", "came_from"];
+  const lines = rows.map((r) => [r.email, r.username, r.plan, r.premiumUntil, r.promoCode, r.createdAt, r.emailConfirmed ? "yes" : "no", r.lastLoginAt, r.lastSeenAt, r.secondsOnSite, r.searches, r.cameFrom].map(cell).join(","));
   return [head.join(","), ...lines].join("\n");
 }
 
@@ -88,7 +89,7 @@ export default function AdminUsers() {
           <button onClick={download} disabled={!rows?.length} className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-[#0077ed] disabled:opacity-60" data-testid="users-csv">Download CSV</button>
         </div>
       </div>
-      <p className="mt-1 text-xs text-mute">Click a column to sort. Time on site and searches come only from people who allowed Statistics cookies (“no stats” = they did not, or have not used the site signed in yet). Your own account is marked “you”.</p>
+      <p className="mt-1 text-xs text-mute">Click a column to sort. Time on site, searches and where they came from come only from people who allowed Statistics cookies (“no stats” = they did not, or have not used the site signed in yet). Your own account is marked “you”.</p>
       {error && <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">Could not load the users.</p>}
       <div className="mt-4 max-h-[36rem] overflow-auto">
         <table className="w-full min-w-[60rem] text-left text-sm">
@@ -115,7 +116,8 @@ export default function AdminUsers() {
                 <td className="pr-3">{r.emailConfirmed ? "Yes" : <span className="text-mute">No</span>}</td>
                 <td className="pr-3 text-mute">{when(r.lastSeenAt)}</td>
                 <td className={`pr-3 ${r.secondsOnSite === null ? "text-mute" : ""}`}>{duration(r.secondsOnSite)}</td>
-                <td className={r.searches === null ? "text-mute" : ""}>{r.searches ?? "no stats"}</td>
+                <td className={`pr-3 ${r.searches === null ? "text-mute" : ""}`}>{r.searches ?? "no stats"}</td>
+                <td className={`max-w-[10rem] truncate ${r.cameFrom === null ? "text-mute" : ""}`} title={r.cameFrom ?? undefined}>{r.cameFrom ?? "no stats"}</td>
               </tr>
             ))}
           </tbody>
