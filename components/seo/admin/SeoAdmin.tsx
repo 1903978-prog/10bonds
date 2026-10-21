@@ -13,6 +13,7 @@ import Keywords from "./Keywords";
 import Overview from "./Overview";
 import Performance from "./Performance";
 import Rankings from "./Rankings";
+import History from "./History";
 import SearchKpis from "./SearchKpis";
 import Sharing from "./Sharing";
 import Speed from "./Speed";
@@ -95,6 +96,7 @@ export default function SeoAdmin() {
       </div>
       <ErrorNote error={summaryError} />
       <SearchKpis />
+      <History />
       <div className="flex flex-wrap items-center gap-2 rounded-[20px] bg-white px-4 py-3" aria-label="Reports">
         <span className="text-xs text-mute">Open the reports:</span>
         {REPORTS.map(([label, href]) => (

@@ -204,6 +204,22 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       impressions integer not null,
       primary key (keyword_id, at)
     )`;
+  // One row per day per source ("google", "bing", "keywords"): the headline search numbers, so progress can be charted.
+  // A missing figure stays null (shown as a dash), never a made-up value.
+  await s`
+    create table if not exists app.seo_daily_stats (
+      day date not null,
+      source text not null check (source in ('google','bing','keywords')),
+      clicks integer,
+      impressions integer,
+      ctr numeric,
+      position numeric,
+      indexed integer,
+      tracked integer,
+      top10 integer,
+      created_at timestamptz not null default now(),
+      primary key (day, source)
+    )`;
   // The owner's three French articles (19 Oct 2026) take over the earlier French guides on the same topics, once: the old
   // row gets the new slug and his text (so its history and language links stay), links to the old slug are updated,
   // and next.config.mjs redirects the old URLs. Runs before the seed insert so the new slug is not added twice.
