@@ -7,6 +7,9 @@ import { accountsConfigured } from "@/lib/accounts";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/currentUser";
 import { landsInPro } from "@/lib/proView";
+import { cookies } from "next/headers";
+import IntroGate from "@/components/IntroGate";
+import { INTRO_COOKIE } from "@/lib/intro";
 
 // The international home page: links its Italian, French and German versions, and carries the Google Search
 // Console verification code the admin saves in Admin -> SEO.
@@ -18,12 +21,16 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ intro?: string }> }) {
   if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
+  // First visit (no cookie yet) or ?intro=1: the animated intro comes before the finder.
+  const intro = (await searchParams).intro === "1" || !(await cookies()).get(INTRO_COOKIE);
   return (
     <>
       <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />
-      <Finder />
+      <IntroGate show={intro}>
+        <Finder />
+      </IntroGate>
     </>
   );
 }

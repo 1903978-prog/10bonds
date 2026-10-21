@@ -1,0 +1,90 @@
+import type { FinderLang } from "./finderText";
+
+// Words of the first-visit intro (components/Intro.tsx), in the four site languages.
+const en = {
+  headline: "Build the most efficient bond portfolio for your horizon.",
+  dots: (n: string) => `Every dot is a real bond: ${n} euro bonds, placed by risk and yield.`,
+  s1: "Highest yield for your risk and maturity",
+  s1Sub: "Choose how long you invest and the most risk you accept (10bonds.com rating, 1 to 10). The bonds that fit turn blue; your top 10 lights up.",
+  s2: "The most efficient portfolio for a duration",
+  s2Sub: "The red line joins the bonds nobody beats: nothing else pays more for the same risk. That is the Pareto-efficient frontier.",
+  s3: "Compare durations",
+  s3Sub: "See how the frontier moves at 1–3, 4–6 and 7–10 years, then pick the horizon that suits your investments.",
+  result: "Your shortlist in seconds. Examples from today's data:",
+  horizon: (a: number, b: number) => `${a}–${b} years`,
+  example: (d: number, r: number) => `${d} years · risk up to ${r}`,
+  more: (n: number) => `+ ${n} more in the finder`,
+  noData: "Examples load with the bond data.",
+  riskAxis: "Higher risk → lower risk",
+  cta: "Find my 10 bonds",
+  skip: "Skip",
+  replay: "Replay",
+  chartLabel: "Every bond by risk and yield",
+};
+export type IntroText = typeof en;
+
+const it: IntroText = {
+  headline: "Costruisci il portafoglio obbligazionario più efficiente per il tuo orizzonte.",
+  dots: (n) => `Ogni punto è un'obbligazione reale: ${n} obbligazioni in euro, per rischio e rendimento.`,
+  s1: "Il rendimento più alto per il tuo rischio e la tua scadenza",
+  s1Sub: "Scegli per quanto tempo investire e il rischio massimo che accetti (rating 10bonds.com, da 1 a 10). Le obbligazioni adatte diventano blu; la tua top 10 si illumina.",
+  s2: "Il portafoglio più efficiente per una duration",
+  s2Sub: "La linea rossa unisce le obbligazioni imbattibili: nessun'altra rende di più a parità di rischio. È la frontiera efficiente di Pareto.",
+  s3: "Confronta le duration",
+  s3Sub: "Guarda come si sposta la frontiera a 1–3, 4–6 e 7–10 anni, poi scegli l'orizzonte adatto ai tuoi investimenti.",
+  result: "La tua selezione in pochi secondi. Esempi con i dati di oggi:",
+  horizon: (a, b) => `${a}–${b} anni`,
+  example: (d, r) => `${d} anni · rischio fino a ${r}`,
+  more: (n) => `+ altre ${n} nel motore di ricerca`,
+  noData: "Gli esempi arrivano con i dati delle obbligazioni.",
+  riskAxis: "Rischio più alto → più basso",
+  cta: "Trova le mie 10 obbligazioni",
+  skip: "Salta",
+  replay: "Rivedi",
+  chartLabel: "Tutte le obbligazioni per rischio e rendimento",
+};
+
+const fr: IntroText = {
+  headline: "Construisez le portefeuille obligataire le plus efficient pour votre horizon.",
+  dots: (n) => `Chaque point est une vraie obligation : ${n} obligations en euros, par risque et rendement.`,
+  s1: "Le meilleur rendement pour votre risque et votre échéance",
+  s1Sub: "Choisissez la durée de votre placement et le risque maximum accepté (note 10bonds.com, de 1 à 10). Les obligations qui conviennent passent en bleu ; votre top 10 s'allume.",
+  s2: "Le portefeuille le plus efficient pour une duration",
+  s2Sub: "La ligne rouge relie les obligations imbattables : aucune autre ne rapporte plus pour le même risque. C'est la frontière efficiente de Pareto.",
+  s3: "Comparez les durations",
+  s3Sub: "Voyez comment la frontière se déplace à 1–3, 4–6 et 7–10 ans, puis choisissez l'horizon qui convient à vos placements.",
+  result: "Votre sélection en quelques secondes. Exemples avec les données du jour :",
+  horizon: (a, b) => `${a}–${b} ans`,
+  example: (d, r) => `${d} ans · risque jusqu'à ${r}`,
+  more: (n) => `+ ${n} autres dans le moteur`,
+  noData: "Les exemples arrivent avec les données obligataires.",
+  riskAxis: "Risque plus élevé → plus faible",
+  cta: "Trouver mes 10 obligations",
+  skip: "Passer",
+  replay: "Revoir",
+  chartLabel: "Toutes les obligations par risque et rendement",
+};
+
+const de: IntroText = {
+  headline: "Bauen Sie das effizienteste Anleihenportfolio für Ihren Anlagehorizont.",
+  dots: (n) => `Jeder Punkt ist eine echte Anleihe: ${n} Euro-Anleihen, nach Risiko und Rendite.`,
+  s1: "Höchste Rendite für Ihr Risiko und Ihre Laufzeit",
+  s1Sub: "Wählen Sie, wie lange Sie anlegen und welches Risiko Sie höchstens akzeptieren (10bonds.com-Rating, 1 bis 10). Passende Anleihen werden blau; Ihre Top 10 leuchtet auf.",
+  s2: "Das effizienteste Portfolio für eine Duration",
+  s2Sub: "Die rote Linie verbindet die unschlagbaren Anleihen: keine andere bringt mehr bei gleichem Risiko. Das ist die Pareto-effiziente Grenze.",
+  s3: "Durationen vergleichen",
+  s3Sub: "Sehen Sie, wie sich die Grenze bei 1–3, 4–6 und 7–10 Jahren verschiebt, und wählen Sie den passenden Horizont.",
+  result: "Ihre Auswahl in Sekunden. Beispiele mit den heutigen Daten:",
+  horizon: (a, b) => `${a}–${b} Jahre`,
+  example: (d, r) => `${d} Jahre · Risiko bis ${r}`,
+  more: (n) => `+ ${n} weitere in der Suche`,
+  noData: "Die Beispiele laden mit den Anleihedaten.",
+  riskAxis: "Höheres Risiko → niedrigeres Risiko",
+  cta: "Meine 10 Anleihen finden",
+  skip: "Überspringen",
+  replay: "Nochmal",
+  chartLabel: "Alle Anleihen nach Risiko und Rendite",
+};
+
+export const INTRO_TEXT: Record<FinderLang, IntroText> = { en, it, fr, de };
+export const NUM_LOCALE: Record<FinderLang, string> = { en: "en-GB", it: "it-IT", fr: "fr-FR", de: "de-DE" };
