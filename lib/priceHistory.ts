@@ -7,7 +7,7 @@ import type { PublicBond } from "./types";
 // Biggest price drops from the highest price in the site's own records. The nightly copy holds today's yield only, so
 // the site keeps each bond's lowest and highest yield per week in app.bond_price_weeks, from the day this started. The
 // high is the lowest recorded yield of the past year priced as of today, so the slow pull toward 100 is not a drop.
-// The data supplier's own 52-week high/low is never used or shown (the owner, 21/10/2026: data supplier rights).
+// The data supplier's own 52-week high/low is never used for the drop and is shown to the admin only (the owner, 21/10/2026).
 
 export type DropRow = {
   isin: string;
@@ -19,6 +19,9 @@ export type DropRow = {
   price: number;
   high: number; // never shown: only the drop is
   dropPct: number; // negative, e.g. -6.2
+  // Admin only (set by forViewer): the data supplier's 52-week price low and high, never used for the drop itself.
+  low52w?: number | null;
+  high52w?: number | null;
 };
 
 export type DropLists = { top: DropRow[]; byRisk: Record<number, DropRow[]> };
@@ -60,7 +63,7 @@ export function computeDrops(bonds: PublicBond[], highs: Map<string, number>): D
     if (risk === null || price === null || !Number.isFinite(high) || high <= 0) continue;
     const dropPct = ((price - high) / high) * 100;
     if (dropPct > MIN_DROP) continue;
-    rows.push({ isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, maturity: b.maturity, price, high, dropPct });
+    rows.push({ isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, maturity: b.maturity, price, high, dropPct, low52w: b.low52w ?? null, high52w: b.high52w ?? null });
   }
   return rows.sort((a, b) => a.dropPct - b.dropPct);
 }
@@ -133,4 +136,12 @@ export async function loadDrops(): Promise<DropsData> {
   }
   const rows = computeDrops(bonds, highs);
   return { EUR: listsFor(rows, "EUR"), USD: listsFor(rows, "USD"), since, asOf };
+}
+
+/** What one viewer may see: the 52-week low/high stay on the server unless the viewer is the admin. */
+export function forViewer(data: DropsData, admin: boolean): DropsData {
+  if (admin) return data;
+  const strip = (rows: DropRow[]) => rows.map(({ low52w: _l, high52w: _h, ...r }) => r);
+  const lists = (l: DropLists): DropLists => ({ top: strip(l.top), byRisk: Object.fromEntries(Object.entries(l.byRisk).map(([k, v]) => [k, strip(v)])) });
+  return { ...data, EUR: lists(data.EUR), USD: lists(data.USD) };
 }

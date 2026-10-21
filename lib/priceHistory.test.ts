@@ -48,3 +48,14 @@ describe("price drops", () => {
     expect(weekOf("2026-10-19T00:00:00Z")).toBe("2026-10-19");
   });
 });
+
+describe("52-week range for the admin only", () => {
+  it("strips the supplier's low and high for everyone else", async () => {
+    const { forViewer, listsFor } = await import("./priceHistory");
+    const row = { isin: "A", issuer: "Alpha", name: "A", currency: "EUR", risk: 5, maturity: null, price: 95, high: 100, dropPct: -5, low52w: 90, high52w: 110 };
+    const data = { EUR: listsFor([row], "EUR"), USD: listsFor([], "USD"), since: null, asOf: null };
+    expect(forViewer(data, true).EUR.top[0].high52w).toBe(110);
+    expect("high52w" in forViewer(data, false).EUR.top[0]).toBe(false);
+    expect("low52w" in forViewer(data, false).EUR.byRisk[5][0]).toBe(false);
+  });
+});

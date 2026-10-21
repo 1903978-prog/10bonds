@@ -1,7 +1,12 @@
 # Prices: what LM op model has to add
 
-**Update 21 Oct 2026:** do NOT export `high_52w` / `low_52w`. The owner does not want the data supplier's 52-week
-range used or shown (data supplier rights). The site ignores those columns and only uses its own recorded history.
+**Update 21 Oct 2026:** `high_52w` / `low_52w` (optional) are shown to the admin only, never to customers (data
+supplier rights). Drops are always measured from the site's own recorded history.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `high_52w` | numeric | highest daily clean price over the last 52 weeks (per 100), admin only |
+| `low_52w` | numeric | lowest daily clean price over the last 52 weeks (per 100), admin only |
 
 The 10BONDS **Price drops** page (`/price-drops`, `/it/ribassi`, `/fr/baisses`, `/de/kursrueckgaenge`) lists rated
 bonds whose price is furthest below its 52-week high. Today `public.public_bonds` holds yields only (checked

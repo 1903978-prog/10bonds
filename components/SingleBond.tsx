@@ -15,6 +15,8 @@ import { dominatedLevels, dropDominated } from "@/lib/curveFilter";
 type Coverage = { count: number; min: number | null; max: number | null };
 type Payload = { tier: Tier; points: CurvePoint[]; coverage?: Coverage; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
+const range52 = (lo: number | null | undefined, hi: number | null | undefined) =>
+  `${lo == null ? "–" : lo.toFixed(2)} / ${hi == null ? "–" : hi.toFixed(2)}`;
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 
 /** One-bond mode: best yield per risk step for the chosen duration; click a dot to see that bond, "Change" for the next one. */
@@ -229,6 +231,7 @@ function BondBox(props: {
         {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment, props.currency) : lock)}
         {row(t.country, signedIn ? bond.country || "—" : lock)}
         {row(t.currency, signedIn ? props.currency : lock)}
+        {bond.sp !== undefined && row("52w min / max (admin)", <span className="rounded bg-yellow-100 px-1">{range52(bond.low52w, bond.high52w)}</span>)}
       </dl>
       {/* Fixed slots: every control keeps the same place whichever bond is shown. */}
       <div className="mt-2 flex flex-wrap items-center gap-2 whitespace-nowrap">

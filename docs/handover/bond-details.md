@@ -13,4 +13,4 @@ Add to `public.public_bonds` (same nightly export, one row per ISIN). All option
 | `issue_date` | date | first issue date |
 | `callable` | boolean | `true` if the issuer can repay early |
 
-Never shown on bond details: `high_52w` / `low_52w` (52-week price range), to respect data supplier rights.
+`high_52w` / `low_52w` (52-week price range) are shown to the admin only, never to customers (data supplier rights).
