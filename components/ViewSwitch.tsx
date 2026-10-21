@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 
-/** Admin only: switch between the retail finder and the Pro tool. The choice is remembered on the home page. */
+/** Admin only (yellow, like everything only the admin sees): switch between the retail finder and the Pro tool. The choice is remembered on the home page. */
 export default function ViewSwitch() {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function ViewSwitch() {
     </button>
   );
   return (
-    <span className="flex items-center rounded-full bg-ink/5 p-0.5 text-xs" data-testid="view-switch">
+    <span className="flex items-center rounded-full bg-yellow-200 p-0.5 text-xs" data-testid="view-switch">
       {item("retail", "Retail", !pro)}
       {item("pro", "Pro", pro)}
     </span>

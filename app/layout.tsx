@@ -11,7 +11,6 @@ import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import PlansNavLink from "@/components/PlansNavLink";
 import DropsNavLink from "@/components/DropsNavLink";
 import LangSwitch from "@/components/LangSwitch";
-import SearchNavLink from "@/components/SearchNavLink";
 import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
 import CopyGuard from "@/components/CopyGuard";
@@ -47,7 +46,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <nav className="header-wide mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
-              <SearchNavLink />
               <DropsNavLink />
               <KnowledgeNavLink />
               <PlansNavLink />
