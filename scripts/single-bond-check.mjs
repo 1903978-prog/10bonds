@@ -5,7 +5,7 @@ for (const w of [1440, 390]) {
   await ctx.addCookies([{ name: "tb_consent", value: "1", url: "http://127.0.0.1:3311" }]);
   const p = await ctx.newPage();
   await p.goto("http://127.0.0.1:3311/?preview=plus");
-  await p.getByRole("button", { name: "Deny" }).click().catch(() => {});
+  await p.getByRole("button", { name: "Reject" }).click().catch(() => {});
   await p.getByRole("tab", { name: "1 bond" }).click();
   const hasYield = await p.getByLabel("Target annual yield").count();
   await p.locator('[data-testid="dot-3"]').waitFor();

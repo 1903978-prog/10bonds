@@ -63,6 +63,7 @@ for (const [w, h] of WIDTHS) {
   const p = await ctx.newPage();
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
+  await p.locator('[data-testid="cookie-settings"]').click(); // the switches open in Settings
   await p.locator('[data-testid="cookie-necessary"]').waitFor();
   await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
   const sliders = p.locator('input[type="range"]');

@@ -44,6 +44,7 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists newsletter_consent_source text`;
   await sql`alter table app.users add column if not exists newsletter_unsubscribed_at timestamptz`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
+  await sql`alter table app.users add column if not exists stats_bonus_at timestamptz`;
   // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
   await sql`alter table app.users add column if not exists stripe_customer_id text`;
   await sql`alter table app.users add column if not exists stripe_subscription_id text`;
@@ -378,6 +379,17 @@ export async function redeemTrialCode(userId: number, code: string): Promise<{ p
   });
 }
 
+/** One free week of Premium, once per account, for allowing usage statistics. Returns the end date, or null when already given. */
+export async function grantStatsBonus(userId: number, days = 7): Promise<string | null> {
+  const { sql, ready } = db();
+  await ready;
+  const u = await sql<{ premium_until: Date }[]>`
+    update app.users
+    set premium_until = greatest(coalesce(premium_until, now()), now()) + make_interval(days => ${days}), stats_bonus_at = now()
+    where id = ${userId} and stats_bonus_at is null returning premium_until`;
+  return u[0] ? new Date(u[0].premium_until).toISOString() : null;
+}
+
 /** Counts for the admin page. */
 export async function adminStats() {
   const { sql, ready } = db();
@@ -410,7 +422,12 @@ export type AdminUserRow = {
   createdAt: string; emailConfirmed: boolean; lastLoginAt: string | null; lastSeenAt: string | null;
   /** From usage statistics, so only for people who allowed them; null when nothing was recorded. */
   secondsOnSite: number | null; searches: number | null; isAdmin: boolean;
+  /** Where the first recorded visit came from (another site's host, or "direct"); null without usage statistics. */
+  cameFrom: string | null;
 };
+
+// The site's own hosts: moving between its pages is not where a visitor came from.
+const OWN_HOST = "(^|\\.)10bonds\\.(com|fly\\.dev)$";
 
 /** Every account for the admin page. Time on site and searches come only from consented usage statistics. */
 export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
@@ -418,7 +435,7 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
   await ready;
   const rows = await sql<{
     id: string; email: string; username: string | null; plan: string; premium_until: Date | null; promo: string | null; created_at: Date;
-    email_verified_at: Date | null; last_login_at: Date | null; last_seen: Date | null; secs: string | null; searches: string | null; has_stats: boolean;
+    email_verified_at: Date | null; last_login_at: Date | null; last_seen: Date | null; secs: string | null; searches: string | null; has_stats: boolean; came_from: string | null;
   }[]>`
     with owner as (
       -- a browser counts for an account once that account was signed in on it
@@ -432,11 +449,17 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
              coalesce(sum(extract(epoch from gap)) filter (where gap < interval '30 minutes'), 0) secs,
              count(*) filter (where kind = 'search') searches
       from ev group by user_id
+    ), src as (
+      -- the first page view from outside the site, per account
+      select distinct on (o.user_id) o.user_id, e.detail->>'referrer' host
+      from app.events e join owner o on o.visitor_id = e.visitor_id
+      where e.kind = 'page_view' and coalesce(e.detail->>'referrer', '') <> '' and e.detail->>'referrer' !~* ${OWN_HOST}
+      order by o.user_id, e.at
     )
     select u.id, u.email, u.username, u.plan, u.premium_until, u.created_at, u.email_verified_at, u.last_login_at,
            (select string_agg(c.code, ', ' order by c.redeemed_at) from app.trial_codes c where c.redeemed_by = u.id) promo,
-           p.last_seen, p.secs, p.searches, p.user_id is not null has_stats
-    from app.users u left join per p on p.user_id = u.id
+           p.last_seen, p.secs, p.searches, p.user_id is not null has_stats, src.host came_from
+    from app.users u left join per p on p.user_id = u.id left join src on src.user_id = u.id
     order by u.created_at desc`;
   return rows.map((r) => {
     const last = [r.last_login_at, r.last_seen].filter((x): x is Date => x !== null).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
@@ -454,6 +477,7 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
       secondsOnSite: r.has_stats ? Math.round(Number(r.secs)) : null,
       searches: r.has_stats ? Number(r.searches) : null,
       isAdmin: ADMIN_EMAILS.includes(r.email.trim().toLowerCase()),
+      cameFrom: r.has_stats ? (r.came_from ?? "direct") : null,
     };
   });
 }

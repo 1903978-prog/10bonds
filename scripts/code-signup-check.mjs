@@ -4,7 +4,7 @@ const BASE = process.env.BASE ?? "http://127.0.0.1:3311";
 const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 let fail = 0;
 const ok = (c, m) => { console.log(`${c ? "PASS" : "FAIL"} ${m}`); if (!c) fail++; };
-const deny = (p) => p.getByRole("button", { name: "Deny" }).click({ timeout: 3000 }).catch(() => {});
+const deny = (p) => p.getByRole("button", { name: "Reject" }).click({ timeout: 3000 }).catch(() => {});
 let n = 0;
 for (const [w, h] of [[1440, 900], [390, 844]]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
