@@ -106,12 +106,13 @@ export async function gscSiteFor(domain = "10bonds.com"): Promise<string | null>
  * so "indexed" is the number of pages that appeared in Google search at least once in the period.
  */
 export async function searchConsoleKpis(siteUrl: string, days = 28): Promise<SearchKpis> {
-  const end = new Date(Date.now() - 2 * 86_400_000); // Search Console data lags 2-3 days
+  // Up to today with dataState "all": fresh (not yet final) data is included, so a young site does not read 0.
+  const end = new Date();
   const start = new Date(end.getTime() - (days - 1) * 86_400_000);
   const pEnd = new Date(start.getTime() - 86_400_000);
   const pStart = new Date(pEnd.getTime() - (days - 1) * 86_400_000);
   const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
-  const cur = { startDate: ymd(start), endDate: ymd(end), type: "web" };
+  const cur = { startDate: ymd(start), endDate: ymd(end), type: "web", dataState: "all" };
   const [tot, prev, pages] = await Promise.all([
     googleJson(url, cur),
     googleJson(url, { ...cur, startDate: ymd(pStart), endDate: ymd(pEnd) }),
@@ -139,12 +140,12 @@ export type GscData = {
   daily: { date: string; clicks: number; impressions: number }[];
 };
 
-/** Search Console, last 28 days (Search Console data lags 2-3 days). */
+/** Search Console, last 28 days up to today (fresh data included). */
 export async function searchConsole(siteUrl: string, days = 28): Promise<GscData> {
-  const end = new Date(Date.now() - 2 * 86_400_000);
+  const end = new Date();
   const start = new Date(end.getTime() - (days - 1) * 86_400_000);
   const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
-  const base = { startDate: ymd(start), endDate: ymd(end), type: "web" };
+  const base = { startDate: ymd(start), endDate: ymd(end), type: "web", dataState: "all" };
   type Row = { keys?: string[]; clicks: number; impressions: number; ctr: number; position: number };
   const [tot, q, p, d] = await Promise.all([
     googleJson(url, base),
@@ -165,21 +166,21 @@ export async function searchConsole(siteUrl: string, days = 28): Promise<GscData
 
 /** Search Console figures per query (up to 5,000 queries), for matching against the keyword list. */
 export async function searchConsoleQueries(siteUrl: string, days = 28, country?: string): Promise<{ end: string; rows: { query: string; page: string; clicks: number; impressions: number; position: number }[] }> {
-  const end = new Date(Date.now() - 2 * 86_400_000);
+  const end = new Date();
   const start = new Date(end.getTime() - (days - 1) * 86_400_000);
   const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
   const filters = country ? [{ filters: [{ dimension: "country", operator: "equals", expression: country }] }] : undefined;
-  const j = await googleJson(url, { startDate: ymd(start), endDate: ymd(end), type: "web", dimensions: ["query", "page"], rowLimit: 5000, dimensionFilterGroups: filters });
+  const j = await googleJson(url, { startDate: ymd(start), endDate: ymd(end), type: "web", dataState: "all", dimensions: ["query", "page"], rowLimit: 5000, dimensionFilterGroups: filters });
   type Row = { keys?: string[]; clicks: number; impressions: number; position: number };
   return { end: ymd(end), rows: (j.rows ?? []).map((r: Row) => ({ query: r.keys?.[0] ?? "", page: r.keys?.[1] ?? "", clicks: r.clicks, impressions: r.impressions, position: r.position })) };
 }
 
 /** Search Console totals for pages whose address contains `pathPart` (e.g. "/it/"), over the last `days` days. */
 export async function searchConsoleTotals(siteUrl: string, pathPart: string, days = 28, country?: string): Promise<{ clicks: number; impressions: number; position: number }> {
-  const end = new Date(Date.now() - 2 * 86_400_000);
+  const end = new Date();
   const start = new Date(end.getTime() - (days - 1) * 86_400_000);
   const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
-  const j = await googleJson(url, { startDate: ymd(start), endDate: ymd(end), type: "web", dimensionFilterGroups: [{ filters: [{ dimension: "page", operator: "contains", expression: pathPart }, ...(country ? [{ dimension: "country", operator: "equals", expression: country }] : [])] }] });
+  const j = await googleJson(url, { startDate: ymd(start), endDate: ymd(end), type: "web", dataState: "all", dimensionFilterGroups: [{ filters: [{ dimension: "page", operator: "contains", expression: pathPart }, ...(country ? [{ dimension: "country", operator: "equals", expression: country }] : [])] }] });
   const t = j.rows?.[0];
   return t ? { clicks: t.clicks, impressions: t.impressions, position: t.position } : { clicks: 0, impressions: 0, position: 0 };
 }
