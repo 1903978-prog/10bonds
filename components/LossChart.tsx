@@ -35,8 +35,9 @@ export function curveSlopes(shown: CurvePoint[]) {
  * exact target, expected loss and slope at that point. Drawn in the same box as the results table, so it keeps the
  * table's size and nothing around it moves.
  */
-export default function LossChart({ points, max, current, loss, xLabel, yLabel, slopeLabel, hoverText }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; slopeLabel: string; hoverText: string }) {
-  const W = 800, H = 360, L = 56, R = 16, T = 12, B = 44;
+export default function LossChart({ points, max, current, loss, xLabel, yLabel, slopeLabel, hoverText, compact = false, onPick }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; slopeLabel: string; hoverText: string; compact?: boolean; onPick?: (ytm: number) => void }) {
+  // Compact is the short chart above the 10 bonds: same drawing, less height.
+  const W = 800, H = compact ? 200 : 360, L = compact ? 64 : 56, R = 16, T = 12, B = 44;
   const shown = shownPoints(points);
   const x0 = X_START, x1 = Math.max(max, x0 + 0.5);
   const yMax = Math.max(0.01, ...shown.map((p) => p.loss), loss ?? 0) * 1.1;
@@ -70,7 +71,7 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
   const h = hover !== null ? shown[hover] : null;
   const hs = hover === null ? 0 : slopes[hover];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`${yLabel} / ${xLabel}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`${yLabel} / ${xLabel}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={() => { if (onPick && h) onPick(h.ytm); }} style={onPick ? { cursor: "pointer" } : undefined}>
       {yTicks.map((v) => (
         <g key={`y${v}`}>
           <line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#e5e5ea" />
@@ -81,7 +82,7 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
         <text key={`x${v}`} x={X(v)} y={H - B + 18} textAnchor="middle" className="fill-[#86868b] text-[12px]">{v.toFixed(1)}%</text>
       ))}
       <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" className="fill-[#86868b] text-[12px]">{xLabel}</text>
-      <text x={20} y={H / 2} textAnchor="middle" transform={`rotate(-90 20 ${H / 2})`} className="fill-[#86868b] text-[12px]">{yLabel}</text>
+      <text x={compact ? 10 : 20} y={H / 2} textAnchor="middle" transform={`rotate(-90 ${compact ? 10 : 20} ${H / 2})`} className="fill-[#86868b] text-[12px]">{yLabel}</text>
       <g data-testid="loss-chart-legend" className="text-[12px]">
         <line x1={L + 8} x2={L + 28} y1={T + 12} y2={T + 12} stroke="#0066cc" strokeWidth={2.5} />
         <text x={L + 34} y={T + 16} className="fill-[#1d1d1f]">{yLabel}</text>
