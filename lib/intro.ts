@@ -21,6 +21,8 @@ export type IntroData = {
   dots: [number, number, number][];
   // Per horizon, the efficient frontier as positions in `dots`, safest first.
   fronts: number[][];
+  // Per horizon, the maturity years of most of its bonds (10th to 90th percentile), for the legend; null when unknown.
+  years: ([number, number] | null)[];
   // Visitor-sized example results (top 3 names, the rest only counted) and the positions in `dots` of the whole top 10.
   examples: IntroExample[];
 };
@@ -32,8 +34,9 @@ const horizonOf = (d: number | null) => {
 };
 
 /** The dots and, per horizon, the frontier (same rule as the landing chart: top 5% yield per risk level 1..8, rising only). */
-export function introDots(bonds: PublicBond[]): { dots: IntroData["dots"]; fronts: number[][]; at: Map<string, number> } {
+export function introDots(bonds: PublicBond[]): { dots: IntroData["dots"]; fronts: number[][]; years: IntroData["years"]; at: Map<string, number> } {
   const dots: IntroData["dots"] = [];
+  const matYears = INTRO_HORIZONS.map(() => [] as number[]);
   const at = new Map<string, number>();
   const byLevel = INTRO_HORIZONS.map(() => new Map<number, number[]>());
   for (const b of bonds) {
@@ -41,6 +44,8 @@ export function introDots(bonds: PublicBond[]): { dots: IntroData["dots"]; front
     if (risk === null || b.grossYtm === null || !Number.isFinite(b.grossYtm)) continue;
     const h = horizonOf(b.modifiedDuration);
     if (h) byLevel[h - 1].set(risk, [...(byLevel[h - 1].get(risk) ?? []), dots.length]);
+    const year = b.maturity ? Number(b.maturity.slice(0, 4)) : NaN;
+    if (h && Number.isFinite(year)) matYears[h - 1].push(year);
     at.set(b.isin, dots.length);
     dots.push([risk, Math.round(b.grossYtm * 100) / 100, h]);
   }
@@ -52,7 +57,13 @@ export function introDots(bonds: PublicBond[]): { dots: IntroData["dots"]; front
     }
     return monotonicRun(picks, (i) => dots[i][1]);
   });
-  return { dots, fronts, at };
+  const years = matYears.map((ys): [number, number] | null => {
+    if (!ys.length) return null;
+    ys.sort((a, b) => a - b);
+    const q = (p: number) => ys[Math.min(ys.length - 1, Math.floor(p * ys.length))];
+    return [q(0.1), q(0.9)];
+  });
+  return { dots, fronts, years, at };
 }
 
 /** An example result as a visitor sees it: 3 names with their yield, the other bonds of the top 10 only counted. */
