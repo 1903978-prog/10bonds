@@ -186,6 +186,18 @@ table app.seo_criterion_results
   evaluator text not null
   evaluated_at timestamp with time zone not null
 
+table app.seo_daily_stats
+  day date not null
+  source text not null
+  clicks integer
+  impressions integer
+  ctr numeric
+  position numeric
+  indexed integer
+  tracked integer
+  top10 integer
+  created_at timestamp with time zone not null default now()
+
 table app.seo_guide_log
   id bigint not null default nextval(...)
   guide_id bigint not null
@@ -380,6 +392,8 @@ constraints
   app.seo_criterion_results seo_criterion_results_assessment_id_fkey: FOREIGN KEY (assessment_id) REFERENCES app.seo_assessments(id) ON DELETE CASCADE
   app.seo_criterion_results seo_criterion_results_pkey: PRIMARY KEY (assessment_id, dimension, criterion)
   app.seo_criterion_results seo_criterion_results_points_check: CHECK (((points >= 0) AND (points <= 2)))
+  app.seo_daily_stats seo_daily_stats_pkey: PRIMARY KEY (day, source)
+  app.seo_daily_stats seo_daily_stats_source_check: CHECK ((source = ANY (ARRAY['google'::text, 'bing'::text, 'keywords'::text])))
   app.seo_guide_log seo_guide_log_guide_id_fkey: FOREIGN KEY (guide_id) REFERENCES app.seo_guides(id) ON DELETE CASCADE
   app.seo_guide_log seo_guide_log_pkey: PRIMARY KEY (id)
   app.seo_guides seo_guides_author_id_fkey: FOREIGN KEY (author_id) REFERENCES app.seo_people(id) ON DELETE SET NULL
@@ -446,6 +460,7 @@ indexes
   CREATE UNIQUE INDEX seo_backlinks_pkey ON app.seo_backlinks USING btree (id)
   CREATE UNIQUE INDEX seo_backlinks_source_url_target_url_key ON app.seo_backlinks USING btree (source_url, target_url)
   CREATE UNIQUE INDEX seo_criterion_results_pkey ON app.seo_criterion_results USING btree (assessment_id, dimension, criterion)
+  CREATE UNIQUE INDEX seo_daily_stats_pkey ON app.seo_daily_stats USING btree (day, source)
   CREATE UNIQUE INDEX seo_guide_log_pkey ON app.seo_guide_log USING btree (id)
   CREATE UNIQUE INDEX seo_guides_locale_slug_key ON app.seo_guides USING btree (locale, slug)
   CREATE UNIQUE INDEX seo_guides_pkey ON app.seo_guides USING btree (id)
