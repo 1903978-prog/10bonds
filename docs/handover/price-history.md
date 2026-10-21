@@ -1,4 +1,7 @@
-# Prices and 52-week high/low: what LM op model has to add
+# Prices: what LM op model has to add
+
+**Update 21 Oct 2026:** do NOT export `high_52w` / `low_52w`. The owner does not want the data supplier's 52-week
+range used or shown (data supplier rights). The site ignores those columns and only uses its own recorded history.
 
 The 10BONDS **Price drops** page (`/price-drops`, `/it/ribassi`, `/fr/baisses`, `/de/kursrueckgaenge`) lists rated
 bonds whose price is furthest below its 52-week high. Today `public.public_bonds` holds yields only (checked
@@ -13,8 +16,6 @@ LM op model already refreshes prices daily, so it can fill this at once.
 |---|---|---|
 | `clean_price` | numeric | latest clean price, per 100 nominal, in the bond's currency |
 | `price_as_of` | timestamptz | when that price was quoted |
-| `high_52w` | numeric | highest daily clean price over the last 52 weeks (per 100) |
-| `low_52w` | numeric | lowest daily clean price over the last 52 weeks (per 100) |
 
 - Leave a column empty (null) when it is not known; do not send 0.
 - Use the same price source as `gross_ytm`, so price and yield agree.
@@ -23,5 +24,4 @@ LM op model already refreshes prices daily, so it can fill this at once.
 ## Nothing else changes
 
 The site reads these columns as soon as they appear (`lib/bonds.ts`); no deploy is needed on the 10BONDS side.
-When `high_52w` is present the page uses it and labels the column "52-week high"; until then it keeps using its own
-history. The read-only login (`tenbonds_reader`) and the separation from LM op model stay as they are.
+The page measures each drop from the highest price in its own history and shows no high column. The read-only login (`tenbonds_reader`) and the separation from LM op model stay as they are.

@@ -16,9 +16,9 @@ describe("price drops", () => {
     expect(rows[1].risk).toBe(5);
   });
 
-  it("uses the copy's own 52-week high when it is higher", () => {
+  it("never uses the data supplier's 52-week high", () => {
     const b = { ...bond("A", "Alpha", "BBB", 95), high52w: 110 };
-    expect(computeDrops([b], new Map([["A", 100]]))[0].high).toBe(110);
+    expect(computeDrops([b], new Map([["A", 100]]))[0].high).toBe(100);
   });
 
   it("leaves out unrated bonds and bonds without history", () => {

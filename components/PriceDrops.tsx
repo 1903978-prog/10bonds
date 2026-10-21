@@ -7,7 +7,7 @@ import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
 const ROWS = 10;
 
-/** Biggest price drops from the 52-week high: currency toggle, risk chips, and a table that always keeps 10 rows. */
+/** Biggest price drops from the highest recorded price: currency toggle, risk chips, and a table that always keeps 10 rows. */
 export default function PriceDrops({ data, lang }: { data: DropsData; lang: DropsLang }) {
   const t = DROPS_TEXT[lang];
   const [currency, setCurrency] = useState<"EUR" | "USD">("EUR");
@@ -16,7 +16,6 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
   const rows: (DropRow | null)[] = risk === null ? lists.top : lists.byRisk[risk] ?? [];
   const padded = [...rows, ...Array<null>(Math.max(0, ROWS - rows.length)).fill(null)].slice(0, ROWS);
   const day = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString(t.locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-  const highLabel = data.since ? t.highShort : t.high;
   const num = (n: number, d = 2) => n.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d });
 
   return (
@@ -70,7 +69,6 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
               <th className="w-14 text-center font-medium">{t.risk}</th>
               <th className="hidden w-28 text-center font-medium sm:table-cell">{t.maturity}</th>
               <th className="w-16 text-right font-medium sm:w-20">{t.price}</th>
-              <th className="hidden w-28 truncate text-right font-medium sm:table-cell" title={highLabel}>{highLabel}</th>
               <th className="w-[72px] pr-4 text-right font-medium sm:w-24">{t.drop}</th>
             </tr>
           </thead>
@@ -85,11 +83,10 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className="text-center"><RiskBadge risk={r.risk} /></td>
                     <td className="hidden text-center tabular-nums sm:table-cell">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
-                    <td className="hidden text-right tabular-nums text-mute sm:table-cell">{num(r.high)}</td>
                     <td className="pr-4 text-right font-medium tabular-nums text-[#dc2626]">{num(r.dropPct, 1)}%</td>
                   </>
                 ) : (
-                  <td colSpan={8} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
+                  <td colSpan={7} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
                 )}
               </tr>
             ))}
@@ -99,7 +96,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
 
       <p className="mt-3 text-[11px] leading-snug text-mute">
         {data.since && <span>{t.building(day(data.since))} </span>}
-        {!data.fromCopy && <span>{t.indicative} </span>}
+        <span>{t.indicative} </span>
       </p>
     </div>
   );
