@@ -21,6 +21,11 @@ export type ResultRow = {
   isin?: string;
   coupon?: number | null;
   maturity?: string | null;
+  currency?: string;
+  couponType?: string | null;
+  seniority?: string | null;
+  issueDate?: string | null;
+  callable?: boolean | null;
   // Admin only (the owner): the S&P grade, never sent to anyone else.
   sp?: string | null;
   // Paid only, when the risk-adjusted ranking is on: the figures behind the rank (no agency grade).

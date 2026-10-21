@@ -19,7 +19,12 @@ export type PublicBond = {
   // Real prices, once the nightly copy carries them (docs/handover/price-history.md); undefined until then.
   cleanPrice?: number | null; // per 100 nominal
   high52w?: number | null;
-  low52w?: number | null;
+  low52w?: number | null; // read for the price-drops page only; never shown on bond details (data supplier rights)
+  // Bond terms, once the nightly copy carries them (docs/handover/bond-details.md); null or undefined = not in the data.
+  couponType?: string | null; // "fixed" | "zero" | "floating" | "step" | "inflation", or the copy's own word
+  seniority?: string | null; // e.g. "Senior unsecured", "Senior preferred", as the copy writes it
+  issueDate?: string | null; // YYYY-MM-DD
+  callable?: boolean | null;
 };
 
 // visitor = not signed in; free = signed-in free account.

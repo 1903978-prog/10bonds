@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { useFinderText } from "@/lib/finderText";
+import { useContext, useEffect, useRef, useState } from "react";
+import { FinderLangContext, useFinderText } from "@/lib/finderText";
+import { callableLabel, couponTypeLabel, FACT_TEXT, seniorityLabel } from "@/lib/bondFacts";
 import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
@@ -196,6 +197,8 @@ function BondBox(props: {
   const signedIn = tier !== "visitor";
   const paid = tier === "plus" || tier === "premium";
   const t = useFinderText();
+  const lang = useContext(FinderLangContext);
+  const f = FACT_TEXT[lang];
   const lock = signedIn ? <Link href="/pricing" className="text-accent">{t.withPlus}</Link> : <Link href="/signup" className="text-accent">{t.freeAccountLower}</Link>;
   const row = (k: string, v: React.ReactNode) => (
     <div className="flex justify-between gap-2 border-b border-line/50 py-0.5 text-xs">
@@ -218,9 +221,14 @@ function BondBox(props: {
         {row(t.risk, signedIn ? <>{bond.sp !== undefined && <span className="mr-1.5 text-mute">{bond.sp ?? "–"}</span>}<RiskBadge risk={bond.risk} title={t.riskNote} /></> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
+        {row(f.couponType, paid ? couponTypeLabel(lang, bond.couponType) : lock)}
+        {row(f.seniority, paid ? seniorityLabel(lang, bond.seniority) : lock)}
         {row(t.maturity, paid ? bond.maturity ?? "—" : lock)}
+        {row(f.issueDate, paid ? bond.issueDate ?? "–" : lock)}
+        {row(f.callable, paid ? callableLabel(lang, bond.callable) : lock)}
         {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment, props.currency) : lock)}
         {row(t.country, signedIn ? bond.country || "—" : lock)}
+        {row(t.currency, signedIn ? props.currency : lock)}
       </dl>
       {/* Fixed slots: every control keeps the same place whichever bond is shown. */}
       <div className="mt-2 flex flex-wrap items-center gap-2 whitespace-nowrap">
@@ -243,8 +251,8 @@ function BondBox(props: {
             onClick={() =>
               downloadXlsx(
                 [
-                  [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.duration, `${t.coupon} %`, t.maturity, t.country, t.minInvest],
-                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.duration, bond.coupon ?? null, bond.maturity ?? null, bond.country ?? null, minForExcel(bond.minInvestment)],
+                  [t.issuer, t.bond, "ISIN", `${t.yieldLower} %`, t.duration, `${t.coupon} %`, f.couponType, f.seniority, t.maturity, f.issueDate, f.callable, t.country, t.currency, t.minInvest],
+                  [bond.issuer, bond.name, bond.isin, bond.ytm, bond.duration, bond.coupon ?? null, couponTypeLabel(lang, bond.couponType), seniorityLabel(lang, bond.seniority), bond.maturity ?? null, bond.issueDate ?? null, callableLabel(lang, bond.callable), bond.country ?? null, props.currency, minForExcel(bond.minInvestment)],
                 ],
                 `10bonds-${bond.isin ?? "bond"}.xlsx`,
                 "Bond",

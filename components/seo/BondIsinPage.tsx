@@ -4,6 +4,7 @@ import { JsonLd } from "@/components/seo/Seo";
 import { RiskBadge } from "@/components/RiskBadge";
 import { loadAllShown } from "@/lib/bonds";
 import { currentUser } from "@/lib/currentUser";
+import { callableLabel, couponTypeLabel, FACT_TEXT, seniorityLabel } from "@/lib/bondFacts";
 import { fmtMin } from "@/lib/fmtMin";
 import { bondRisk } from "@/lib/ratings";
 import { SITE_URL } from "@/lib/seo/crawl";
@@ -30,6 +31,7 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
   if (!hit) notFound();
   const { bond: b, all, asOf } = hit;
   const t = BOND_TEXT[l];
+  const f = FACT_TEXT[l];
   const paid = !!user && !user.confirmBlocked && user.plan !== "free";
   const issuer = issuerOf(b);
   const label = bondLabel(l, b);
@@ -49,7 +51,11 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
     [t.country, countryName(l, b.country) ?? "–"],
     [t.currency, b.currency],
     [t.coupon, b.coupon === null ? "–" : `${fmtCoupon(l, b.coupon)}%`],
+    [f.couponType, couponTypeLabel(l, b.couponType)],
+    [f.seniority, seniorityLabel(l, b.seniority)],
     [t.maturity, b.maturity ? fmtDay(l, b.maturity) : "–"],
+    [f.issueDate, b.issueDate ? fmtDay(l, b.issueDate) : "–"],
+    [f.callable, callableLabel(l, b.callable)],
     [t.minimum, fmtMin(b.minInvestment, b.currency)],
     [t.risk, <RiskBadge key="r" risk={risk} />],
   ];
@@ -74,7 +80,7 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <section className={card}>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-[14px]">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-[14px] sm:grid-cols-3">
             {facts.map(([k, v]) => (
               <div key={k} className="min-w-0">
                 <dt className="text-xs text-mute">{k}</dt>
