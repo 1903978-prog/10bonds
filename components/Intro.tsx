@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { INTRO_COOKIE, INTRO_HORIZONS, type IntroData } from "@/lib/intro";
 import { INTRO_TEXT, NUM_LOCALE } from "@/lib/introText";
@@ -10,9 +10,10 @@ const BLUE = "#0a84ff";
 const GREY = "#aeaeb2";
 
 // The show, one beat every ~2 seconds (the owner, 21/10/2026). Beat k shows text lines up to LINE_AT[k] and chart view k:
-// 0 all bonds · 1 (same) · 2 the 4-6 year bonds in blue, every risk at once · 3 the 5-year top 10 lit up · 4 (same)
+// 0 all bonds · 1 (same) · 2 the 4-6 year bonds in blue, every risk at once · 3 their frontier bonds as red dots · 4 (same)
 // 5 + their efficient frontier · 6/7/8 the 1-3, 4-6 and 7-10 year frontiers one after the other · 9 example results.
-const AT = [0, 1800, 3800, 5800, 8000, 10000, 12400, 14400, 16400, 18800];
+// Twice as slow as the first version (the owner, 21/10/2026).
+const AT = [0, 1800, 3800, 5800, 8000, 10000, 12400, 14400, 16400, 18800].map((t) => t * 2);
 const LINE_AT = [0, 1, 2, 3, 4, 5, 6, 7, 7, 8];
 const LAST = AT.length - 1;
 // Where a click on a step jumps to (animated, reduced motion).
@@ -86,10 +87,18 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
       el.style.height = "";
       if (window.innerWidth < 1024) return;
       const root = document.documentElement;
-      const over = root.scrollHeight - root.clientHeight;
+      const footer = document.querySelector("footer");
+      const box = el.getBoundingClientRect();
+      // Only the space down to the bottom of the footer counts: language home pages carry more content below, on purpose.
+      const below = footer ? footer.getBoundingClientRect().bottom - box.bottom : 0;
+      if (below > window.innerHeight / 2) return;
+      const over = box.bottom + below - root.clientHeight;
       if (over <= 0) return;
       const z = parseFloat(getComputedStyle(root).getPropertyValue("--z")) || 1;
-      el.style.height = `${Math.max(400, parseFloat(getComputedStyle(el).height) - over / z - 2)}px`;
+      // Never smaller than the text column needs.
+      const col = el.lastElementChild;
+      const text = col?.firstElementChild && col.lastElementChild ? (col.lastElementChild.getBoundingClientRect().bottom - col.firstElementChild.getBoundingClientRect().top) / z + 16 : 0;
+      el.style.height = `${Math.max(400, text, parseFloat(getComputedStyle(el).height) - over / z - 2)}px`;
     };
     fit();
     window.addEventListener("resize", fit);
@@ -103,10 +112,10 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
       <button type="button" onClick={() => onClose(true)} className="-mb-2 justify-self-end text-[13px] text-accent lg:hidden">{t.skip} →</button>
       {/* Left: the chart and, at the end, the examples, laid over each other in one fixed box. */}
       <div className="relative h-[360px] overflow-hidden rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:h-[400px] sm:p-5 lg:h-auto">
-        <div className={`absolute inset-4 transition-opacity duration-700 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "pointer-events-none opacity-0" : "opacity-100"}`}>
+        <div className={`absolute inset-4 transition-opacity duration-[1400ms] motion-reduce:transition-none sm:inset-5 ${k === LAST ? "pointer-events-none opacity-0" : "opacity-100"}`}>
           <IntroChart data={data} k={k} t={t} />
         </div>
-        <div className={`absolute inset-4 flex flex-col justify-center transition-opacity duration-700 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "opacity-100" : "pointer-events-none opacity-0"}`} inert={k !== LAST}>
+        <div className={`absolute inset-4 flex flex-col justify-center transition-opacity duration-[1400ms] motion-reduce:transition-none sm:inset-5 ${k === LAST ? "opacity-100" : "pointer-events-none opacity-0"}`} inert={k !== LAST}>
           <Examples data={data} t={t} />
         </div>
       </div>
@@ -148,7 +157,7 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
 
 function Line({ on, className = "", children }: { on: boolean; className?: string; children: ReactNode }) {
   return (
-    <div className={`transition duration-700 ease-out motion-reduce:transition-none ${on ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} ${className}`} inert={!on}>
+    <div className={`transition duration-[1400ms] ease-out motion-reduce:transition-none ${on ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} ${className}`} inert={!on}>
       {children}
     </div>
   );
@@ -158,7 +167,7 @@ function Step({ no, title, sub, titleOn, subOn, active, onClick }: { no: number;
   return (
     <li className="flex gap-3">
       <span
-        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-all duration-700 motion-reduce:transition-none ${titleOn ? "opacity-100" : "opacity-0"} ${active ? "bg-accent text-white" : "bg-line text-mute"}`}
+        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-all duration-[1400ms] motion-reduce:transition-none ${titleOn ? "opacity-100" : "opacity-0"} ${active ? "bg-accent text-white" : "bg-line text-mute"}`}
         aria-hidden
       >
         {no}
@@ -188,12 +197,19 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
 
   const { w: W, h: H } = size;
   const L = 40, R = 10, T = 30, B = 38;
-  const dots = data?.dots ?? [];
+  const dots = useMemo(() => data?.dots ?? [], [data]);
   // Same picture as the landing chart: each bond anywhere across the width of its risk score, fixed per dot.
   const spread = (i: number) => ((((Math.sin(i * 12.9898 + 78.233) * 43758.5453) % 1) + 1) % 1) - 0.5;
-  const rx = (i: number) => dots[i][0] + spread(i);
+  // An illustration, not a plot (the owner, 21/10/2026): the bonds keep their order by risk but are spread evenly from
+  // risk 1 to 10, so the cloud has no sudden gaps or crowds. The red frontier dots sit on their bonds' own places.
+  const place = useMemo(() => {
+    const order = dots.map((_, i) => i).sort((a, b) => dots[a][0] + spread(a) - (dots[b][0] + spread(b)));
+    const out = new Array<number>(dots.length);
+    order.forEach((i, j) => (out[i] = 0.5 + (10 * (j + 0.5)) / order.length));
+    return out;
+  }, [dots]);
+  const rx = (i: number) => place[i];
   const fronts = (data?.fronts ?? []).map((f) => f.filter((i) => dots[i]));
-  const rings = (data?.examples.find((e) => e.duration === INTRO_HORIZONS[1].example)?.dots ?? []).filter((i) => dots[i]);
   // The axis follows the bulk of the bonds and always the frontier bonds.
   const sorted = dots.map((d) => d[1]).sort((a, b) => a - b);
   const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
@@ -210,10 +226,11 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
   const groups = [0, 1, 2, 3].map((h) => ({ key: String(h), h, idx: [] as number[] }));
   dots.forEach(([, , h], i) => groups[h].idx.push(i));
 
-  const lineState = (h: number) => (k === 5 && h === 1) || (k >= 6 && h === Math.min(k, 8) - 6) ? "on" : k >= 6 && h < Math.min(k, 8) - 6 ? "faint" : "off";
+  // Step 1 lights up the 4-6 year frontier bonds as red dots; step 2 draws the line through those same dots (the owner, 21/10/2026).
+  const lineState = (h: number) => (h === 1 && (k === 3 || k === 4)) ? "dots" : (k === 5 && h === 1) || (k >= 6 && h === Math.min(k, 8) - 6) ? "on" : k >= 6 && h < Math.min(k, 8) - 6 ? "faint" : "off";
   const hz = horizonAt(k);
   const years = hz >= 0 ? (data?.years?.[hz] ?? null) : null;
-  const ease = "transition-all duration-1000 ease-out motion-reduce:transition-none";
+  const ease = "transition-all duration-[2000ms] ease-out motion-reduce:transition-none";
 
   return (
     <div className="relative flex h-full flex-col">
@@ -221,12 +238,12 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
         {/* What the blue dots are: their real maturity years, in a fixed slot. */}
         <span className="flex items-center gap-3">
           <span><span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: GREY }} />{t.allBonds}</span>
-          <span className={`transition-opacity duration-500 motion-reduce:transition-none ${hz >= 0 && years ? "opacity-100" : "opacity-0"}`}>
+          <span className={`transition-opacity duration-1000 motion-reduce:transition-none ${hz >= 0 && years ? "opacity-100" : "opacity-0"}`}>
             <span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: BLUE }} />
             {years ? t.maturing(years[0], years[1]) : "\u00a0"}
           </span>
         </span>
-        <span className={`rounded-full bg-[#e8f2ff] px-2.5 py-0.5 text-[12px] font-medium text-accent transition-opacity duration-500 motion-reduce:transition-none ${hz >= 0 ? "opacity-100" : "opacity-0"}`} aria-live="polite">
+        <span className={`rounded-full bg-[#e8f2ff] px-2.5 py-0.5 text-[12px] font-medium text-accent transition-opacity duration-1000 motion-reduce:transition-none ${hz >= 0 ? "opacity-100" : "opacity-0"}`} aria-live="polite">
           {hz >= 0 ? t.horizon(INTRO_HORIZONS[hz].from, INTRO_HORIZONS[hz].to) : " "}
         </span>
       </div>
@@ -241,8 +258,9 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
           {Array.from({ length: 10 }, (_, i) => i + 1).map((l) => (
             <text key={l} x={x(l)} y={H - B + 17} textAnchor="middle" fontSize="12" fill="#86868b">{l}</text>
           ))}
+          <text x={4} y={T - 18} fontSize="12" fill="#86868b">{t.yAxis}</text>
           <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
-          <g className={`transition-opacity duration-1000 motion-reduce:transition-none ${data ? "opacity-100" : "opacity-0"}`}>
+          <g className={`transition-opacity duration-[2000ms] motion-reduce:transition-none ${data ? "opacity-100" : "opacity-0"}`}>
             {groups.map((g) => {
               const blue = isBlue(k, g.h);
               return (
@@ -252,15 +270,11 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
               );
             })}
           </g>
-          {/* Step 1: the real top 10 of the 5-year example lights up in red. */}
-          <g fill={RED} stroke="#fff" strokeWidth="1" className={`transition-opacity duration-700 motion-reduce:transition-none ${k === 3 ? "opacity-100" : "opacity-0"}`}>
-            {rings.map((i) => <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r="4" />)}
-          </g>
           {fronts.map((f, h) => {
             const s = lineState(h);
-            const d = f.map((i, j) => `${j ? "L" : "M"}${x(dots[i][0]).toFixed(1)},${y(dots[i][1]).toFixed(1)}`).join(" ");
+            const d = f.map((i, j) => `${j ? "L" : "M"}${x(rx(i)).toFixed(1)},${y(dots[i][1]).toFixed(1)}`).join(" ");
             return (
-              <g key={h} className={`transition-opacity duration-700 motion-reduce:transition-none ${s === "on" ? "opacity-100" : s === "faint" ? "opacity-25" : "opacity-0"}`}>
+              <g key={h} className={`transition-opacity duration-[1400ms] motion-reduce:transition-none ${s === "on" || s === "dots" ? "opacity-100" : s === "faint" ? "opacity-25" : "opacity-0"}`}>
                 <path
                   d={d}
                   pathLength={1}
@@ -269,14 +283,14 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
                   strokeWidth="2.5"
                   strokeLinejoin="round"
                   strokeDasharray="1"
-                  strokeDashoffset={s === "off" ? 1 : 0}
-                  style={{ transition: "stroke-dashoffset 1.4s ease-in-out" }}
+                  strokeDashoffset={s === "on" || s === "faint" ? 0 : 1}
+                  style={{ transition: "stroke-dashoffset 2.8s ease-in-out" }}
                   className="motion-reduce:!transition-none"
                 />
-                {f.map((i) => <circle key={i} cx={x(dots[i][0])} cy={y(dots[i][1])} r="4" fill={RED} stroke="#fff" strokeWidth="1.5" />)}
-                {/* Each line says which maturities it is for, next to its riskiest end. */}
+                {f.map((i) => <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r="4" fill={RED} stroke="#fff" strokeWidth="1.5" />)}
+                {/* Each line says which maturities it is for, just above its riskiest end. */}
                 {f.length > 0 && data?.years?.[h] && (
-                  <text x={x(dots[f[f.length - 1]][0]) - 9} y={y(dots[f[f.length - 1]][1]) + 4} textAnchor="end" fontSize="12" fontWeight="600" fill={RED}>
+                  <text x={x(rx(f[f.length - 1])) + 8} y={y(dots[f[f.length - 1]][1]) - 10} textAnchor="start" fontSize="12" fontWeight="600" fill={RED} className={`transition-opacity duration-[1400ms] motion-reduce:transition-none ${s === "dots" ? "opacity-0" : "opacity-100"}`}>
                     {t.maturity(data.years[h]![0], data.years[h]![1])}
                   </text>
                 )}
