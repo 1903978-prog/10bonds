@@ -1,7 +1,7 @@
 export const LIMITS = {
   duration: { min: 1, max: 30, step: 1, initial: 5 },
   ytm: { min: 1, max: 12, step: 0.01, initial: 4 },
-  risk: { min: 1, max: 10, step: 1, initial: 7 },
+  risk: { min: 1, max: 10, step: 1, initial: 5 },
 } as const;
 
 // Horizon slider stops (the owner, 20/10/2026): every year up to 15, then 20, 25 and "30+" (30 years and longer).
