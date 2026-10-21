@@ -4,6 +4,7 @@ import type { PublicBond } from "./types";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import { bondNotch } from "./ratings";
 import { correctedMin } from "./minOverrides";
+import { dormantReason } from "./dormant";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
 import { judge, missingColumns, type DataHealth } from "./dataHealth";
 import { cleanSd, findOutliers, OUTLIER_SD, type Outlier } from "./outliers";
@@ -83,7 +84,8 @@ async function reload() {
   const missing = rows.length ? missingColumns(rows.columns.map((c) => c.name)) : [];
   if (missing.length) throw new Error(`Bond table is missing columns: ${missing.join(", ")}`);
   const modelled = rows.filter((r) => r.structure_modelled !== false);
-  const bonds: PublicBond[] = modelled.map((r) => ({
+  const mapped: (PublicBond & { flaggedDormant: unknown })[] = modelled.map((r) => ({
+    flaggedDormant: r.dormant,
     isin: r.isin,
     name: r.name,
     issuer: cleanIssuer(r.issuer),
@@ -104,6 +106,8 @@ async function reload() {
     high52w: num(r.high_52w),
     low52w: num(r.low_52w),
   }));
+  // Bonds with a minimum above 200,000 EUR / USD stay in the database but are dormant: never shown or used (the owner, 21/10/2026).
+  const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);
   // Unrated bonds never appear on the site (the owner, 18/10/2026).
   const current = dropStale(bonds);
   const rated = current.filter((b) => bondNotch(b) !== null);
