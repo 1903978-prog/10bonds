@@ -111,14 +111,14 @@ async function setup(sql: ReturnType<typeof postgres>) {
   // Daily yield and indicative price of each shown bond (lib/priceHistory.ts), for the 1-week and 1-month moves on the
   // admin Price drops page. About 40 days are kept.
   await sql`
-    create table if not exists app.bond_prices_daily (
+    create table if not exists app.bond_daily_prices (
       as_of date not null,
       isin text not null,
       ytm real not null,
       price real,
       primary key (as_of, isin)
     )`;
-  await sql`delete from app.bond_prices_daily where as_of < current_date - 40`;
+  await sql`delete from app.bond_daily_prices where as_of < current_date - 40`;
   await sql`create index if not exists events_kind_at_idx on app.events (kind, at)`;
   // Lookups by account (data export, account deletion) and by Stripe customer (payment webhooks).
   await sql`create index if not exists events_user_idx on app.events (user_id) where user_id is not null`;

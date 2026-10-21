@@ -7,7 +7,7 @@ import type { PublicBond } from "./types";
 // Price drops (admin only, the owner 21/10/2026: 52-week values stay private for data-supplier rights).
 // The nightly copy holds today's yield only, so the site keeps its own history:
 // - app.bond_price_weeks: each bond's lowest and highest yield per week, for the 52-week range (from 19 Oct 2026);
-// - app.bond_prices_daily: each bond's yield and indicative price per day, about 40 days, for the 1-week and 1-month moves.
+// - app.bond_daily_prices: each bond's yield and indicative price per day, about 40 days, for the 1-week and 1-month moves.
 // The 52-week range uses the copy's own high_52w / low_52w when it has them, else the recorded yields priced as of
 // today (so the slow pull of every price toward 100 is not counted as a move). Missing history stays null ("–").
 
@@ -179,11 +179,11 @@ export async function recordPrices(): Promise<void> {
         max_ytm = greatest(app.bond_price_weeks.max_ytm, excluded.max_ytm)`;
   }
   for (let i = 0; i < days.length; i += 1000) {
-    await sql`insert into app.bond_prices_daily ${sql(days.slice(i, i + 1000), "as_of", "isin", "ytm", "price")}
+    await sql`insert into app.bond_daily_prices ${sql(days.slice(i, i + 1000), "as_of", "isin", "ytm", "price")}
       on conflict (as_of, isin) do update set ytm = excluded.ytm, price = excluded.price`;
   }
   // The daily yields the newsletter has kept since 20 Oct 2026 (EUR) fill the days before this record started.
-  await sql`insert into app.bond_prices_daily (as_of, isin, ytm)
+  await sql`insert into app.bond_daily_prices (as_of, isin, ytm)
     select as_of, isin, ytm from app.ytm_history where as_of >= current_date - 40
     on conflict (as_of, isin) do nothing`.catch(() => {});
   await sql`insert into app.settings (key, value) values ('price_history_since', ${(asOf ?? new Date().toISOString()).slice(0, 10)})
@@ -205,7 +205,7 @@ export async function loadDrops(): Promise<DropsData> {
       for (const r of range) h.range.set(r.isin, { minYtm: Number(r.min), maxYtm: Number(r.max) });
       const byIsin = new Map(bonds.map((b) => [b.isin, b]));
       const daily = await sql<{ as_of: string; isin: string; ytm: number; price: number | null }[]>`
-        select as_of::text as_of, isin, ytm, price from app.bond_prices_daily where as_of >= current_date - 40 order by as_of`;
+        select as_of::text as_of, isin, ytm, price from app.bond_daily_prices where as_of >= current_date - 40 order by as_of`;
       for (const d of daily) {
         const b = byIsin.get(d.isin);
         // Days kept as a yield only are priced as of that day.
