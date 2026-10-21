@@ -3,6 +3,7 @@
 import Link from "next/link";
 import NavLink from "@/components/NavLink";
 import ViewSwitch from "@/components/ViewSwitch";
+import BrandToggle from "@/components/BrandToggle";
 import { useEffect, useState } from "react";
 import { loadMe, trialDaysLeft, type Me } from "@/lib/me";
 
@@ -25,6 +26,7 @@ export default function AccountNav({ hasSession = false }: { hasSession?: boolea
   return (
     <>
       {me.isAdmin && <ViewSwitch />}
+      {me.isAdmin && <BrandToggle />}
       {(me.isAdmin || me.adminState) && <NavLink href="/admin" testId="nav-admin" className="inline-grid rounded-full bg-yellow-200 px-2 py-0.5">Admin</NavLink>}
       {days !== null && (
         <Link href="/pricing" className="whitespace-nowrap rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent" data-testid="trial-badge" title={`Premium trial: ${days} ${days === 1 ? "day" : "days"} left`}>
