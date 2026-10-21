@@ -73,3 +73,6 @@ html.brand-on :is(div, section, figure):has(> table, > svg[role="img"])::before 
   letter-spacing: -0.01em;
   pointer-events: none;
 }
+
+/* Intro chart: each bond fades in on its own turn. */
+@keyframes intro-dot { from { opacity: 0; } to { opacity: 1; } }

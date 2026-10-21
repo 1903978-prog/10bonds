@@ -9,15 +9,19 @@ const RED = "#ff3b30";
 const BLUE = "#0a84ff";
 const GREY = "#aeaeb2";
 
-// The show, one beat every ~2 seconds (the owner, 21/10/2026). Beat k shows text lines up to LINE_AT[k] and chart view k:
-// 0 all bonds · 1 (same) · 2 the 4-6 year bonds in blue, every risk at once · 3 their frontier bonds as red dots · 4 (same)
-// 5 + their efficient frontier · 6/7/8 the 1-3, 4-6 and 7-10 year frontiers one after the other · 9 example results.
-// 1.4x the first version's pace (the owner, 21/10/2026: twice as slow, then 30% faster).
-const AT = [0, 1800, 3800, 5800, 8000, 10000, 12400, 14400, 16400, 18800].map((t) => t * 1.4);
-// Step 1 is there from the first moment (the owner, 21/10/2026): the show opens at beat START with lines 0-3 shown.
-const LINE_AT = [0, 1, 3, 3, 4, 5, 6, 7, 7, 8];
-const START = 2;
+// The show (the owner, 21/10/2026): a 15-second script started when the bonds arrive. Bullet 1 from 0 to 5 s, bullet 2
+// from 5 to 10 s, bullet 3 from 10 to 15 s, then the example results; the chart always shows the bullet on screen.
+// Beat k shows text lines up to LINE_AT[k] and chart view k: 1 the bonds appearing one after the other (all within
+// 2.5 s) · 2 the 4-6 year bonds in blue · 3 their best bond per risk as red dots · 4/5 the line through those dots
+// (the efficient frontier) · 6/7/8 the 1-3, 4-6 and 7-10 year frontiers one after the other · 9 example results.
+const AT = [0, 0, 2500, 3800, 5000, 5300, 10000, 11700, 13300, 16000];
+const LINE_AT = [0, 3, 3, 3, 5, 5, 7, 7, 7, 8];
+const START = 1;
 const LAST = AT.length - 1;
+// The dots come in one after the other over this long, safest first.
+const DOTS_IN = 2.5;
+// The red dots and lines stop at risk 9 on the illustration (the owner, 21/10/2026): the riskiest end is mostly outliers.
+const FRONT_MAX = 9;
 // Where a click on a step jumps to (animated, reduced motion).
 const JUMP = { s1: [2, 3], s2: [4, 5], s3: [6, 8], result: [9, 9] } as const;
 
@@ -40,12 +44,16 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
   const [k, setK] = useState(START);
   const [seen, setSeen] = useState(START);
   const [playing, setPlaying] = useState(true);
+  // The clock starts when the bonds are there (or after 3 s without them), so text and chart stay in step.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     fetch("/api/bonds/intro?currency=EUR")
       .then((r) => (r.ok ? r.json() : null))
       .then((b: IntroData | null) => b && setData(b))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setReady(true));
+    const late = setTimeout(() => setReady(true), 3000);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       // Everything at once and nothing moves: the steps can still be clicked to show each picture.
       setReduced(true);
@@ -53,14 +61,15 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
       setK(5);
       setSeen(LAST);
     }
+    return () => clearTimeout(late);
   }, []);
 
   // One beat after the other.
   useEffect(() => {
-    if (!playing || k >= LAST) return;
+    if (!playing || !ready || k >= LAST) return;
     const id = setTimeout(() => setK(k + 1), AT[k + 1] - AT[k]);
     return () => clearTimeout(id);
-  }, [k, playing]);
+  }, [k, playing, ready]);
   useEffect(() => setSeen((s) => Math.max(s, k)), [k]);
   useEffect(() => {
     if (seen >= LAST) document.cookie = `${INTRO_COOKIE}=1; Path=/; Max-Age=31536000; SameSite=Lax`;
@@ -115,7 +124,7 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
       {/* Left: the chart and, at the end, the examples, laid over each other in one fixed box. */}
       <div className="relative h-[360px] overflow-hidden rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:h-[400px] sm:p-5 lg:h-auto">
         <div className={`absolute inset-4 transition-opacity duration-1000 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "pointer-events-none opacity-0" : "opacity-100"}`}>
-          <IntroChart data={data} k={k} t={t} />
+          <IntroChart data={data} k={k} t={t} reduced={reduced} />
         </div>
         <div className={`absolute inset-4 flex flex-col justify-center transition-opacity duration-1000 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "opacity-100" : "pointer-events-none opacity-0"}`} inert={k !== LAST}>
           <Examples data={data} t={t} />
@@ -186,7 +195,7 @@ function Step({ no, title, sub, titleOn, subOn, active, onClick }: { no: number;
   );
 }
 
-function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typeof INTRO_TEXT)["en"] }) {
+function IntroChart({ data, k, t, reduced }: { data: IntroData | null; k: number; t: (typeof INTRO_TEXT)["en"]; reduced: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 640, h: 360 });
   useEffect(() => {
@@ -211,7 +220,9 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
     return out;
   }, [dots]);
   const rx = (i: number) => place[i];
-  const fronts = (data?.fronts ?? []).map((f) => f.filter((i) => dots[i]));
+  const fronts = (data?.fronts ?? []).map((f) => f.filter((i) => dots[i] && place[i] <= FRONT_MAX));
+  // Bullet 1 suggests one bond: the 4-6 year frontier bond nearest risk 5.
+  const single = fronts[1]?.length ? fronts[1].reduce((a, b) => (Math.abs(place[b] - 5) < Math.abs(place[a] - 5) ? b : a)) : -1;
   // The axis follows the bulk of the bonds and always the frontier bonds.
   const sorted = dots.map((d) => d[1]).sort((a, b) => a - b);
   const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
@@ -228,8 +239,8 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
   const groups = [0, 1, 2, 3].map((h) => ({ key: String(h), h, idx: [] as number[] }));
   dots.forEach(([, , h], i) => groups[h].idx.push(i));
 
-  // Step 1 lights up the 4-6 year frontier bonds as red dots; step 2 draws the line through those same dots (the owner, 21/10/2026).
-  const lineState = (h: number) => (h === 1 && (k === 3 || k === 4)) ? "dots" : (k === 5 && h === 1) || (k >= 6 && h === Math.min(k, 8) - 6) ? "on" : k >= 6 && h < Math.min(k, 8) - 6 ? "faint" : "off";
+  // Bullet 1 lights up one red dot; bullet 2 adds the other best bonds and draws the line through them (the owner, 21/10/2026).
+  const lineState = (h: number) => (h === 1 && k === 3 ? "one" : h === 1 && k === 4 ? "dots" : (k === 5 && h === 1) || (k >= 6 && h === Math.min(k, 8) - 6) ? "on" : k >= 6 && h < Math.min(k, 8) - 6 ? "faint" : "off");
   const hz = horizonAt(k);
   const years = hz >= 0 ? (data?.years?.[hz] ?? null) : null;
   const ease = "transition-all duration-[1400ms] ease-out motion-reduce:transition-none";
@@ -262,12 +273,14 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
           ))}
           <text x={4} y={T - 18} fontSize="12" fill="#86868b">{t.yAxis}</text>
           <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
-          <g className={`transition-opacity duration-[1400ms] motion-reduce:transition-none ${data ? "opacity-100" : "opacity-0"}`}>
+          <g>
             {groups.map((g) => {
               const blue = isBlue(k, g.h);
               return (
                 <g key={g.key} fill={blue ? BLUE : GREY} fillOpacity={blue ? 0.75 : 0.4} className={ease}>
-                  {g.idx.map((i) => <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r={blue ? 2.2 : 1.8} />)}
+                  {g.idx.map((i) => (
+                    <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r={blue ? 2.2 : 1.8} style={reduced ? undefined : { animation: `intro-dot 0.4s ease-out ${(((place[i] - 0.5) / 10) * DOTS_IN).toFixed(2)}s both` }} />
+                  ))}
                 </g>
               );
             })}
@@ -276,7 +289,7 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
             const s = lineState(h);
             const d = f.map((i, j) => `${j ? "L" : "M"}${x(rx(i)).toFixed(1)},${y(dots[i][1]).toFixed(1)}`).join(" ");
             return (
-              <g key={h} className={`transition-opacity duration-1000 motion-reduce:transition-none ${s === "on" || s === "dots" ? "opacity-100" : s === "faint" ? "opacity-25" : "opacity-0"}`}>
+              <g key={h} className={`transition-opacity duration-1000 motion-reduce:transition-none ${s === "on" || s === "dots" || s === "one" ? "opacity-100" : s === "faint" ? "opacity-25" : "opacity-0"}`}>
                 <path
                   d={d}
                   pathLength={1}
@@ -289,10 +302,12 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
                   style={{ transition: "stroke-dashoffset 2s ease-in-out" }}
                   className="motion-reduce:!transition-none"
                 />
-                {f.map((i) => <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r="4" fill={RED} stroke="#fff" strokeWidth="1.5" />)}
+                {f.map((i) => (
+                  <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r="4" fill={RED} stroke="#fff" strokeWidth="1.5" className={`transition-opacity duration-700 motion-reduce:transition-none ${s === "one" && i !== single ? "opacity-0" : "opacity-100"}`} />
+                ))}
                 {/* Each line says which maturities it is for, just above its riskiest end. */}
                 {f.length > 0 && data?.years?.[h] && (
-                  <text x={x(rx(f[f.length - 1])) + 8} y={y(dots[f[f.length - 1]][1]) - 10} textAnchor="start" fontSize="12" fontWeight="600" fill={RED} className={`transition-opacity duration-1000 motion-reduce:transition-none ${s === "dots" ? "opacity-0" : "opacity-100"}`}>
+                  <text x={x(rx(f[f.length - 1])) + 8} y={y(dots[f[f.length - 1]][1]) - 10} textAnchor="start" fontSize="12" fontWeight="600" fill={RED} className={`transition-opacity duration-1000 motion-reduce:transition-none ${s === "dots" || s === "one" ? "opacity-0" : "opacity-100"}`}>
                     {t.maturity(data.years[h]![0], data.years[h]![1])}
                   </text>
                 )}
