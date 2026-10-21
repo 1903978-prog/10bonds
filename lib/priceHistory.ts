@@ -4,10 +4,10 @@ import { cleanPriceFromYield } from "./bondPrice";
 import { bondRisk } from "./ratings";
 import type { PublicBond } from "./types";
 
-// Biggest price drops from the 52-week high. The nightly copy holds today's yield only, so the site keeps each bond's
-// lowest and highest yield per week in app.bond_price_weeks, from the day this started. The high is the lowest yield
-// of the last 52 weeks priced as of today, so the slow pull of every price toward 100 is not counted as a drop.
-// Once the copy carries real prices and 52-week highs (docs/handover/price-history.md), those are used instead.
+// Biggest price drops from the highest price in the site's own records. The nightly copy holds today's yield only, so
+// the site keeps each bond's lowest and highest yield per week in app.bond_price_weeks, from the day this started. The
+// high is the lowest recorded yield of the past year priced as of today, so the slow pull toward 100 is not a drop.
+// The data supplier's own 52-week high/low is never used for the drop and is shown to the admin only (the owner, 21/10/2026).
 
 export type DropRow = {
   isin: string;
@@ -17,12 +17,15 @@ export type DropRow = {
   risk: number;
   maturity: string | null;
   price: number;
-  high: number;
+  high: number; // never shown: only the drop is
   dropPct: number; // negative, e.g. -6.2
+  // Admin only (set by forViewer): the data supplier's 52-week price low and high, never used for the drop itself.
+  low52w?: number | null;
+  high52w?: number | null;
 };
 
 export type DropLists = { top: DropRow[]; byRisk: Record<number, DropRow[]> };
-export type DropsData = { EUR: DropLists; USD: DropLists; since: string | null; fromCopy: boolean; asOf: string | null };
+export type DropsData = { EUR: DropLists; USD: DropLists; since: string | null; asOf: string | null };
 
 export const TOP_N = 10;
 export const PER_RISK = 3;
@@ -36,7 +39,7 @@ export function priceOf(b: PublicBond): number | null {
   return cleanPriceFromYield(b.coupon, b.maturity, b.grossYtm, day);
 }
 
-/** The price the bond would have today at its lowest yield of the period: its 52-week high, without the pull to 100. */
+/** The price the bond would have today at its lowest yield of the period: its recorded high, without the pull to 100. */
 export function highFromYield(b: PublicBond, lowestYtm: number): number | null {
   const day = b.ytmAsOf ? new Date(b.ytmAsOf) : new Date();
   return cleanPriceFromYield(b.coupon, b.maturity, lowestYtm, day);
@@ -56,11 +59,11 @@ export function computeDrops(bonds: PublicBond[], highs: Map<string, number>): D
   for (const b of bonds) {
     const risk = bondRisk(b);
     const price = priceOf(b);
-    const high = Math.max(b.high52w ?? -Infinity, highs.get(b.isin) ?? -Infinity, price ?? -Infinity);
+    const high = Math.max(highs.get(b.isin) ?? -Infinity, price ?? -Infinity);
     if (risk === null || price === null || !Number.isFinite(high) || high <= 0) continue;
     const dropPct = ((price - high) / high) * 100;
     if (dropPct > MIN_DROP) continue;
-    rows.push({ isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, maturity: b.maturity, price, high, dropPct });
+    rows.push({ isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, maturity: b.maturity, price, high, dropPct, low52w: b.low52w ?? null, high52w: b.high52w ?? null });
   }
   return rows.sort((a, b) => a.dropPct - b.dropPct);
 }
@@ -128,10 +131,17 @@ export async function loadDrops(): Promise<DropsData> {
       const [first] = await sql<{ value: string }[]>`select value from app.settings where key = 'price_history_since'`;
       since = first?.value ?? null;
     } catch {
-      // Without the history the page still shows the copy's own 52-week highs, when it has them.
+      // Without the history the page shows no drops.
     }
   }
-  const fromCopy = bonds.some((b) => b.high52w != null);
   const rows = computeDrops(bonds, highs);
-  return { EUR: listsFor(rows, "EUR"), USD: listsFor(rows, "USD"), since: fromCopy ? null : since, fromCopy, asOf };
+  return { EUR: listsFor(rows, "EUR"), USD: listsFor(rows, "USD"), since, asOf };
+}
+
+/** What one viewer may see: the 52-week low/high stay on the server unless the viewer is the admin. */
+export function forViewer(data: DropsData, admin: boolean): DropsData {
+  if (admin) return data;
+  const strip = (rows: DropRow[]) => rows.map(({ low52w: _l, high52w: _h, ...r }) => r);
+  const lists = (l: DropLists): DropLists => ({ top: strip(l.top), byRisk: Object.fromEntries(Object.entries(l.byRisk).map(([k, v]) => [k, strip(v)])) });
+  return { ...data, EUR: lists(data.EUR), USD: lists(data.USD) };
 }

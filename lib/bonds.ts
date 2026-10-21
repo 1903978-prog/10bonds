@@ -6,6 +6,7 @@ import { bondNotch } from "./ratings";
 import { correctedMin } from "./minOverrides";
 import { dormantReason } from "./dormant";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
+import { couponTypeOf } from "./bondFacts";
 import { judge, missingColumns, type DataHealth } from "./dataHealth";
 import { cleanSd, findOutliers, OUTLIER_SD, type Outlier } from "./outliers";
 import { liveOutlierSd } from "./riskPremium/store";
@@ -105,6 +106,10 @@ async function reload() {
     cleanPrice: num(r.clean_price),
     high52w: num(r.high_52w),
     low52w: num(r.low_52w),
+    couponType: couponTypeOf(r.coupon_type, num(r.coupon), r.structure_modelled),
+    seniority: typeof r.seniority === "string" && r.seniority.trim() ? r.seniority.trim() : null,
+    issueDate: isoDay(r.issue_date),
+    callable: typeof r.callable === "boolean" ? r.callable : null,
   }));
   // Bonds with a minimum above 200,000 EUR / USD stay in the database but are dormant: never shown or used (the owner, 21/10/2026).
   const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);

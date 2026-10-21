@@ -59,8 +59,9 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, a
       if (tier === "visitor") return base;
       const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country, minInvestment: b.minInvestment ?? null };
       if (tier === "free") return free;
-      const paid: ResultRow = { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity };
-      return admin ? { ...paid, sp: ratingSourceLabel(b) } : paid;
+      const paid: ResultRow = { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity,
+        currency: b.currency, couponType: b.couponType ?? null, seniority: b.seniority ?? null, issueDate: b.issueDate ?? null, callable: b.callable ?? null };
+      return admin ? { ...paid, sp: ratingSourceLabel(b), low52w: b.low52w ?? null, high52w: b.high52w ?? null } : paid;
     });
     return { level, label, ytm, adj, options, more: bonds.length - visible.length, ...(admin ? { band: riskBand(level) } : {}) };
   });
