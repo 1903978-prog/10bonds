@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const [all, ranked, caps] = await Promise.all([loadBondsFor({ currency: f.currency, size: "100k" }), loadBondsFor(f, await currentOutlierSd()), capsFor(f)]);
     const key = `${f.currency}|${all.asOf}|${all.bonds.length}|${ranked.bonds.length}`;
     if (!memo || memo.key !== key || Date.now() - memo.at > 600_000) {
-      const { dots, fronts, at } = introDots(all.bonds);
+      const { dots, fronts, years, at } = introDots(all.bonds);
       const examples = [];
       for (const h of INTRO_HORIZONS) {
         const cap = caps?.[String(INTRO_RISK)]?.[String(h.example)];
@@ -25,10 +25,10 @@ export async function GET(req: Request) {
         const { results } = await pickRanking(ranked.bonds, ranked.asOf, h.example, cap, INTRO_RISK);
         if (results.length) examples.push(exampleOf(results, h.example, at));
       }
-      memo = { key, at: Date.now(), body: { dots, fronts, examples } };
+      memo = { key, at: Date.now(), body: { dots, fronts, years, examples } };
     }
     return NextResponse.json(memo.body, { headers: { "Cache-Control": "public, max-age=600" } });
   } catch {
-    return NextResponse.json({ dots: [], fronts: [], examples: [] }, { status: 503 });
+    return NextResponse.json({ dots: [], fronts: [], years: [], examples: [] }, { status: 503 });
   }
 }

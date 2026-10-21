@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { INTRO_COOKIE, INTRO_HORIZONS, type IntroData } from "@/lib/intro";
 import { INTRO_TEXT, NUM_LOCALE } from "@/lib/introText";
@@ -10,7 +10,7 @@ const BLUE = "#0a84ff";
 const GREY = "#aeaeb2";
 
 // The show, one beat every ~2 seconds (the owner, 21/10/2026). Beat k shows text lines up to LINE_AT[k] and chart view k:
-// 0 all bonds · 1 (same) · 2 the 4-6 year bonds up to risk 5 in blue · 3 their top 10 lit up · 4 every 4-6 year bond blue
+// 0 all bonds · 1 (same) · 2 the 4-6 year bonds in blue, every risk at once · 3 the 5-year top 10 lit up · 4 (same)
 // 5 + their efficient frontier · 6/7/8 the 1-3, 4-6 and 7-10 year frontiers one after the other · 9 example results.
 const AT = [0, 1800, 3800, 5800, 8000, 10000, 12400, 14400, 16400, 18800];
 const LINE_AT = [0, 1, 2, 3, 4, 5, 6, 7, 7, 8];
@@ -18,10 +18,10 @@ const LAST = AT.length - 1;
 // Where a click on a step jumps to (animated, reduced motion).
 const JUMP = { s1: [2, 3], s2: [4, 5], s3: [6, 8], result: [9, 9] } as const;
 
-/** Blue dots at beat k: horizon h (1..3, 0 = none) and risk 1..10. */
-function isBlue(k: number, h: number, risk: number) {
-  if (k === 2 || k === 3) return h === 2 && risk <= 5;
-  if (k === 4 || k === 5) return h === 2;
+/** Blue dots at beat k: horizon h (1..3, 0 = none). */
+function isBlue(k: number, h: number) {
+  // Every risk level at once (the owner, 21/10/2026): the horizon picks the blue dots, not the risk.
+  if (k >= 2 && k <= 5) return h === 2;
   if (k >= 6 && k <= 8) return h === k - 5;
   return false;
 }
@@ -76,10 +76,29 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
   };
   const shown = (line: number) => line <= LINE_AT[seen];
   const step = k >= 9 ? "result" : k >= 6 ? "s3" : k >= 4 ? "s2" : k >= 2 ? "s1" : null;
+  // No scrolling on desktop (the owner): the size above is a first guess; whatever still overflows (a notice above it,
+  // a taller footer, browser zoom) comes off the intro's height before it is painted, and again on every resize.
+  const box = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "";
+      if (window.innerWidth < 1024) return;
+      const root = document.documentElement;
+      const over = root.scrollHeight - root.clientHeight;
+      if (over <= 0) return;
+      const z = parseFloat(getComputedStyle(root).getPropertyValue("--z")) || 1;
+      el.style.height = `${Math.max(400, parseFloat(getComputedStyle(el).height) - over / z - 2)}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
   const n = data?.dots.length ? data.dots.length.toLocaleString(NUM_LOCALE[lang]) : "–";
 
   return (
-    <section className="grid gap-4 lg:h-[calc(100vh_/_var(--z)_-_212px)] lg:max-h-[820px] lg:min-h-[520px] lg:grid-cols-[1.4fr_1fr] lg:gap-8" data-testid="intro">
+    <section ref={box} className="grid gap-4 lg:h-[calc(100vh_/_var(--z)_-_212px)] lg:max-h-[820px] lg:min-h-[400px] lg:grid-cols-[1.4fr_1fr] lg:gap-8" data-testid="intro">
       {/* Phones: the finder button sits below the story, so a way out is also on top. */}
       <button type="button" onClick={() => onClose(true)} className="-mb-2 justify-self-end text-[13px] text-accent lg:hidden">{t.skip} →</button>
       {/* Left: the chart and, at the end, the examples, laid over each other in one fixed box. */}
@@ -187,20 +206,26 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
   const ticks: number[] = [];
   for (let v = Math.ceil(lo / stepY) * stepY; v <= hi + 1e-9; v += stepY) ticks.push(Math.round(v * 10) / 10);
 
-  // Dots grouped by horizon and risk band, so a whole group changes colour with one smooth transition.
-  const groups: { key: string; h: number; risk: number; idx: number[] }[] = [];
-  for (let h = 0; h <= 3; h++)
-    for (const band of [5, 10]) groups.push({ key: `${h}-${band}`, h, risk: band, idx: [] });
-  dots.forEach(([r, , h], i) => groups[h * 2 + (r <= 5 ? 0 : 1)].idx.push(i));
+  // Dots grouped by horizon, so a whole group changes colour with one smooth transition.
+  const groups = [0, 1, 2, 3].map((h) => ({ key: String(h), h, idx: [] as number[] }));
+  dots.forEach(([, , h], i) => groups[h].idx.push(i));
 
   const lineState = (h: number) => (k === 5 && h === 1) || (k >= 6 && h === Math.min(k, 8) - 6) ? "on" : k >= 6 && h < Math.min(k, 8) - 6 ? "faint" : "off";
   const hz = horizonAt(k);
+  const years = hz >= 0 ? (data?.years?.[hz] ?? null) : null;
   const ease = "transition-all duration-1000 ease-out motion-reduce:transition-none";
 
   return (
     <div className="relative flex h-full flex-col">
       <div className="flex h-6 items-center justify-between text-[11px] text-mute">
-        <span>{t.chartLabel}</span>
+        {/* What the blue dots are: their real maturity years, in a fixed slot. */}
+        <span className="flex items-center gap-3">
+          <span><span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: GREY }} />{t.allBonds}</span>
+          <span className={`transition-opacity duration-500 motion-reduce:transition-none ${hz >= 0 && years ? "opacity-100" : "opacity-0"}`}>
+            <span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: BLUE }} />
+            {years ? t.maturing(years[0], years[1]) : "\u00a0"}
+          </span>
+        </span>
         <span className={`rounded-full bg-[#e8f2ff] px-2.5 py-0.5 text-[12px] font-medium text-accent transition-opacity duration-500 motion-reduce:transition-none ${hz >= 0 ? "opacity-100" : "opacity-0"}`} aria-live="polite">
           {hz >= 0 ? t.horizon(INTRO_HORIZONS[hz].from, INTRO_HORIZONS[hz].to) : " "}
         </span>
@@ -219,7 +244,7 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
           <text x={(L + W - R) / 2} y={H - 4} textAnchor="middle" fontSize="12" fill="#86868b">{t.riskAxis}</text>
           <g className={`transition-opacity duration-1000 motion-reduce:transition-none ${data ? "opacity-100" : "opacity-0"}`}>
             {groups.map((g) => {
-              const blue = isBlue(k, g.h, g.risk);
+              const blue = isBlue(k, g.h);
               return (
                 <g key={g.key} fill={blue ? BLUE : GREY} fillOpacity={blue ? 0.75 : 0.4} className={ease}>
                   {g.idx.map((i) => <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r={blue ? 2.2 : 1.8} />)}
@@ -227,9 +252,9 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
               );
             })}
           </g>
-          {/* Step 1: the real top 10 of the 5-year example lights up. */}
-          <g fill="none" stroke={BLUE} strokeWidth="2" className={`transition-opacity duration-700 motion-reduce:transition-none ${k === 3 ? "opacity-100" : "opacity-0"}`}>
-            {rings.map((i) => <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r="6" />)}
+          {/* Step 1: the real top 10 of the 5-year example lights up in red. */}
+          <g fill={RED} stroke="#fff" strokeWidth="1" className={`transition-opacity duration-700 motion-reduce:transition-none ${k === 3 ? "opacity-100" : "opacity-0"}`}>
+            {rings.map((i) => <circle key={i} cx={x(rx(i))} cy={y(dots[i][1])} r="4" />)}
           </g>
           {fronts.map((f, h) => {
             const s = lineState(h);
@@ -249,6 +274,12 @@ function IntroChart({ data, k, t }: { data: IntroData | null; k: number; t: (typ
                   className="motion-reduce:!transition-none"
                 />
                 {f.map((i) => <circle key={i} cx={x(dots[i][0])} cy={y(dots[i][1])} r="4" fill={RED} stroke="#fff" strokeWidth="1.5" />)}
+                {/* Each line says which maturities it is for, next to its riskiest end. */}
+                {f.length > 0 && data?.years?.[h] && (
+                  <text x={x(dots[f[f.length - 1]][0]) - 9} y={y(dots[f[f.length - 1]][1]) + 4} textAnchor="end" fontSize="12" fontWeight="600" fill={RED}>
+                    {t.maturity(data.years[h]![0], data.years[h]![1])}
+                  </text>
+                )}
               </g>
             );
           })}
