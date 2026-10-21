@@ -9,7 +9,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
   const reset = new Date(Date.now() + 3 * 864e5).toISOString();
   await page.route("**/api/bonds?**", (r) => r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "x", tier: "free", limitReached: { kind: "portfolio", limit: 3, used: 3, resetsAt: reset } }) }));
   await page.goto(BASE + "/");
-  await page.getByRole("button", { name: "Deny" }).click().catch(() => {});
+  await page.getByRole("button", { name: "Reject" }).click().catch(() => {});
   const box = page.getByTestId("limit-reached");
   await box.waitFor({ timeout: 8000 }).catch(() => {});
   ok(await box.isVisible(), `${w}: limit-reached shown`);

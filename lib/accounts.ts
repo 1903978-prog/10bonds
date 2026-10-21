@@ -44,6 +44,7 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists newsletter_consent_source text`;
   await sql`alter table app.users add column if not exists newsletter_unsubscribed_at timestamptz`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
+  await sql`alter table app.users add column if not exists stats_bonus_at timestamptz`;
   // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
   await sql`alter table app.users add column if not exists stripe_customer_id text`;
   await sql`alter table app.users add column if not exists stripe_subscription_id text`;
@@ -376,6 +377,17 @@ export async function redeemTrialCode(userId: number, code: string): Promise<{ p
       where id = ${userId} returning premium_until`;
     return { premiumUntil: new Date(u[0].premium_until).toISOString() };
   });
+}
+
+/** One free week of Premium, once per account, for allowing usage statistics. Returns the end date, or null when already given. */
+export async function grantStatsBonus(userId: number, days = 7): Promise<string | null> {
+  const { sql, ready } = db();
+  await ready;
+  const u = await sql<{ premium_until: Date }[]>`
+    update app.users
+    set premium_until = greatest(coalesce(premium_until, now()), now()) + make_interval(days => ${days}), stats_bonus_at = now()
+    where id = ${userId} and stats_bonus_at is null returning premium_until`;
+  return u[0] ? new Date(u[0].premium_until).toISOString() : null;
 }
 
 /** Counts for the admin page. */

@@ -310,6 +310,7 @@ table app.users
   newsletter_consent_source text
   newsletter_unsubscribed_at timestamp with time zone
   premium_until timestamp with time zone
+  stats_bonus_at timestamp with time zone
   stripe_customer_id text
   stripe_subscription_id text
   subscription_status text
