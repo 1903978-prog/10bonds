@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { bestTableFor } from "@/lib/bestTable";
+import { capsFor } from "@/lib/bestTable";
 import { loadBondsFor } from "@/lib/bonds";
 import { parseFilter } from "@/lib/bondFilter";
 import { maxRiskByDuration } from "@/lib/riskRange";
@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
     const f = parseFilter(new URL(req.url).searchParams);
-    const [table, all, src] = await Promise.all([bestTableFor(f), loadBondsFor({ currency: f.currency, size: "100k" }), loadBondsFor(f)]);
+    const [caps, all, src] = await Promise.all([capsFor(f), loadBondsFor({ currency: f.currency, size: "100k" }), loadBondsFor(f)]);
     const minKnown = all.bonds.some((b) => b.minInvestment != null);
-    return NextResponse.json({ caps: table.caps, maxRisk: maxRiskByDuration(src.bonds), minKnown }, { headers: { "Cache-Control": "public, max-age=600" } });
+    return NextResponse.json({ caps, maxRisk: maxRiskByDuration(src.bonds), minKnown }, { headers: { "Cache-Control": "public, max-age=600" } });
   } catch {
     return NextResponse.json({ caps: null }, { status: 503 });
   }
