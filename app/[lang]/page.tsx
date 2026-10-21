@@ -6,6 +6,9 @@ import { accountsConfigured } from "@/lib/accounts";
 import { currentUser } from "@/lib/currentUser";
 import { landsInPro } from "@/lib/proView";
 import Finder from "@/components/Finder";
+import IntroGate from "@/components/IntroGate";
+import { INTRO_COOKIE } from "@/lib/intro";
+import { cookies } from "next/headers";
 import { ComparisonBody, JsonLd } from "@/components/seo/Seo";
 import { COMPARISONS } from "@/lib/seo/comparisons";
 import { SITE_URL } from "@/lib/seo/crawl";
@@ -16,7 +19,7 @@ import { alternates, comparisonPages, publishedGuides, shown } from "@/lib/seo/s
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ lang: string }> };
+type Props = { params: Promise<{ lang: string }>; searchParams?: Promise<{ intro?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang } = await params;
@@ -30,11 +33,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function LocaleHome({ params }: Props) {
+export default async function LocaleHome({ params, searchParams }: Props) {
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
   if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
   const l: Locale = lang;
+  // First visit (no cookie yet) or ?intro=1: the animated intro comes before the finder.
+  const intro = (await searchParams)?.intro === "1" || !(await cookies()).get(INTRO_COOKIE);
   const h = HOME[l];
   const t = T[l];
   const [{ pages, asOf, source }, guides] = await Promise.all([comparisonPages(), publishedGuides(l)]);
@@ -46,7 +51,9 @@ export default async function LocaleHome({ params }: Props) {
   return (
     <div className="space-y-10">
       {/* The finder comes first so it fits on one screen; the page title and intro stay on the page, below it. */}
-      <Finder lang={l} heading={false} />
+      <IntroGate show={intro} lang={l} heading={false}>
+        <Finder lang={l} heading={false} />
+      </IntroGate>
       <section className="mx-auto max-w-3xl text-center">
         <h1 className="text-[34px] font-semibold leading-tight tracking-tight sm:text-[44px]">{h.h1}</h1>
         <p className="mx-auto mt-4 max-w-2xl text-[17px] text-mute">{h.lead}</p>
