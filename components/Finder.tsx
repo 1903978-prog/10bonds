@@ -98,8 +98,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         }
         setMinKnown(Boolean(b.minKnown));
         if (!b.minKnown) setSize("100k");
-        // Small orders (1k-10k) is the default once the data says which bonds they are.
-        if (b.minKnown && !sizeTouched.current && size === "100k") { sizeTouched.current = true; setSize("1k"); }
         const cap = b.caps[String(risk)]?.[String(Math.round(duration * 100) / 100)];
         if (typeof cap === "number") setYtm((y) => Math.min(y, cap));
       })
@@ -344,7 +342,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {chartOn && chartable && (
             <div className="absolute inset-0 bg-white" data-testid="loss-chart">
               {curve ? (
-                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} />
+                <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} hoverText={t.chartHover} />
               ) : null}
             </div>
           )}

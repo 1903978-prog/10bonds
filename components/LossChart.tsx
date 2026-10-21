@@ -8,12 +8,12 @@ const X_START = 3;
 
 /**
  * Expected loss on your money against the target average yield, with a dot for the current target and a second curve:
- * how much more expected loss one extra point of yield costs (first derivative, right-hand axis). Hovering shows the
+ * how much more expected loss one extra point of yield costs (dashed line, no axis; read it on hover). Hovering shows the
  * exact target, expected loss and slope at that point. Drawn in the same box as the results table, so it keeps the
  * table's size and nothing around it moves.
  */
-export default function LossChart({ points, max, current, loss, xLabel, yLabel, slopeLabel, hoverText }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; slopeLabel: string; hoverText: string }) {
-  const W = 800, H = 360, L = 96, R = 96, T = 12, B = 44;
+export default function LossChart({ points, max, current, loss, xLabel, yLabel, hoverText }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; hoverText: string }) {
+  const W = 800, H = 360, L = 56, R = 16, T = 12, B = 44;
   const shown = (points ?? []).filter((p) => p.ytm >= X_START - 1e-9);
   const x0 = X_START, x1 = Math.max(max, x0 + 0.5);
   const yMax = Math.max(0.01, ...shown.map((p) => p.loss), loss ?? 0) * 1.1;
@@ -30,7 +30,6 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
   const slopePath = shown.map((p, i) => `${i ? "L" : "M"}${X(p.ytm).toFixed(1)},${S(slopes[i]).toFixed(1)}`).join(" ");
   const xTicks = Array.from({ length: Math.floor((x1 - x0) / 0.5) + 1 }, (_, i) => x0 + i * 0.5);
   const yTicks = [0, 1, 2, 3, 4].map((i) => (yMax / 1.1) * (i / 4));
-  const sTicks = [0, 1, 2, 3, 4].map((i) => (sMax / 1.1) * (i / 4));
   const [hover, setHover] = useState<number | null>(null);
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!shown.length) return;
@@ -52,15 +51,11 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
           <text x={L - 10} y={Y(v) + 4} textAnchor="end" className="fill-[#86868b] text-[12px]">{v.toFixed(2)}%</text>
         </g>
       ))}
-      {sTicks.map((v) => (
-        <text key={`s${v}`} x={W - R + 10} y={S(v) + 4} textAnchor="start" className="fill-[#86868b] text-[12px]">{v.toFixed(2)}</text>
-      ))}
       {xTicks.map((v) => (
         <text key={`x${v}`} x={X(v)} y={H - B + 18} textAnchor="middle" className="fill-[#86868b] text-[12px]">{v.toFixed(1)}%</text>
       ))}
       <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" className="fill-[#86868b] text-[12px]">{xLabel}</text>
       <text x={20} y={H / 2} textAnchor="middle" transform={`rotate(-90 20 ${H / 2})`} className="fill-[#86868b] text-[12px]">{yLabel}</text>
-      <text x={W - 20} y={H / 2} textAnchor="middle" transform={`rotate(90 ${W - 20} ${H / 2})`} className="fill-[#86868b] text-[12px]">{slopeLabel}</text>
       {slopePath && <path d={slopePath} fill="none" stroke="#86868b" strokeWidth={1.5} strokeDasharray="5 4" />}
       {path && <path d={path} fill="none" stroke="#0066cc" strokeWidth={2.5} />}
       {loss !== null && <circle cx={X(current)} cy={Y(loss)} r={6} fill="#0066cc" stroke="#fff" strokeWidth={2} />}
