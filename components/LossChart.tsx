@@ -17,18 +17,17 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
   const shown = (points ?? []).filter((p) => p.ytm >= X_START - 1e-9);
   const x0 = X_START, x1 = Math.max(max, x0 + 0.5);
   const yMax = Math.max(0.01, ...shown.map((p) => p.loss), loss ?? 0) * 1.1;
-  // Slope between each pair of neighbouring points (points of expected loss per +1 point of yield), drawn at the middle
-  // of that step, so it lines up with the blue line without averaging across bends.
-  const segs = shown.slice(1).map((p, i) => {
-    const a = shown[i];
-    return { x: (a.ytm + p.ytm) / 2, s: p.ytm === a.ytm ? 0 : (p.loss - a.loss) / (p.ytm - a.ytm) };
+  // Slope of the curve in expected loss (points) per +1 point of target yield, by central differences between neighbours.
+  const slopes = shown.map((p, i) => {
+    const a = shown[Math.max(0, i - 1)], b = shown[Math.min(shown.length - 1, i + 1)];
+    return b.ytm === a.ytm ? 0 : ((b.loss - a.loss) / (b.ytm - a.ytm));
   });
-  const sMax = Math.max(0.01, ...segs.map((g) => Math.abs(g.s))) * 1.1;
+  const sMax = Math.max(0.01, ...slopes.map((s) => Math.abs(s))) * 1.1;
   const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - R);
   const Y = (v: number) => H - B - (v / yMax) * (H - B - T);
   const S = (v: number) => H - B - (v / sMax) * (H - B - T);
   const path = shown.map((p, i) => `${i ? "L" : "M"}${X(p.ytm).toFixed(1)},${Y(p.loss).toFixed(1)}`).join(" ");
-  const slopePath = segs.map((g, i) => `${i ? "L" : "M"}${X(g.x).toFixed(1)},${S(g.s).toFixed(1)}`).join(" ");
+  const slopePath = shown.map((p, i) => `${i ? "L" : "M"}${X(p.ytm).toFixed(1)},${S(slopes[i]).toFixed(1)}`).join(" ");
   const xTicks = Array.from({ length: Math.floor((x1 - x0) / 0.5) + 1 }, (_, i) => x0 + i * 0.5);
   const yTicks = [0, 1, 2, 3, 4].map((i) => (yMax / 1.1) * (i / 4));
   const [hover, setHover] = useState<number | null>(null);
@@ -50,8 +49,7 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
     setHover(best);
   };
   const h = hover !== null ? shown[hover] : null;
-  // Slope shown on hover: the step to the right of the hovered point (the step to the left for the last point).
-  const hs = hover === null ? 0 : segs[Math.min(hover, segs.length - 1)]?.s ?? 0;
+  const hs = hover === null ? 0 : slopes[hover];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`${yLabel} / ${xLabel}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
       {yTicks.map((v) => (
