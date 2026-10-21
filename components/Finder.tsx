@@ -10,7 +10,7 @@ import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
 import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
-import LossChart from "@/components/LossChart";
+import LossChart, { slopeAt } from "@/components/LossChart";
 import { nearestLoss } from "@/lib/lossCurve";
 import type { CurvePoint } from "@/lib/lossCurve";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
@@ -98,8 +98,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         }
         setMinKnown(Boolean(b.minKnown));
         if (!b.minKnown) setSize("100k");
-        // Small orders (1k-10k) is the default once the data says which bonds they are.
-        if (b.minKnown && !sizeTouched.current && size === "100k") { sizeTouched.current = true; setSize("1k"); }
         const cap = b.caps[String(risk)]?.[String(Math.round(duration * 100) / 100)];
         if (typeof cap === "number") setYtm((y) => Math.min(y, cap));
       })
@@ -297,6 +295,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
+        {chartOn && chartable ? (
+          // With the chart on, the same row shows the chart's three numbers: the target, the expected loss and the extra loss per +1 point.
+          <div className="grid grid-cols-3 gap-2">
+            <Stat value={pct(ytm)} label={t.chartX} />
+            <Stat value={curve ? pct(data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
+            <Stat value={curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
+          </div>
+        ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
@@ -304,6 +310,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
+        )}
         <div className="mt-1.5 h-4">
           {data && !paid && (
             <Link href={lockTo.href} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline" data-testid="avg-unlock">

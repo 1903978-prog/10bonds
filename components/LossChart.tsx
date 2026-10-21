@@ -6,22 +6,41 @@ import type { CurvePoint } from "@/lib/lossCurve";
 /** The chart starts at this target yield; lower targets are not shown. */
 const X_START = 3;
 
+/** Points from the chart's start on. */
+export const shownPoints = (points: CurvePoint[] | null) => (points ?? []).filter((p) => p.ytm >= X_START - 1e-9);
+
+/** Slope at the point nearest to this target yield (see curveSlopes). */
+export function slopeAt(points: CurvePoint[], ytm: number) {
+  const shown = shownPoints(points);
+  if (!shown.length) return 0;
+  const slopes = curveSlopes(shown);
+  let best = 0;
+  shown.forEach((p, i) => {
+    if (Math.abs(p.ytm - ytm) < Math.abs(shown[best].ytm - ytm)) best = i;
+  });
+  return slopes[best];
+}
+
+/** Slope of the curve in expected loss (points) per +1 point of target yield, by central differences between neighbours. */
+export function curveSlopes(shown: CurvePoint[]) {
+  return shown.map((p, i) => {
+    const a = shown[Math.max(0, i - 1)], b = shown[Math.min(shown.length - 1, i + 1)];
+    return b.ytm === a.ytm ? 0 : ((b.loss - a.loss) / (b.ytm - a.ytm));
+  });
+}
+
 /**
  * Expected loss on your money against the target average yield, with a dot for the current target and a second curve:
- * how much more expected loss one extra point of yield costs (first derivative, right-hand axis). Hovering shows the
+ * how much more expected loss one extra point of yield costs (dashed line, no axis; read it on hover). Hovering shows the
  * exact target, expected loss and slope at that point. Drawn in the same box as the results table, so it keeps the
  * table's size and nothing around it moves.
  */
 export default function LossChart({ points, max, current, loss, xLabel, yLabel, slopeLabel, hoverText }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; slopeLabel: string; hoverText: string }) {
-  const W = 800, H = 360, L = 96, R = 96, T = 12, B = 44;
-  const shown = (points ?? []).filter((p) => p.ytm >= X_START - 1e-9);
+  const W = 800, H = 360, L = 56, R = 16, T = 12, B = 44;
+  const shown = shownPoints(points);
   const x0 = X_START, x1 = Math.max(max, x0 + 0.5);
   const yMax = Math.max(0.01, ...shown.map((p) => p.loss), loss ?? 0) * 1.1;
-  // Slope of the curve in expected loss (points) per +1 point of target yield, by central differences between neighbours.
-  const slopes = shown.map((p, i) => {
-    const a = shown[Math.max(0, i - 1)], b = shown[Math.min(shown.length - 1, i + 1)];
-    return b.ytm === a.ytm ? 0 : ((b.loss - a.loss) / (b.ytm - a.ytm));
-  });
+  const slopes = curveSlopes(shown);
   const sMax = Math.max(0.01, ...slopes.map((s) => Math.abs(s))) * 1.1;
   const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - R);
   const Y = (v: number) => H - B - (v / yMax) * (H - B - T);
@@ -30,12 +49,17 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
   const slopePath = shown.map((p, i) => `${i ? "L" : "M"}${X(p.ytm).toFixed(1)},${S(slopes[i]).toFixed(1)}`).join(" ");
   const xTicks = Array.from({ length: Math.floor((x1 - x0) / 0.5) + 1 }, (_, i) => x0 + i * 0.5);
   const yTicks = [0, 1, 2, 3, 4].map((i) => (yMax / 1.1) * (i / 4));
-  const sTicks = [0, 1, 2, 3, 4].map((i) => (sMax / 1.1) * (i / 4));
   const [hover, setHover] = useState<number | null>(null);
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!shown.length) return;
-    const box = e.currentTarget.getBoundingClientRect();
-    const sx = ((e.clientX - box.left) / box.width) * W;
+    // Map the mouse into the chart's own units, so the empty space around the drawing (the SVG keeps its shape) is counted.
+    const svg = e.currentTarget;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const sx = pt.matrixTransform(ctm.inverse()).x;
     const ytm = x0 + ((sx - L) / (W - L - R)) * (x1 - x0);
     let best = 0;
     shown.forEach((p, i) => {
@@ -44,6 +68,7 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
     setHover(best);
   };
   const h = hover !== null ? shown[hover] : null;
+  const hs = hover === null ? 0 : slopes[hover];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`${yLabel} / ${xLabel}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
       {yTicks.map((v) => (
@@ -52,15 +77,17 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
           <text x={L - 10} y={Y(v) + 4} textAnchor="end" className="fill-[#86868b] text-[12px]">{v.toFixed(2)}%</text>
         </g>
       ))}
-      {sTicks.map((v) => (
-        <text key={`s${v}`} x={W - R + 10} y={S(v) + 4} textAnchor="start" className="fill-[#86868b] text-[12px]">{v.toFixed(2)}</text>
-      ))}
       {xTicks.map((v) => (
         <text key={`x${v}`} x={X(v)} y={H - B + 18} textAnchor="middle" className="fill-[#86868b] text-[12px]">{v.toFixed(1)}%</text>
       ))}
       <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" className="fill-[#86868b] text-[12px]">{xLabel}</text>
       <text x={20} y={H / 2} textAnchor="middle" transform={`rotate(-90 20 ${H / 2})`} className="fill-[#86868b] text-[12px]">{yLabel}</text>
-      <text x={W - 20} y={H / 2} textAnchor="middle" transform={`rotate(90 ${W - 20} ${H / 2})`} className="fill-[#86868b] text-[12px]">{slopeLabel}</text>
+      <g data-testid="loss-chart-legend" className="text-[12px]">
+        <line x1={L + 8} x2={L + 28} y1={T + 12} y2={T + 12} stroke="#0066cc" strokeWidth={2.5} />
+        <text x={L + 34} y={T + 16} className="fill-[#1d1d1f]">{yLabel}</text>
+        <line x1={L + 8} x2={L + 28} y1={T + 30} y2={T + 30} stroke="#86868b" strokeWidth={1.5} strokeDasharray="5 4" />
+        <text x={L + 34} y={T + 34} className="fill-[#1d1d1f]">{slopeLabel}</text>
+      </g>
       {slopePath && <path d={slopePath} fill="none" stroke="#86868b" strokeWidth={1.5} strokeDasharray="5 4" />}
       {path && <path d={path} fill="none" stroke="#0066cc" strokeWidth={2.5} />}
       {loss !== null && <circle cx={X(current)} cy={Y(loss)} r={6} fill="#0066cc" stroke="#fff" strokeWidth={2} />}
@@ -68,8 +95,7 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
         <g pointerEvents="none">
           <line x1={X(h.ytm)} x2={X(h.ytm)} y1={T} y2={H - B} stroke="#86868b" strokeDasharray="2 3" />
           <circle cx={X(h.ytm)} cy={Y(h.loss)} r={4} fill="#0066cc" />
-          <circle cx={X(h.ytm)} cy={S(slopes[hover])} r={3} fill="#86868b" />
-          <text x={L + 8} y={T + 16} className="fill-[#1d1d1f] text-[13px]">{hoverText.replace("{y}", h.ytm.toFixed(2)).replace("{l}", h.loss.toFixed(2)).replace("{s}", slopes[hover].toFixed(2))}</text>
+          <text x={L + 8} y={H - B - 10} className="fill-[#1d1d1f] text-[13px]">{hoverText.replace("{y}", h.ytm.toFixed(2)).replace("{l}", h.loss.toFixed(2)).replace("{s}", hs.toFixed(2))}</text>
         </g>
       )}
     </svg>
