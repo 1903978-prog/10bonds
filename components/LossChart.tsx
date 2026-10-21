@@ -6,6 +6,29 @@ import type { CurvePoint } from "@/lib/lossCurve";
 /** The chart starts at this target yield; lower targets are not shown. */
 const X_START = 3;
 
+/** Points from the chart's start on. */
+export const shownPoints = (points: CurvePoint[] | null) => (points ?? []).filter((p) => p.ytm >= X_START - 1e-9);
+
+/** Slope at the point nearest to this target yield (see curveSlopes). */
+export function slopeAt(points: CurvePoint[], ytm: number) {
+  const shown = shownPoints(points);
+  if (!shown.length) return 0;
+  const slopes = curveSlopes(shown);
+  let best = 0;
+  shown.forEach((p, i) => {
+    if (Math.abs(p.ytm - ytm) < Math.abs(shown[best].ytm - ytm)) best = i;
+  });
+  return slopes[best];
+}
+
+/** Slope of the curve in expected loss (points) per +1 point of target yield, by central differences between neighbours. */
+export function curveSlopes(shown: CurvePoint[]) {
+  return shown.map((p, i) => {
+    const a = shown[Math.max(0, i - 1)], b = shown[Math.min(shown.length - 1, i + 1)];
+    return b.ytm === a.ytm ? 0 : ((b.loss - a.loss) / (b.ytm - a.ytm));
+  });
+}
+
 /**
  * Expected loss on your money against the target average yield, with a dot for the current target and a second curve:
  * how much more expected loss one extra point of yield costs (dashed line, no axis; read it on hover). Hovering shows the
@@ -14,14 +37,10 @@ const X_START = 3;
  */
 export default function LossChart({ points, max, current, loss, xLabel, yLabel, slopeLabel, hoverText }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; slopeLabel: string; hoverText: string }) {
   const W = 800, H = 360, L = 56, R = 16, T = 12, B = 44;
-  const shown = (points ?? []).filter((p) => p.ytm >= X_START - 1e-9);
+  const shown = shownPoints(points);
   const x0 = X_START, x1 = Math.max(max, x0 + 0.5);
   const yMax = Math.max(0.01, ...shown.map((p) => p.loss), loss ?? 0) * 1.1;
-  // Slope of the curve in expected loss (points) per +1 point of target yield, by central differences between neighbours.
-  const slopes = shown.map((p, i) => {
-    const a = shown[Math.max(0, i - 1)], b = shown[Math.min(shown.length - 1, i + 1)];
-    return b.ytm === a.ytm ? 0 : ((b.loss - a.loss) / (b.ytm - a.ytm));
-  });
+  const slopes = curveSlopes(shown);
   const sMax = Math.max(0.01, ...slopes.map((s) => Math.abs(s))) * 1.1;
   const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - R);
   const Y = (v: number) => H - B - (v / yMax) * (H - B - T);
