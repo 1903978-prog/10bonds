@@ -87,7 +87,7 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
         <div className={`absolute inset-4 transition-opacity duration-700 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "pointer-events-none opacity-0" : "opacity-100"}`}>
           <IntroChart data={data} k={k} t={t} />
         </div>
-        <div className={`absolute inset-4 flex flex-col justify-center transition-opacity duration-700 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "opacity-100" : "pointer-events-none opacity-0"}`} aria-hidden={k !== LAST}>
+        <div className={`absolute inset-4 flex flex-col justify-center transition-opacity duration-700 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "opacity-100" : "pointer-events-none opacity-0"}`} inert={k !== LAST}>
           <Examples data={data} t={t} />
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
 
 function Line({ on, className = "", children }: { on: boolean; className?: string; children: ReactNode }) {
   return (
-    <div className={`transition duration-700 ease-out motion-reduce:transition-none ${on ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} ${className}`} aria-hidden={!on}>
+    <div className={`transition duration-700 ease-out motion-reduce:transition-none ${on ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} ${className}`} inert={!on}>
       {children}
     </div>
   );

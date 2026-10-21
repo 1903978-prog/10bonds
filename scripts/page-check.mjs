@@ -57,9 +57,23 @@ for (const [w, h] of WIDTHS) {
   await ctx.close();
 }
 
-// Home page behaviour: results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
+// First visit: the intro comes first and its button brings in the finder.
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const p = await ctx.newPage();
+  await p.goto(BASE + "/", { waitUntil: "networkidle" });
+  ok(await p.locator('[data-testid="intro"]').isVisible(), "home: intro on first visit");
+  await p.locator('[data-testid="cookie-settings"]').click().catch(() => {});
+  await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
+  await p.locator('[data-testid="intro-skip"]').click();
+  ok((await p.locator('input[type="range"]').count()) >= 2, "home: the intro's button opens the finder");
+  await ctx.close();
+}
+
+// Home page behaviour (intro already seen): results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
 for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  await ctx.addCookies([{ name: "tb_intro", value: "1", url: BASE }]);
   const p = await ctx.newPage();
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
