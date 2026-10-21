@@ -3,8 +3,8 @@ import type { FinderLang } from "./finderText";
 // Words of the first-visit intro (components/Intro.tsx), in the four site languages.
 const en = {
   headline: "Build the most efficient bond portfolio for your horizon.",
-  dots: (n: string) => `Every dot is a real bond: ${n} euro bonds, placed by risk and yield.`,
-  s1: "Highest yield for your risk and maturity",
+  dots: (n: string) => `Every dot is a real bond: ${n} euro bonds, placed by risk and return.`,
+  s1: "Highest return for your risk and maturity",
   s1Sub: "Choose how long you invest and the most risk you accept (10bonds.com rating, 1 to 10). The bonds of your horizon turn blue, at every risk; your top 10 lights up.",
   s2: "The most efficient portfolio for a duration",
   s2Sub: "The red line joins the bonds nobody beats: nothing else pays more for the same risk. That is the Pareto-efficient frontier.",
@@ -19,7 +19,7 @@ const en = {
   cta: "Find my 10 bonds",
   skip: "Skip",
   replay: "Replay",
-  chartLabel: "Every bond by risk and yield",
+  chartLabel: "Every bond by risk and return",
   allBonds: "All bonds",
   maturity: (a: number, b: number) => `Maturity ${a === b ? a : `${a}–${b}`}`,
   maturing: (a: number, b: number) => `Bonds maturing ${a === b ? a : `${a}–${b}`}`,

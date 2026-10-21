@@ -23,10 +23,10 @@ export const metadata: Metadata = {
   // Bing Webmaster Tools site verification (the owner, 19 Oct 2026). Public by design, not a secret.
   verification: { other: { "msvalidate.01": "ADA17531835A822BB9A6870BCE68531B" } },
   title: "10BONDS · Find 10 bonds that match your goals",
-  description: "Pick a duration and a target yield. 10BONDS turns thousands of euro bonds into a clear shortlist of 10.",
+  description: "Pick a duration and a desired return. 10BONDS turns thousands of euro bonds into a clear shortlist of 10.",
   openGraph: {
     title: "10BONDS · 10 bonds, 2 sliders",
-    description: "Pick a duration and a target yield. Get a clear shortlist of 10 euro bonds.",
+    description: "Pick a duration and a desired return. Get a clear shortlist of 10 euro bonds.",
     type: "website",
     siteName: "10BONDS",
   },

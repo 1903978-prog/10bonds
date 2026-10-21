@@ -37,10 +37,10 @@ export function explainCurrent(bonds: PublicBond[], outliers: Outlier[], sc: Sce
   for (const b of bonds.filter(inWindow)) {
     const after = (bb: PublicBond) => lossAdjustedYield(bb.grossYtm!, bondNotch(bb) ?? 10, bb.modifiedDuration!);
     let why: string;
-    if (top.has(b.isin)) why = `In the top 10: yield ${pct(b.grossYtm!)}, ${pct(after(b))} after expected losses`;
+    if (top.has(b.isin)) why = `In the top 10: return ${pct(b.grossYtm!)}, ${pct(after(b))} after expected losses`;
     else if (!withinRisk([b], sc.risk).length) why = `Riskier than the risk limit (risk ${bondRisk(b)} > ${sc.risk})`;
     else if (topIssuers.has(issuerKey(b))) why = `Issuer already in the list with another bond (${topIssuers.get(issuerKey(b))!.name})`;
-    else if (b.grossYtm! < lowest - 1e-9) why = `Not picked: yield lower than every bond chosen (lowest ${pct(lowest)})`;
+    else if (b.grossYtm! < lowest - 1e-9) why = `Not picked: return lower than every bond chosen (lowest ${pct(lowest)})`;
     else if (reached) why = `Not picked: the list reaches the ${sc.ytm}% target with lower average risk`;
     else why = `Not picked: ${pct(after(b))} after expected losses is lower than the bonds chosen`;
     out.push(row(b, why));

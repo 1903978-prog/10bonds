@@ -1,9 +1,9 @@
 // One short regulatory line for the whole site, in the page's language (plan terms live on the Pricing page).
 export const FOOTER_NOTE = {
-  en: "Information and education only, not investment advice or an offer to buy or sell. Gross yields; all figures and examples are indicative. Bonds can lose value and issuers can default. The risk score is 10BONDS' internal assessment, not a credit rating.",
-  it: "Solo informazione ed educazione, non è consulenza finanziaria né un'offerta di acquisto o vendita. Rendimenti lordi; dati ed esempi indicativi. Le obbligazioni possono perdere valore e gli emittenti fallire. Il rischio è una valutazione interna di 10BONDS, non un rating.",
-  fr: "Information et pédagogie, ni conseil en investissement ni offre d'achat ou de vente. Rendements bruts ; chiffres et exemples indicatifs. Une obligation peut perdre de la valeur, un émetteur faire défaut. Le risque est une évaluation interne de 10BONDS, pas une notation.",
-  de: "Nur Information und Bildung, keine Anlageberatung und kein Angebot zum Kauf oder Verkauf. Renditen brutto; Zahlen und Beispiele unverbindlich. Anleihen können an Wert verlieren, Emittenten können ausfallen. Das Risiko ist eine interne Einschätzung von 10BONDS, kein Rating.",
+  en: "Information and education only, not investment advice or an offer to buy or sell. Gross returns, not guaranteed; all figures and examples are indicative. Bonds can lose value and issuers can default. The risk score is 10BONDS' internal assessment, not a credit rating.",
+  it: "Solo informazione ed educazione, non è consulenza finanziaria né un'offerta di acquisto o vendita. Rendimenti lordi non garantiti, dati indicativi. Le obbligazioni possono perdere valore e gli emittenti fallire. Il rischio è una valutazione interna di 10BONDS, non un rating.",
+  fr: "Information et pédagogie, ni conseil en investissement ni offre d'achat ou de vente. Rendements bruts non garantis, chiffres indicatifs. Une obligation peut perdre de la valeur, un émetteur faire défaut. Le risque est une évaluation interne de 10BONDS, pas une notation.",
+  de: "Nur Information und Bildung, keine Anlageberatung und kein Angebot zum Kauf oder Verkauf. Renditen brutto, nicht garantiert, Zahlen unverbindlich. Anleihen können an Wert verlieren, Emittenten können ausfallen. Das Risiko ist eine interne Einschätzung von 10BONDS, kein Rating.",
 } as const;
 
 export function footerLang(pathname: string | null): keyof typeof FOOTER_NOTE {

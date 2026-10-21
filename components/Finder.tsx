@@ -24,6 +24,7 @@ import { ageDays, isStale } from "@/lib/dataHealth";
 import { MC_PATHS } from "@/lib/monteCarlo";
 import { loadMe } from "@/lib/me";
 import WhyTable from "./WhyTable";
+import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
@@ -234,19 +235,21 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" />
+          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" tip="currency" />
           <Toggle
             label={t.minOrder}
             value={size}
             options={[["1k", t.small], ["100k", t.allSizes]]}
             onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
             testId="toggle-size"
+            tip="size"
             disabled={minKnown === false ? ["1k"] : []}
             disabledTitle={t.minNoData}
           />
         </div>
 
         <Slider
+          tip="horizon"
           label={t.horizon}
           hint={t.horizonHint}
           value={DURATION_STEPS.indexOf(duration)}
@@ -261,6 +264,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
         <div className={mode === "portfolio" ? "" : "invisible"} aria-hidden={mode !== "portfolio"}>
         <Slider
+          tip="return"
           label={t.yieldLabel}
           hint={t.yieldHint}
           value={ytm}
@@ -274,6 +278,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         />
         {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
         <Slider
+          tip="risk"
           label={t.ratingLabel}
           hint={t.ratingHint}
           value={riskTop + LIMITS.risk.min - risk}
@@ -286,6 +291,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
         />
         </div>
+        <GuideTips lang={lang} only={mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
         {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
 
       </section>
@@ -436,6 +442,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
 }
 
 function Slider(props: {
+  tip?: string;
   label: string;
   hint: string;
   value: number;
@@ -449,7 +456,7 @@ function Slider(props: {
 }) {
   const fill = ((props.value - props.min) / (props.max - props.min)) * 100;
   return (
-    <div className="mt-4">
+    <div className="mt-4" data-tip={props.tip}>
       <div className="flex items-baseline justify-between">
         <label className="text-[14px] font-semibold">{props.label}</label>
         <span className="text-[16px] font-semibold tabular-nums">{props.display}</span>
@@ -473,9 +480,9 @@ function Slider(props: {
   );
 }
 
-function Toggle({ label, value, options, onChange, testId, disabled = [], disabledTitle }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; testId: string; disabled?: string[]; disabledTitle?: string }) {
+function Toggle({ label, value, options, onChange, testId, tip, disabled = [], disabledTitle }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; testId: string; tip?: string; disabled?: string[]; disabledTitle?: string }) {
   return (
-    <div>
+    <div data-tip={tip}>
       <div className="text-xs font-medium text-mute">{label}</div>
       <div role="radiogroup" aria-label={label} data-testid={testId} className="mt-1 grid grid-cols-2 rounded-full bg-canvas p-0.5 text-[13px] font-medium">
         {options.map(([v, text]) => (
