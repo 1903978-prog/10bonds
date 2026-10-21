@@ -10,6 +10,7 @@ import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import PlansNavLink from "@/components/PlansNavLink";
 import DropsNavLink from "@/components/DropsNavLink";
+import { currentUser } from "@/lib/currentUser";
 import LangSwitch from "@/components/LangSwitch";
 import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
@@ -39,6 +40,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   await headers();
   // Whether a sign-in cookie is present, so the header draws the right links straight away instead of popping them in.
   const hasSession = Boolean((await cookies()).get(SESSION_COOKIE)?.value);
+  // Price drops is the admin's only for now (52-week values stay private): drawn on the server, so nothing pops in.
+  const admin = hasSession && (await currentUser())?.isAdmin === true;
   return (
     <html lang="en">
       <body className="font-sans">
@@ -46,7 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <nav className="header-wide mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
-              <DropsNavLink />
+              {admin && <DropsNavLink />}
               <KnowledgeNavLink />
               <PlansNavLink />
               {/* Fixed-width slot for the links that load after the page (Retail/Pro switch, Admin, Sign in, profile), so the menu never shifts. */}

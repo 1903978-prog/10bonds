@@ -2,25 +2,42 @@
 
 import { useState } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
-import type { DropRow, DropsData } from "@/lib/priceHistory";
+import type { DropRow, DropsData, SortKey } from "@/lib/priceHistory";
 import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
 const ROWS = 10;
+const MOVES: SortKey[] = ["vsMax", "vsMin", "d1w", "d1m"];
 
-/** Biggest price drops from the highest recorded price: currency toggle, risk chips, and a table that always keeps 10 rows. */
-export default function PriceDrops({ data, lang, admin = false }: { data: DropsData; lang: DropsLang; admin?: boolean }) {
+/** Admin-only price moves: currency toggle, risk chips, sortable move columns, and a table that always keeps 10 rows. */
+export default function PriceDrops({ data, lang }: { data: DropsData; lang: DropsLang }) {
   const t = DROPS_TEXT[lang];
   const [currency, setCurrency] = useState<"EUR" | "USD">("EUR");
   const [risk, setRisk] = useState<number | null>(null);
-  const lists = data[currency];
-  const rows: (DropRow | null)[] = risk === null ? lists.top : lists.byRisk[risk] ?? [];
+  const [sort, setSort] = useState<SortKey>("vsMax");
+  const lists = data[currency][sort];
+  const ids = risk === null ? lists.top : lists.byRisk[risk] ?? [];
+  const rows: (DropRow | null)[] = ids.map((i) => data.rows[i]);
   const padded = [...rows, ...Array<null>(Math.max(0, ROWS - rows.length)).fill(null)].slice(0, ROWS);
   const day = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString(t.locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-  const num = (n: number, d = 2) => n.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const num = (n: number | null, d = 2) => (n === null ? "–" : n.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d }));
+  const signed = (n: number | null) => (n === null ? "–" : `${n > 0 ? "+" : ""}${num(n, 1)}%`);
+  const tone = (n: number | null) => (n === null ? "text-mute" : n < -0.05 ? "text-[#dc2626]" : n > 0.05 ? "text-[#16a34a]" : "");
+  const label: Record<SortKey, string> = { vsMax: t.vsMax, vsMin: t.vsMin, d1w: t.d1w, d1m: t.d1m, gain1y: t.gain1y };
+
+  const SortHead = ({ k, className = "" }: { k: SortKey; className?: string }) => (
+    <th className={`text-right font-medium ${className}`} aria-sort={sort === k ? (k === "gain1y" ? "descending" : "ascending") : undefined}>
+      <button type="button" onClick={() => setSort(k)} data-testid={`sort-${k}`} className={`inline-flex items-center gap-0.5 uppercase tracking-wide ${sort === k ? "text-ink" : "hover:text-ink"}`}>
+        {label[k]}
+        <span className={`inline-block w-2 ${sort === k ? "" : "invisible"}`}>{k === "gain1y" ? "↓" : "↑"}</span>
+      </button>
+    </th>
+  );
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">{t.h1}</h1>
+    <div className="mx-auto max-w-6xl">
+      <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">
+        {t.h1} <span className="ml-1 rounded-full bg-yellow-200 px-2 py-0.5 align-middle text-[12px] font-medium">Admin</span>
+      </h1>
       <p className="mt-1 text-[14px] text-mute sm:text-[15px]">{t.intro}</p>
 
       <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-3">
@@ -58,19 +75,20 @@ export default function PriceDrops({ data, lang, admin = false }: { data: DropsD
         </div>
       </div>
 
-      <section className="mt-4 overflow-hidden rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-        <div className="flex h-9 items-center px-4 text-[12px] font-medium text-mute" data-testid="drops-caption">{risk === null ? t.topAll : t.topRisk(risk)}</div>
-        <table className="w-full table-fixed text-[13px] sm:text-sm">
+      <section className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+        <div className="flex h-9 items-center px-4 text-[12px] font-medium text-mute" data-testid="drops-caption">{risk === null ? t.topAll(label[sort]) : t.topRisk(risk, label[sort])}</div>
+        <table className="w-full min-w-[960px] table-fixed text-[13px]">
           <thead>
             <tr className="h-8 border-y border-line/70 text-left text-[11px] uppercase tracking-wide text-mute">
               <th className="w-10 pl-4 font-medium">#</th>
               <th className="pr-3 font-medium">{t.issuer}</th>
-              <th className="hidden pr-3 font-medium md:table-cell">{t.bond}</th>
-              <th className="w-14 text-center font-medium">{t.risk}</th>
-              <th className="hidden w-28 text-center font-medium sm:table-cell">{t.maturity}</th>
-              <th className="w-16 text-right font-medium sm:w-20">{t.price}</th>
-              {admin && <th className="hidden w-32 bg-yellow-50 text-right font-medium sm:table-cell" title="Admin only">52w min / max</th>}
-              <th className="w-[72px] pr-4 text-right font-medium sm:w-24">{t.drop}</th>
+              <th className="w-12 text-center font-medium">{t.risk}</th>
+              <th className="w-[100px] text-center font-medium">{t.maturity}</th>
+              <th className="w-16 text-right font-medium">{t.price}</th>
+              <th className="w-[68px] text-right font-medium">{t.min}</th>
+              <th className="w-[68px] text-right font-medium">{t.max}</th>
+              {MOVES.map((k) => <SortHead key={k} k={k} className="w-[92px]" />)}
+              <SortHead k="gain1y" className="w-[84px] pr-4" />
             </tr>
           </thead>
           <tbody data-testid="drops-rows">
@@ -79,16 +97,17 @@ export default function PriceDrops({ data, lang, admin = false }: { data: DropsD
                 {r ? (
                   <>
                     <td className="pl-4 text-mute tabular-nums">{i + 1}</td>
-                    <td className="truncate pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
-                    <td className="hidden truncate pr-3 text-mute md:table-cell" title={r.name}>{r.name}</td>
+                    <td className="truncate pr-3 font-medium" title={`${r.name} · ${r.isin}`}>{r.issuer} <span className="font-normal text-mute">{r.isin}</span></td>
                     <td className="text-center"><RiskBadge risk={r.risk} /></td>
-                    <td className="hidden text-center tabular-nums sm:table-cell">{r.maturity ? day(r.maturity) : "–"}</td>
+                    <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
-                    {admin && <td className="hidden bg-yellow-50 text-right tabular-nums text-mute sm:table-cell">{r.low52w == null ? "–" : num(r.low52w)} / {r.high52w == null ? "–" : num(r.high52w)}</td>}
-                    <td className="pr-4 text-right font-medium tabular-nums text-[#dc2626]">{num(r.dropPct, 1)}%</td>
+                    <td className="text-right tabular-nums text-mute">{num(r.min52w)}</td>
+                    <td className="text-right tabular-nums text-mute">{num(r.max52w)}</td>
+                    {MOVES.map((k) => <td key={k} className={`text-right tabular-nums ${tone(r[k])} ${sort === k ? "font-medium" : ""}`}>{signed(r[k])}</td>)}
+                    <td className={`pr-4 text-right tabular-nums ${sort === "gain1y" ? "font-medium" : ""}`}>{r.gain1y === null ? "–" : `${num(r.gain1y, 1)}%`}</td>
                   </>
                 ) : (
-                  <td colSpan={admin ? 8 : 7} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
+                  <td colSpan={12} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
                 )}
               </tr>
             ))}
@@ -99,6 +118,7 @@ export default function PriceDrops({ data, lang, admin = false }: { data: DropsD
       <p className="mt-3 text-[11px] leading-snug text-mute">
         {data.since && <span>{t.building(day(data.since))} </span>}
         <span>{t.indicative} </span>
+        <span>{t.gainNote}</span>
       </p>
     </div>
   );

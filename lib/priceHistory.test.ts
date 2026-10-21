@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeDrops, highFromYield, listsFor, onePerIssuer, weekOf } from "./priceHistory";
+import { compact, computeRows, listsFor, onePerIssuer, priceAgo, priceAtYield, sortedBy, weekOf, type History } from "./priceHistory";
 import type { PublicBond } from "./types";
 
 const bond = (isin: string, issuer: string, rating: string, price: number, currency = "EUR"): PublicBond => ({
@@ -7,55 +7,68 @@ const bond = (isin: string, issuer: string, rating: string, price: number, curre
   ratingSp: rating, ratingMoodys: null, ratingFitch: null, ratingResolved: rating, grossYtm: 3, modifiedDuration: 3.5,
   ytmAsOf: "2026-10-20T00:00:00Z", cleanPrice: price,
 });
+const empty = (): History => ({ range: new Map(), daily: new Map() });
 
 describe("price drops", () => {
-  it("measures the drop from the highest price and sorts the biggest first", () => {
-    const rows = computeDrops([bond("A", "Alpha", "BBB", 95), bond("B", "Beta", "AA", 90), bond("C", "Gamma", "A", 100)], new Map([["A", 100], ["B", 100], ["C", 100.2]]));
-    expect(rows.map((r) => r.isin)).toEqual(["B", "A"]); // C moved less than 0.5%
-    expect(rows[0].dropPct).toBeCloseTo(-10);
-    expect(rows[1].risk).toBe(5);
+  it("uses the copy's 52-week range and works out drop, distance from the low and the 1-year gain", () => {
+    const b = { ...bond("A", "Alpha", "BBB", 95), low52w: 90, high52w: 100 };
+    const [r] = computeRows([b], empty());
+    expect(r.vsMax).toBeCloseTo(-5);
+    expect(r.vsMin).toBeCloseTo(5.556, 2);
+    expect(r.gain1y).toBeCloseTo(((100 - 95 + 3) / 95) * 100);
+    expect(r.d1w).toBeNull(); // no history yet: shown as "–", never invented
+    expect(r.d1m).toBeNull();
   });
 
-  it("never uses the data supplier's 52-week high", () => {
-    const b = { ...bond("A", "Alpha", "BBB", 95), high52w: 110 };
-    expect(computeDrops([b], new Map([["A", 100]]))[0].high).toBe(100);
-  });
-
-  it("leaves out unrated bonds and bonds without history", () => {
-    expect(computeDrops([bond("A", "Alpha", "NR", 80), bond("B", "Beta", "A", 80)], new Map([["A", 100]]))).toEqual([]);
-  });
-
-  it("keeps one bond per issuer and splits by currency and risk", () => {
-    const bonds = [bond("A1", "Alpha", "BBB", 80), bond("A2", "Alpha", "BBB", 85), bond("B", "Beta", "BBB", 90), bond("U", "Usa", "BBB", 70, "USD")];
-    const rows = computeDrops(bonds, new Map(bonds.map((b) => [b.isin, 100])));
-    expect(onePerIssuer(rows, 10).map((r) => r.isin)).toEqual(["U", "A1", "B"]);
-    const eur = listsFor(rows, "EUR");
-    expect(eur.top.map((r) => r.isin)).toEqual(["A1", "B"]);
-    expect(eur.byRisk[5].map((r) => r.isin)).toEqual(["A1", "B"]);
-    expect(eur.byRisk[1]).toEqual([]);
-  });
-
-  it("prices the lowest yield as of today, so a higher yield shows as a lower price", () => {
+  it("without the copy's range, prices the recorded lowest and highest yields as of today", () => {
     const b = { ...bond("A", "Alpha", "BBB", 95), cleanPrice: undefined, grossYtm: 4 };
-    const high = highFromYield(b, 3)!;
-    expect(high).toBeCloseTo(100, 0); // coupon 3% at a 3% yield prices at par
-    expect(computeDrops([b], new Map([["A", high]]))[0].dropPct).toBeLessThan(-3);
+    const h = empty();
+    h.range.set("A", { minYtm: 3, maxYtm: 4.5 });
+    const [r] = computeRows([b], h);
+    expect(r.max52w).toBeCloseTo(priceAtYield(b, 3)!);
+    expect(r.max52w!).toBeCloseTo(100, 0); // coupon 3% at a 3% yield prices at par
+    expect(r.min52w!).toBeLessThan(r.price);
+    expect(r.vsMax!).toBeLessThan(-3);
+  });
+
+  it("takes the price about a week and a month back from the daily record", () => {
+    const series = [{ day: "2026-09-18", price: 101 }, { day: "2026-10-12", price: 99 }, { day: "2026-10-13", price: 98 }];
+    expect(priceAgo(series, "2026-10-20", 7)).toBe(98);
+    expect(priceAgo(series, "2026-10-20", 30)).toBe(101);
+    expect(priceAgo(series, "2026-10-20", 60)).toBeNull();
+    const h = empty();
+    h.daily.set("A", series);
+    const [r] = computeRows([bond("A", "Alpha", "BBB", 95)], h);
+    expect(r.d1w).toBeCloseTo(((95 - 98) / 98) * 100);
+  });
+
+  it("leaves out unrated bonds", () => {
+    expect(computeRows([bond("A", "Alpha", "NR", 80)], empty())).toEqual([]);
+  });
+
+  it("sorts each column its own way and keeps one bond per issuer, by currency and risk", () => {
+    const bonds = [
+      { ...bond("A1", "Alpha", "BBB", 80), high52w: 100, low52w: 80 },
+      { ...bond("A2", "Alpha", "BBB", 85), high52w: 100, low52w: 80 },
+      { ...bond("B", "Beta", "BBB", 90), high52w: 100, low52w: 85 },
+      { ...bond("U", "Usa", "BBB", 70, "USD"), high52w: 100, low52w: 70 },
+    ];
+    const rows = computeRows(bonds, empty());
+    expect(onePerIssuer(sortedBy(rows, "vsMax"), 10).map((r) => r.isin)).toEqual(["U", "A1", "B"]);
+    expect(sortedBy(rows, "gain1y")[0].isin).toBe("U"); // highest gain first
+    expect(sortedBy(rows, "d1w")).toEqual([]); // no history: nothing to sort
+    const eur = listsFor(rows, "EUR");
+    expect(eur.vsMax.top.map((i) => rows[i].isin)).toEqual(["A1", "B"]);
+    expect(eur.vsMax.byRisk[5].map((i) => rows[i].isin)).toEqual(["A1", "B"]);
+    expect(eur.vsMax.byRisk[1]).toEqual([]);
+    const small = compact(rows);
+    expect(small.rows.map((r) => r.isin)).toEqual(["A1", "B", "U"]); // A2 is never shown, so it is not sent
+    expect(small.USD.vsMax.top.map((i) => small.rows[i].isin)).toEqual(["U"]);
   });
 
   it("files a quote under the Monday of its week", () => {
     expect(weekOf("2026-10-20T10:00:00Z")).toBe("2026-10-19");
     expect(weekOf("2026-10-25T10:00:00Z")).toBe("2026-10-19");
     expect(weekOf("2026-10-19T00:00:00Z")).toBe("2026-10-19");
-  });
-});
-
-describe("52-week range for the admin only", () => {
-  it("strips the supplier's low and high for everyone else", async () => {
-    const { forViewer, listsFor } = await import("./priceHistory");
-    const row = { isin: "A", issuer: "Alpha", name: "A", currency: "EUR", risk: 5, maturity: null, price: 95, high: 100, dropPct: -5, low52w: 90, high52w: 110 };
-    const data = { EUR: listsFor([row], "EUR"), USD: listsFor([], "USD"), since: null, asOf: null };
-    expect(forViewer(data, true).EUR.top[0].high52w).toBe(110);
-    expect("high52w" in forViewer(data, false).EUR.top[0]).toBe(false);
-    expect("low52w" in forViewer(data, false).EUR.byRisk[5][0]).toBe(false);
   });
 });
