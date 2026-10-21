@@ -11,6 +11,7 @@ import type { AltRow } from "@/lib/alternatives";
 import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import LossChart, { slopeAt } from "@/components/LossChart";
+import AllCurvesChart from "@/components/AllCurvesChart";
 import { nearestLoss } from "@/lib/lossCurve";
 import type { CurvePoint } from "@/lib/lossCurve";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
@@ -170,6 +171,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
   const [chartOn, setChartOn] = useState(false);
   const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
+  // Admin only: every horizon from 2 to 10 years on one chart, in place of the single curve.
+  const [showAll, setShowAll] = useState(false);
+  const [allCurves, setAllCurves] = useState<{ duration: number; points: CurvePoint[]; max: number }[] | null>(null);
   const chartable = (paid || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
   useEffect(() => {
     if (!chartOn || !chartable) return;
@@ -180,6 +184,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       .catch(() => {});
     return () => ctrl.abort();
   }, [chartOn, chartable, duration, risk, currency, size]);
+  useEffect(() => {
+    if (!chartOn || !chartable || !showAll || !isAdmin) return;
+    const ctrl = new AbortController();
+    fetch(`/api/bonds/loss-curve?${new URLSearchParams({ all: "1", risk: String(risk), currency, size })}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => j?.curves && setAllCurves(j.curves))
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [chartOn, chartable, showAll, isAdmin, risk, currency, size]);
   const summary = list ? listSummary(list) : data?.summary;
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
@@ -323,9 +336,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {/* Fixed-height row above the list: the chart button is always here, drawn only when a chart can be shown. */}
           <div className="mb-1 flex h-7 justify-end">
             {chartable && (
-              <button type="button" onClick={() => setChartOn((v) => !v)} data-testid="loss-chart-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
-                {chartOn ? t.chartOff : t.chartOn}
-              </button>
+              <div className="flex justify-end gap-2">
+                {chartOn && isAdmin && (
+                  <button type="button" onClick={() => setShowAll((v) => !v)} data-testid="all-curves-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
+                    {showAll ? "One curve" : "See all curves"}
+                  </button>
+                )}
+                <button type="button" onClick={() => setChartOn((v) => !v)} data-testid="loss-chart-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
+                  {chartOn ? t.chartOff : t.chartOn}
+                </button>
+              </div>
             )}
           </div>
           <div className="relative">
@@ -350,7 +370,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
           {chartOn && chartable && (
             <div className="absolute inset-0 bg-white" data-testid="loss-chart">
-              {curve ? (
+              {showAll && isAdmin && allCurves ? (
+                <AllCurvesChart curves={allCurves} xLabel={t.chartX} yLabel={t.chartY} yearsLabel="yrs" />
+              ) : curve && !(showAll && isAdmin) ? (
                 <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} />
               ) : null}
             </div>

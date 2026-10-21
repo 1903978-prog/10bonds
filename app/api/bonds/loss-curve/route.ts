@@ -33,12 +33,20 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-  const key = `${data.asOf}|${filter.currency}|${filter.size}|${duration}|${risk}`;
-  let hit = cache.get(key);
-  if (!hit) {
-    hit = lossCurve(data.bonds, duration, risk);
-    if (cache.size >= 200) cache.delete(cache.keys().next().value!);
-    cache.set(key, hit);
+  const curveFor = (d: number) => {
+    const key = `${data.asOf}|${filter.currency}|${filter.size}|${d}|${risk}`;
+    let hit = cache.get(key);
+    if (!hit) {
+      hit = lossCurve(data.bonds, d, risk);
+      if (cache.size >= 200) cache.delete(cache.keys().next().value!);
+      cache.set(key, hit);
+    }
+    return hit;
+  };
+  // Admin only: one curve per horizon from 2 to 10 years, for comparing them.
+  if (url.searchParams.get("all") === "1" && user.isAdmin) {
+    const curves = Array.from({ length: 9 }, (_, i) => ({ duration: i + 2, ...curveFor(i + 2) }));
+    return NextResponse.json({ curves, risk }, { headers: { "Cache-Control": "private, no-store" } });
   }
-  return NextResponse.json({ ...hit, duration, risk }, { headers: { "Cache-Control": "private, no-store" } });
+  return NextResponse.json({ ...curveFor(duration), duration, risk }, { headers: { "Cache-Control": "private, no-store" } });
 }
