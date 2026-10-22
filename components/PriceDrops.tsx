@@ -95,16 +95,17 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
       </div>
 
       <section className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-        <div className="flex h-9 items-center justify-between px-4 text-[12px] font-medium text-mute">
+        <div className="flex h-11 items-center justify-between px-4 text-[12px] font-medium text-mute">
           <span data-testid="drops-caption">{risk === null ? t.topAll(ids.length, label[sort]) : t.topRisk(risk, label[sort])}</span>
-          <nav aria-label={t.pages} data-testid="drops-pages" className="flex items-center gap-0.5 tabular-nums">
-            <button type="button" aria-label={t.prev} disabled={at === 0} onClick={() => setPage(at - 1)} className="h-6 w-6 rounded-full hover:bg-canvas disabled:opacity-30">‹</button>
+          <nav aria-label={t.pages} data-testid="drops-pages" className="flex items-center gap-1 text-[13px] text-ink tabular-nums">
+            <span className="mr-1 text-mute">{t.page}</span>
+            <button type="button" aria-label={t.prev} disabled={at === 0} onClick={() => setPage(at - 1)} className="h-7 w-7 rounded-full bg-white shadow-sm hover:bg-canvas disabled:opacity-30">‹</button>
             {Array.from({ length: PAGES }, (_, p) => (
-              <button key={p} type="button" aria-current={p === at ? "page" : undefined} disabled={p >= pages} onClick={() => setPage(p)} className={`h-6 w-6 rounded-full disabled:opacity-30 ${p === at ? "bg-ink text-white" : "hover:bg-canvas"}`}>
+              <button key={p} type="button" aria-current={p === at ? "page" : undefined} disabled={p >= pages} onClick={() => setPage(p)} className={`h-7 w-7 rounded-full disabled:opacity-30 ${p === at ? "bg-ink text-white" : "bg-white shadow-sm hover:bg-canvas"}`}>
                 {p + 1}
               </button>
             ))}
-            <button type="button" aria-label={t.next} disabled={at >= pages - 1} onClick={() => setPage(at + 1)} className="h-6 w-6 rounded-full hover:bg-canvas disabled:opacity-30">›</button>
+            <button type="button" aria-label={t.next} disabled={at >= pages - 1} onClick={() => setPage(at + 1)} className="h-7 w-7 rounded-full bg-white shadow-sm hover:bg-canvas disabled:opacity-30">›</button>
           </nav>
         </div>
         <table className="w-full min-w-[1024px] table-fixed text-[13px]">
