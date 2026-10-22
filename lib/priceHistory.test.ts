@@ -18,6 +18,7 @@ describe("price drops", () => {
     expect(r.gain1y).toBeCloseTo(((100 - 95 + 3) / 95) * 100);
     expect(r.d1w).toBeNull(); // no history yet: shown as "–", never invented
     expect(r.d1m).toBeNull();
+    expect(r.ytm).toBe(3);
   });
 
   it("without the copy's range, prices the recorded lowest and highest yields as of today", () => {
@@ -56,6 +57,7 @@ describe("price drops", () => {
     const rows = computeRows(bonds, empty());
     expect(onePerIssuer(sortedBy(rows, "vsMax"), 10).map((r) => r.isin)).toEqual(["U", "A1", "B"]);
     expect(sortedBy(rows, "gain1y")[0].isin).toBe("U"); // highest gain first
+    expect(sortedBy([{ ...rows[0], ytm: 2 }, rows[1]], "ytm")[0].isin).toBe("A2"); // highest yield first
     expect(sortedBy(rows, "d1w")).toEqual([]); // no history: nothing to sort
     const eur = listsFor(rows, "EUR");
     expect(eur.vsMax.top.map((i) => rows[i].isin)).toEqual(["A1", "B"]);

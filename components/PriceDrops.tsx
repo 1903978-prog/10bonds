@@ -7,6 +7,7 @@ import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
 const ROWS = 10;
 const MOVES: SortKey[] = ["vsMax", "vsMin", "d1w", "d1m"];
+const HIGHEST_FIRST: SortKey[] = ["ytm", "gain1y"]; // as sorted in lib/priceHistory
 
 /** Admin-only price moves: currency toggle, risk chips, sortable move columns, and a table that always keeps 10 rows. */
 export default function PriceDrops({ data, lang }: { data: DropsData; lang: DropsLang }) {
@@ -22,13 +23,13 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
   const num = (n: number | null, d = 2) => (n === null ? "–" : n.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d }));
   const signed = (n: number | null) => (n === null ? "–" : `${n > 0 ? "+" : ""}${num(n, 1)}%`);
   const tone = (n: number | null) => (n === null ? "text-mute" : n < -0.05 ? "text-[#dc2626]" : n > 0.05 ? "text-[#16a34a]" : "");
-  const label: Record<SortKey, string> = { vsMax: t.vsMax, vsMin: t.vsMin, d1w: t.d1w, d1m: t.d1m, gain1y: t.gain1y };
+  const label: Record<SortKey, string> = { ytm: t.ytm, vsMax: t.vsMax, vsMin: t.vsMin, d1w: t.d1w, d1m: t.d1m, gain1y: t.gain1y };
 
   const SortHead = ({ k, className = "" }: { k: SortKey; className?: string }) => (
-    <th className={`text-right font-medium ${className}`} aria-sort={sort === k ? (k === "gain1y" ? "descending" : "ascending") : undefined}>
+    <th className={`text-right font-medium ${className}`} aria-sort={sort === k ? (HIGHEST_FIRST.includes(k) ? "descending" : "ascending") : undefined}>
       <button type="button" onClick={() => setSort(k)} data-testid={`sort-${k}`} className={`inline-flex items-center gap-0.5 uppercase tracking-wide ${sort === k ? "text-ink" : "hover:text-ink"}`}>
         {label[k]}
-        <span className={`inline-block w-2 ${sort === k ? "" : "invisible"}`}>{k === "gain1y" ? "↓" : "↑"}</span>
+        <span className={`inline-block w-2 ${sort === k ? "" : "invisible"}`}>{HIGHEST_FIRST.includes(k) ? "↓" : "↑"}</span>
       </button>
     </th>
   );
@@ -77,7 +78,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
 
       <section className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
         <div className="flex h-9 items-center px-4 text-[12px] font-medium text-mute" data-testid="drops-caption">{risk === null ? t.topAll(label[sort]) : t.topRisk(risk, label[sort])}</div>
-        <table className="w-full min-w-[960px] table-fixed text-[13px]">
+        <table className="w-full min-w-[1024px] table-fixed text-[13px]">
           <thead>
             <tr className="h-8 border-y border-line/70 text-left text-[11px] uppercase tracking-wide text-mute">
               <th className="w-10 pl-4 font-medium">#</th>
@@ -85,6 +86,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
               <th className="w-12 text-center font-medium">{t.risk}</th>
               <th className="w-[100px] text-center font-medium">{t.maturity}</th>
               <th className="w-16 text-right font-medium">{t.price}</th>
+              <SortHead k="ytm" className="w-[64px]" />
               <th className="w-[68px] text-right font-medium">{t.min}</th>
               <th className="w-[68px] text-right font-medium">{t.max}</th>
               {MOVES.map((k) => <SortHead key={k} k={k} className="w-[92px]" />)}
@@ -101,13 +103,14 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className="text-center"><RiskBadge risk={r.risk} /></td>
                     <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
+                    <td className={`text-right tabular-nums ${sort === "ytm" ? "font-medium" : ""}`}>{r.ytm === null ? "–" : `${num(r.ytm)}%`}</td>
                     <td className="text-right tabular-nums text-mute">{num(r.min52w)}</td>
                     <td className="text-right tabular-nums text-mute">{num(r.max52w)}</td>
                     {MOVES.map((k) => <td key={k} className={`text-right tabular-nums ${tone(r[k])} ${sort === k ? "font-medium" : ""}`}>{signed(r[k])}</td>)}
                     <td className={`pr-4 text-right tabular-nums ${sort === "gain1y" ? "font-medium" : ""}`}>{r.gain1y === null ? "–" : `${num(r.gain1y, 1)}%`}</td>
                   </>
                 ) : (
-                  <td colSpan={12} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
+                  <td colSpan={13} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
                 )}
               </tr>
             ))}
