@@ -17,7 +17,7 @@ const en = {
   building: (d: string) => `Prices recorded since ${d}; "–" until a column has enough history.`,
   indicative: "Prices are indicative, per 100, worked out from the daily yield.",
   gainNote: "1y gain = (52w max − price + one year of coupon) ÷ price.",
-  rankBy: "Rank by", rankDrop: "Price drop", pages: "Pages", prev: "Previous page", next: "Next page",
+  rankBy: "Rank by", rankDrop: "Price drop", page: "Page", pages: "Pages", prev: "Previous page", next: "Next page",
   locale: "en-GB",
 };
 export type DropsText = typeof en;
@@ -35,7 +35,7 @@ const it: DropsText = {
   building: (d: string) => `Prezzi registrati dal ${d}; "–" finché una colonna non ha abbastanza storico.`,
   indicative: "Prezzi indicativi, per 100, calcolati dal rendimento giornaliero.",
   gainNote: "Guadagno 1a = (max 52s − prezzo + un anno di cedola) ÷ prezzo.",
-  rankBy: "Ordina per", rankDrop: "Ribasso", pages: "Pagine", prev: "Pagina precedente", next: "Pagina successiva",
+  rankBy: "Ordina per", rankDrop: "Ribasso", page: "Pagina", pages: "Pagine", prev: "Pagina precedente", next: "Pagina successiva",
   locale: "it-IT",
 };
 
@@ -52,7 +52,7 @@ const fr: DropsText = {
   building: (d: string) => `Prix enregistrés depuis le ${d} ; « – » tant qu'une colonne n'a pas assez d'historique.`,
   indicative: "Prix indicatifs, pour 100, calculés à partir du rendement du jour.",
   gainNote: "Gain 1 an = (max 52s − prix + un an de coupon) ÷ prix.",
-  rankBy: "Classer par", rankDrop: "Baisse", pages: "Pages", prev: "Page précédente", next: "Page suivante",
+  rankBy: "Classer par", rankDrop: "Baisse", page: "Page", pages: "Pages", prev: "Page précédente", next: "Page suivante",
   locale: "fr-FR",
 };
 
@@ -69,7 +69,7 @@ const de: DropsText = {
   building: (d: string) => `Kurse erfasst seit ${d}; „–“, bis eine Spalte genug Historie hat.`,
   indicative: "Indikative Kurse, je 100, aus der täglichen Rendite berechnet.",
   gainNote: "Gewinn 1J = (52W-Hoch − Kurs + ein Jahr Kupon) ÷ Kurs.",
-  rankBy: "Sortieren nach", rankDrop: "Kursrückgang", pages: "Seiten", prev: "Vorherige Seite", next: "Nächste Seite",
+  rankBy: "Sortieren nach", rankDrop: "Kursrückgang", page: "Seite", pages: "Seiten", prev: "Vorherige Seite", next: "Nächste Seite",
   locale: "de-DE",
 };
 
