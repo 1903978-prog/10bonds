@@ -35,11 +35,11 @@ export type DropRow = {
   gain1y: number | null; // % of today's price: back to the 52-week max plus one year of coupon
 };
 
-/** For each sort, the rows to show (indexes into `rows`): the 10 best overall and the 3 best per risk, one per issuer. */
+/** For each sort, the rows to show (indexes into `rows`): the 100 best overall (10 pages of 10) and the 3 best per risk, one per issuer. */
 export type DropLists = Record<SortKey, { top: number[]; byRisk: Record<number, number[]> }>;
 export type DropsData = { rows: DropRow[]; EUR: DropLists; USD: DropLists; since: string | null; asOf: string | null };
 
-export const TOP_N = 10;
+export const TOP_N = 100;
 export const PER_RISK = 3;
 const DAY = 86_400_000;
 

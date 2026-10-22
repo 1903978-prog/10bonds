@@ -6,6 +6,9 @@ import type { DropRow, DropsData, SortKey } from "@/lib/priceHistory";
 import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
 const ROWS = 10;
+const PAGES = 10;
+// The quick ranking choice; every move column can also be clicked to sort.
+const RANKS = [["ytm", "ytm"], ["vsMax", "rankDrop"], ["gain1y", "gain1y"]] as const;
 const MOVES: SortKey[] = ["vsMax", "vsMin", "d1w", "d1m"];
 const HIGHEST_FIRST: SortKey[] = ["ytm", "gain1y"]; // as sorted in lib/priceHistory
 
@@ -14,10 +17,15 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
   const t = DROPS_TEXT[lang];
   const [currency, setCurrency] = useState<"EUR" | "USD">("EUR");
   const [risk, setRisk] = useState<number | null>(null);
-  const [sort, setSort] = useState<SortKey>("vsMax");
+  const [sort, setSortKey] = useState<SortKey>("vsMax");
+  const [page, setPage] = useState(0);
   const lists = data[currency][sort];
   const ids = risk === null ? lists.top : lists.byRisk[risk] ?? [];
-  const rows: (DropRow | null)[] = ids.map((i) => data.rows[i]);
+  const pages = Math.max(1, Math.min(PAGES, Math.ceil(ids.length / ROWS)));
+  const at = Math.min(page, pages - 1);
+  const rows: (DropRow | null)[] = ids.slice(at * ROWS, at * ROWS + ROWS).map((i) => data.rows[i]);
+  // Any new sort, currency or risk starts again on page 1.
+  const setSort = (k: SortKey) => { setSortKey(k); setPage(0); };
   const padded = [...rows, ...Array<null>(Math.max(0, ROWS - rows.length)).fill(null)].slice(0, ROWS);
   const day = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString(t.locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
   const num = (n: number | null, d = 2) => (n === null ? "–" : n.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -46,8 +54,18 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
           <div className="text-xs font-medium text-mute">{t.currency}</div>
           <div role="radiogroup" aria-label={t.currency} data-testid="drops-currency" className="mt-1 grid w-[132px] grid-cols-2 rounded-full bg-white p-0.5 text-[13px] font-medium shadow-sm">
             {(["EUR", "USD"] as const).map((c) => (
-              <button key={c} type="button" role="radio" aria-checked={currency === c} onClick={() => setCurrency(c)} className={`rounded-full px-2 py-1 transition ${currency === c ? "bg-ink text-white" : "text-mute hover:text-ink"}`}>
+              <button key={c} type="button" role="radio" aria-checked={currency === c} onClick={() => { setCurrency(c); setPage(0); }} className={`rounded-full px-2 py-1 transition ${currency === c ? "bg-ink text-white" : "text-mute hover:text-ink"}`}>
                 {c}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs font-medium text-mute">{t.rankBy}</div>
+          <div role="radiogroup" aria-label={t.rankBy} data-testid="drops-rank" className="mt-1 grid w-[264px] grid-cols-3 rounded-full bg-white p-0.5 text-[13px] font-medium shadow-sm">
+            {RANKS.map(([k, name]) => (
+              <button key={k} type="button" role="radio" aria-checked={sort === k} onClick={() => setSort(k)} className={`rounded-full px-2 py-1 transition ${sort === k ? "bg-ink text-white" : "text-mute hover:text-ink"}`}>
+                {t[name]}
               </button>
             ))}
           </div>
@@ -65,7 +83,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                   role="radio"
                   aria-checked={on}
                   disabled={!has}
-                  onClick={() => setRisk(r)}
+                  onClick={() => { setRisk(r); setPage(0); }}
                   className={`h-7 rounded-full text-[13px] font-medium tabular-nums transition disabled:cursor-not-allowed disabled:opacity-30 ${r === null ? "w-11 sm:w-14" : "w-[26px] sm:w-7"} ${on ? "bg-ink text-white" : "bg-white text-ink shadow-sm hover:bg-canvas"}`}
                 >
                   {r ?? t.all}
@@ -77,7 +95,18 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
       </div>
 
       <section className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-        <div className="flex h-9 items-center px-4 text-[12px] font-medium text-mute" data-testid="drops-caption">{risk === null ? t.topAll(label[sort]) : t.topRisk(risk, label[sort])}</div>
+        <div className="flex h-9 items-center justify-between px-4 text-[12px] font-medium text-mute">
+          <span data-testid="drops-caption">{risk === null ? t.topAll(ids.length, label[sort]) : t.topRisk(risk, label[sort])}</span>
+          <nav aria-label={t.pages} data-testid="drops-pages" className="flex items-center gap-0.5 tabular-nums">
+            <button type="button" aria-label={t.prev} disabled={at === 0} onClick={() => setPage(at - 1)} className="h-6 w-6 rounded-full hover:bg-canvas disabled:opacity-30">‹</button>
+            {Array.from({ length: PAGES }, (_, p) => (
+              <button key={p} type="button" aria-current={p === at ? "page" : undefined} disabled={p >= pages} onClick={() => setPage(p)} className={`h-6 w-6 rounded-full disabled:opacity-30 ${p === at ? "bg-ink text-white" : "hover:bg-canvas"}`}>
+                {p + 1}
+              </button>
+            ))}
+            <button type="button" aria-label={t.next} disabled={at >= pages - 1} onClick={() => setPage(at + 1)} className="h-6 w-6 rounded-full hover:bg-canvas disabled:opacity-30">›</button>
+          </nav>
+        </div>
         <table className="w-full min-w-[1024px] table-fixed text-[13px]">
           <thead>
             <tr className="h-8 border-y border-line/70 text-left text-[11px] uppercase tracking-wide text-mute">
@@ -98,7 +127,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
               <tr key={i} className="h-9 border-b border-line/40 last:border-0">
                 {r ? (
                   <>
-                    <td className="pl-4 text-mute tabular-nums">{i + 1}</td>
+                    <td className="pl-4 text-mute tabular-nums">{at * ROWS + i + 1}</td>
                     <td className="truncate pr-3 font-medium" title={`${r.name} · ${r.isin}`}>{r.issuer} <span className="font-normal text-mute">{r.isin}</span></td>
                     <td className="text-center"><RiskBadge risk={r.risk} /></td>
                     <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
