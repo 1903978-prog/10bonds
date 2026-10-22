@@ -11,10 +11,10 @@ import type { PublicBond } from "./types";
 // The 52-week range uses the copy's own high_52w / low_52w when it has them, else the recorded yields priced as of
 // today (so the slow pull of every price toward 100 is not counted as a move). Missing history stays null ("–").
 
-export type SortKey = "vsMax" | "vsMin" | "d1w" | "d1m" | "gain1y";
-export const SORT_KEYS: SortKey[] = ["vsMax", "d1w", "d1m", "vsMin", "gain1y"];
-// Drops: most negative first; distance from the low: closest first; gain: highest first.
-const ASCENDING: Record<SortKey, boolean> = { vsMax: true, d1w: true, d1m: true, vsMin: true, gain1y: false };
+export type SortKey = "ytm" | "vsMax" | "vsMin" | "d1w" | "d1m" | "gain1y";
+export const SORT_KEYS: SortKey[] = ["ytm", "vsMax", "d1w", "d1m", "vsMin", "gain1y"];
+// Yield: highest first; drops: most negative first; distance from the low: closest first; gain: highest first.
+const ASCENDING: Record<SortKey, boolean> = { ytm: false, vsMax: true, d1w: true, d1m: true, vsMin: true, gain1y: false };
 
 export type DropRow = {
   isin: string;
@@ -25,6 +25,7 @@ export type DropRow = {
   maturity: string | null;
   coupon: number | null;
   price: number;
+  ytm: number | null; // today's yield to maturity, %
   min52w: number | null;
   max52w: number | null;
   vsMax: number | null; // % from the 52-week max (zero or negative)
@@ -34,11 +35,11 @@ export type DropRow = {
   gain1y: number | null; // % of today's price: back to the 52-week max plus one year of coupon
 };
 
-/** For each sort, the rows to show (indexes into `rows`): the 10 best overall and the 3 best per risk, one per issuer. */
+/** For each sort, the rows to show (indexes into `rows`): the 100 best overall (10 pages of 10) and the 3 best per risk, one per issuer. */
 export type DropLists = Record<SortKey, { top: number[]; byRisk: Record<number, number[]> }>;
 export type DropsData = { rows: DropRow[]; EUR: DropLists; USD: DropLists; since: string | null; asOf: string | null };
 
-export const TOP_N = 10;
+export const TOP_N = 100;
 export const PER_RISK = 3;
 const DAY = 86_400_000;
 
@@ -98,7 +99,7 @@ export function computeRows(bonds: PublicBond[], h: History): DropRow[] {
     const today = (b.ytmAsOf ?? new Date().toISOString()).slice(0, 10);
     const series = h.daily.get(b.isin);
     rows.push({
-      isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, maturity: b.maturity, coupon: b.coupon, price,
+      isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, maturity: b.maturity, coupon: b.coupon, price, ytm: b.grossYtm,
       min52w, max52w,
       vsMax: pct(price, max52w),
       vsMin: pct(price, min52w),

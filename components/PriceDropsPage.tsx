@@ -7,8 +7,8 @@ import type { DropsLang } from "@/lib/dropsText";
 const EMPTY_LISTS = { top: [], byRisk: {} };
 const EMPTY: DropsData = {
   rows: [],
-  EUR: { vsMax: EMPTY_LISTS, vsMin: EMPTY_LISTS, d1w: EMPTY_LISTS, d1m: EMPTY_LISTS, gain1y: EMPTY_LISTS },
-  USD: { vsMax: EMPTY_LISTS, vsMin: EMPTY_LISTS, d1w: EMPTY_LISTS, d1m: EMPTY_LISTS, gain1y: EMPTY_LISTS },
+  EUR: { ytm: EMPTY_LISTS, vsMax: EMPTY_LISTS, vsMin: EMPTY_LISTS, d1w: EMPTY_LISTS, d1m: EMPTY_LISTS, gain1y: EMPTY_LISTS },
+  USD: { ytm: EMPTY_LISTS, vsMax: EMPTY_LISTS, vsMin: EMPTY_LISTS, d1w: EMPTY_LISTS, d1m: EMPTY_LISTS, gain1y: EMPTY_LISTS },
   since: null,
   asOf: null,
 };
