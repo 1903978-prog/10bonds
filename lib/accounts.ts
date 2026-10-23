@@ -58,6 +58,9 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists totp_backup text`;
   await sql`alter table app.users add column if not exists totp_last_step bigint`;
   await sql`alter table app.users add column if not exists totp_enabled_at timestamptz`;
+  // When a paid plan first started (for the daily "new paying users" count). Older paid accounts get their sign-up day.
+  await sql`alter table app.users add column if not exists first_paid_at timestamptz`;
+  await sql`update app.users set first_paid_at = created_at where first_paid_at is null and stripe_subscription_id is not null and plan <> 'free'`;
   // Plan 4 (Pro, for approved professionals). Widen the allowed values; existing rows are untouched.
   await sql`alter table app.users drop constraint if exists users_plan_check`;
   await sql`alter table app.users add constraint users_plan_check check (plan in ('free','plus','premium','pro'))`.catch(() => {});
@@ -592,7 +595,8 @@ export async function applySubscription(s: {
       subscription_renews_at = ${s.renewsAt},
       subscription_cancel_at_end = ${s.cancelAtEnd},
       subscription_interval = ${s.interval ?? null},
-      plan = ${s.plan}
+      plan = ${s.plan},
+      first_paid_at = case when ${s.plan} <> 'free' then coalesce(first_paid_at, now()) else first_paid_at end
     where (stripe_customer_id = ${s.customerId} or (${s.userId}::bigint is not null and id = ${s.userId}::bigint and stripe_customer_id is null))
       -- an old subscription ending must not cancel a newer one that is live (events can arrive out of order)
       and (${s.plan} <> 'free' or stripe_subscription_id is null or stripe_subscription_id = ${s.subscriptionId})

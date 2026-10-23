@@ -5,8 +5,9 @@ import { listKeywords, seoSql } from "./store";
 // there is one row per day and source, and a source that answers nothing never overwrites a figure already saved.
 
 export type DailyRow = {
-  day: string; source: "google" | "bing" | "keywords";
+  day: string; source: "google" | "bing" | "keywords" | "users";
   clicks: number | null; impressions: number | null; ctr: number | null; position: number | null; indexed: number | null; tracked: number | null; top10: number | null;
+  signups?: number | null; paying?: number | null; // "users" rows only
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -55,8 +56,21 @@ export async function takeSnapshot(force = false): Promise<boolean> {
 export async function dailyHistory(days = 365): Promise<DailyRow[]> {
   const s = await seoSql();
   const rows = await s`select * from app.seo_daily_stats where day > current_date - ${days}::int order by day`;
-  return rows.map((r) => ({
+  const out: DailyRow[] = rows.map((r) => ({
     day: new Date(r.day as string).toISOString().slice(0, 10), source: r.source as DailyRow["source"],
     clicks: n(r.clicks), impressions: n(r.impressions), ctr: n(r.ctr), position: n(r.position), indexed: n(r.indexed), tracked: n(r.tracked), top10: n(r.top10),
   }));
+  // New accounts and new paying accounts per day (UTC), counted straight from the accounts, for the same days.
+  const counts = await s`
+    select d::text as day, sum(signups)::int as signups, sum(paying)::int as paying from (
+      select (created_at at time zone 'UTC')::date as d, 1 as signups, 0 as paying from app.users where created_at > current_date - ${days}::int
+      union all
+      select (first_paid_at at time zone 'UTC')::date, 0, 1 from app.users where first_paid_at > current_date - ${days}::int
+    ) x group by d`;
+  const byDay = new Map(counts.map((c) => [c.day as string, c]));
+  for (const day of [...new Set(out.map((r) => r.day))]) {
+    const c = byDay.get(day);
+    out.push({ day, source: "users", clicks: null, impressions: null, ctr: null, position: null, indexed: null, tracked: null, top10: null, signups: c ? Number(c.signups) : 0, paying: c ? Number(c.paying) : 0 });
+  }
+  return out;
 }
