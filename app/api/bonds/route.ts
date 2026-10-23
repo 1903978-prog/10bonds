@@ -32,7 +32,9 @@ export async function GET(req: Request) {
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
 
   // The tier comes from the signed-in account (server side). Other views can be previewed on sample data only.
-  const user = await currentUser();
+  // An account whose e-mail is still unconfirmed after the grace period searches like a visitor.
+  const signedIn = await currentUser();
+  const user = signedIn?.confirmBlocked ? null : signedIn;
   // Outlier rule (lib/outliers.ts): users get the saved number of standard deviations; the admin can try another (os).
   const liveSd = await currentOutlierSd();
   const trySd = user?.isAdmin && url.searchParams.get("os") ? cleanSd(url.searchParams.get("os")) : null;
@@ -43,7 +45,6 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-  if (user?.confirmBlocked) return NextResponse.json({ error: "Please confirm your e-mail address first.", confirmBlocked: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
   let tier: Tier = user ? user.plan : "visitor";
   const preview = url.searchParams.get("preview");
   if (data.source === "sample" && (preview === "free" || preview === "plus" || preview === "premium")) tier = preview;

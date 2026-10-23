@@ -177,7 +177,7 @@ export type User = {
   storedPlan: StoredPlan;
   premiumUntil: string | null;
   emailVerified: boolean;
-  /** Signed up more than CONFIRM_GRACE_MS ago and the address is still not confirmed: no access until it is. */
+  /** Signed up more than CONFIRM_GRACE_MS ago and the address is still not confirmed: treated as a visitor until it is. */
   confirmBlocked: boolean;
   isAdmin: boolean;
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
