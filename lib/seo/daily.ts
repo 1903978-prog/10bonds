@@ -1,13 +1,15 @@
 import { bing, google, type Engine } from "./engines";
+import { dailyVisits } from "../accounts";
 import { listKeywords, seoSql } from "./store";
 
 // One snapshot a day of the headline search numbers, kept so the SEO page can chart progress. Safe to run many times a day:
 // there is one row per day and source, and a source that answers nothing never overwrites a figure already saved.
 
 export type DailyRow = {
-  day: string; source: "google" | "bing" | "keywords" | "users";
+  day: string; source: "google" | "bing" | "keywords" | "users" | "site";
   clicks: number | null; impressions: number | null; ctr: number | null; position: number | null; indexed: number | null; tracked: number | null; top10: number | null;
   signups?: number | null; paying?: number | null; // "users" rows only
+  visitors?: number | null; minutes?: number | null; // "site" rows only (usage statistics, with consent)
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -68,7 +70,10 @@ export async function dailyHistory(days = 365): Promise<DailyRow[]> {
       select (first_paid_at at time zone 'UTC')::date, 0, 1 from app.users where first_paid_at > current_date - ${days}::int
     ) x group by d`;
   const byDay = new Map(counts.map((c) => [c.day as string, c]));
+  const visits = new Map((await dailyVisits(days).catch(() => [])).map((v) => [v.day, v]));
   for (const day of [...new Set(out.map((r) => r.day))]) {
+    const v = visits.get(day);
+    out.push({ day, source: "site", clicks: null, impressions: null, ctr: null, position: null, indexed: null, tracked: null, top10: null, visitors: v?.visitors ?? 0, minutes: v ? Math.round(v.minutes * 10) / 10 : null });
     const c = byDay.get(day);
     out.push({ day, source: "users", clicks: null, impressions: null, ctr: null, position: null, indexed: null, tracked: null, top10: null, signups: c ? Number(c.signups) : 0, paying: c ? Number(c.paying) : 0 });
   }

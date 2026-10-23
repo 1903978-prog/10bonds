@@ -21,7 +21,11 @@ const STATS: Stat[] = [
   { label: "Keywords avg position", source: "keywords", key: "position", digits: 1, lowerIsBetter: true },
   { label: "New users", source: "users", key: "signups" },
   { label: "New paying users", source: "users", key: "paying" },
+  { label: "Unique visitors", source: "site", key: "visitors" },
+  { label: "Avg minutes per visitor", source: "site", key: "minutes", digits: 1 },
 ];
+
+type PageRow = { path: string; visitors: number; views: number; minutes: number };
 
 const fmt = (s: Stat, v: number | null) => (v === null ? "–" : s.pct ? `${num(v * 100, s.digits ?? 1)}%` : num(v, s.digits ?? 0));
 
@@ -51,12 +55,14 @@ function Spark({ values }: { values: (number | null)[] }) {
 /** History of the headline search numbers, saved once a day: a small chart per figure and the dated table. */
 export default function History() {
   const [rows, setRows] = useState<DailyRow[] | null>(null);
+  const [pages, setPages] = useState<PageRow[]>([]);
+  const [byPage, setByPage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [table, setTable] = useState(false);
   useEffect(() => {
     if (!open || rows) return;
-    api<{ rows: DailyRow[] }>("/api/admin/seo/history").then((r) => setRows(r.rows)).catch((e) => setError((e as Error).message));
+    api<{ rows: DailyRow[]; pages: PageRow[] }>("/api/admin/seo/history").then((r) => { setRows(r.rows); setPages(r.pages ?? []); }).catch((e) => setError((e as Error).message));
   }, [open, rows]);
   const days = rows ? [...new Set(rows.map((r) => r.day))].sort() : [];
   const val = (s: Stat, day: string) => {
@@ -70,7 +76,7 @@ export default function History() {
       {open && !rows && !error && <p className="mt-2 text-xs text-mute">Loading…</p>}
       {open && rows && (
         <div className="mt-3 space-y-3">
-          <p className="text-xs text-mute">One figure per day. Google and Bing show the last 28 days as of that day; a dash means the source gave nothing that day. {days.length ? `${days.length} day${days.length > 1 ? "s" : ""} saved so far.` : "The first day is saved now."}</p>
+          <p className="text-xs text-mute">One figure per day. Google and Bing show the last 28 days as of that day; a dash means the source gave nothing that day. Visitors and minutes count only people who allowed usage statistics, and leave out your own visits. {days.length ? `${days.length} day${days.length > 1 ? "s" : ""} saved so far.` : "The first day is saved now."}</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-8">
             {STATS.map((s) => {
               const vals = days.map((d) => val(s, d));
@@ -83,6 +89,23 @@ export default function History() {
                 </div>
               );
             })}
+          </div>
+          <div>
+            <button onClick={() => setByPage(!byPage)} className="text-xs text-accent">{byPage ? "Hide visits by page" : "Show visits by page (last 30 days)"}</button>
+            {byPage && (
+              <div className="mt-2 max-h-[70vh] overflow-auto">
+                {pages.length === 0 ? <p className="text-xs text-mute">No visits recorded yet.</p> : (
+                  <table className="w-full text-left text-sm" data-testid="seo-pages">
+                    <thead><tr><th className="pr-3 font-medium">Page</th><th className="px-2 text-right font-medium">Unique visitors</th><th className="px-2 text-right font-medium">Page views</th><th className="px-2 text-right font-medium">Avg minutes per visitor</th></tr></thead>
+                    <tbody>
+                      {pages.map((p) => (
+                        <tr key={p.path} className="border-t border-line"><td className="py-1.5 pr-3">{p.path}</td><td className="px-2 text-right tabular-nums">{num(p.visitors, 0)}</td><td className="px-2 text-right tabular-nums">{num(p.views, 0)}</td><td className="px-2 text-right tabular-nums">{num(p.minutes, 1)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
           </div>
           {days.length > 0 && (
             <div>
