@@ -20,6 +20,7 @@ for (const w of [1440, 390]) {
   ok(!(await p.isVisible('[data-testid="cookie-banner"]')), `${w} banner closes`);
   const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("tb_cookie_consent")));
   ok(stored.statistics === true && stored.marketing === false, `${w} selection stored`);
+  await p.goto(BASE + "/cookies"); // cookie settings live on the Cookies page, not in the footer
   await p.click("text=Cookie settings");
   ok(await p.isChecked('[data-testid="cookie-statistics"]'), `${w} reopened with choice`);
   await p.click("text=Reject all");
