@@ -404,6 +404,47 @@ export async function grantStatsBonus(userId: number, days = 7): Promise<string 
   return u[0] ? new Date(u[0].premium_until).toISOString() : null;
 }
 
+// Visits from usage statistics (only visitors who allowed them; the owner's browsers left out). Time is measured the same way
+// as "time on site" for accounts: the gap from each event to the visitor's next one, ignoring pauses over 30 minutes.
+// The last page of a visit has no next event, so its time is not counted.
+function visitEvents(sql: ReturnType<typeof db>["sql"], days: number) {
+  return sql`
+    select e.visitor_id, e.kind, e.path, e.at,
+           lead(e.at) over (partition by e.visitor_id order by e.at) - e.at as stay
+    from app.events e
+    where e.at > now() - ${days} * interval '1 day'
+      and e.visitor_id not in (
+        select distinct x.visitor_id from app.events x join app.users u on u.id = x.user_id where lower(u.email) in ${sql(ADMIN_EMAILS.length ? ADMIN_EMAILS : [""])})`;
+}
+
+/** Unique visitors and average minutes per visitor for each day (UTC), oldest first. */
+export async function dailyVisits(days = 365): Promise<{ day: string; visitors: number; minutes: number }[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{ d: string; visitors: string; secs: string }[]>`
+    with ev as (${visitEvents(sql, days)})
+    select (at at time zone 'UTC')::date::text as d, count(distinct visitor_id) as visitors,
+           coalesce(sum(extract(epoch from stay)) filter (where stay < interval '30 minutes'), 0) as secs
+    from ev group by 1 order by 1`;
+  return rows.map((r) => ({ day: r.d, visitors: Number(r.visitors), minutes: Number(r.visitors) ? Number(r.secs) / 60 / Number(r.visitors) : 0 }));
+}
+
+/** Per page over the last `days`: unique visitors, views and average minutes per visitor on that page. */
+export async function pageVisits(days = 30): Promise<{ path: string; visitors: number; views: number; minutes: number }[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{ path: string; visitors: string; views: string; secs: string }[]>`
+    with ev as (${visitEvents(sql, days + 1)}), views as (
+      -- time on a page: until the visitor's next page view (clicks on the page in between do not end it)
+      select visitor_id, path, at, lead(at) over (partition by visitor_id order by at) - at as stay from ev where kind = 'page_view'
+    )
+    select path, count(distinct visitor_id) as visitors, count(*) as views,
+           coalesce(sum(extract(epoch from stay)) filter (where stay < interval '30 minutes'), 0) as secs
+    from views where path is not null and at > now() - ${days} * interval '1 day'
+    group by path order by visitors desc, views desc limit 100`;
+  return rows.map((r) => ({ path: r.path, visitors: Number(r.visitors), views: Number(r.views), minutes: Number(r.visitors) ? Number(r.secs) / 60 / Number(r.visitors) : 0 }));
+}
+
 /** Counts for the admin page. */
 export async function adminStats() {
   const { sql, ready } = db();

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { pageVisits } from "@/lib/accounts";
 import { dailyHistory, takeSnapshot } from "@/lib/seo/daily";
 import { notFound, seoAdmin } from "@/lib/seo/input";
 
@@ -9,5 +10,6 @@ export const maxDuration = 60;
 export async function GET() {
   if (!(await seoAdmin())) return notFound();
   await takeSnapshot().catch((e) => console.error("SEO snapshot on open failed:", (e as Error).message));
-  return NextResponse.json({ rows: await dailyHistory() }, { headers: { "Cache-Control": "no-store" } });
+  const [rows, pages] = await Promise.all([dailyHistory(), pageVisits(30).catch(() => [])]);
+  return NextResponse.json({ rows, pages }, { headers: { "Cache-Control": "no-store" } });
 }
