@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
 
   // The tier comes from the signed-in account (server side). Other views can be previewed on sample data only.
-  // An account whose e-mail is still unconfirmed after the grace period searches as a visitor (the owner, 23/10/2026).
+  // An account whose e-mail is still unconfirmed after the grace period searches like a visitor.
   const signedIn = await currentUser();
   const user = signedIn?.confirmBlocked ? null : signedIn;
   // Outlier rule (lib/outliers.ts): users get the saved number of standard deviations; the admin can try another (os).

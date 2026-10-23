@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-  // An account whose e-mail is still unconfirmed after the grace period searches as a visitor (the owner, 23/10/2026).
+  // An account whose e-mail is still unconfirmed after the grace period searches like a visitor.
   const signedIn = await currentUser();
   const user = signedIn?.confirmBlocked ? null : signedIn;
   let tier: Tier = user ? user.plan : "visitor";

@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { fmtDate, loadMe, type Me } from "@/lib/me";
 
-/** Welcome pop-up after sign-up, the "confirm your e-mail" strip, and the result of a confirmation link. */
+/**
+ * Welcome pop-up after sign-up, the "confirm your e-mail" strip, and the result of a confirmation link.
+ * An unconfirmed account is never locked out: it keeps using the site like a visitor until the address is confirmed.
+ */
 export default function AccountNotices() {
   const [me, setMe] = useState<Me | undefined>(undefined);
   const [welcome, setWelcome] = useState(false);
@@ -32,8 +35,6 @@ export default function AccountNotices() {
     confirmed === "invalid" ? "This confirmation link is not valid or has expired. Use “Send again” to get a new one." :
     confirmed === "error" ? "We could not confirm your address just now. Please try the link again later." : null;
 
-  // After the 3-hour grace period an unconfirmed account uses the site as a visitor would (the owner, 23/10/2026):
-  // no blocking screen, only the strip below asking to confirm.
   return (
     <>
       {confirmMsg && (
