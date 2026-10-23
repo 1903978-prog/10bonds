@@ -29,8 +29,9 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-  const user = await currentUser();
-  if (user?.confirmBlocked) return NextResponse.json({ error: "Please confirm your e-mail address first.", confirmBlocked: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  // An account whose e-mail is still unconfirmed after the grace period searches as a visitor (the owner, 23/10/2026).
+  const signedIn = await currentUser();
+  const user = signedIn?.confirmBlocked ? null : signedIn;
   let tier: Tier = user ? user.plan : "visitor";
   const preview = url.searchParams.get("preview");
   if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;

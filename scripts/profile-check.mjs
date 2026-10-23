@@ -30,7 +30,7 @@ for (const w of [1440, 390]) {
   // Footer and legal pages
   await p.goto(BASE + "/");
   ok(!(await p.locator("header >> text=Disclaimer").count()), `${w} no Disclaimer in the top menu`);
-  for (const t of ["Disclaimer", "Terms", "Privacy & GDPR", "Cookies", "Cookie settings"]) ok(await p.locator(`[data-testid=footer-legal] >> text="${t}"`).count() === 1, `${w} footer menu has ${t}`);
+  for (const t of ["Disclaimer", "Methodology", "Terms", "Privacy & GDPR", "Cookies"]) ok(await p.locator(`[data-testid=footer-legal] >> text="${t}"`).count() === 1, `${w} footer menu has ${t}`);
   await p.goto(BASE + "/it");
   ok(await p.locator('[data-testid=footer-legal] >> text="Privacy e GDPR"').count() === 1, `${w} footer menu in Italian`);
   ok(await p.isVisible("text=182,40 € all'anno"), `${w} Italian home shows yearly Premium`);

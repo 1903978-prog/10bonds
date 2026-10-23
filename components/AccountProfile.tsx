@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import SignOutButton from "./SignOutButton";
 import { ManageButton, PlanButton } from "@/components/PlanButton";
 import { NEWSLETTER_TEXT, type NewsletterLang } from "@/lib/newsletterText";
 import { euro, PLAN_NAMES, priceCents, type Interval, type PaidPlan } from "@/lib/plans";
@@ -235,16 +236,7 @@ export default function AccountProfile(p: Props) {
 
       {msg && <p className={`rounded-2xl px-4 py-3 text-sm ${msg.ok ? "bg-green-50 text-green-800" : "bg-red-50 text-red-700"}`} data-testid="profile-msg">{msg.text}</p>}
 
-      <button
-        data-testid="profile-signout"
-        onClick={async () => {
-          await fetch("/api/auth/logout", { method: "POST" });
-          window.location.href = "/";
-        }}
-        className="w-full rounded-full px-5 py-3 text-[15px] font-medium text-mute hover:text-ink"
-      >
-        Sign out
-      </button>
+      <SignOutButton testId="profile-signout" className="w-full rounded-full px-5 py-3 text-[15px] font-medium text-mute hover:text-ink" />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import CopySnippet from "@/components/CopySnippet";
-import { embedSnippet, WIDGET_LANGS, WIDGET_TEXT, widgetLang } from "@/lib/seo/widget";
+import { embedSnippet, WIDGET_TEXT, widgetLang } from "@/lib/seo/widget";
+import { pickedLang } from "@/lib/pageLang";
 
 // How to put the free yields widget on another website: a live preview and the code to paste.
 
@@ -12,11 +13,10 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const LANG_NAME = { en: "English", it: "Italiano", fr: "Français", de: "Deutsch" } as const;
-
 export default async function WidgetPage({ searchParams }: { searchParams: Promise<{ lang?: string; theme?: string }> }) {
   const q = await searchParams;
-  const lang = widgetLang(q.lang);
+  // No language list on the page (the owner): the widget follows the language picked in the header menu.
+  const lang = widgetLang(await pickedLang(q.lang));
   const dark = q.theme === "dark";
   const pill = (on: boolean) => `rounded-full px-3 py-1.5 text-sm ${on ? "bg-ink text-white" : "bg-white"}`;
   const href = (l: string, d: boolean) => `/widget?lang=${l}${d ? "&theme=dark" : ""}`;
@@ -26,9 +26,7 @@ export default async function WidgetPage({ searchParams }: { searchParams: Promi
       <p className="mt-3 text-[17px] text-mute">
         Show EUR bond yields by 10BONDS risk and years to maturity on your website or blog. It updates every day by itself. Free, no sign-up.
       </p>
-      <div className="mt-6 flex flex-wrap items-center gap-2" aria-label="Language">
-        {WIDGET_LANGS.map((l) => <Link key={l} href={href(l, dark)} className={pill(l === lang)} scroll={false}>{LANG_NAME[l]}</Link>)}
-        <span className="mx-1 hidden text-line sm:inline">|</span>
+      <div className="mt-6 flex flex-wrap items-center gap-2" aria-label="Theme">
         <Link href={href(lang, false)} className={pill(!dark)} scroll={false}>Light</Link>
         <Link href={href(lang, true)} className={pill(dark)} scroll={false}>Dark</Link>
       </div>

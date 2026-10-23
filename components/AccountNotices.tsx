@@ -32,36 +32,8 @@ export default function AccountNotices() {
     confirmed === "invalid" ? "This confirmation link is not valid or has expired. Use “Send again” to get a new one." :
     confirmed === "error" ? "We could not confirm your address just now. Please try the link again later." : null;
 
-  // After the 3-hour grace period an unconfirmed account sees only this screen (legal pages stay readable).
-  const legal = typeof window !== "undefined" && /^\/(privacy|terms|cookies|disclaimer|methodology)(\/|$)/.test(window.location.pathname);
-  if (me?.confirmBlocked && !legal) return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white p-4" role="dialog" aria-modal="true" data-testid="confirm-block">
-      <div className="w-full max-w-sm text-center">
-        <h2 className="text-[20px] font-semibold tracking-tight">Confirm your e-mail</h2>
-        <p className="mt-2 text-sm text-mute">To keep using 10BONDS, click the link we sent to {me.email}.</p>
-        <button
-          disabled={resend === "sending"}
-          onClick={async () => {
-            setResend("sending");
-            const r = await fetch("/api/auth/resend-confirmation", { method: "POST" });
-            const b = await r.json().catch(() => ({}));
-            setResend(r.ok ? "Sent. Please check your inbox (and spam)." : b.error ?? "Could not send.");
-          }}
-          className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0077ed]"
-        >
-          Send again
-        </button>
-        {resend && resend !== "sending" && <p className="mt-2 text-xs text-mute">{resend}</p>}
-        <button
-          onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/"; }}
-          className="mt-4 text-xs text-mute underline hover:text-ink"
-        >
-          Sign out
-        </button>
-      </div>
-    </div>
-  );
-
+  // After the 3-hour grace period an unconfirmed account uses the site as a visitor would (the owner, 23/10/2026):
+  // no blocking screen, only the strip below asking to confirm.
   return (
     <>
       {confirmMsg && (

@@ -6,6 +6,7 @@ import { CURVE_RATINGS, V1_CURVE, type CurveConfig } from "@/lib/riskPremium/cur
 import { OUTLIER_SD } from "@/lib/outliers";
 import { liveRiskConfig } from "@/lib/riskPremium/store";
 import { notchOf, riskOfNotch } from "@/lib/ratings";
+import { MethodSections } from "@/components/MethodNav";
 
 export const metadata: Metadata = { title: "Ranking methodology · 10BONDS", alternates: { canonical: "/ranking-methodology" } };
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export default async function RankingMethodology({ searchParams }: { searchParam
 
   return (
     <article lang={lang} className="mx-auto max-w-6xl">
+      <div className="flex"><MethodSections lang={lang} at="ranking" /></div>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
       <p className="mt-1 max-w-3xl text-[13px] leading-snug text-mute">{t.intro} <span className="text-ink">{on ? t.status.on : t.status.shadow}</span></p>
 
