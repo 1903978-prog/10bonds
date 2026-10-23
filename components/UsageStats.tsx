@@ -78,23 +78,28 @@ export default function UsageStats() {
       data-testid="cookie-banner"
       role="dialog"
       aria-label="Cookie settings"
-      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 text-[13px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:p-6"
+      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl bg-white px-3 py-2.5 text-[12px] sm:text-[13px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:p-6"
     >
-      <p className="text-[15px] font-semibold">This website uses cookies</p>
-      <p className="mt-2 leading-relaxed text-mute">
+      <p className="hidden text-[15px] font-semibold sm:block">This website uses cookies</p>
+      {/* Phones get one short line so the banner stays a slim bar at the bottom. */}
+      <p className="leading-snug text-mute sm:hidden">
+        We use cookies to keep you signed in and, if you allow it, to count visits. Never sold.{" "}
+        <Link href="/terms#privacy" className="text-accent">Privacy</Link>
+      </p>
+      <p className="mt-2 hidden leading-relaxed text-mute sm:block">
         We use cookies to keep you signed in and, if you allow it, to count how the site is used, only to improve your experience. We never sell your data or share it with third parties. Accept, reject, or open Settings to choose.
         You can change your choice at any time with “Cookie settings” at the bottom of every page.{" "}
         <Link href="/terms#privacy" className="text-accent">Privacy details</Link>
       </p>
       {!settings ? (
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <button onClick={() => setSettings(true)} data-testid="cookie-settings" className="rounded-full border border-line px-4 py-2.5 font-medium hover:bg-canvas">
+        <div className="mt-2 grid grid-cols-3 gap-2 sm:mt-4">
+          <button onClick={() => setSettings(true)} data-testid="cookie-settings" className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
             Settings
           </button>
-          <button onClick={() => choose({ preferences: false, statistics: false, marketing: false })} className="rounded-full border border-line px-4 py-2.5 font-medium hover:bg-canvas">
+          <button onClick={() => choose({ preferences: false, statistics: false, marketing: false })} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
             Reject
           </button>
-          <button onClick={() => choose({ preferences: true, statistics: true, marketing: true })} className="rounded-full bg-accent px-4 py-2.5 font-medium text-white hover:bg-[#0077ed]">
+          <button onClick={() => choose({ preferences: true, statistics: true, marketing: true })} className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
             Accept all
           </button>
         </div>
@@ -129,14 +134,14 @@ export default function UsageStats() {
               ))}
             </ul>
           )}
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <button onClick={() => choose({ preferences: false, statistics: false, marketing: false })} className="rounded-full border border-line px-4 py-2.5 font-medium hover:bg-canvas">
+          <div className="mt-2 grid grid-cols-3 gap-2 sm:mt-4">
+            <button onClick={() => choose({ preferences: false, statistics: false, marketing: false })} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
               Reject all
             </button>
-            <button onClick={() => choose(sel)} className="rounded-full border border-line px-4 py-2.5 font-medium hover:bg-canvas">
+            <button onClick={() => choose(sel)} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
               Save selection
             </button>
-            <button onClick={() => choose({ preferences: true, statistics: true, marketing: true })} className="rounded-full bg-accent px-4 py-2.5 font-medium text-white hover:bg-[#0077ed]">
+            <button onClick={() => choose({ preferences: true, statistics: true, marketing: true })} className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
               Accept all
             </button>
           </div>
