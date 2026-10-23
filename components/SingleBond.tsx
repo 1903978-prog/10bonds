@@ -79,12 +79,12 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
 
   return (
     <div className={`transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-[17px] font-semibold">{t.bestByRating}</h2>
-        <span className="text-xs text-mute">{t.tapDot}</span>
+      <div className="flex items-baseline justify-between gap-2 whitespace-nowrap">
+        <h2 className="shrink-0 text-[16px] font-semibold sm:text-[17px]">{t.bestByRating}</h2>
+        <span className="min-w-0 truncate text-[11px] text-mute sm:text-xs">{t.tapDot}</span>
       </div>
       <Chart points={points} ghosts={dominatedLevels(all)} axis={all} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
-      {dominatedLevels(all).length > 0 && <p className="text-[11px] text-mute" data-testid="ghost-note">{t.ghostNote}</p>}
+      {dominatedLevels(all).length > 0 && <p className="text-[11px] text-mute max-sm:hidden" data-testid="ghost-note">{t.ghostNote}</p>}
 
       {point && bond ? (
         <BondBox
@@ -125,7 +125,7 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
     return () => ro.disconnect();
   }, []);
   const admin = axis.some((p) => p.band !== undefined);
-  const H = (W < 500 ? 240 : 300) + (admin ? 14 : 0), L = 44, R = 22, T = 26, B = admin ? 54 : 40, PAD = 22;
+  const H = (W < 500 ? 170 : 300) + (admin ? 14 : 0), L = 44, R = 22, T = 26, B = admin ? 54 : 40, PAD = 22;
   const ys = [...points, ...ghosts].map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
   const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
@@ -134,8 +134,8 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
   const x = (level: number) => L + PAD + ((top - level) / (top - 1)) * (W - L - PAD - R);
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
   const ticks: number[] = [];
-  // At most ~6 gridlines so the axis figures never crowd each other.
-  const step = hi - lo > 10 ? 2 : hi - lo > 4 ? 1 : 0.5;
+  // At most ~6 gridlines (~4 on the short phone chart) so the axis figures never crowd each other.
+  const step = W < 500 ? (hi - lo > 6 ? 2 : hi - lo > 2.5 ? 1 : 0.5) : hi - lo > 10 ? 2 : hi - lo > 4 ? 1 : 0.5;
   for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 10) / 10);
   const drawn = points.filter((p) => p.ytm !== null);
   const path = drawn.map((p, i) => `${i ? "L" : "M"}${x(p.level).toFixed(1)},${y(p.ytm!).toFixed(1)}`).join(" ");

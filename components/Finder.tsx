@@ -217,17 +217,21 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   return (
     <FinderLangContext.Provider value={lang}>
-    <div className="finder-wide grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
+    <div className="finder-wide grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
       {/* Inputs */}
-      <section className="rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+      {/* On phones the mode tabs sit on top so they never move; in 1-bond mode the title and the two portfolio
+          sliders give way so slider, options, curve and bond name fit on one screen. */}
+      <section className="flex flex-col rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] max-sm:py-4 sm:p-6">
+        <div className={mode === "single" ? "max-lg:hidden" : "max-lg:mt-3"}>
         <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
           {t.h1}
         </Title>
         <p className="mt-1.5 text-[13px] leading-snug text-mute">
           {t.intro}
         </p>
+        </div>
 
-        <div role="tablist" aria-label={t.mode} className="mt-3 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium">
+        <div role="tablist" aria-label={t.mode} className="mt-3 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium max-lg:order-first max-lg:mt-0">
           {([["single", t.single], ["portfolio", t.portfolio]] as const).map(([m, label]) => (
             <button
               key={m}
@@ -269,7 +273,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           onChange={(i) => changeDuration(DURATION_STEPS[i])}
         />
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
-        <div className={mode === "portfolio" ? "" : "invisible"} aria-hidden={mode !== "portfolio"}>
+        <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
         <Slider
           tip="return"
           label={t.yieldLabel}
@@ -306,7 +310,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {/* Results */}
       {mode === "single" ? (
         <section
-          className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5 lg:min-h-[var(--results-h)]"
+          className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] max-sm:pt-3 sm:p-5 lg:min-h-[var(--results-h)]"
           style={resultsH ? { ["--results-h" as string]: `${resultsH}px` } : undefined}
         >
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
@@ -467,7 +471,7 @@ function Slider(props: {
 }) {
   const fill = ((props.value - props.min) / (props.max - props.min)) * 100;
   return (
-    <div className="mt-4" data-tip={props.tip}>
+    <div className="mt-3 sm:mt-4" data-tip={props.tip}>
       <div className="flex items-baseline justify-between">
         <label className="text-[14px] font-semibold">{props.label}</label>
         <span className="text-[16px] font-semibold tabular-nums">{props.display}</span>
