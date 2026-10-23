@@ -84,7 +84,7 @@ export default function SeoAdmin() {
   const usUk = market === "us" || market === "uk";
   const eu = usUk ? null : market;
   return (
-    <div className="space-y-5">
+    <div className="finder-wide space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-[32px] font-semibold tracking-tight">SEO &amp; GEO</h1>

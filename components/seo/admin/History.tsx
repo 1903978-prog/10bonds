@@ -19,6 +19,8 @@ const STATS: Stat[] = [
   { label: "Keywords ranked", source: "keywords", key: "tracked" },
   { label: "Keywords in top 10", source: "keywords", key: "top10" },
   { label: "Keywords avg position", source: "keywords", key: "position", digits: 1, lowerIsBetter: true },
+  { label: "New users", source: "users", key: "signups" },
+  { label: "New paying users", source: "users", key: "paying" },
 ];
 
 const fmt = (s: Stat, v: number | null) => (v === null ? "–" : s.pct ? `${num(v * 100, s.digits ?? 1)}%` : num(v, s.digits ?? 0));
@@ -69,7 +71,7 @@ export default function History() {
       {open && rows && (
         <div className="mt-3 space-y-3">
           <p className="text-xs text-mute">One figure per day. Google and Bing show the last 28 days as of that day; a dash means the source gave nothing that day. {days.length ? `${days.length} day${days.length > 1 ? "s" : ""} saved so far.` : "The first day is saved now."}</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-8">
             {STATS.map((s) => {
               const vals = days.map((d) => val(s, d));
               const last = [...vals].reverse().find((v) => v !== null) ?? null;
@@ -86,12 +88,12 @@ export default function History() {
             <div>
               <button onClick={() => setTable(!table)} className="text-xs text-accent">{table ? "Hide date table" : "Show date table"}</button>
               {table && (
-                <div className="mt-2 max-h-72 overflow-auto">
-                  <table className="w-full text-left text-xs">
+                <div className="mt-2 max-h-[70vh] overflow-auto">
+                  <table className="w-full text-left text-sm">
                     <thead><tr><th className="pr-3 font-medium">Date</th>{STATS.map((s) => <th key={s.label} className="px-2 font-medium">{s.label}</th>)}</tr></thead>
                     <tbody>
                       {[...days].reverse().map((d) => (
-                        <tr key={d} className="border-t border-line"><td className="whitespace-nowrap py-1 pr-3">{d}</td>{STATS.map((s) => <td key={s.label} className="px-2">{fmt(s, val(s, d))}</td>)}</tr>
+                        <tr key={d} className="border-t border-line"><td className="whitespace-nowrap py-1.5 pr-3">{d}</td>{STATS.map((s) => <td key={s.label} className="px-2">{fmt(s, val(s, d))}</td>)}</tr>
                       ))}
                     </tbody>
                   </table>

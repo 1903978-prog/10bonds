@@ -340,6 +340,7 @@ table app.users
   totp_backup text
   totp_last_step bigint
   totp_enabled_at timestamp with time zone
+  first_paid_at timestamp with time zone
 
 table app.ytm_history
   as_of date not null
