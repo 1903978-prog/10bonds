@@ -38,7 +38,7 @@ export default async function LocaleHome({ params, searchParams }: Props) {
   if (!isLocale(lang)) notFound();
   if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
   const l: Locale = lang;
-  // First visit (no cookie yet) or ?intro=1: the animated intro comes before the finder.
+  // First visit (no cookie yet) or ?intro=1: the landing page comes before the finder.
   const intro = (await searchParams)?.intro === "1" || !(await cookies()).get(INTRO_COOKIE);
   const h = HOME[l];
   const t = T[l];

@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ intro?: string }> }) {
   if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
-  // First visit (no cookie yet) or ?intro=1: the animated intro comes before the finder.
+  // First visit (no cookie yet) or ?intro=1: the landing page comes before the finder.
   const intro = (await searchParams).intro === "1" || !(await cookies()).get(INTRO_COOKIE);
   return (
     <>

@@ -2,10 +2,10 @@
 
 import { useCallback, useState, type ReactNode } from "react";
 import type { FinderLang } from "@/lib/finderText";
-import Intro from "./Intro";
+import Landing from "./Landing";
 import { INTRO_COOKIE } from "@/lib/intro";
 
-/** On a first visit the intro takes the finder's place; its button (or Escape) brings the finder in. */
+/** On a first visit the landing page takes the finder's place; its buttons (or Escape) bring the finder in. */
 export default function IntroGate({ show, lang = "en", heading = true, children }: { show: boolean; lang?: FinderLang; heading?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(show);
   const close = useCallback(() => {
@@ -13,5 +13,5 @@ export default function IntroGate({ show, lang = "en", heading = true, children 
     setOpen(false);
     window.scrollTo(0, 0);
   }, []);
-  return open ? <Intro lang={lang} heading={heading} onClose={close} /> : <>{children}</>;
+  return open ? <Landing lang={lang} heading={heading} onClose={close} /> : <>{children}</>;
 }
