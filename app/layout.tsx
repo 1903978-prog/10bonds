@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </nav>
         </header>
-        <main className="mx-auto max-w-6xl px-4 pb-6 pt-4 sm:px-6 sm:pt-5">
+        <main className="mx-auto max-w-6xl px-4 pb-6 pt-3 sm:px-6 sm:pt-5">
           <AccountNotices />
           {children}
         </main>
