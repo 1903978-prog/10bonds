@@ -6,8 +6,9 @@ import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
-const GREEN = "#168264";
-const MUTE = "#667F8B";
+// Darkened a touch from the spec's #168264 and #667F8B so small text passes the WCAG AA contrast check (4.5:1).
+const GREEN = "#127052";
+const MUTE = "#52666F";
 
 // The comparison is an illustration (the owner's spec): not measured, not a live quote. Labelled on screen.
 const MANUAL = 3.8;
@@ -209,7 +210,10 @@ function Frontier({ t, num }: { t: LandingText; num: Num }) {
           {[130, 230, 330, 430].map((x) => <line key={x} x1={x} x2={x} y1={14} y2={H - 6} stroke="#eef2f0" />)}
           <line x1={X0} x2={X1 + 10} y1={H - 6} y2={H - 6} stroke="#dfe7e3" />
           <text x={X0} y={10} fontSize={11} fill={MUTE}>{t.yAxis} ↑</text>
-          <text x={X1 + 10} y={H + 12} fontSize={11} fill={MUTE} textAnchor="end">{t.xAxis} →</text>
+          {/* Risk runs from AAA (safest, left) to BBB (right), as the owner asked (23/10/2026). */}
+          <text x={X0} y={H + 12} fontSize={11} fontWeight={700} fill={NAVY}>AAA</text>
+          <text x={(X0 + X1) / 2} y={H + 12} fontSize={11} fill={MUTE} textAnchor="middle">{t.xAxis} →</text>
+          <text x={X1 + 10} y={H + 12} fontSize={11} fontWeight={700} fill={NAVY} textAnchor="end">BBB</text>
           <text x={X0} y={H + 26} fontSize={10} fill="#9fb0b8">{t.illustrative}</text>
           <polygon points={`${X0},${H - 6} ${CURVE} ${X1},${H - 6}`} fill={GREEN} opacity={0.06} />
           <polyline points={CURVE} fill="none" stroke={GREEN} strokeWidth={3} strokeLinecap="round" />
