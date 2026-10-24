@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { introDots } from "./intro";
+import { introDots, landingFirst } from "./intro";
 
 const bond = (isin: string, rating: string, ytm: number, dur: number) =>
   ({ isin, name: isin, issuer: isin, country: null, currency: "EUR", coupon: null, maturity: null, ratingSp: rating, ratingMoodys: null, ratingFitch: null, ratingResolved: rating, grossYtm: ytm, modifiedDuration: dur, ytmAsOf: null }) as never;
@@ -13,5 +13,15 @@ describe("intro dots", () => {
     const { dots, fronts } = introDots([bond("A", "AAA", 2, 5), bond("B", "AA", 3, 5), bond("C", "A", 2.5, 5), bond("D", "BBB", 4, 5)]);
     expect(fronts[1].map((i) => dots[i][1])).toEqual([2, 3, 4]);
     expect(fronts[0]).toEqual([]);
+  });
+});
+
+describe("landing page on the home page", () => {
+  it("shows for a typed address or an outside link, not when moving inside the site", () => {
+    expect(landingFirst(undefined, null, "10bonds.com")).toBe(true);
+    expect(landingFirst(undefined, "https://t.co/x", "10bonds.com")).toBe(true);
+    expect(landingFirst(undefined, "https://10bonds.com/bonds/XS1", "10bonds.com")).toBe(false);
+    expect(landingFirst("1", "https://10bonds.com/", "10bonds.com")).toBe(true);
+    expect(landingFirst("0", null, "10bonds.com")).toBe(false);
   });
 });

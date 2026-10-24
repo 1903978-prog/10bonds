@@ -2,8 +2,21 @@ import type { PublicBond, RankedBond } from "./types";
 import { bondRisk } from "./ratings";
 import { FRONTIER_SEARCH, monotonicRun } from "./frontier";
 
-/** Set once the visitor has seen the intro (or skipped it); without it the home page opens with the intro. */
-export const INTRO_COOKIE = "tb_intro";
+/**
+ * Whether the home page opens with the landing page. Typing the address, a bookmark or a link from another site
+ * (social media, Google) always shows it; moving around inside the site (logo, menu, back from a bond page) goes
+ * straight to the finder. `?intro=1` forces the landing page, `?intro=0` the finder.
+ */
+export function landingFirst(intro: string | undefined, referer: string | null, host: string | null): boolean {
+  if (intro === "1") return true;
+  if (intro === "0") return false;
+  if (!referer || !host) return true;
+  try {
+    return new URL(referer).host !== host;
+  } catch {
+    return true;
+  }
+}
 
 /** The intro's three horizons (years, rounded duration) and the horizon each one's example search uses. */
 export const INTRO_HORIZONS = [
