@@ -27,7 +27,7 @@ function inner(title: ReactNode, children: ReactNode) {
   return (
     <>
       {/* Right padding keeps the title clear of the dots, which sit in the same corner on every slide. */}
-      <h2 className="truncate pr-20 text-[15px] font-semibold tracking-tight lg:text-[14px]">{title}</h2>
+      <h2 className="truncate pr-24 text-[15px] font-semibold tracking-tight lg:text-[14px]">{title}</h2>
       <div className="mt-3 flex min-h-0 flex-1 flex-col">{children}</div>
     </>
   );
@@ -97,6 +97,41 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
 }
 
 // The slides' pictures are fixed drawings of the finder's screens (no live data), so they load at once and never shift.
+
+/** The portfolio search: 30 lists from lowest to highest risk, return up and expected loss across, as on the finder's chart. */
+export function FrontierSlide({ t }: { t: LandingText }) {
+  const c = t.carousel;
+  const W = 320, H = 170, L = 30, R = 14, T = 10, B = 28;
+  const pts = Array.from({ length: 30 }, (_, i) => {
+    const loss = 4.45 * Math.pow(i / 29, 1.7);
+    return [loss, 3.3 + 3.95 * (1 - Math.exp(-loss / 1.3))] as const;
+  });
+  const x = (l: number) => L + (l / 4.6) * (W - L - R);
+  const y = (v: number) => T + ((7.4 - v) / 4.2) * (H - T - B);
+  const pct = (v: number, d: number) => `${v.toLocaleString(c.locale, { minimumFractionDigits: d, maximumFractionDigits: d })}%`;
+  const PICK = 7; // position 8, filled as on the finder
+  return (
+    <SlideCard title={<><span className="sm:hidden">{c.frontierShort}</span><span className="hidden sm:inline">{c.frontier}</span></>}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-0 min-h-[150px] w-full flex-1" role="img" aria-label={c.frontier} fontSize={9}>
+        {[4, 5, 6, 7].map((v) => (
+          <g key={v}>
+            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#eef2f0" />
+            <text x={L - 5} y={y(v) + 3} textAnchor="end" fill={MUTE}>{pct(v, 1)}</text>
+          </g>
+        ))}
+        {[0, 1, 2, 3, 4].map((l) => <text key={l} x={x(l)} y={H - B + 13} textAnchor="middle" fill={MUTE}>{pct(l, 1)}</text>)}
+        <text x={(L + W - R) / 2} y={H - 3} textAnchor="middle" fill={MUTE}>{c.lossAxis}</text>
+        <polyline points={pts.map(([l, v]) => `${x(l)},${y(v)}`).join(" ")} fill="none" stroke="#a9bde6" strokeWidth={1.5} />
+        {pts.map(([l, v], i) => (
+          <g key={i}>
+            <circle cx={x(l)} cy={y(v)} r={i === PICK ? 4.5 : 3} fill={i === PICK ? BLUE : "#fff"} stroke={BLUE} strokeWidth={1.4} />
+            {(i === PICK || (i + 1) % 5 === 0) && <text x={x(l) + 5} y={y(v) + 10} fill="#132D3B">{i + 1}</text>}
+          </g>
+        ))}
+      </svg>
+    </SlideCard>
+  );
+}
 
 /** One bond: the finder's "best return for each risk level" curve, the reason to sign up. */
 export function CurveSlide({ t }: { t: LandingText }) {

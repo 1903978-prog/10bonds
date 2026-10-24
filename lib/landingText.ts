@@ -73,6 +73,7 @@ const en = {
   // The carousel on the right (the owner, 24/10/2026): one bond's curve first, the reason to sign up.
   carousel: {
     locale: "en-GB", label: "What 10bonds shows", slide: "Slide", prev: "Previous", next: "Next",
+    frontierShort: "Best return/risk portfolio", frontier: "Finding the best return/risk portfolio", lossAxis: "Expected loss on the money invested",
     curveShort: "One bond, every risk level", curve: "One bond: best return for each risk level", curveX: "Higher risk → lower risk", curveCta: "Free with sign-up →",
     list: "Portfolio: top 10 bonds", bond: "Bond", maturity: "Maturity", risk: "Risk", ret: "Return",
     country: "Country risk", company: "Company risk", sector: "Luxury goods · France", rating: "10bonds.com rating",
@@ -147,6 +148,7 @@ const it: LandingText = {
   paperShort: "Metodologia (PDF)",
   carousel: {
     locale: "it-IT", label: "Cosa mostra 10bonds", slide: "Immagine", prev: "Precedente", next: "Successiva",
+    frontierShort: "Miglior portafoglio", frontier: "Alla ricerca del miglior portafoglio rendimento/rischio", lossAxis: "Perdita attesa sul capitale investito",
     curveShort: "Un'obbligazione, ogni rischio", curve: "Un'obbligazione: miglior rendimento per livello di rischio", curveX: "Rischio più alto → più basso", curveCta: "Gratis con la registrazione →",
     list: "Portafoglio: le 10 obbligazioni top", bond: "Obbligazione", maturity: "Scadenza", risk: "Rischio", ret: "Rendimento",
     country: "Rischio paese", company: "Rischio società", sector: "Beni di lusso · Francia", rating: "Rating 10bonds.com",
@@ -220,6 +222,7 @@ const fr: LandingText = {
   paperShort: "Méthodologie (PDF)",
   carousel: {
     locale: "fr-FR", label: "Ce que montre 10bonds", slide: "Image", prev: "Précédente", next: "Suivante",
+    frontierShort: "Meilleur portefeuille", frontier: "Trouver le meilleur portefeuille rendement/risque", lossAxis: "Perte attendue sur le capital investi",
     curveShort: "Une obligation, chaque risque", curve: "Une obligation : meilleur rendement par niveau de risque", curveX: "Risque plus élevé → plus faible", curveCta: "Gratuit avec inscription →",
     list: "Portefeuille : les 10 obligations top", bond: "Obligation", maturity: "Échéance", risk: "Risque", ret: "Rendement",
     country: "Risque pays", company: "Risque entreprise", sector: "Luxe · France", rating: "Notation 10bonds.com",
@@ -293,6 +296,7 @@ const de: LandingText = {
   paperShort: "Methodik (PDF)",
   carousel: {
     locale: "de-DE", label: "Was 10bonds zeigt", slide: "Bild", prev: "Zurück", next: "Weiter",
+    frontierShort: "Bestes Portfolio", frontier: "Das beste Rendite-Risiko-Portfolio finden", lossAxis: "Erwarteter Verlust auf das investierte Kapital",
     curveShort: "Eine Anleihe, jedes Risiko", curve: "Eine Anleihe: beste Rendite je Risikostufe", curveX: "Höheres Risiko → niedrigeres", curveCta: "Gratis mit Anmeldung →",
     list: "Portfolio: die Top-10-Anleihen", bond: "Anleihe", maturity: "Fälligkeit", risk: "Risiko", ret: "Rendite",
     country: "Länderrisiko", company: "Unternehmensrisiko", sector: "Luxusgüter · Frankreich", rating: "10bonds.com-Rating",
