@@ -93,6 +93,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [touched, setTouched] = useState(false);
   // iPhone (the owner, 24/10/2026): "Build my portfolio" opens the results as their own full-screen page, no scrolling.
   const [sheet, setSheet] = useState(false);
+  // Each press of "Build my portfolio" runs the search again, so the press always shows the search and a fresh list.
+  const [rerun, setRerun] = useState(0);
   // Sign-up funnel steps (consent-only usage stats; no choices or figures are sent).
   useEffect(() => { if (touched) trackOnce("finder_started"); }, [touched]);
   // The owner watches the show 3x faster.
@@ -327,7 +329,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };
-  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt]);
+  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -559,6 +561,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             tabIndex={mode === "portfolio" ? 0 : -1}
             onClick={() => {
               setTouched(true);
+              // A desired return above the slider's maximum is brought back to it, so the figure shown is the one searched.
+              if (caps && ytm > ytmMax) setYtm(ytmMax);
+              setRerun((n) => n + 1);
               if (window.matchMedia("(max-width: 639px)").matches) setSheet(true);
               else if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
