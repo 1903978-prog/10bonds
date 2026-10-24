@@ -22,7 +22,7 @@ const langs = (pathFor: (l: Locale) => string | null) =>
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ pages, asOf, source }, guides, brokers] = await Promise.all([comparisonPages(), publishedGuides(), loadPublicData()]);
   const out: MetadataRoute.Sitemap = [
-    { url: SITE_URL + "/", changeFrequency: "daily", priority: 1, alternates: { languages: { ...langs((l) => `/${l}`), "x-default": SITE_URL + "/" } } },
+    { url: SITE_URL + "/", changeFrequency: "daily", priority: 1, alternates: { languages: { en: SITE_URL + "/", ...langs((l) => `/${l}`), "x-default": SITE_URL + "/" } } },
     ...["/pricing", "/widget", "/disclaimer", "/methodology", "/ranking-methodology", "/selection-methodology", "/terms", "/privacy", "/cookies"].map((p) => ({ url: SITE_URL + p, changeFrequency: "monthly" as const, priority: 0.3 })),
   ];
   // English Knowledge Center.
@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + bondMapPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => bondMapPath(x)), en: SITE_URL + bondMapPath("en") } } });
   for (const g of EN_GUIDES) out.push({ url: SITE_URL + enPath(g.slug), changeFrequency: "monthly", priority: 0.7 });
   for (const l of LOCALES) {
-    out.push({ url: `${SITE_URL}/${l}`, changeFrequency: "daily", priority: 1, alternates: { languages: langs((x) => `/${x}`) } });
+    out.push({ url: `${SITE_URL}/${l}`, changeFrequency: "daily", priority: 1, alternates: { languages: { en: SITE_URL + "/", ...langs((x) => `/${x}`), "x-default": SITE_URL + "/" } } });
     for (const s of ["knowledge", "guides", "bonds", "tools", "method", "team"] as Section[]) {
       out.push({ url: SITE_URL + pathOf(l, s), changeFrequency: s === "bonds" ? "daily" : "weekly", priority: 0.7, alternates: { languages: langs((x) => pathOf(x, s)) } });
     }

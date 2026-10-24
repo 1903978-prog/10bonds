@@ -4,7 +4,12 @@ import { CORP, CORP_WEIGHTS, COUNTRIES, FACTORS, METHOD, SOLVENCY_COUNT, coreSco
 import { PillarRow, StressRow } from "@/components/MethodRows";
 import { MethodNav, kindOf } from "@/components/MethodNav";
 
-export const metadata: Metadata = { title: "Rating methodology · 10BONDS", alternates: { canonical: "/methodology" } };
+export const metadata: Metadata = {
+  title: "Rating methodology · 10BONDS",
+  description: "How 10BONDS scores the risk of countries and companies that issue bonds: the factors, their weights and how the 1-10 risk scale is built.",
+  alternates: { canonical: "/methodology" },
+  openGraph: { title: "Rating methodology · 10BONDS", description: "How 10BONDS scores the risk of countries and companies that issue bonds: the factors, their weights and how the 1-10 risk scale is built.", url: "/methodology" },
+};
 
 const DOT: Record<Country, string> = { DE: "#1d1d1f", IT: "#0066cc", RO: "#af52de" };
 

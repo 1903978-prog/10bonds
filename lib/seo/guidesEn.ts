@@ -432,7 +432,7 @@ export const EN_GUIDES: EnGuide[] = [
     group: "us-treasuries",
     section: "government",
     title: "Treasury Bills vs. Notes vs. Bonds: Understanding What You're Actually Buying",
-    seoTitle: "Treasury Bills vs. Notes vs. Bonds: Maturities, Yields, Taxes",
+    seoTitle: "Treasury Bills vs Notes vs Bonds: Maturities, Yields, Taxes",
     metaDescription: "T-bills, Treasury notes and Treasury bonds compared: maturities, coupons, yield to maturity, duration risk and how Treasury interest is taxed.",
     primaryKeyword: "treasury bills vs notes vs bonds",
     published: "2026-10-19",
@@ -785,6 +785,277 @@ export const EN_GUIDES: EnGuide[] = [
 <li>EMMA Municipal Securities Disclosure Platform: <a href="https://emma.msrb.org/">https://emma.msrb.org/</a></li>
 </ul>
 <p><em>This article provides general educational information. Tax examples are simplified, and actual treatment depends on applicable laws and the investor's circumstances. No particular security is recommended.</em></p>
+`,
+  },
+  {
+    slug: "uk-gilts",
+    group: "uk-gilts",
+    section: "government",
+    title: "UK Gilts Explained: Yields, Tax, Index-Linked Gilts and How to Buy Them",
+    seoTitle: "UK Gilts Explained: Yields, Tax and How to Buy",
+    metaDescription: "What gilts are, how gilt prices and yields work, how index-linked and low coupon gilts are taxed, and the ways to buy UK government bonds.",
+    primaryKeyword: "gilts",
+    published: "2026-10-24",
+    bodyHtml: `
+<p><strong>Gilts</strong> are bonds issued by the UK government. When you buy one, you lend money to HM Treasury, which pays you interest and repays the face value on a set date. The UK Debt Management Office (DMO) issues and manages them on the Treasury's behalf.</p>
+<p>The name comes from the gilt edges of the paper certificates once used, a reminder of how safe they were considered. Today they are held electronically, and they remain the reference point for every other sterling interest rate.</p>
+<h2 id="what-are-gilts">What are gilts?</h2>
+<p>There are two main families of gilts.</p>
+<ul>
+<li><strong>Conventional gilts</strong> pay a fixed coupon every six months and repay £100 for every £100 of face value at maturity. Their names tell you the essentials: a bond called "4¼% Treasury Gilt 2032" pays £4.25 a year per £100 of face value, in two instalments, and matures in 2032.</li>
+<li><strong>Index-linked gilts</strong> adjust both the coupon and the amount repaid for inflation, measured by the Retail Prices Index (RPI). The government has announced that the RPI method will be aligned with CPIH from 2030, which matters for long-dated index-linked gilts.</li>
+</ul>
+<p>Gilts are commonly grouped by remaining life: <em>shorts</em> (up to about 7 years), <em>mediums</em> (about 7 to 15 years) and <em>longs</em> (over 15 years).</p>
+<h2 id="gilt-prices-and-yields">Gilt prices and gilt yields</h2>
+<p>Gilts trade every day, and their prices move. When market interest rates rise, the price of an existing gilt with a fixed coupon falls, so that a new buyer earns a competitive return. When rates fall, the price rises. Price and yield always move in opposite directions.</p>
+<p>The figure that lets you compare gilts with each other is the <a href="/knowledge/yield-to-maturity">yield to maturity</a>: the annual return you would earn by buying at today's price and holding until repayment. A gilt priced at £95 with a 1% coupon and a gilt priced at £102 with a 5% coupon can end up with similar yields to maturity.</p>
+<p>How much a gilt's price reacts to a change in rates depends on its <a href="/knowledge/bond-duration">duration</a>. Long gilts can move a lot: a one-point rise in yields can cut the price of a long-dated gilt by well over 10%.</p>
+<h2 id="10-year-gilt-yield">The 10-year gilt yield and the UK yield curve</h2>
+<p>The <strong>10-year gilt yield</strong> is the most quoted measure of the UK government's borrowing cost. Mortgage rates, annuity rates and corporate bond yields are all priced in relation to gilt yields.</p>
+<p>Plotting the yields of gilts from short to long maturities gives the <strong>UK yield curve</strong>. Usually long gilts yield more than short ones, to compensate for tying up money for longer. When short yields are higher than long ones the curve is called inverted, which markets often read as a sign that interest rates are expected to fall. The Bank of England and the DMO publish daily gilt prices and yields.</p>
+<h2 id="gilts-tax">How gilts are taxed in the UK</h2>
+<p>For individual UK investors, the tax treatment is one of the most distinctive features of gilts:</p>
+<ul>
+<li><strong>Gains are free of Capital Gains Tax.</strong> Any profit from buying a gilt below its repayment value, or selling it for more than you paid, is not subject to CGT.</li>
+<li><strong>Coupons are taxed as savings income.</strong> Interest is paid gross and counts towards your Personal Savings Allowance; above it, income tax applies at your marginal rate.</li>
+<li><strong>Wrappers remove the tax.</strong> Gilts held in a stocks and shares ISA or a SIPP are free of income tax on the coupons.</li>
+<li><strong>The accrued income scheme</strong> can apply to interest built up between coupon dates when you buy or sell, if your total holdings of such securities exceed £5,000 face value.</li>
+</ul>
+<p>Rules change and depend on personal circumstances: HMRC guidance or a tax adviser is the place to confirm your own situation.</p>
+<h2 id="low-coupon-gilts">Why low coupon gilts attract taxpayers</h2>
+<p>Gilts issued when rates were very low carry small coupons, such as 0.125% or 0.25%, and now trade well below £100. Most of their return comes from the price rising back to £100 at maturity, which is a tax-free gain for individuals, rather than from coupons, which are taxed.</p>
+<p>For a higher-rate taxpayer holding outside an ISA or pension, a low coupon gilt can therefore keep noticeably more of its return after tax than a high coupon gilt with the same yield to maturity. Inside an ISA or SIPP the difference disappears, since neither part is taxed there.</p>
+<h2 id="how-to-buy-gilts">How to buy gilts</h2>
+<p>There are three common routes.</p>
+<ol>
+<li><strong>Through a broker or investment platform.</strong> Most UK platforms let you buy individual gilts on the London Stock Exchange, in a general account, an ISA or a SIPP. Check the dealing fee, any custody fee and the minimum trade size, as costs vary widely between providers.</li>
+<li><strong>Directly at a DMO auction.</strong> Private investors can buy new gilts at auction, and sell gilts, through the DMO's Purchase and Sale Service, run by Computershare, after joining its Approved Group of Investors. You buy at the auction price; costs are low, but you can only buy when a gilt is being auctioned.</li>
+<li><strong>Through a fund or ETF.</strong> A gilt fund holds many gilts at once and never matures, so its value keeps moving with interest rates. This is a different risk from holding one gilt until its repayment date.</li>
+</ol>
+<h2 id="choosing-gilts">How to choose between gilts</h2>
+<p>There is no single right gilt for everyone. Three questions usually narrow the choice:</p>
+<ul>
+<li><strong>When do you need the money?</strong> A gilt that matures close to that date avoids having to sell at an uncertain price.</li>
+<li><strong>How are you taxed?</strong> Outside a wrapper, compare gilts on what you keep after tax, which can favour low coupon gilts.</li>
+<li><strong>Do you need protection from inflation?</strong> Index-linked gilts protect the real value of your money, but their prices can be volatile, especially at long maturities.</li>
+</ul>
+<p>Gilts are also the yardstick for UK <em>retail bonds</em> and other corporate bonds: the extra yield a company pays over a gilt of similar maturity is the reward for taking its <a href="/knowledge/bond-credit-risk">credit risk</a>. The guide on <a href="/knowledge/government-vs-corporate-bonds">government and corporate bonds</a> explains the trade-off.</p>
+<h2 id="faq">FAQ</h2>
+<h3>Are gilts safe?</h3>
+<p>Gilts carry very low credit risk because they are backed by the UK government. Their prices can still fall before maturity when interest rates rise, so the return is only known in advance if you hold the gilt until it is repaid.</p>
+<h3>Do I pay Capital Gains Tax on gilts?</h3>
+<p>No. For individual investors, gains on gilts are exempt from Capital Gains Tax. Coupon interest is taxable as savings income unless the gilt is held in an ISA or a pension.</p>
+<h3>Can I hold gilts in an ISA?</h3>
+<p>Yes. Gilts can be held in a stocks and shares ISA, where the coupons are free of income tax.</p>
+<h3>What is the difference between a gilt and a Premium Bond?</h3>
+<p>A gilt pays a set coupon and repays its face value on a fixed date. A Premium Bond pays no interest: its return comes from tax-free prizes drawn each month. The guide on <a href="/knowledge/premium-bonds-vs-gilts">Premium Bonds vs gilts and savings</a> compares them.</p>
+<h2 id="10bonds">Comparing bonds on 10BONDS</h2>
+<p>The 10BONDS finder currently covers euro-denominated government and corporate bonds, not gilts. The same approach applies to both markets: compare return together with duration and risk, never return alone.</p>
+<p><a class="cta" href="/">Explore bond comparisons on 10BONDS</a></p>
+<h3 id="sources">Sources and further reading</h3>
+<ul>
+<li>UK Debt Management Office — gilt market and private investors: <a href="https://www.dmo.gov.uk/">https://www.dmo.gov.uk/</a></li>
+<li>HMRC — Savings and Investment Manual, accrued income scheme: <a href="https://www.gov.uk/hmrc-internal-manuals/savings-and-investment-manual">https://www.gov.uk/hmrc-internal-manuals/savings-and-investment-manual</a></li>
+<li>Bank of England — yield curves: <a href="https://www.bankofengland.co.uk/statistics/yield-curves">https://www.bankofengland.co.uk/statistics/yield-curves</a></li>
+</ul>
+<p><em>This article provides general educational information. Tax treatment depends on individual circumstances and may change. No particular security is recommended.</em></p>
+`,
+  },
+  {
+    slug: "premium-bonds-vs-gilts",
+    group: "uk-premium-bonds",
+    section: "government",
+    title: "Premium Bonds vs. Gilts vs. Savings Accounts: Which Fits Your Money?",
+    seoTitle: "Premium Bonds vs Gilts vs Savings: How They Compare",
+    metaDescription: "Premium Bonds, gilts and savings accounts compared: how each pays, tax, safety, access to your money and how to compare their returns fairly.",
+    primaryKeyword: "premium bonds",
+    published: "2026-10-24",
+    bodyHtml: `
+<p>Premium Bonds, gilts and savings accounts are three of the most common homes for cash in the UK. All three are considered low risk, but they pay you in very different ways, and that changes which one suits a given goal.</p>
+<h2 id="what-are-premium-bonds">What are Premium Bonds?</h2>
+<p>Premium Bonds are issued by National Savings &amp; Investments (NS&amp;I), which is backed by HM Treasury. They pay no interest. Instead, each £1 bond is entered into a monthly prize draw, and prizes range from £25 up to £1 million.</p>
+<ul>
+<li>You can hold from £25 up to £50,000.</li>
+<li>Prizes are free of UK income tax and Capital Gains Tax.</li>
+<li>You can cash in at any time without penalty, and you always get back what you put in.</li>
+<li>New bonds start taking part in draws after they have been held for one full calendar month.</li>
+</ul>
+<p>NS&amp;I publishes a <strong>prize fund rate</strong>, which is the total paid out in prizes as a share of all bonds. It is an average across all holders, not what you will earn: because prizes are random, many holders receive less than that rate in a given year, and a few receive much more.</p>
+<h2 id="how-gilts-pay">How gilts pay</h2>
+<p><a href="/knowledge/uk-gilts">Gilts</a> are UK government bonds. A conventional gilt pays a fixed coupon every six months and repays its face value on a known date. If you buy and hold until maturity, the return is known on the day you buy: it is the gilt's yield to maturity.</p>
+<p>Before maturity, the price moves with interest rates, so selling early can produce a gain or a loss. For individuals, gains on gilts are free of Capital Gains Tax, while coupons are taxed as savings income unless the gilt sits in an ISA or a pension.</p>
+<h2 id="savings-accounts">How savings accounts pay</h2>
+<p>A savings account pays interest at a rate set by the bank, either variable (easy access) or fixed for a term. Interest is taxable above your Personal Savings Allowance, unless the account is a cash ISA. Deposits at UK banks are protected by the Financial Services Compensation Scheme (FSCS) up to its limit per person, per banking group.</p>
+<h2 id="side-by-side">Side by side</h2>
+<table>
+<thead><tr><th></th><th>Premium Bonds</th><th>Gilts</th><th>Savings account</th></tr></thead>
+<tbody>
+<tr><td>Return</td><td>Random tax-free prizes</td><td>Fixed coupons plus repayment</td><td>Interest set by the bank</td></tr>
+<tr><td>Known in advance?</td><td>No</td><td>Yes, if held to maturity</td><td>Yes for fixed rates, no for variable</td></tr>
+<tr><td>Backed by</td><td>HM Treasury, no limit</td><td>UK government</td><td>FSCS, up to its limit</td></tr>
+<tr><td>Tax for individuals</td><td>Prizes tax-free</td><td>Gains tax-free, coupons taxable</td><td>Interest taxable above allowance</td></tr>
+<tr><td>Access</td><td>Cash in any time at face value</td><td>Sell any trading day at market price</td><td>Depends on the account</td></tr>
+</tbody>
+</table>
+<h2 id="compare-fairly">How to compare the returns fairly</h2>
+<p>The fair comparison is always <strong>after tax</strong> and over the period you plan to hold.</p>
+<ul>
+<li>For a basic-rate taxpayer who has used their Personal Savings Allowance, a savings rate of 5% leaves 4% after tax. A higher-rate taxpayer keeps 3%.</li>
+<li>For Premium Bonds, the prize fund rate is already tax-free, but your own result can be well below it. Treat it as an average, not a rate.</li>
+<li>For gilts, low coupon gilts held outside a wrapper turn most of the return into tax-free gain, which can make their after-tax yield competitive with taxed savings.</li>
+</ul>
+<p>Simple rule of thumb: if you need certainty about what you will earn, a fixed-rate account or a gilt held to maturity gives it; Premium Bonds do not. If you want instant access with no price risk, Premium Bonds and easy-access accounts give it; a long gilt does not.</p>
+<h2 id="faq">FAQ</h2>
+<h3>Are Premium Bonds better than gilts?</h3>
+<p>Neither is better in general. Premium Bonds offer tax-free prizes and instant access at face value, but an uncertain return. Gilts offer a return that is known in advance if held to maturity, with tax-free gains for individuals, but their price moves before maturity.</p>
+<h3>Can you lose money on Premium Bonds?</h3>
+<p>You always get back the amount you invested, but inflation can reduce its value if your prizes are small. Holding Premium Bonds and winning nothing for a year means a real loss of purchasing power.</p>
+<h3>What is the maximum you can hold in Premium Bonds?</h3>
+<p>The maximum holding is £50,000 per person and the minimum purchase is £25.</p>
+<h2 id="10bonds">Comparing bonds on 10BONDS</h2>
+<p>The 10BONDS finder covers euro-denominated government and corporate bonds. Whatever the market, the principle is the same: compare what you keep after tax, together with how long your money is tied up and how much risk you take.</p>
+<p><a class="cta" href="/">Explore bond comparisons on 10BONDS</a></p>
+<h3 id="sources">Sources and further reading</h3>
+<ul>
+<li>NS&amp;I — Premium Bonds: <a href="https://www.nsandi.com/products/premium-bonds">https://www.nsandi.com/products/premium-bonds</a></li>
+<li>UK Debt Management Office — gilts for private investors: <a href="https://www.dmo.gov.uk/">https://www.dmo.gov.uk/</a></li>
+<li>Financial Services Compensation Scheme: <a href="https://www.fscs.org.uk/">https://www.fscs.org.uk/</a></li>
+</ul>
+<p><em>This article provides general educational information. Tax treatment depends on individual circumstances and may change. No particular product is recommended.</em></p>
+`,
+  },
+  {
+    slug: "i-bonds",
+    group: "us-i-bonds",
+    section: "government",
+    title: "Series I Bonds Explained: How the Rate Works, Limits, Taxes and When to Cash In",
+    seoTitle: "I Bonds Explained: Rates, Limits, Taxes and Calculation",
+    metaDescription: "How Series I savings bonds work: the fixed and inflation rate, how the composite rate is calculated, purchase limits, taxes and the rules for cashing in.",
+    primaryKeyword: "i bonds",
+    published: "2026-10-24",
+    bodyHtml: `
+<p><strong>Series I savings bonds</strong>, usually called I bonds, are savings bonds sold by the U.S. Treasury that protect your money against inflation. They cannot lose value, and their interest rate rises when inflation rises.</p>
+<p>They are not traded on any market. You buy them from the Treasury, hold them in your own account and cash them in with the Treasury. That makes them simpler than marketable bonds, but also less flexible.</p>
+<h2 id="how-the-rate-works">How the I bond rate works</h2>
+<p>An I bond earns a <strong>composite rate</strong> built from two parts:</p>
+<ul>
+<li>a <strong>fixed rate</strong>, set when you buy the bond and kept for its whole life;</li>
+<li>an <strong>inflation rate</strong>, based on changes in the Consumer Price Index (CPI-U) and reset every six months.</li>
+</ul>
+<p>The Treasury announces new rates every May 1 and November 1. Each bond's rate then changes every six months from its own issue date.</p>
+<h2 id="calculation">How to calculate the I bond rate</h2>
+<p>The Treasury's formula is:</p>
+<p><em>Composite rate = fixed rate + (2 × semiannual inflation rate) + (fixed rate × semiannual inflation rate)</em></p>
+<p>For example, with a fixed rate of 1.00% and a semiannual inflation rate of 1.50%:</p>
+<p><em>0.0100 + (2 × 0.0150) + (0.0100 × 0.0150) = 0.04015</em>, a composite rate of about <strong>4.02%</strong> a year for the next six months.</p>
+<p>If inflation turns negative, the composite rate can fall, but never below zero: an I bond never loses the value it has already earned. Interest is added to the bond every month and compounds every six months, and it keeps accruing for up to 30 years.</p>
+<h2 id="limits">How much you can buy</h2>
+<ul>
+<li>Electronic I bonds are bought through <strong>TreasuryDirect</strong>, the Treasury's own website, not through a bank or broker.</li>
+<li>The minimum is $25, and any amount to the cent above that.</li>
+<li>The limit is <strong>$10,000 per person per calendar year</strong>. Separate entities, such as a trust or a business, have their own limits, and you can buy bonds as a gift for someone else, subject to that person's limit when delivered.</li>
+<li>Paper I bonds bought with a federal tax refund are no longer offered: the IRS ended that option from January 2025.</li>
+</ul>
+<h2 id="cashing-in">When you can cash in</h2>
+<ul>
+<li>You must hold an I bond for at least <strong>12 months</strong>.</li>
+<li>If you cash in before <strong>5 years</strong>, you lose the last 3 months of interest.</li>
+<li>After 5 years there is no penalty; after 30 years the bond stops earning interest.</li>
+</ul>
+<p>Because the fixed rate stays for the bond's life while the inflation part changes, an older bond with a higher fixed rate can be worth keeping even when new bonds are on sale.</p>
+<h2 id="taxes">How I bonds are taxed</h2>
+<ul>
+<li>Interest is subject to <strong>federal income tax</strong> but exempt from <strong>state and local income tax</strong>.</li>
+<li>You can defer federal tax until you cash in the bond or it stops earning interest, or report the interest each year.</li>
+<li>Interest may be tax-free if used for qualified higher education expenses, subject to income limits and other conditions.</li>
+</ul>
+<h2 id="i-bonds-vs-tips">I bonds vs. TIPS</h2>
+<p>Both protect against inflation, but they work differently. TIPS are marketable Treasury securities: you can buy any amount through a broker, and their price moves every day. I bonds are capped at $10,000 a year and never lose value, but cannot be sold to anyone else. The guide on <a href="/knowledge/tips-vs-treasury-bonds">TIPS vs. Treasury bonds</a> explains how TIPS behave.</p>
+<h2 id="faq">FAQ</h2>
+<h3>Can I bonds lose money?</h3>
+<p>No. The composite rate cannot fall below zero, and the value already earned is never taken away. The only cost is the 3 months of interest you give up if you cash in before 5 years.</p>
+<h3>How much can I invest in I bonds each year?</h3>
+<p>Up to $10,000 in electronic I bonds per person per calendar year, through TreasuryDirect.</p>
+<h3>Are I bonds taxed by my state?</h3>
+<p>No. Interest on I bonds is exempt from state and local income tax. It is subject to federal income tax, which you can defer until you cash in.</p>
+<h2 id="10bonds">Comparing bonds on 10BONDS</h2>
+<p>I bonds are savings bonds rather than tradable bonds, so they are not part of the 10BONDS finder, which covers euro-denominated government and corporate bonds. For marketable U.S. Treasuries, see <a href="/knowledge/treasury-bills-notes-bonds">Treasury bills, notes and bonds</a> and <a href="/knowledge/how-to-buy-treasury-bills">how to buy them</a>.</p>
+<p><a class="cta" href="/">Explore bond comparisons on 10BONDS</a></p>
+<h3 id="sources">Sources and further reading</h3>
+<ul>
+<li>TreasuryDirect — I bonds: <a href="https://www.treasurydirect.gov/savings-bonds/i-bonds/">https://www.treasurydirect.gov/savings-bonds/i-bonds/</a></li>
+<li>TreasuryDirect — I bond interest rates: <a href="https://www.treasurydirect.gov/savings-bonds/i-bonds/i-bonds-interest-rates/">https://www.treasurydirect.gov/savings-bonds/i-bonds/i-bonds-interest-rates/</a></li>
+<li>IRS — Publication 550, Investment Income and Expenses: <a href="https://www.irs.gov/publications/p550">https://www.irs.gov/publications/p550</a></li>
+</ul>
+<p><em>This article provides general educational information. Rates, limits and tax rules are set by the U.S. Treasury and the IRS and may change. No particular security is recommended.</em></p>
+`,
+  },
+  {
+    slug: "how-to-buy-treasury-bills",
+    group: "us-buy-treasuries",
+    section: "government",
+    title: "How to Buy Treasury Bills, Notes and Bonds, and How T-Bills Compare With CDs",
+    seoTitle: "How to Buy T-Bills and Treasury Bonds, and T-Bills vs CDs",
+    metaDescription: "Step by step: buying T-bills, Treasury notes and bonds through TreasuryDirect or a broker, reading the quoted rates, taxes, and how T-bills compare with CDs.",
+    primaryKeyword: "how to buy t-bills",
+    published: "2026-10-24",
+    bodyHtml: `
+<p>U.S. Treasury bills, notes and bonds can be bought by anyone with a U.S. bank account, in amounts as small as $100. There are two main routes, and the one you choose affects how easily you can sell before maturity.</p>
+<p>If you are not yet sure which maturity you need, start with <a href="/knowledge/treasury-bills-notes-bonds">Treasury bills vs. notes vs. bonds</a>.</p>
+<h2 id="t-bill-basics">T-bill basics</h2>
+<ul>
+<li>Treasury bills mature in <strong>4, 6, 8, 13, 17, 26 or 52 weeks</strong>.</li>
+<li>They are sold at a discount and repay their full face value at maturity; the difference is your interest.</li>
+<li>The minimum purchase is <strong>$100</strong>, in multiples of $100.</li>
+<li>Most bills are auctioned every week; the 52-week bill is auctioned every four weeks.</li>
+</ul>
+<h2 id="treasurydirect">Option 1: buy through TreasuryDirect</h2>
+<ol>
+<li>Open an account on TreasuryDirect, the Treasury's own website, linked to your bank account.</li>
+<li>Choose the security and term, and place a <strong>non-competitive bid</strong>: you accept the rate set at the auction and are guaranteed to receive the security.</li>
+<li>The Treasury takes the payment from your bank on the issue date and pays the face value back at maturity. You can choose to reinvest automatically into a new bill.</li>
+</ol>
+<p>TreasuryDirect charges no fees. The drawback is flexibility: you cannot sell a security on TreasuryDirect before maturity. To sell early you must first transfer it to a broker, which is possible only after you have held it for 45 days.</p>
+<h2 id="broker">Option 2: buy through a broker</h2>
+<ol>
+<li>In most brokerage accounts you can bid at the next auction, as with TreasuryDirect, or buy existing bills, notes and bonds on the secondary market.</li>
+<li>On the secondary market you choose from many maturity dates, not just the ones being auctioned this week.</li>
+<li>You can sell at the market price on any trading day. Many large brokers charge no commission on Treasuries bought online, but check the price spread you pay.</li>
+</ol>
+<h2 id="how-to-buy-treasury-bonds">Buying Treasury notes and bonds</h2>
+<p>Notes (2 to 10 years) and bonds (20 or 30 years) are bought the same way, at auction or on the secondary market. The difference is risk: their prices move much more with interest rates. If you might need the money before maturity, read about <a href="/knowledge/bond-duration">duration</a> before buying a long bond.</p>
+<h2 id="quoted-rates">Reading the quoted rate</h2>
+<p>T-bills are often quoted with two numbers. The <strong>discount rate</strong> is calculated on the face value and on a 360-day year, so it understates your return. The <strong>investment rate</strong> (also called the coupon-equivalent or bond-equivalent yield) is calculated on the price you pay and on a 365-day year. Use the investment rate when comparing a T-bill with a CD or a savings account.</p>
+<h2 id="taxes">Taxes</h2>
+<p>Interest on Treasury bills, notes and bonds is subject to <strong>federal income tax</strong> but exempt from <strong>state and local income tax</strong>. For a T-bill, the interest is the difference between the price paid and the face value, taxed in the year the bill matures.</p>
+<h2 id="t-bills-vs-cds">T-bills vs. CDs</h2>
+<table>
+<thead><tr><th></th><th>Treasury bills</th><th>Bank CDs</th></tr></thead>
+<tbody>
+<tr><td>Backed by</td><td>U.S. government</td><td>FDIC insurance, up to $250,000 per depositor, per bank, per ownership category</td></tr>
+<tr><td>State income tax</td><td>Exempt</td><td>Taxable</td></tr>
+<tr><td>Getting money back early</td><td>Sell at market price (via a broker)</td><td>Early withdrawal penalty (bank CDs) or sell at market price (brokered CDs)</td></tr>
+<tr><td>Terms</td><td>4 weeks to 1 year</td><td>Usually 3 months to 5 years or more</td></tr>
+</tbody>
+</table>
+<p>The state tax exemption matters most in high-tax states. A quick way to compare: divide the T-bill's investment rate by (1 − your state tax rate) to get the CD rate you would need to match it. With a T-bill at 4.0% and a 6% state tax, a CD would need about 4.26% to give the same result after state tax.</p>
+<h2 id="faq">FAQ</h2>
+<h3>What is the minimum to buy a T-bill?</h3>
+<p>$100, in multiples of $100, whether you buy through TreasuryDirect or at auction through a broker.</p>
+<h3>Can I sell a T-bill before it matures?</h3>
+<p>Yes, through a broker at the market price. Bills held in TreasuryDirect must first be transferred to a broker, which is allowed after 45 days.</p>
+<h3>Are T-bills better than CDs?</h3>
+<p>Neither is better in general. T-bills are exempt from state income tax and can be sold before maturity; CDs may offer longer terms and sometimes higher rates. Compare them after tax, using the T-bill's investment rate.</p>
+<h2 id="10bonds">Comparing bonds on 10BONDS</h2>
+<p>The 10BONDS finder covers euro-denominated government and corporate bonds rather than U.S. Treasuries. Its approach is the same one that applies here: compare return together with time to maturity and risk.</p>
+<p><a class="cta" href="/">Explore bond comparisons on 10BONDS</a></p>
+<h3 id="sources">Sources and further reading</h3>
+<ul>
+<li>TreasuryDirect — Treasury bills: <a href="https://www.treasurydirect.gov/marketable-securities/treasury-bills/">https://www.treasurydirect.gov/marketable-securities/treasury-bills/</a></li>
+<li>TreasuryDirect — buying a Treasury marketable security: <a href="https://www.treasurydirect.gov/marketable-securities/buying-a-marketable-security/">https://www.treasurydirect.gov/marketable-securities/buying-a-marketable-security/</a></li>
+<li>FDIC — deposit insurance: <a href="https://www.fdic.gov/resources/deposit-insurance">https://www.fdic.gov/resources/deposit-insurance</a></li>
+</ul>
+<p><em>This article provides general educational information. Rates, auction schedules and tax rules may change. No particular security is recommended.</em></p>
 `,
   },
 ];

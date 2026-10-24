@@ -444,3 +444,24 @@ describe("listing sites", () => {
     for (const m of ["it", "fr", "de", "us", "uk"]) expect(LISTING_SITES.some((x) => x.market === m && x.priority === 1)).toBe(true);
   });
 });
+
+describe("English target keywords", () => {
+  it("every /knowledge landing page of a US or UK keyword exists", async () => {
+    const { SEED_KEYWORDS } = await import("./keywordsSeed");
+    const { EN_GUIDES } = await import("./guidesEn");
+    const { CALCULATOR_EN, enPath } = await import("./knowledgeEn");
+    const pages = new Set([...EN_GUIDES.map((g) => enPath(g.slug)), enPath(CALCULATOR_EN.slug)]);
+    const missing = SEED_KEYWORDS.filter((k) => k.landingPath?.startsWith("/knowledge/") && !pages.has(k.landingPath)).map((k) => k.keyword);
+    expect(missing).toEqual([]);
+  });
+
+  it("English guides have unique slugs, short titles and a meta description", async () => {
+    const { EN_GUIDES } = await import("./guidesEn");
+    expect(new Set(EN_GUIDES.map((g) => g.slug)).size).toBe(EN_GUIDES.length);
+    for (const g of EN_GUIDES) {
+      expect(g.seoTitle.length, g.slug).toBeLessThanOrEqual(60);
+      expect(g.metaDescription.length, g.slug).toBeGreaterThan(50);
+      expect(g.metaDescription.length, g.slug).toBeLessThanOrEqual(170);
+    }
+  });
+});

@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import TermsText from "@/components/TermsText";
 
-export const metadata: Metadata = { title: "Terms of Use and Risk Disclosure · 10BONDS", alternates: { canonical: "/terms" } };
+export const metadata: Metadata = {
+  title: "Terms of Use and Risk Disclosure · 10BONDS",
+  description: "Terms of use of 10BONDS and the main risks of investing in bonds. 10BONDS is an information and comparison tool, not investment advice.",
+  alternates: { canonical: "/terms" },
+  openGraph: { title: "Terms of Use and Risk Disclosure · 10BONDS", description: "Terms of use of 10BONDS and the main risks of investing in bonds. 10BONDS is an information and comparison tool, not investment advice.", url: "/terms" },
+};
 
 export default function Terms() {
   return (

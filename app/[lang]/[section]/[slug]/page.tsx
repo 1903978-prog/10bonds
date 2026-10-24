@@ -113,7 +113,6 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   return {
     title: { absolute: g.seoTitle },
     description: g.metaDescription,
-    keywords: [g.primaryKeyword, ...g.relatedKeywords],
     alternates: guideWithEnglish(g, siblings),
     robots: g.noindex || g.status !== "published" ? { index: false, follow: true } : undefined,
     openGraph: { type: "article", locale: LOCALE[r.l].ogLocale, title: g.seoTitle, description: g.metaDescription, publishedTime: g.publishedAt ?? undefined, modifiedTime: g.reviewedAt ?? g.updatedAt },

@@ -13,7 +13,12 @@ import { loadMatrix } from "@/lib/planFeatures";
 import { planLines } from "@/lib/features";
 import { SEARCH_LIMITS } from "@/lib/limits";
 
-export const metadata: Metadata = { title: "Plans · 10BONDS", alternates: { canonical: "/pricing" } };
+export const metadata: Metadata = {
+  title: "Plans · 10BONDS",
+  description: "10BONDS plans compared: Free, Plus, Premium and Pro. What each plan includes, monthly and yearly prices, and how to redeem a promo code.",
+  alternates: { canonical: "/pricing" },
+  openGraph: { title: "Plans · 10BONDS", description: "10BONDS plans compared: Free, Plus, Premium and Pro. What each plan includes, monthly and yearly prices, and how to redeem a promo code.", url: "/pricing" },
+};
 export const dynamic = "force-dynamic";
 
 const PLAN_KEYS = ["free", "plus", "premium", "pro"] as const;

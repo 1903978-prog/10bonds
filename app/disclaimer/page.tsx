@@ -3,7 +3,12 @@ import type { Metadata } from "next";
 import { pickedLang } from "@/lib/pageLang";
 import { DISCLAIMER, disclaimerLang } from "@/lib/disclaimer";
 
-export const metadata: Metadata = { title: "Disclaimer · 10BONDS", alternates: { canonical: "/disclaimer" } };
+export const metadata: Metadata = {
+  title: "Disclaimer · 10BONDS",
+  description: "Important information about the data, risk scores and bond lists shown on 10BONDS: information only, not investment advice, returns not guaranteed.",
+  alternates: { canonical: "/disclaimer" },
+  openGraph: { title: "Disclaimer · 10BONDS", description: "Important information about the data, risk scores and bond lists shown on 10BONDS: information only, not investment advice, returns not guaranteed.", url: "/disclaimer" },
+};
 
 export default async function Disclaimer({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
   const lang = disclaimerLang(await pickedLang((await searchParams).lang));

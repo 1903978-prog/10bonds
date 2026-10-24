@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: { absolute: h.title },
     description: h.description,
-    alternates: alternates(lang, (l) => `/${l}`, "/"),
+    // The English home is a language version too, so every home lists all four (each one also lists itself).
+    alternates: (({ canonical, languages }) => ({ canonical, languages: { ...languages, en: "/" } }))(alternates(lang, (l) => `/${l}`, "/")!),
     openGraph: { locale: LOCALE[lang].ogLocale, title: h.title, description: h.description, type: "website", siteName: "10BONDS" },
   };
 }
