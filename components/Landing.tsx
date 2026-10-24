@@ -5,7 +5,7 @@ import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import LandingCarousel, { actionTitle, CompanySlide, CurvesSlide, FrontierSlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
+import LandingCarousel, { actionTitle, CompanySlide, CurvesSlide, FrontierSlide, HeatSlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
@@ -68,6 +68,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
             { key: "compare", node: <Comparison t={t} num={num} bench={bench} /> },
             { key: "frontier", node: <FrontierSlide t={t} /> },
             { key: "curves", node: <CurvesSlide t={t} /> },
+            { key: "heat", node: <HeatSlide t={t} /> },
             { key: "curve", node: <CurveSlide t={t} /> },
             { key: "list", node: <ListSlide t={t} bonds={bench?.portfolio?.bonds} /> },
             { key: "country", node: <CountrySlide t={t} /> },

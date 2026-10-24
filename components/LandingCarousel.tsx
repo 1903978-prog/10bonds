@@ -6,6 +6,7 @@ import { RiskBadge, riskColor } from "@/components/RiskBadge";
 import type { LandingText } from "@/lib/landingText";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { COLOURS } from "@/components/AllCurvesChart";
+import { bandOf } from "@/components/HeatMapChart";
 import { findCompany } from "@/lib/companiesInFocus";
 
 const LVMH = "FR0013482841";
@@ -178,6 +179,35 @@ export function CurvesSlide({ t }: { t: LandingText }) {
           })}
         </g>
       </svg>
+    </SlideCard>
+  );
+}
+
+/** Heat map: expected loss on the money for each return (up) and horizon (across), green to dark red, as on the admin map. */
+export function HeatSlide({ t }: { t: LandingText }) {
+  const c = t.carousel;
+  const years = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20];
+  const rets = [6.2, 5.8, 5.4, 5.0, 4.6, 4.2, 3.8, 3.4, 3.0];
+  // Highest return each horizon can reach; above it the cell stays grey ("–").
+  const cap = (y: number) => (y === 1 ? 4.0 : y <= 6 ? 6.4 : y <= 11 ? 5.8 : y <= 15 ? 5.6 : 5.0);
+  const loss = (r: number, y: number) => 0.006 * Math.pow(y, 1.25) * Math.exp((r - 3) * 1.05);
+  return (
+    <SlideCard title={actionTitle(c.act.heat)}>
+      <div className="grid min-h-0 flex-1 gap-[2px]" style={{ gridTemplateColumns: `30px repeat(${years.length}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rets.length}, minmax(0, 1fr)) 14px` }}>
+        {rets.map((r) => [
+          <span key={`r${r}`} className="self-center pr-1 text-right text-[9px] tabular-nums" style={{ color: MUTE }}>{r.toLocaleString(c.locale, { minimumFractionDigits: 1 })}%</span>,
+          ...years.map((y) => {
+            const ok = r <= cap(y) + 1e-9;
+            return <span key={`${r}-${y}`} className="min-h-[14px] rounded-[3px]" style={{ background: ok ? bandOf(loss(r, y)).bg : "#f2f2f4" }} />;
+          }),
+        ])}
+        <span className="text-right text-[9px]" style={{ color: MUTE }}>{c.yrs}</span>
+        {years.map((y) => <span key={`y${y}`} className="text-center text-[9px] tabular-nums" style={{ color: MUTE }}>{y}</span>)}
+      </div>
+      <p className="mt-2 flex items-center justify-between gap-2 text-[11px] lg:text-[11.5px]" style={{ color: MUTE }}>
+        <span className="truncate"><span className="sm:hidden">{c.heatKey.split(" · ").pop()}</span><span className="hidden sm:inline">{c.heatKey}</span></span>
+        <span className="flex shrink-0 items-center gap-1"><span className="h-2 w-8 rounded-full" style={{ background: "linear-gradient(90deg,#1b6e33,#c6e3a9,#f3e27c,#ec7f33,#8b1a12)" }} /></span>
+      </p>
     </SlideCard>
   );
 }
