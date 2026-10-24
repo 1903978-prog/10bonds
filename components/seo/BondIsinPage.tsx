@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { featuresFor } from "@/lib/planFeatures";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/Seo";
 import { RiskBadge } from "@/components/RiskBadge";
@@ -32,7 +33,8 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
   const { bond: b, all, asOf } = hit;
   const t = BOND_TEXT[l];
   const f = FACT_TEXT[l];
-  const paid = !!user && !user.confirmBlocked && user.plan !== "free";
+  // Return and rank: plans ticked for "bond_page_full" in the admin's feature table (/admin/features).
+  const paid = (await featuresFor(user)).includes("bond_page_full");
   const issuer = issuerOf(b);
   const label = bondLabel(l, b);
   const risk = bondRisk(b);

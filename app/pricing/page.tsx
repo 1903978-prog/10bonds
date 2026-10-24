@@ -9,6 +9,9 @@ import { proStatus } from "@/lib/pro";
 import { cookies } from "next/headers";
 import { LANG_COOKIE } from "@/lib/seo/locales";
 import { PRICING_TEXT, pricingLang } from "@/lib/pricingText";
+import { loadMatrix } from "@/lib/planFeatures";
+import { planLines } from "@/lib/features";
+import { SEARCH_LIMITS } from "@/lib/limits";
 
 export const metadata: Metadata = { title: "Plans · 10BONDS", alternates: { canonical: "/pricing" } };
 export const dynamic = "force-dynamic";
@@ -21,7 +24,9 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
   const payOn = stripeConfigured();
   const lang = pricingLang((await cookies()).get(LANG_COOKIE)?.value);
   const t = PRICING_TEXT[lang];
-  const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], highlight: key === "plus" }));
+  // Each card lists what the admin's feature table (/admin/features) ticks for that plan.
+  const matrix = await loadMatrix();
+  const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], lines: [...planLines(matrix, key, lang, t, SEARCH_LIMITS.free), ...t.plans[key].extra], highlight: key === "plus" }));
   const interval: Interval = sp.billing === "year" ? "year" : "month";
   const proApproved = user ? user.isAdmin || (await proStatus(user).catch(() => "none")) === "approved" : false;
   const sub = user?.subscription && ["active", "trialing", "past_due"].includes(user.subscription.status) ? user.subscription : null;
@@ -74,7 +79,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
               {p.key === "free" ? "" : interval === "year" ? t.yearlyNote(euro(Math.round(priceCents(p.key as PaidPlan, "year") / 12), lang)) : t.billedMonthly}
             </p>
             <ul className="mt-3 flex-1 space-y-1 text-[13px] leading-snug">
-              {p.features.map((f) => (
+              {p.lines.map((f) => (
                 <li key={f} className="flex gap-2">
                   <span className="text-accent">✓</span>
                   {f}

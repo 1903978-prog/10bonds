@@ -3,6 +3,7 @@ import { allow, clientIp } from "@/lib/rateLimit";
 import { loadBondsFor } from "@/lib/bonds";
 import { parseFilter } from "@/lib/bondFilter";
 import { currentUser } from "@/lib/currentUser";
+import { featuresFor } from "@/lib/planFeatures";
 import { LIMITS } from "@/lib/limits";
 import { lossCurve, type CurvePoint } from "@/lib/lossCurve";
 
@@ -17,12 +18,12 @@ function clampParam(raw: string | null, { min, max, initial }: { min: number; ma
   return Math.min(max, Math.max(min, n));
 }
 
-/** Expected loss on your money against target yield, for paid plans only (the same figure as the results box). */
+/** Expected loss on your money against target yield, for plans with "loss_chart" (/admin/features) only (the same figure as the results box). */
 export async function GET(req: Request) {
   if (!allow(`curve:${clientIp(req)}`, 60, 60_000))
     return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
   const user = await currentUser();
-  if (!user || user.confirmBlocked || (user.plan === "free" && !user.isAdmin)) return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  if (!(await featuresFor(user)).includes("loss_chart")) return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
     return hit;
   };
   // Admin only: one curve per horizon from 2 to 10 years, for comparing them.
-  if (url.searchParams.get("all") === "1" && user.isAdmin) {
+  if (url.searchParams.get("all") === "1" && user?.isAdmin) {
     const curves = Array.from({ length: 9 }, (_, i) => ({ duration: i + 2, ...curveFor(i + 2) }));
     return NextResponse.json({ curves, risk }, { headers: { "Cache-Control": "private, no-store" } });
   }
