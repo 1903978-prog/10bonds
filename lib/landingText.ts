@@ -73,6 +73,9 @@ const en = {
     { k: "03 / Portfolio", t: "A Pareto-efficient portfolio", s: "10 bonds from different issuers, modeled with Monte Carlo analysis." },
   ],
   stepsTitle: "Three steps. Ten bonds.",
+  // The quant methodology paper (the owner, 24/10/2026), English only: public/methodology/10bonds-quant-methodology.pdf.
+  paper: "Scientific methodology (PDF)",
+  paperShort: "Methodology (PDF)",
 };
 export type LandingText = typeof en;
 
@@ -143,6 +146,8 @@ const it: LandingText = {
     { k: "03 / Portafoglio", t: "Un portafoglio Pareto-efficiente", s: "10 obbligazioni di emittenti diversi, modellato con analisi Monte Carlo." },
   ],
   stepsTitle: "Tre passi. Dieci obbligazioni.",
+  paper: "Metodologia scientifica (PDF, in inglese)",
+  paperShort: "Metodologia (PDF)",
 };
 
 const fr: LandingText = {
@@ -212,6 +217,8 @@ const fr: LandingText = {
     { k: "03 / Portefeuille", t: "Un portefeuille Pareto-efficient", s: "10 obligations d'émetteurs différents, modélisé par analyse Monte Carlo." },
   ],
   stepsTitle: "Trois étapes. Dix obligations.",
+  paper: "Méthodologie scientifique (PDF, en anglais)",
+  paperShort: "Méthodologie (PDF)",
 };
 
 const de: LandingText = {
@@ -281,6 +288,8 @@ const de: LandingText = {
     { k: "03 / Portfolio", t: "Ein Pareto-effizientes Portfolio", s: "10 Anleihen verschiedener Emittenten, modelliert mit Monte-Carlo-Analyse." },
   ],
   stepsTitle: "Drei Schritte. Zehn Anleihen.",
+  paper: "Wissenschaftliche Methodik (PDF, auf Englisch)",
+  paperShort: "Methodik (PDF)",
 };
 
 export const LANDING_TEXT: Record<FinderLang, LandingText> = { en, it, fr, de };

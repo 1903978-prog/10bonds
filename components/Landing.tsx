@@ -49,7 +49,11 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
       <section className="grid items-center gap-5 pt-2 lg:grid-cols-[1.12fr_1fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
-        <p className="mb-1 text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] sm:mb-2 sm:text-[12px]" style={{ color: MUTE }} data-testid="landing-eyebrow">{t.eyebrow}</p>
+        <div className="mb-1 flex items-baseline justify-between gap-2 sm:mb-2">
+          <p className="text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] sm:text-[12px]" style={{ color: MUTE }} data-testid="landing-eyebrow">{t.eyebrow}</p>
+          {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
+          <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="whitespace-nowrap text-[10.5px] font-semibold leading-none underline underline-offset-2 sm:hidden" style={{ color: GREEN }}>{t.paperShort} ↓</a>
+        </div>
         <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[58px]">
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
@@ -61,7 +65,8 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <p className="mt-1.5 text-[9.5px] leading-[1.3] sm:mt-2 sm:text-[10px]" style={{ color: MUTE }} data-testid="landing-footnote">{t.footnote}</p>
         </div>
         {/* The free test is the main way in; sign up and sign in sit next to it. One row on every screen. */}
-        <div className="flex items-center gap-2 sm:gap-3 lg:col-start-1 lg:row-start-2 lg:self-start">
+        <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
             className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-3 py-3.5 text-[13px] min-[360px]:px-4 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 font-semibold text-white shadow-sm transition hover:opacity-90"
             style={{ background: NAVY }}>
@@ -69,6 +74,12 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           </button>
           <Link href="/signup" className="whitespace-nowrap rounded-lg border-[1.5px] px-2.5 py-3 text-center text-[13px] min-[360px]:px-3 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:px-5 font-semibold transition hover:bg-white" style={{ borderColor: NAVY, color: NAVY }}>{t.signUp}</Link>
           <Link href="/login" className="whitespace-nowrap rounded-lg px-1 py-3 text-center text-[13px] min-[360px]:text-[14px] min-[400px]:text-[15px] font-semibold underline sm:px-3 decoration-[1.5px] underline-offset-4" style={{ color: NAVY }}>{t.signIn}</Link>
+        </div>
+        {/* The quant methodology paper, for everyone (the owner, 24/10/2026). One small line, so the page still fits one screen. */}
+        <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="landing-paper"
+          className="mt-3 hidden text-[13px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80 sm:inline-block" style={{ color: GREEN }}>
+          {t.paper} ↓
+        </a>
         </div>
       </section>
     </div>
