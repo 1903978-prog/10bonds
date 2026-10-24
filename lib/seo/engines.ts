@@ -38,7 +38,11 @@ export async function bing(): Promise<Engine> {
   const key = process.env.BING_WEBMASTER_API_KEY;
   if (!key) return { state: "not_connected", message: "Bing is not connected yet.", data: null };
   try {
-    return { state: "connected", message: "www.10bonds.com", data: await bingKpis(key) };
+    const { sites, data } = await bingKpis(key);
+    const hosts = sites.map((u) => new URL(u).hostname);
+    // The site answers on 10bonds.com and www redirects, so a www-only Bing site collects almost nothing.
+    const hint = hosts.includes("10bonds.com") ? "" : " Add https://10bonds.com/ in Bing Webmaster Tools to see its traffic.";
+    return { state: "connected", message: hosts.join(" + ") + hint, data };
   } catch (e) {
     return { state: "error", message: (e as Error).message, data: null };
   }

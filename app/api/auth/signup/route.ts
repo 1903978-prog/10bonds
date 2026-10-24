@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { accountsConfigured, createUser, redeemTrialCode, trialCodeStatus, normaliseEmail, normaliseUsername } from "@/lib/accounts";
+import { accountsConfigured, createUser, redeemTrialCode, trialCodeStatus, normaliseEmail, normaliseUsername, generateUsername } from "@/lib/accounts";
 import { readCredentials, withSession } from "@/lib/authResponse";
 import { hashPassword } from "@/lib/password";
 import { allow, clientIp } from "@/lib/rateLimit";
@@ -22,7 +22,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please tick the box to agree to the Terms and Conditions." }, { status: 400 });
   const e = normaliseEmail(email);
   if (!e) return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
-  const u = normaliseUsername(username);
+  // No username is asked for: one is made from the e-mail unless an old form still sends its own.
+  const given = typeof username === "string" && username.trim() !== "";
+  let u = given ? normaliseUsername(username) : generateUsername(e);
   if (!u) return NextResponse.json({ error: "Please choose a username of 3 to 24 letters, digits, dots, dashes or underscores." }, { status: 400 });
   if (typeof password !== "string" || password.length < 8 || password.length > 200)
     return NextResponse.json({ error: "Please choose a password of at least 8 characters." }, { status: 400 });
@@ -36,7 +38,13 @@ export async function POST(req: Request) {
       if (status === "unknown") return NextResponse.json({ error: "This code does not exist. Check it, or leave the box empty." }, { status: 404 });
       if (status === "used") return NextResponse.json({ error: "This code has already been used. Leave the box empty to continue without it." }, { status: 409 });
     }
-    const user = await createUser(e, u, await hashPassword(password), TERMS_VERSION, newsletter === true);
+    const hash = await hashPassword(password);
+    let user = await createUser(e, u, hash, TERMS_VERSION, newsletter === true);
+    // A made-up username that happens to be taken: try a few new ones.
+    for (let i = 0; i < 4 && user === "username-taken" && !given; i++) {
+      u = generateUsername(e);
+      user = await createUser(e, u, hash, TERMS_VERSION, newsletter === true);
+    }
     if (user === "email-taken") return NextResponse.json({ error: "An account with this email already exists. Please sign in." }, { status: 409 });
     if (user === "username-taken") return NextResponse.json({ error: "This username is taken. Please choose another." }, { status: 409 });
     const redeemed = code ? await redeemTrialCode(user.id, code) : null;

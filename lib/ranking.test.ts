@@ -79,13 +79,20 @@ describe("shapeForTier", () => {
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
   });
 
-  it("free accounts get all 10 rows, never an ISIN, bond name, coupon or maturity", () => {
-    const p = shapeForTier(ranked, "free");
+  it("a plan without the isin and portfolio_sim features gets all 10 rows, never an ISIN, bond name, coupon or maturity", () => {
+    const p = shapeForTier(ranked, "free", ["full_top10"]);
     expect(p.rows).toHaveLength(10);
     expect(p.lockedCount).toBe(0);
     expect(p.summary).toBeNull();
     for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["country", "duration", "issuer", "minInvestment", "rank", "risk", "ytm"]);
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
+  });
+
+  it("free accounts get the ISIN codes and the portfolio simulation by default (the owner, 24/10/2026)", () => {
+    const p = shapeForTier(ranked, "free");
+    expect(p.rows[0].isin).toBeTruthy();
+    expect(p.summary?.lifeLoss).not.toBeNull();
+    expect(p.rows.every((r) => r.lossAdj === undefined)).toBe(true);
   });
 
   it("Plus users get all 10 rows with ISIN and averages", () => {

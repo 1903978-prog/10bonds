@@ -3,8 +3,11 @@ import { allow, clientIp } from "@/lib/rateLimit";
 import { loadBondsFor } from "@/lib/bonds";
 import { parseFilter } from "@/lib/bondFilter";
 import { currentUser } from "@/lib/currentUser";
+import { featuresFor } from "@/lib/planFeatures";
 import { LIMITS } from "@/lib/limits";
 import { lossCurve, type CurvePoint } from "@/lib/lossCurve";
+import { frontierFor } from "@/lib/frontierCache";
+import { efficientPoints, pickEven } from "@/lib/frontierPoints";
 
 export const dynamic = "force-dynamic";
 
@@ -17,12 +20,12 @@ function clampParam(raw: string | null, { min, max, initial }: { min: number; ma
   return Math.min(max, Math.max(min, n));
 }
 
-/** Expected loss on your money against target yield, for paid plans only (the same figure as the results box). */
+/** Expected loss on your money against target yield, for plans with "loss_chart" (/admin/features) only (the same figure as the results box). */
 export async function GET(req: Request) {
   if (!allow(`curve:${clientIp(req)}`, 60, 60_000))
     return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
   const user = await currentUser();
-  if (!user || user.confirmBlocked || (user.plan === "free" && !user.isAdmin)) return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  if (!(await featuresFor(user)).includes("loss_chart")) return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
@@ -43,9 +46,14 @@ export async function GET(req: Request) {
     }
     return hit;
   };
-  // Admin only: one curve per horizon from 2 to 10 years, for comparing them.
-  if (url.searchParams.get("all") === "1" && user.isAdmin) {
-    const curves = Array.from({ length: 9 }, (_, i) => ({ duration: i + 2, ...curveFor(i + 2) }));
+  // Admin only: the exact efficient frontier (lib/exactFrontier.ts, as the slider) per horizon from 2 to 10 years, for
+  // comparing them. Fast (well under a second each) and kept in memory; 60 evenly spread points per curve.
+  if (url.searchParams.get("all") === "1" && user?.isAdmin) {
+    const curves = Array.from({ length: 9 }, (_, i) => {
+      const pts = pickEven(efficientPoints(frontierFor(data, filter, i + 2).points), 60);
+      const points = pts.map((p) => ({ ytm: Math.round(p.ytm * 100) / 100, loss: Math.round(p.el * 1000) / 1000 }));
+      return { duration: i + 2, points, max: points.length ? points[points.length - 1].ytm : LIMITS.ytm.min };
+    }).filter((c) => c.points.length > 1);
     return NextResponse.json({ curves, risk }, { headers: { "Cache-Control": "private, no-store" } });
   }
   return NextResponse.json({ ...curveFor(duration), duration, risk }, { headers: { "Cache-Control": "private, no-store" } });

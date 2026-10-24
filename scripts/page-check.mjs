@@ -73,9 +73,8 @@ for (const [w, h] of WIDTHS) {
 // Home page behaviour (intro already seen): results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
 for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
-  await ctx.addCookies([{ name: "tb_intro", value: "1", url: BASE }]);
   const p = await ctx.newPage();
-  await p.goto(BASE + "/", { waitUntil: "networkidle" });
+  await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
   await p.locator('[data-testid="cookie-settings"]').click(); // the switches open in Settings
   await p.locator('[data-testid="cookie-necessary"]').waitFor();
@@ -86,11 +85,20 @@ for (const [w, h] of WIDTHS) {
   ok(await p.locator('[data-testid="term-picker"]').isVisible(), `${w}px home: term choice present`);
   ok(await p.locator('[data-testid="find-portfolio"]').isVisible(), `${w}px home: Find portfolio button present`);
   // The date line, or the sample-data note that takes its place once sample data has loaded (CI runs on sample data).
-  ok(await p.locator('[data-testid="yields-date"], [data-testid="yields-sample"]').first().isVisible(), `${w}px home: yields date shown`);
+  // Phones show the list (and its date) on their own full-screen page, opened by the button; Back returns to the slider.
+  if (w < 640) await p.locator('[data-testid="find-portfolio"]').click();
+  ok(await p.locator('[data-testid="yields-date"], [data-testid="yields-sample"]').filter({ visible: true }).first().isVisible(), `${w}px home: yields date shown`);
+  if (w < 640) {
+    ok(await p.locator('[data-testid="phone-rows"]').isVisible(), `${w}px home: full-screen results page opens`);
+    await p.locator('[data-testid="phone-results-back"]').click();
+    ok(!(await p.locator('[data-testid="phone-results"]').count()), `${w}px home: Back closes the results page`);
+  }
   const before = await p.locator("main").innerText();
   await sliders.first().focus();
   await p.keyboard.press("ArrowRight");
   await p.keyboard.press("ArrowRight");
+  // Phones show the list on its own page, so the slider page itself must change: the far end changes the word beside it.
+  if (w < 640) await p.keyboard.press("End");
   await p.waitForTimeout(800);
   ok((await p.locator("main").innerText()) !== before, `${w}px home: moving a slider by keyboard updates the page`);
   await ctx.close();

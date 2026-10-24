@@ -113,7 +113,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
             <tr className="h-8 border-y border-line/70 text-left text-[11px] uppercase tracking-wide text-mute">
               <th className="w-10 pl-4 font-medium">#</th>
               <th className="pr-3 font-medium">{t.issuer}</th>
-              <th className="w-12 text-center font-medium">{t.risk}</th>
+              <th className="w-[84px] text-center font-medium">{t.risk}</th>
               <th className="w-[100px] text-center font-medium">{t.maturity}</th>
               <th className="w-16 text-right font-medium">{t.price}</th>
               <SortHead k="ytm" className="w-[64px]" />
@@ -130,7 +130,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                   <>
                     <td className="pl-4 text-mute tabular-nums">{at * ROWS + i + 1}</td>
                     <td className="truncate pr-3 font-medium" title={`${r.name} · ${r.isin}`}>{r.issuer} <span className="font-normal text-mute">{r.isin}</span></td>
-                    <td className="text-center"><RiskBadge risk={r.risk} /></td>
+                    <td className="text-center"><RiskBadge risk={r.risk} sp={r.sp} /></td>
                     <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
                     <td className={`text-right tabular-nums ${sort === "ytm" ? "font-medium" : ""}`}>{r.ytm === null ? "–" : `${num(r.ytm)}%`}</td>

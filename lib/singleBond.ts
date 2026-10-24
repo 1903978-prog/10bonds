@@ -1,9 +1,9 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { RISK_LEVELS, nearHorizon } from "./limits";
-import { bondNotch, bondRisk, ratingSourceLabel, riskBand } from "./ratings";
+import { bondNotch, bondRisk, riskBand } from "./ratings";
 import { issuerKey } from "./ranking";
 import { lossAdjustedYield } from "./expectedLoss";
-import type { ResultRow } from "./tiers";
+import { tierFeatures, type ResultRow } from "./tiers";
 
 /** How many bonds per rating step can be cycled with "Change". */
 export const PER_LEVEL = 10;
@@ -48,8 +48,9 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
 export type CurvePoint = { level: number; label: string; ytm: number | null; adj?: number | null; options: ResultRow[]; more: number; band?: string };
 
 /** Cut each step down to what this tier may see. Visitors see the best bond of each step only, without details. */
-/** `admin`: also add the agency grade each bond's risk score comes from (admin only, never for customers). */
-export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, admin = false): CurvePoint[] {
+/** `admin`: also add each bond's S&P grade (admin only, never for customers). */
+/** `details`: ISIN, name, coupon and the other facts (plans with the "isin" feature, lib/features.ts). */
+export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, admin = false, details = tierFeatures(tier).includes("isin")): CurvePoint[] {
   return curve.map(({ level, label, bonds }) => {
     const ytm = bonds[0]?.grossYtm ?? null;
     const adj = bonds[0] ? Math.round(bonds[0].score * 1000) / 1000 : null;
@@ -58,10 +59,10 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, a
       const base: ResultRow = { rank: b.rank, issuer: b.issuer ?? b.name, ytm: b.grossYtm! };
       if (tier === "visitor") return base;
       const free: ResultRow = { ...base, duration: b.modifiedDuration!, risk: bondRisk(b), country: b.country, minInvestment: b.minInvestment ?? null };
-      if (tier === "free") return free;
+      if (!details && !admin) return free;
       const paid: ResultRow = { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity,
         currency: b.currency, couponType: b.couponType ?? null, seniority: b.seniority ?? null, issueDate: b.issueDate ?? null, callable: b.callable ?? null };
-      return admin ? { ...paid, sp: ratingSourceLabel(b), low52w: b.low52w ?? null, high52w: b.high52w ?? null } : paid;
+      return admin ? { ...paid, sp: b.ratingSp?.trim() || null, low52w: b.low52w ?? null, high52w: b.high52w ?? null } : paid;
     });
     return { level, label, ytm, adj, options, more: bonds.length - visible.length, ...(admin ? { band: riskBand(level) } : {}) };
   });

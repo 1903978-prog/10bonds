@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { currentUser } from "@/lib/currentUser";
 import type { ComparisonData, ComparisonRow } from "@/lib/seo/comparisons";
 import { pathOf, T, type Locale } from "@/lib/seo/locales";
 import { fmtDate, fmtNum } from "@/lib/seo/site";
@@ -51,7 +52,7 @@ export function ToolCta({ locale }: { locale: Locale }) {
   );
 }
 
-function Table({ locale, rows, curve }: { locale: Locale; rows: ComparisonRow[]; curve?: boolean }) {
+function Table({ locale, rows, curve, admin }: { locale: Locale; rows: ComparisonRow[]; curve?: boolean; admin: boolean }) {
   const t = T[locale];
   return (
     <div className="overflow-x-auto">
@@ -71,7 +72,7 @@ function Table({ locale, rows, curve }: { locale: Locale; rows: ComparisonRow[];
               <td className="py-2.5 pr-3 font-medium">{curve ? r.maturityYear : r.issuer}</td>
               <td className="py-2.5 pr-3 text-right tabular-nums">{fmtNum(locale, r.ytm)}%</td>
               <td className="py-2.5 pr-3 text-right tabular-nums">{fmtNum(locale, r.duration, 1)}</td>
-              <td className="py-2.5 pr-3"><RiskBadge risk={r.risk} /></td>
+              <td className="py-2.5 pr-3"><RiskBadge risk={r.risk} sp={admin ? r.sp : undefined} /></td>
               {!curve && <td className="py-2.5 tabular-nums">{r.maturityYear ?? "–"}</td>}
             </tr>
           ))}
@@ -88,8 +89,10 @@ export function DataStamp({ locale, asOf, source }: { locale: Locale; asOf: stri
 }
 
 /** The data part of a comparison page: table(s), figures and the data date. */
-export function ComparisonBody({ locale, c, asOf, source }: { locale: Locale; c: ComparisonData; asOf: string | null; source: "live" | "sample" | null }) {
+export async function ComparisonBody({ locale, c, asOf, source }: { locale: Locale; c: ComparisonData; asOf: string | null; source: "live" | "sample" | null }) {
   const t = T[locale];
+  // The admin also sees each bond's S&P grade next to the risk score.
+  const admin = (await currentUser().catch(() => null))?.isAdmin === true;
   return (
     <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7">
       <DataStamp locale={locale} asOf={asOf} source={source} />
@@ -97,12 +100,12 @@ export function ComparisonBody({ locale, c, asOf, source }: { locale: Locale; c:
         c.bands.map((b) => (
           <section key={b.duration} className="mt-5">
             <h2 className="text-lg font-semibold">{t.duration} ≈ {b.duration} {t.years}</h2>
-            <Table locale={locale} rows={b.rows} />
+            <Table locale={locale} rows={b.rows} admin={admin} />
           </section>
         ))
       ) : (
         <div className="mt-3">
-          <Table locale={locale} rows={c.rows} curve={c.def.kind === "curve"} />
+          <Table locale={locale} rows={c.rows} curve={c.def.kind === "curve"} admin={admin} />
         </div>
       )}
       <dl className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">

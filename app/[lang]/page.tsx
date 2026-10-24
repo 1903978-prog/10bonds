@@ -7,8 +7,8 @@ import { currentUser } from "@/lib/currentUser";
 import { landsInPro } from "@/lib/proView";
 import Finder from "@/components/Finder";
 import IntroGate from "@/components/IntroGate";
-import { INTRO_COOKIE } from "@/lib/intro";
-import { cookies } from "next/headers";
+import { landingFirst } from "@/lib/intro";
+import { headers } from "next/headers";
 import { ComparisonBody, JsonLd } from "@/components/seo/Seo";
 import { COMPARISONS } from "@/lib/seo/comparisons";
 import { SITE_URL } from "@/lib/seo/crawl";
@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: { absolute: h.title },
     description: h.description,
-    alternates: alternates(lang, (l) => `/${l}`, "/"),
+    // The English home is a language version too, so every home lists all four (each one also lists itself).
+    alternates: (({ canonical, languages }) => ({ canonical, languages: { ...languages, en: "/" } }))(alternates(lang, (l) => `/${l}`, "/")!),
     openGraph: { locale: LOCALE[lang].ogLocale, title: h.title, description: h.description, type: "website", siteName: "10BONDS" },
   };
 }
@@ -38,8 +39,9 @@ export default async function LocaleHome({ params, searchParams }: Props) {
   if (!isLocale(lang)) notFound();
   if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
   const l: Locale = lang;
-  // First visit (no cookie yet) or ?intro=1: the landing page comes before the finder.
-  const intro = (await searchParams)?.intro === "1" || !(await cookies()).get(INTRO_COOKIE);
+  // Arriving from outside the site (typed address, bookmark, social link): the landing page comes before the finder.
+  const hd = await headers();
+  const intro = landingFirst((await searchParams)?.intro, hd.get("referer"), hd.get("x-forwarded-host") ?? hd.get("host"));
   const h = HOME[l];
   const t = T[l];
   const [{ pages, asOf, source }, guides] = await Promise.all([comparisonPages(), publishedGuides(l)]);

@@ -14,6 +14,7 @@ import type { EvalContext } from "./riskPremium/evaluate";
 
 export type WhyRow = {
   rank: number; inTop: boolean; issuer: string; name: string; isin: string; ytm: number; duration: number; risk: number | null;
+  sp?: string | null; // S&P grade: added for the admin only (app/api/bonds/why)
   surplusBp?: number | null; why: string;
 };
 export const WHY_MAX_ROWS = 400;

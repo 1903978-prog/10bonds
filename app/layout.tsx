@@ -37,13 +37,15 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Builds every page per request, so each one gets the fresh script nonce from middleware.ts.
-  await headers();
+  const path = (await headers()).get("x-pathname") ?? "/";
+  // The page language for search engines and screen readers: the Italian, French and German sites are not English.
+  const lang = /^\/(it|fr|de)(\/|$)/.exec(path)?.[1] ?? "en";
   // Whether a sign-in cookie is present, so the header draws the right links straight away instead of popping them in.
   const hasSession = Boolean((await cookies()).get(SESSION_COOKIE)?.value);
   // Price drops is the admin's only for now (52-week values stay private): drawn on the server, so nothing pops in.
   const admin = hasSession && (await currentUser())?.isAdmin === true;
   return (
-    <html lang="en">
+    <html lang={lang}>
       <body className="font-sans">
         <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
           <nav className="header-wide mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">

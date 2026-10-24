@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { FinderLang } from "@/lib/finderText";
 import type { WhyRow } from "@/lib/whyList";
+import { SpSlot } from "@/components/RiskBadge";
 
 // Small icon under the results: opens "why in or out" for the current search, every bond of the search window with
 // the reason it is in the top 10 or not (Premium, Pro and admin; others see the Plans link). The table scrolls inside
@@ -87,7 +88,7 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
                         <td className="py-1 pr-2">{r.inTop ? r.rank : "–"}</td>
                         <td className="max-w-[220px] truncate pr-2" title={r.name}>{r.issuer}</td>
                         <td className="pr-2 text-right">{r.ytm.toFixed(2)}</td>
-                        <td className="pr-2 text-right">{r.risk ?? "–"}</td>
+                        <td className="whitespace-nowrap pr-2 text-right">{r.risk ?? "–"}{r.sp !== undefined && <> <SpSlot sp={r.sp} /></>}</td>
                         <td className="pr-2 text-right">{r.duration.toFixed(1)}</td>
                         {bp && <><td className="pr-2 text-right">{n(r.surplusBp, true)}</td></>}
                         <td>{r.why}</td>

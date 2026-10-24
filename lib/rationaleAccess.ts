@@ -1,10 +1,8 @@
 import type { User } from "./accounts";
-import { proStatus } from "./pro";
+import { featuresFor } from "./planFeatures";
 
-// Who may open the "why in or out" table of a search (the owner, 20/10/2026): Premium, approved Pro users and the admin.
-// One place for the plan check, so the plan pages and any later Premium feature use the same rule.
+// Who may open the "why in or out" table of a search: the plans ticked for "why_table" in the admin's feature table
+// (/admin/features; Premium and Pro by default) and the admin.
 export async function canSeeRationale(user: User | null): Promise<boolean> {
-  if (!user) return false;
-  if (user.isAdmin || user.plan === "premium") return true;
-  return (await proStatus(user).catch(() => "none")) === "approved";
+  return (await featuresFor(user)).includes("why_table");
 }

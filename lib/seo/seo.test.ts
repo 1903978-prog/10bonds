@@ -433,7 +433,7 @@ describe("The owner's French articles", () => {
       expect(faqFromHtml(sanitizeHtml(g.bodyHtml)).length).toBeGreaterThanOrEqual(3);
       expect(sanitizeHtml(g.bodyHtml)).toMatch(/<p>\[\[10bonds:(calculator|bonds:[a-z0-9-]+)\]\]<\/p>/);
     }
-    expect(SEED_GUIDES_OWNER_FR[1].bodyHtml).toContain("Il s'élève à environ <strong>5,16 % par an</strong>.");
+    expect(SEED_GUIDES_OWNER_FR[1].bodyHtml).toContain("Dans notre exemple, ce taux ressort à environ <strong>5,16 % par an</strong>.");
   });
 });
 
@@ -442,5 +442,26 @@ describe("listing sites", () => {
     expect(new Set(LISTING_SITES.map((x) => x.id)).size).toBe(LISTING_SITES.length);
     for (const x of LISTING_SITES) expect(x.url).toMatch(/^https:\/\//);
     for (const m of ["it", "fr", "de", "us", "uk"]) expect(LISTING_SITES.some((x) => x.market === m && x.priority === 1)).toBe(true);
+  });
+});
+
+describe("English target keywords", () => {
+  it("every /knowledge landing page of a US or UK keyword exists", async () => {
+    const { SEED_KEYWORDS } = await import("./keywordsSeed");
+    const { EN_GUIDES } = await import("./guidesEn");
+    const { CALCULATOR_EN, enPath } = await import("./knowledgeEn");
+    const pages = new Set([...EN_GUIDES.map((g) => enPath(g.slug)), enPath(CALCULATOR_EN.slug)]);
+    const missing = SEED_KEYWORDS.filter((k) => k.landingPath?.startsWith("/knowledge/") && !pages.has(k.landingPath)).map((k) => k.keyword);
+    expect(missing).toEqual([]);
+  });
+
+  it("English guides have unique slugs, short titles and a meta description", async () => {
+    const { EN_GUIDES } = await import("./guidesEn");
+    expect(new Set(EN_GUIDES.map((g) => g.slug)).size).toBe(EN_GUIDES.length);
+    for (const g of EN_GUIDES) {
+      expect(g.seoTitle.length, g.slug).toBeLessThanOrEqual(60);
+      expect(g.metaDescription.length, g.slug).toBeGreaterThan(50);
+      expect(g.metaDescription.length, g.slug).toBeLessThanOrEqual(170);
+    }
   });
 });

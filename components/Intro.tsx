@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FinderLang } from "@/lib/finderText";
-import { INTRO_COOKIE, INTRO_HORIZONS, type IntroData } from "@/lib/intro";
+import { INTRO_HORIZONS, type IntroData } from "@/lib/intro";
 import { INTRO_TEXT, NUM_LOCALE } from "@/lib/introText";
 
 const RED = "#ff3b30";
@@ -71,9 +71,6 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
     return () => clearTimeout(id);
   }, [k, playing, ready]);
   useEffect(() => setSeen((s) => Math.max(s, k)), [k]);
-  useEffect(() => {
-    if (seen >= LAST) document.cookie = `${INTRO_COOKIE}=1; Path=/; Max-Age=31536000; SameSite=Lax`;
-  }, [seen]);
 
   // Escape skips to the finder.
   useEffect(() => {

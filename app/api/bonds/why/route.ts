@@ -9,6 +9,8 @@ import { canSeeRationale } from "@/lib/rationaleAccess";
 import { pickRanking } from "@/lib/pickRanking";
 import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
 import { explainCurrent, explainRiskAdjusted } from "@/lib/whyList";
+import { featuresFor } from "@/lib/planFeatures";
+import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
 
 export const dynamic = "force-dynamic";
 
@@ -40,10 +42,18 @@ export async function GET(req: Request) {
     risk: Math.round(clamp(url.searchParams.get("risk"), LIMITS.risk)),
   };
   const tryW = admin ? parseWeight(url.searchParams.get("rw")) : null;
-  const picked = await pickRanking(data.bonds, data.asOf, sc.duration, sc.ytm, sc.risk, tryW, tryW !== null ? parseShifts(url.searchParams.get("rp")) : null);
+  // The same list the customer sees: their excluded bonds and issuers are left out here too.
+  const skip = user && !sampleOk && (await featuresFor(user)).includes("blacklist") ? excludedBy(await exclusionsOrNone(user.id)) : null;
+  const picked = await pickRanking(data.bonds, data.asOf, sc.duration, sc.ytm, sc.risk, tryW, tryW !== null ? parseShifts(url.searchParams.get("rp")) : null, skip);
+  const bonds = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
   const outliers = await loadOutliers(sd);
   const rows = picked.risky
-    ? explainRiskAdjusted(data.bonds, outliers, sc, picked.risky.ranking, picked.risky.ctx)
-    : explainCurrent(data.bonds, outliers, sc, picked.results, picked.band);
+    ? explainRiskAdjusted(bonds, outliers, sc, picked.risky.ranking, picked.risky.ctx)
+    : explainCurrent(bonds, outliers, sc, picked.results, picked.band);
+  if (user?.isAdmin) {
+    // The admin also sees each bond's S&P grade next to the risk score (never sent to customers).
+    const sp = new Map(data.bonds.map((b) => [b.isin, b.ratingSp?.trim() || null]));
+    for (const r of rows) r.sp = sp.get(r.isin) ?? null;
+  }
   return NextResponse.json({ method: picked.engine.method, band: picked.band, rows }, { headers: { "Cache-Control": "no-store" } });
 }

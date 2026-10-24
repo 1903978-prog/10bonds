@@ -11,9 +11,10 @@ import { RiskBadge } from "./RiskBadge";
 import { downloadXlsx } from "@/lib/xlsx";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import { dominatedLevels, dropDominated } from "@/lib/curveFilter";
+import type { FeatureKey } from "@/lib/features";
 
 type Coverage = { count: number; min: number | null; max: number | null };
-type Payload = { tier: Tier; points: CurvePoint[]; coverage?: Coverage; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
+type Payload = { tier: Tier; features?: FeatureKey[]; points: CurvePoint[]; coverage?: Coverage; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
 
 const range52 = (lo: number | null | undefined, hi: number | null | undefined) =>
   `${lo == null ? "–" : lo.toFixed(2)} / ${hi == null ? "–" : hi.toFixed(2)}`;
@@ -92,6 +93,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
           label={point.label}
           bond={bond}
           tier={tier}
+          features={data?.features ?? []}
           canChange={index + 1 < point.options.length}
           lockedMore={point.more > 0 && index + 1 >= point.options.length}
           isLast={index + 1 >= point.options.length}
@@ -189,6 +191,7 @@ function BondBox(props: {
   label: string;
   bond: CurvePoint["options"][number];
   tier: Tier;
+  features: FeatureKey[];
   canChange: boolean;
   lockedMore: boolean;
   isLast: boolean;
@@ -197,7 +200,9 @@ function BondBox(props: {
 }) {
   const { bond, tier } = props;
   const signedIn = tier !== "visitor";
-  const paid = tier === "plus" || tier === "premium";
+  // ISIN and the other facts, and the Excel button, when the plan has them (the admin's feature table).
+  const paid = props.features.includes("isin");
+  const excel = props.features.includes("excel");
   const t = useFinderText();
   const lang = useContext(FinderLangContext);
   const f = FACT_TEXT[lang];
@@ -220,7 +225,7 @@ function BondBox(props: {
       </div>
       <dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
         {row("ISIN", paid ? bond.isin : lock)}
-        {row(t.risk, signedIn ? <>{bond.sp !== undefined && <span className="mr-1.5 text-mute">{bond.sp ?? "–"}</span>}<RiskBadge risk={bond.risk} title={t.riskNote} /></> : lock)}
+        {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} sp={bond.sp} /> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(f.couponType, paid ? couponTypeLabel(lang, bond.couponType) : lock)}
@@ -247,7 +252,7 @@ function BondBox(props: {
           )}
         </span>
         <button onClick={props.onBack} disabled={!props.onBack} className={`shrink-0 text-xs text-accent ${props.onBack ? "" : "invisible"}`}>{t.backBest}</button>
-        {paid && (
+        {excel && paid && (
           <button
             type="button"
             data-testid="excel-download-bond"

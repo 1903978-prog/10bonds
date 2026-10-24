@@ -18,6 +18,8 @@ function withCsp(req: NextRequest) {
   const csp = buildCsp(newNonce(), undefined, req.nextUrl.pathname.startsWith("/embed/"));
   const headers = new Headers(req.headers);
   headers.set("content-security-policy", csp);
+  // The root layout reads the path to write the page language in <html lang>, so /it, /fr and /de are declared as such.
+  headers.set("x-pathname", req.nextUrl.pathname);
   const res = NextResponse.next({ request: { headers } });
   res.headers.set("Content-Security-Policy", csp);
   return res;

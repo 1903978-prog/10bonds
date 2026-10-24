@@ -10,7 +10,8 @@ primary_region = "cdg"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  # Kept running (the owner, 24/10/2026): a stopped machine made the first visitor wait up to 20 seconds.
+  min_machines_running = 1
 
   [[http_service.checks]]
     interval = "30s"
