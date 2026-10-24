@@ -196,11 +196,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     }
     return null;
   };
-  const arrows = simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix} /> : null;
+  const arrows = simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix} busy={loading} /> : null;
   // On the iPhone results page the arrows sit either side of the title, so the page gains no height.
   const phoneTitle = (title: string) => {
     const span = <span className="truncate text-[16px] font-semibold">{title}</span>;
-    return simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix}>{span}</PfArrows> : span;
+    return simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix} busy={loading}>{span}</PfArrows> : span;
   };
   useEffect(() => {
     // Loaded in Advanced too (admin), for the frontier dots on its chart.
@@ -282,8 +282,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     if (mode !== "portfolio") return;
     const ctrl = new AbortController();
     const seq = ++searchSeq.current;
+    // The spinner shows from the moment a search is asked for (slider, arrows, button), not only once it is sent.
+    setLoading(true);
     const t = setTimeout(async () => {
-      setLoading(true);
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
@@ -319,7 +320,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       } catch (e) {
         if ((e as Error).name !== "AbortError") setError((e as Error).message);
       } finally {
-        setLoading(false);
+        // Only the newest search ends the spinner: an older one finishing never hides it while the next one runs.
+        if (seq === searchSeq.current) setLoading(false);
       }
     }, 250);
     return () => {
@@ -634,6 +636,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 <Stat value={simple ? positionSlope(positions, mix) : curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
               </div>
               <div className="relative mt-3">
+                {loading && !simple && <Spinner />}
                 <Results
                   narrow
                 dense
@@ -716,6 +719,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             }
           />
           <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
+          {loading && !simple && <Spinner />}
         </div>
         </>
         )}
@@ -743,6 +747,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
             currency={currency}
+            arrows={simple}
             title={phoneTitle}
             onClose={() => setSheet(false)}
             data={data}
@@ -962,14 +967,33 @@ function Toggle({ label, value, options, onChange, testId, tip, disabled = [], d
 }
 
 /** Previous / next portfolio: two small grey round arrows, always drawn (greyed at the ends) so nothing moves. */
-function PfArrows({ prev, next, onStep, children }: { prev: number | null; next: number | null; onStep: (pos: number) => void; children?: ReactNode }) {
+/**
+ * A small grey-blue rotating arrow while the best portfolio is being found (the owner, 24/10/2026): beside the portfolio
+ * arrows (PC and iPhone), or over the middle of the list where there are no arrows (Advanced). Laid outside the layout, so
+ * nothing moves; gone as soon as the list arrives (the search show, if any, then takes over).
+ */
+function Spinner({ small }: { small?: boolean }) {
+  const t = useFinderText();
+  // Small: just right of the next-portfolio arrow, outside the row's own width.
+  const place = small ? "absolute left-full top-1/2 ml-1.5 -translate-y-1/2" : "absolute inset-0 z-10 flex items-center justify-center";
+  return (
+    <div className={`pointer-events-none ${place}`} role="status" aria-label={t.finding} data-testid="finder-spinner">
+      <svg className={`${small ? "h-4 w-4" : "h-7 w-7"} animate-spin text-accent/80 motion-reduce:animate-[spin_3s_linear_infinite]`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+        <path d="M20 4v4h-4" />
+      </svg>
+    </div>
+  );
+}
+
+function PfArrows({ prev, next, onStep, busy, children }: { prev: number | null; next: number | null; onStep: (pos: number) => void; busy?: boolean; children?: ReactNode }) {
   const t = useFinderText();
   const btn = "flex h-7 w-7 items-center justify-center rounded-full border border-line/70 text-mute transition-colors hover:border-mute/40 hover:text-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-line/70 disabled:hover:text-mute";
   const arrow = (d: string) => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
   );
   return (
-    <div className="flex min-w-0 items-center gap-1.5" data-testid="pf-arrows">
+    <div className="relative flex min-w-0 items-center gap-1.5" data-testid="pf-arrows">
       <button type="button" className={btn} aria-label={t.prevPf} title={t.prevPf} disabled={prev === null} onClick={() => prev !== null && onStep(prev)} data-testid="pf-prev">
         {arrow("M10 3 5 8l5 5")}
       </button>
@@ -977,6 +1001,7 @@ function PfArrows({ prev, next, onStep, children }: { prev: number | null; next:
       <button type="button" className={btn} aria-label={t.nextPf} title={t.nextPf} disabled={next === null} onClick={() => next !== null && onStep(next)} data-testid="pf-next">
         {arrow("M6 3l5 5-5 5")}
       </button>
+      {busy && <Spinner small />}
     </div>
   );
 }
@@ -1485,7 +1510,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency, etfBox }: { title: (text: string) => ReactNode; etfBox: ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency, etfBox }: { arrows: boolean; title: (text: string) => ReactNode; etfBox: ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
@@ -1544,6 +1569,7 @@ function PhoneResults({ title, onClose, data, list, setList, features, signedIn,
         )}
       </div>
       <div className={`relative flex min-h-0 flex-1 flex-col transition-opacity ${loading ? "opacity-60" : ""}`}>
+        {loading && !arrows && <Spinner />}
         <div className={`${cols} h-6 shrink-0 border-b border-line text-[11px] text-mute`}>
           <span>#</span>
           <span>{t.issuer}</span>
