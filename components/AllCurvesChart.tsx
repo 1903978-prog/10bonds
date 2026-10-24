@@ -18,7 +18,7 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
   const [box, size] = useBoxSize<HTMLDivElement>();
   const narrow = size.w < 520;
   const F = narrow ? 12 : 14; // font size in px
-  const W = size.w, H = size.h, L = narrow ? 52 : 70, R = 16, T = 14, B = narrow ? 50 : 58;
+  const W = size.w, H = size.h, L = narrow ? 52 : 70, R = F * 2.6, T = 14, B = narrow ? 50 : 58;
   const X_START = 3;
   const series = curves.map((c) => ({ duration: c.duration, shown: shownPoints(c.points) }));
   // Return (up) from X_START to the highest slider maximum; expected loss (across) from 0.
@@ -31,6 +31,18 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
   const rTicks = Array.from({ length: Math.floor((r1 - r0) / rStep) + 1 }, (_, i) => r0 + i * rStep);
   const lTicks = [0, 1, 2, 3, 4].map((i) => (lMax / 1.1) * (i / 4));
   const [hover, setHover] = useState<number | null>(null);
+  const [nearAt, setNearAt] = useState<{ i: number; x: number; y: number } | null>(null); // the curve under the mouse, highlighted
+  const near = nearAt?.i ?? null;
+  // Each curve's horizon at its end (top right of the curve), pushed apart so two labels never overlap.
+  const ends = series
+    .map((s, i) => ({ i, p: s.shown[s.shown.length - 1] }))
+    .filter((e): e is { i: number; p: CurvePoint } => !!e.p)
+    .map((e) => ({ i: e.i, x: X(e.p.loss) + 6, y: Y(e.p.ytm) }))
+    .sort((a, b) => a.y - b.y);
+  for (let k = 1; k < ends.length; k++) {
+    const a = ends[k - 1], b = ends[k];
+    if (Math.abs(a.x - b.x) < F * 2.6 && b.y - a.y < F + 2) b.y = a.y + F + 2;
+  }
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const svg = e.currentTarget;
     const ctm = svg.getScreenCTM();
@@ -38,22 +50,26 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
     const pt = svg.createSVGPoint();
     pt.x = e.clientX;
     pt.y = e.clientY;
-    const sy = pt.matrixTransform(ctm.inverse()).y;
-    const r = r0 + ((H - B - sy) / (H - B - T)) * (r1 - r0);
+    const m = pt.matrixTransform(ctm.inverse());
+    const r = r0 + ((H - B - m.y) / (H - B - T)) * (r1 - r0);
     setHover(r >= r0 && r <= r1 ? r : null);
+    // Nearest curve within 12 px of the mouse.
+    let best: { i: number; d: number; x: number; y: number } | null = null;
+    for (let i = 0; i < series.length; i++) for (const p of series[i].shown) {
+      const x = X(p.loss), y = Y(p.ytm), d = Math.hypot(x - m.x, y - m.y);
+      if (d < 12 && (!best || d < best.d)) best = { i, d, x, y };
+    }
+    setNearAt(best ? { i: best.i, x: best.x, y: best.y } : null);
   };
-  // The point nearest to the hovered target on each curve.
-  const at = (points: CurvePoint[], ytm: number) => {
-    let best = points[0];
-    for (const p of points) if (best && Math.abs(p.ytm - ytm) < Math.abs(best.ytm - ytm)) best = p;
-    return best;
-  };
+  // Each curve's list for the hovered return: its first point at or above it (the lowest loss that reaches it);
+  // none when the curve ends below it (that horizon cannot give that return, shown as "–").
+  const at = (points: CurvePoint[], ytm: number) => points.find((p) => p.ytm >= ytm - 1e-9);
   const hoverRow = hover === null ? null : series.map((s, i) => ({ colour: COLOURS[i], duration: s.duration, p: at(s.shown, hover) })).filter((r) => r.p);
   // While hovering, the legend also gives each horizon's expected loss at the hovered target.
-  const lossAt = (duration: number) => hoverRow?.find((r) => r.duration === duration)?.p?.loss;
+  const pointAt = (duration: number) => hoverRow?.find((r) => r.duration === duration)?.p;
   return (
     <div ref={box} className="h-full w-full overflow-hidden">
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" role="img" aria-label={`${retLabel} / ${lossLabel}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" role="img" aria-label={`${retLabel} / ${lossLabel}`} onMouseMove={onMove} onMouseLeave={() => { setHover(null); setNearAt(null); }}>
       {rTicks.map((v) => (
         <g key={`y${v}`}>
           <line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#e5e5ea" />
@@ -71,23 +87,43 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
           d={s.shown.map((p, j) => `${j ? "L" : "M"}${X(p.loss).toFixed(1)},${Y(p.ytm).toFixed(1)}`).join(" ")}
           fill="none"
           stroke={COLOURS[i]}
-          strokeWidth={narrow ? 2.25 : 3}
+          strokeOpacity={near === null || near === i ? 1 : 0.25}
+          strokeWidth={(narrow ? 2.25 : 3) + (near === i ? 1.5 : 0)}
         strokeLinejoin="round"
         />
       ))}
+      {ends.map((e) => (
+        <text key={`end${e.i}`} x={e.x} y={e.y + F / 3} fontSize={F - 1} fontWeight={near === e.i ? 600 : 400} fill={COLOURS[e.i]} fillOpacity={near === null || near === e.i ? 1 : 0.35} data-testid={`curve-end-${series[e.i].duration}`}>
+          {series[e.i].duration}y
+        </text>
+      ))}
+      {nearAt && (
+        <g pointerEvents="none" data-testid="curve-hover-label">
+          <rect x={nearAt.x - F * 3.2 - 8} y={nearAt.y - F - 14} width={F * 3.2} height={F + 8} rx={6} fill="#1d1d1f" fillOpacity={0.88} />
+          <text x={nearAt.x - F * 1.6 - 8} y={nearAt.y - 10 - F / 3} textAnchor="middle" fontSize={F - 1} className="fill-white">{series[nearAt.i].duration} {yearsLabel}</text>
+        </g>
+      )}
       <g data-testid="all-curves-legend" fontSize={F}>
-        <rect x={L + 4} y={T + 2} width={F * (hover === null ? 5.6 : 9.6)} height={(series.length + (hover === null ? 0 : 1)) * (F + 8) + 8} rx={8} fill="white" fillOpacity={0.9} />
+        {/* Fixed size: horizon, then (while hovering) the list's return and expected loss, or "–" if it cannot reach it. */}
+        <rect x={L + 4} y={T + 2} width={F * 13.4} height={(series.length + 1) * (F + 8) + 8} rx={8} fill="white" fillOpacity={0.9} />
         {series.map((s, i) => (
           <g key={s.duration}>
             <line x1={L + 12} x2={L + 12 + F * 1.6} y1={T + 12 + i * (F + 8) + F / 2 - 1} y2={T + 12 + i * (F + 8) + F / 2 - 1} stroke={COLOURS[i]} strokeWidth={3.5} strokeLinecap="round" />
             <text x={L + 18 + F * 1.6} y={T + 12 + i * (F + 8) + F - 2} className="fill-[#1d1d1f]">{s.duration} {yearsLabel}</text>
-            {lossAt(s.duration) !== undefined && (
-              <text x={L + F * 9} y={T + 12 + i * (F + 8) + F - 2} textAnchor="end" className="fill-[#1d1d1f] tabular-nums">{lossAt(s.duration)!.toFixed(2)}%</text>
+            {hover !== null && (
+              <>
+                <text x={L + F * 9.2} y={T + 12 + i * (F + 8) + F - 2} textAnchor="end" className="fill-[#1d1d1f] tabular-nums">{pointAt(s.duration) ? `${pointAt(s.duration)!.ytm.toFixed(2)}%` : "–"}</text>
+                <text x={L + F * 13} y={T + 12 + i * (F + 8) + F - 2} textAnchor="end" className="fill-[#86868b] tabular-nums">{pointAt(s.duration) ? `${pointAt(s.duration)!.loss.toFixed(2)}%` : "–"}</text>
+              </>
             )}
           </g>
         ))}
         {hover !== null && (
-          <text x={L + 12} y={T + 12 + series.length * (F + 8) + F - 2} className="fill-[#86868b]">@ {hover.toFixed(2)}%</text>
+          <>
+            <text x={L + 12} y={T + 12 + series.length * (F + 8) + F - 2} className="fill-[#86868b]">@ {hover.toFixed(2)}%</text>
+            <text x={L + F * 9.2} y={T + 12 + series.length * (F + 8) + F - 2} textAnchor="end" fontSize={F - 2} className="fill-[#86868b]">YTM</text>
+            <text x={L + F * 13} y={T + 12 + series.length * (F + 8) + F - 2} textAnchor="end" fontSize={F - 2} className="fill-[#86868b]">loss</text>
+          </>
         )}
       </g>
       {hoverRow && hover !== null && (

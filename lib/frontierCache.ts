@@ -21,3 +21,21 @@ export function frontierFor(src: BondSource, f: BondFilter, duration: number): E
   }
   return hit;
 }
+
+const warming = new Set<string>();
+
+/** Works out the frontiers for these horizons in the background, one per turn, so later requests read them at once. */
+export function warmFrontiers(src: BondSource, f: BondFilter, durations: number[]): void {
+  const todo = durations.filter((d) => !memo.has(frontierKey(src, f, d)) && !warming.has(frontierKey(src, f, d)));
+  if (!todo.length) return;
+  for (const d of todo) warming.add(frontierKey(src, f, d));
+  const next = (i: number) => {
+    if (i >= todo.length) return;
+    setImmediate(() => {
+      try { frontierFor(src, f, todo[i]); } catch (e) { console.error("[frontier] warm failed:", (e as Error).message); }
+      warming.delete(frontierKey(src, f, todo[i]));
+      next(i + 1);
+    });
+  };
+  next(0);
+}
