@@ -2,9 +2,30 @@ import type { FinderLang } from "./finderText";
 
 // Words of the first-visit landing page (components/Landing.tsx), in the four site languages. Customers never see
 // "YTM": the return is "Return (per year)". The 3.80% / 4.80% comparison is an illustration, labelled as such.
+// Exception (the owner, 24/10/2026): the ETF benchmark card says "gross YTM", as he asked.
 // Compliance (23/10): impersonal wording only, no "you/your", no calls to act, no promises; "AI portfolio" vs
 // "hand-picked portfolio" is allowed.
 const en = {
+  // ETF benchmark card (the owner, 24/10/2026): illustrative only, no provider or fund named, no equal-risk claim.
+  tagline: "Smarter bond selection. Higher potential yield.",
+  cardTitleBench: "AI portfolio vs Average Bond ETF",
+  cardTitleBenchShort: "AI vs Average Bond ETF",
+  bench: "Illustrative bond ETF benchmark",
+  benchShort: "Bond ETF benchmark",
+  ai: "AI-selected portfolio",
+  aiShort: "AI-selected",
+  grossYtm: "gross YTM",
+  illGrossYtm: "illustrative gross YTM",
+  creditRisk: "Credit risk",
+  notMatched: "Not directly matched",
+  notMatchedShort: "Not matched",
+  modelEstimated: "Model-estimated",
+  modelEstimatedShort: "Modeled",
+  diffTitle: "percentage points illustrative yield difference",
+  diffTitleShort: "illustrative yield difference",
+  creditRiskShort: "Risk",
+  diffSub: "No fund management fee; broker costs apply.",
+  footnote: "Illustrative comparison. Figures are gross yields before applicable taxes and trading costs. Bond portfolios and ETF benchmarks may differ in duration, credit quality, diversification and liquidity. Yields are not guaranteed.",
   cardTitleShort: "AI vs hand-picked",
   illustrativeShort: "Illustrative",
   lossRiskShort: "Modeled risk",
@@ -57,6 +78,25 @@ const en = {
 export type LandingText = typeof en;
 
 const it: LandingText = {
+  tagline: "Selezione obbligazionaria più intelligente. Rendimento potenziale più alto.",
+  cardTitleBench: "Portafoglio IA e ETF obbligazionario medio",
+  cardTitleBenchShort: "IA e ETF obbligazionario medio",
+  bench: "Benchmark illustrativo di ETF obbligazionari",
+  benchShort: "Benchmark ETF obbligazionari",
+  ai: "Portafoglio selezionato dall'IA",
+  aiShort: "Selezione IA",
+  grossYtm: "YTM lordo",
+  illGrossYtm: "YTM lordo illustrativo",
+  creditRisk: "Rischio di credito",
+  notMatched: "Non direttamente comparabile",
+  notMatchedShort: "Non comparabile",
+  modelEstimated: "Stimato dal modello",
+  modelEstimatedShort: "Stimato",
+  diffTitle: "punti percentuali di differenza di rendimento illustrativa",
+  diffTitleShort: "differenza di rendimento illustrativa",
+  creditRiskShort: "Rischio",
+  diffSub: "Nessuna commissione di gestione di un fondo; si applicano i costi del broker.",
+  footnote: "Confronto illustrativo. Rendimenti lordi, prima delle imposte e dei costi di negoziazione applicabili. Portafogli obbligazionari e benchmark ETF possono differire per durata, qualità del credito, diversificazione e liquidità. I rendimenti non sono garantiti.",
   cardTitleShort: "IA e scelta a mano",
   illustrativeShort: "Esempio",
   lossRiskShort: "Rischio stimato",
@@ -108,6 +148,25 @@ const it: LandingText = {
 };
 
 const fr: LandingText = {
+  tagline: "Une sélection obligataire plus intelligente. Un rendement potentiel plus élevé.",
+  cardTitleBench: "Portefeuille IA et ETF obligataire moyen",
+  cardTitleBenchShort: "IA et ETF obligataire moyen",
+  bench: "Référence illustrative d'ETF obligataires",
+  benchShort: "Référence ETF obligataires",
+  ai: "Portefeuille sélectionné par l'IA",
+  aiShort: "Sélection IA",
+  grossYtm: "YTM brut",
+  illGrossYtm: "YTM brut illustratif",
+  creditRisk: "Risque de crédit",
+  notMatched: "Pas directement comparable",
+  notMatchedShort: "Non comparable",
+  modelEstimated: "Estimé par le modèle",
+  modelEstimatedShort: "Estimé",
+  diffTitle: "points de pourcentage d'écart de rendement illustratif",
+  diffTitleShort: "écart de rendement illustratif",
+  creditRiskShort: "Risque",
+  diffSub: "Pas de frais de gestion de fonds ; les frais du courtier s'appliquent.",
+  footnote: "Comparaison illustrative. Rendements bruts, avant impôts et frais de transaction applicables. Les portefeuilles obligataires et les références ETF peuvent différer en duration, qualité de crédit, diversification et liquidité. Les rendements ne sont pas garantis.",
   cardTitleShort: "IA et choix manuel",
   illustrativeShort: "Exemple",
   lossRiskShort: "Risque modélisé",
@@ -159,6 +218,25 @@ const fr: LandingText = {
 };
 
 const de: LandingText = {
+  tagline: "Klügere Anleihenauswahl. Höhere potenzielle Rendite.",
+  cardTitleBench: "KI-Portfolio und durchschnittlicher Anleihen-ETF",
+  cardTitleBenchShort: "KI und Anleihen-ETF",
+  bench: "Illustrativer Anleihen-ETF-Benchmark",
+  benchShort: "Anleihen-ETF-Benchmark",
+  ai: "KI-ausgewähltes Portfolio",
+  aiShort: "KI-Auswahl",
+  grossYtm: "YTM brutto",
+  illGrossYtm: "illustrative YTM brutto",
+  creditRisk: "Kreditrisiko",
+  notMatched: "Nicht direkt vergleichbar",
+  notMatchedShort: "Nicht vergleichbar",
+  modelEstimated: "Modellgeschätzt",
+  modelEstimatedShort: "Geschätzt",
+  diffTitle: "Prozentpunkte illustrative Renditedifferenz",
+  diffTitleShort: "illustrative Renditedifferenz",
+  creditRiskShort: "Risiko",
+  diffSub: "Keine Fondsverwaltungsgebühr; Brokerkosten fallen an.",
+  footnote: "Illustrativer Vergleich. Bruttorenditen vor anfallenden Steuern und Handelskosten. Anleihenportfolios und ETF-Benchmarks können sich in Duration, Kreditqualität, Diversifikation und Liquidität unterscheiden. Renditen sind nicht garantiert.",
   cardTitleShort: "KI und Handauswahl",
   illustrativeShort: "Beispiel",
   lossRiskShort: "Modell-Risiko",

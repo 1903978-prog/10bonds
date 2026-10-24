@@ -19,10 +19,9 @@ export default async function AdminBenchmark() {
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
       <p className="text-sm"><Link href="/admin" className="text-accent">← Admin</Link></p>
-      <h1 className="mt-3 text-2xl font-semibold">ETF comparison</h1>
+      <h1 className="mt-3 text-2xl font-semibold">ETF benchmark</h1>
       <p className="mt-2 text-sm text-mute">
-        Shown in the first box above the top 10: the average return of euro corporate bond UCITS ETFs and their average risk,
-        next to the live 10bonds list. Customers see the date, never the source or the fund name. Refresh the figure at least monthly.
+        Shown in the first box above the top 10 as an illustrative EUR corporate bond ETF benchmark, next to the live 10bonds list. Customers see the value and date only, never the source, fund, provider or ISIN. Leave Verified off until methodology and data-use rights are confirmed. Refresh at least monthly.
       </p>
       {days > 30 && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="etf-stale">The figure is {days} days old: please refresh it.</p>}
       <AdminEtf initial={etf} />

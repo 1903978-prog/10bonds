@@ -26,11 +26,15 @@ export default function AdminEtf({ initial }: { initial: EtfBenchmark }) {
   };
   return (
     <div className="mt-6 space-y-4">
-      {field("ret", "Average return (per year), %", "e.g. 4.39")}
+      {field("ret", "Benchmark value: gross YTM, %", "e.g. 4.46")}
       {field("risk", "Average risk (10BONDS scale 1–10)", "BBB to BB is about 5 to 7, average about 6")}
       {field("riskRange", "Risk band shown in the tip", "e.g. 5–7")}
-      {field("asOf", "As of (YYYY-MM-DD)", "Date of the figure, shown to customers")}
-      {field("source", "Source", "e.g. the data provider and page the average comes from")}
+      {field("asOf", "Observation date (YYYY-MM-DD)", "Shown to customers")}
+      {field("source", "Source (admin only)", "Provider and page; never shown to customers")}
+      {field("methodology", "Methodology (admin only)", "How the figure is calculated")}
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={b.verified} onChange={(e) => setB({ ...b, verified: e.target.checked })} data-testid="etf-verified" /> Verified (methodology and data-use rights confirmed)
+      </label>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={b.on} onChange={(e) => setB({ ...b, on: e.target.checked })} data-testid="etf-on" /> Show the box
       </label>

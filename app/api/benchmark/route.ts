@@ -4,9 +4,11 @@ import { getEtf, parseEtf, setEtf } from "@/lib/etfBenchmark";
 
 export const dynamic = "force-dynamic";
 
-/** The ETF comparison figure for the results box. Public; the admin saves a new one with POST. */
+/** The ETF benchmark for the results box. Public without source and methodology; the admin saves a new one with POST. */
 export async function GET() {
-  return NextResponse.json(await getEtf(), { headers: { "Cache-Control": "public, max-age=300" } });
+  // Source and methodology stay with the admin.
+  const { source: _s, methodology: _m, ...pub } = await getEtf();
+  return NextResponse.json(pub, { headers: { "Cache-Control": "public, max-age=300" } });
 }
 
 export async function POST(req: Request) {

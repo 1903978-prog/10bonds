@@ -6,14 +6,17 @@ export type EtfBenchmark = {
   risk: number; // Average 10BONDS risk of the ETFs' bonds
   riskRange: string; // Risk band the ETFs cover, e.g. "5–7"
   asOf: string; // YYYY-MM-DD
-  source: string;
+  source: string; // Admin only, never shown to customers
+  methodology: string; // Admin only
+  verified: boolean; // False = provisional: customers always see it as an illustrative benchmark
   on: boolean;
 };
 
-// Figure given by the owner on 24/10/2026 (BBB to BB, so risk 5 to 7, average about 6). The source is shown to the admin only.
+// Provisional figure given by the owner on 24/10/2026. No provider, fund or ISIN is ever shown to customers.
 export const DEFAULT_ETF: EtfBenchmark = {
-  ret: 4.39, risk: 6, riskRange: "5–7", asOf: "2026-09-14",
-  source: "BlackRock iShares € Corp Bond BBB-BB UCITS ETF (IEBB), weighted-average YTM, observation date 14 Sep 2026", on: true,
+  ret: 4.46, risk: 6, riskRange: "5–7", asOf: "2026-09-29",
+  source: "Provisional figure given by the owner (24 Oct 2026)", methodology: "Gross yield to maturity of one EUR corporate bond ETF; not an average across ETFs",
+  verified: false, on: true,
 };
 
 const KEY = "etf_benchmark";
@@ -31,7 +34,9 @@ export function parseEtf(v: unknown): EtfBenchmark | null {
     risk: Math.round(risk * 10) / 10,
     riskRange: String(o.riskRange ?? "").slice(0, 12),
     asOf,
-    source: String(o.source ?? "").slice(0, 200),
+    source: String(o.source ?? "").slice(0, 300),
+    methodology: String(o.methodology ?? "").slice(0, 500),
+    verified: o.verified === true,
     on: o.on !== false,
   };
 }
