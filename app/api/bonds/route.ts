@@ -15,6 +15,9 @@ import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
 import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
+import { frontierFor } from "@/lib/frontierCache";
+import { exactFrontier } from "@/lib/exactFrontier";
+import { portfolioPool, withinRisk } from "@/lib/ranking";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +66,15 @@ export async function GET(req: Request) {
   const tryW = user?.isAdmin ? parseWeight(url.searchParams.get("rw")) : null;
   // The bonds and issuers this customer excluded never enter the list.
   const skip = own && has("blacklist") ? excludedBy(await exclusionsOrNone(user!.id)) : null;
-  const { results, band, engine } = await pickRanking(data.bonds, data.asOf, duration, ytm, risk, tryW, tryW !== null ? parseShifts(url.searchParams.get("rp")) : null, skip);
+  // A slider position (guard=1): the exact frontier's list for this target (lib/exactFrontier.ts), the one on the chart.
+  const filter = parseFilter(url.searchParams);
+  const { results, band, engine } = url.searchParams.get("guard") === "1"
+    ? {
+        results: (skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration) : frontierFor(data, filter, duration)).at(ytm)?.rows ?? [],
+        band: portfolioPool(withinRisk(data.bonds, LIMITS.risk.max), duration).band,
+        engine: { method: "current" as const, version: null, weight: 0, liveWeight: 0 },
+      }
+    : await pickRanking(data.bonds, data.asOf, duration, ytm, risk, tryW, tryW !== null ? parseShifts(url.searchParams.get("rp")) : null, skip);
   const outliers = user?.isAdmin
     ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
     : undefined;
