@@ -10,11 +10,11 @@ export * from "./heatMapGrid";
 const done = new Map<string, HeatMap>();
 const building = new Map<string, Promise<HeatMap>>();
 
-// Each methodology's efficient frontier for one horizon; null = not built yet (the map says so). Plug the spread-rules
-// frontier in here when it exists.
+// Each methodology's efficient frontier for one horizon (cached in lib/frontierCache.ts); null = not built (the map says so).
+// spread = the Methodology with spread rules (lib/stepGap.ts), admin only.
 export const FRONTIER_BY_METHOD: Record<HeatMethod, ((src: BondSource, f: BondFilter, duration: number) => Pick<ExactFrontier, "at">) | null> = {
   m1: frontierFor,
-  spread: null,
+  spread: (src, f, duration) => frontierFor(src, f, duration, "spread"),
 };
 
 const keyOf = (src: BondSource, f: BondFilter, m: HeatMethod) => `${m}|${frontierKey(src, f, 0)}`;
