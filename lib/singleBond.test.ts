@@ -35,7 +35,8 @@ describe("single bond curve", () => {
     expect(v.options).toHaveLength(1);
     expect(v.options[0].isin).toBeUndefined();
     expect(v.more).toBe(1);
-    expect(shapeCurve(c, "free").find((p) => p.level === 3)!.options[0].isin).toBeUndefined();
+    expect(shapeCurve(c, "free", false, false).find((p) => p.level === 3)!.options[0].isin).toBeUndefined();
+    expect(shapeCurve(c, "free").find((p) => p.level === 3)!.options[0].isin).toBe("A2");
     expect(shapeCurve(c, "plus").find((p) => p.level === 3)!.options[0].isin).toBe("A2");
     expect(shapeCurve(c, "plus").find((p) => p.level === 3)!.options[0].sp).toBeUndefined();
     expect(shapeCurve(c, "plus", true).find((p) => p.level === 3)!.options[0].sp).toBe("S&P A");

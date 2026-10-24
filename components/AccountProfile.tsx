@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ExclusionsCard from "./ExclusionsCard";
 import { useState } from "react";
 import { ManageButton, PlanButton } from "@/components/PlanButton";
 import { NEWSLETTER_TEXT, type NewsletterLang } from "@/lib/newsletterText";
@@ -106,6 +107,8 @@ export default function AccountProfile(p: Props) {
         </div>
         {sub?.status === "past_due" && <p className="mt-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">Your last payment failed. Please update your card under “Card and invoices”.</p>}
       </div>
+
+      <ExclusionsCard card={card} />
 
       <div className={card}>
         <h2 className="text-lg font-semibold">{sub ? "Change plan" : "Upgrade"}</h2>

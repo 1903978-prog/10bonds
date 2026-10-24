@@ -3,6 +3,7 @@ import { averages, RESULT_COUNT, UNRATED_NOTCH } from "./ranking";
 import { averageRisk, bondNotch, bondRisk } from "./ratings";
 import { bondLossChance, listLifeLoss, lossAdjustedYield } from "./expectedLoss";
 import { lifeYears } from "./lifeYears";
+import { defaultMatrix, featuresOf, type FeatureKey } from "./features";
 
 /** Rows a visitor without an account sees. A free account sees the full top 10, without ISINs. */
 export const VISITOR_VISIBLE = 3;
@@ -11,12 +12,12 @@ export type ResultRow = {
   rank: number;
   issuer: string;
   ytm: number;
-  // Free account and up.
+  // Signed-in accounts.
   duration?: number;
   risk?: number | null; // 10BONDS risk score 1..10, never an agency grade
   country?: string | null;
   minInvestment?: number | null;
-  // Paid only: never sent to visitors or free accounts.
+  // Plans with the "isin" feature only (lib/features.ts): never sent to the others.
   name?: string;
   isin?: string;
   coupon?: number | null;
@@ -31,13 +32,13 @@ export type ResultRow = {
   // Admin only: the data supplier's 52-week price low and high (never sent to anyone else: data supplier rights).
   low52w?: number | null;
   high52w?: number | null;
-  // Paid only, when the risk-adjusted ranking is on: the figures behind the rank (no agency grade).
+  // With "isin", when the risk-adjusted ranking is on: the figures behind the rank (no agency grade).
   why?: RiskWhy;
-  // Premium only: yield after expected losses, the score behind the "why in or out" table.
+  // With "why_table": yield after expected losses, the score behind the "why in or out" table.
   lossAdj?: number;
-  // Paid: chance in % the bond defaults before it matures (historical default table), for the list's KPI box.
+  // With "portfolio_sim": chance in % the bond defaults before it matures (historical default table), for the list's KPI box.
   pd?: number;
-  // Paid: years left until it matures (the horizon of pd), for the admin's calculation box.
+  // With "portfolio_sim": years left until it matures (the horizon of pd), for the admin's calculation box.
   life?: number;
 };
 
@@ -61,8 +62,15 @@ export type ResultsPayload = {
 /** Chance in % the bond defaults before it matures, rounded to 0.001. */
 export const pdOf = (b: PublicBond) => Math.round(bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, lifeYears(b)) * 1000) / 1000;
 
-/** Cut the ranked list down to what this tier may see. Done on the server so hidden data never reaches the browser. */
-export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
+/** Default features of a tier (tests and sample previews); live searches pass the admin's table (lib/planFeatures.ts). */
+export const tierFeatures = (tier: Tier): FeatureKey[] => (tier === "visitor" ? [] : featuresOf(defaultMatrix(), tier));
+
+/**
+ * Cut the ranked list down to what this tier and these features allow. Done on the server so hidden data never reaches
+ * the browser. Visitors see the first rows only; a signed-in account sees the full list, with ISINs ("isin") and the
+ * portfolio figures ("portfolio_sim") when its plan has them.
+ */
+export function shapeForTier(ranked: RankedBond[], tier: Tier, features: FeatureKey[] = tierFeatures(tier)): ResultsPayload {
   if (tier === "visitor") {
     return {
       tier,
@@ -71,22 +79,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       summary: null,
     };
   }
-  if (tier === "free") {
-    return {
-      tier,
-      rows: ranked.map((b) => ({
-        rank: b.rank,
-        issuer: b.issuer ?? b.name,
-        ytm: b.grossYtm!,
-        duration: b.modifiedDuration!,
-        risk: bondRisk(b),
-        country: b.country,
-        minInvestment: b.minInvestment ?? null,
-      })),
-      lockedCount: 0,
-      summary: null,
-    };
-  }
+  const has = new Set(features);
   const avg = averages(ranked);
   return {
     tier,
@@ -94,26 +87,23 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier): ResultsPayload {
       rank: b.rank,
       issuer: b.issuer ?? b.name,
       ytm: b.grossYtm!,
-      name: b.name,
-      isin: b.isin,
-      coupon: b.coupon,
-      maturity: b.maturity,
       duration: b.modifiedDuration!,
       risk: bondRisk(b),
       country: b.country,
       minInvestment: b.minInvestment ?? null,
-      pd: pdOf(b),
-      life: Math.round(lifeYears(b) * 100) / 100,
-      ...(whyOf(b) ? { why: whyOf(b) } : {}),
-      ...(tier === "premium" ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
+      ...(has.has("isin") ? { name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity, ...(whyOf(b) ? { why: whyOf(b) } : {}) } : {}),
+      ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100 } : {}),
+      ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
     })),
     lockedCount: 0,
-    summary: {
-      count: ranked.length,
-      avgYtm: avg.ytm,
-      avgDuration: avg.duration,
-      avgRisk: averageRisk(ranked.map(bondRisk)),
-      lifeLoss: ranked.length ? listLifeLoss(ranked.map(pdOf)) : null,
-    },
+    summary: has.has("portfolio_sim")
+      ? {
+          count: ranked.length,
+          avgYtm: avg.ytm,
+          avgDuration: avg.duration,
+          avgRisk: averageRisk(ranked.map(bondRisk)),
+          lifeLoss: ranked.length ? listLifeLoss(ranked.map(pdOf)) : null,
+        }
+      : null,
   };
 }

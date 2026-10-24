@@ -28,6 +28,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { MIX_START, MIX_STEPS, mixTarget } from "@/lib/mixSteps";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
+import type { FeatureKey } from "@/lib/features";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -38,7 +39,9 @@ type Response = ResultsPayload & {
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
-  alternatives?: AltRow[]; // Plus and up: bonds left out, to swap in
+  alternatives?: AltRow[]; // With "swap": bonds left out, to swap in
+  features?: FeatureKey[]; // What this plan includes (the admin's feature table)
+  excluded?: boolean; // The customer's excluded bonds and issuers were left out of this search
   outliers?: { sd: number; liveSd: number; count: number; liveCount: number };
   engine?: { method: string; version: string | null; weight: number; liveWeight: number; preview?: boolean; premiums?: Record<string, number> };
 };
@@ -64,6 +67,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [isAdmin, setIsAdmin] = useState(false);
   const [tuner, setTuner] = useState<TunerState>(TUNER_START);
   const [tunerSaved, setTunerSaved] = useState(0);
+  // Bumped when the customer excludes a bond or issuer, so the list is searched again without it.
+  const [excludedAt, setExcludedAt] = useState(0);
   useEffect(() => { loadMe().then((me) => setIsAdmin(!!me?.isAdmin)); }, []);
   const [mode, setMode] = useState<"portfolio" | "single">("portfolio");
   const [caps, setCaps] = useState<Record<string, Record<string, number | null>> | null>(null);
@@ -188,13 +193,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved]);
+  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
   useEffect(() => setList(null), [data]);
   const tier = data?.tier ?? "visitor";
-  const paid = tier === "plus" || tier === "premium";
+  // What this plan includes comes with each answer (the admin's feature table, /admin/features).
+  const features = new Set<FeatureKey>(data?.features ?? []);
+  const paid = features.has("portfolio_sim");
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
   const [chartOn, setChartOn] = useState(false);
   useEffect(() => { if (!chartOn) setPicked(false); }, [chartOn]);
@@ -202,7 +209,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Admin only: every horizon from 2 to 10 years on one chart, in place of the single curve.
   const [showAll, setShowAll] = useState(false);
   const [allCurves, setAllCurves] = useState<{ duration: number; points: CurvePoint[]; max: number }[] | null>(null);
-  const chartable = (paid || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
+  const chartable = (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
   useEffect(() => {
     if (!chartOn || !chartable) return;
     const ctrl = new AbortController();
@@ -443,7 +450,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             data={data}
             list={list}
             setList={setList}
-            paid={paid}
+            features={features}
+            onExcluded={() => setExcludedAt(Date.now())}
             signedIn={signedIn}
             whyQuery={whyQuery}
             currency={currency}
@@ -777,13 +785,16 @@ const DENSE_HEAD_H = 24;
 const DENSE_ROW_H = 22;
 const CARD_H = 64;
 
-function Results({ data, list, setList, paid, signedIn, currency, message, show, lang, whyQuery, dense = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; paid: boolean; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string; dense?: boolean }) {
+function Results({ data, list, setList, features, onExcluded, signedIn, currency, message, show, lang, whyQuery, dense = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; onExcluded: () => void; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string; dense?: boolean }) {
   // Dense: shorter rows, used under the chart so the chart and the 10 bonds fit one screen.
   const rowH = dense ? DENSE_ROW_H : ROW_H;
   const headH = dense ? DENSE_HEAD_H : HEAD_H;
   const t = useFinderText();
   const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
-  const premium = data?.tier === "premium";
+  // Each tool shows only when the plan has it (lib/features.ts).
+  const paid = features.has("isin");
+  const canSwap = features.has("swap");
+  const canExclude = features.has("blacklist");
   // The swap panel for one slot, drawn over the rows so nothing moves.
   const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | null>(null);
   useEffect(() => setPanel(null), [data]);
@@ -791,7 +802,7 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
     setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
     setPanel(null);
   };
-  const canEdit = paid && !show && !message && rows.length > 0;
+  const canEdit = (canSwap || canExclude) && !show && !message && rows.length > 0;
   // Premium: a bond from the "why in or out" table comes in, in place of the same issuer's bond, else the weakest one.
   const addFromWhy = (w: WhyRow) => {
     if (!data || rows.some((r) => r.isin === w.isin)) return;
@@ -900,7 +911,13 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
       {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
       {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
       {panel && data && canEdit && (
-        <SwapPanel row={rows[panel.slot]} options={swapOptions(rows[panel.slot], available(data, rows))} onPick={(b) => swapIn(panel.slot, b)} onClose={() => setPanel(null)} />
+        <SwapPanel
+          row={rows[panel.slot]}
+          options={canSwap ? swapOptions(rows[panel.slot], available(data, rows)) : null}
+          onPick={(b) => swapIn(panel.slot, b)}
+          onExclude={canExclude ? async (kind) => { if (await excludeRow(rows[panel.slot], kind)) { setPanel(null); onExcluded(); } } : undefined}
+          onClose={() => setPanel(null)}
+        />
       )}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
@@ -911,7 +928,7 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
 
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
       <div className="mt-2 flex h-7 items-center gap-2 overflow-hidden whitespace-nowrap">
-        {paid && rows.length > 0 ? (
+        {features.has("excel") && rows.length > 0 ? (
           <>
           <button
             type="button"
@@ -933,13 +950,13 @@ function Results({ data, list, setList, paid, signedIn, currency, message, show,
             </button>
           )}
           </>
-        ) : signedIn && !paid && rows.length > 0 ? (
+        ) : signedIn && !features.has("excel") && rows.length > 0 ? (
           <Link href="/pricing" className="flex min-w-0 items-center gap-3 text-xs">
             <span className="truncate text-mute">{t.plusPitch}</span>
             <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
           </Link>
         ) : null}
-        {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={premium && canEdit ? addFromWhy : undefined} />}
+        {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={features.has("add_left_out") && !show && !message ? addFromWhy : undefined} />}
       </div>
     </div>
   );
@@ -1060,10 +1077,28 @@ function PanelShell({ title, onClose, children }: { title: ReactNode; onClose: (
   );
 }
 
-function SwapPanel({ row, options, onPick, onClose }: { row: ResultRow; options: OutRow[]; onPick: (b: ResultRow) => void; onClose: () => void }) {
+/** Saves one exclusion of the customer (the bond, or its issuer). true when saved. */
+async function excludeRow(r: ResultRow, kind: "bond" | "issuer"): Promise<boolean> {
+  const body = kind === "bond" ? { kind, value: r.isin, label: `${r.issuer} · ${r.isin}` } : { kind, value: r.issuer, label: r.issuer };
+  const res = await fetch("/api/account/blacklist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+  return !!res?.ok;
+}
+
+/** One row's panel: similar bonds to swap in (with "swap"), and "never show" this bond or issuer (with "blacklist"). */
+function SwapPanel({ row, options, onPick, onExclude, onClose }: { row: ResultRow; options: OutRow[] | null; onPick: (b: ResultRow) => void; onExclude?: (kind: "bond" | "issuer") => void; onClose: () => void }) {
   const t = useFinderText();
   return (
-    <PanelShell title={t.swapTitle(row.issuer)} onClose={onClose}>
+    <PanelShell title={options ? t.swapTitle(row.issuer) : row.issuer} onClose={onClose}>
+      {onExclude && (
+        <div className="mb-1 flex h-7 shrink-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs" data-testid="exclude-line">
+          <span className="text-mute">{t.neverShow}</span>
+          {row.isin && <button type="button" onClick={() => onExclude("bond")} data-testid="exclude-bond" className="rounded-full border border-line px-2.5 py-0.5 font-medium hover:bg-canvas">{t.thisBond}</button>}
+          <button type="button" onClick={() => onExclude("issuer")} data-testid="exclude-issuer" className="rounded-full border border-line px-2.5 py-0.5 font-medium hover:bg-canvas">{t.thisIssuer}</button>
+          <Link href="/account#excluded" className="ml-auto truncate text-accent hover:underline">{t.myExclusions}</Link>
+        </div>
+      )}
+      {options === null ? null : (
+      <>
       <p className="mb-2 truncate text-xs text-mute">{t.swapHint}</p>
       {options.length === 0 ? (
         <p className="text-sm text-mute">{t.swapNone}</p>
@@ -1082,6 +1117,8 @@ function SwapPanel({ row, options, onPick, onClose }: { row: ResultRow; options:
             </li>
           ))}
         </ul>
+      )}
+      </>
       )}
     </PanelShell>
   );

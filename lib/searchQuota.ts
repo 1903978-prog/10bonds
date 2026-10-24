@@ -24,14 +24,17 @@ export function decideSearch(past: Date[], now: Date, limit: number | null, kind
   return { kind, limit, used: after.length, resetsAt: resetsAt(after), allowed: true, record: true };
 }
 
-export function limitFor(user: Pick<User, "plan" | "isAdmin">, kind: SearchKind): number | null {
+/** `unlimited`: what the admin's feature table says for this plan ("unlimited_single" / "unlimited_portfolio"); a plan
+ * without it gets the free allowance. Left out: the plan's own allowance in SEARCH_LIMITS. */
+export function limitFor(user: Pick<User, "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean): number | null {
   if (user.isAdmin) return null;
+  if (unlimited !== undefined) return unlimited ? null : SEARCH_LIMITS.free[kind];
   return SEARCH_LIMITS[user.plan][kind];
 }
 
 /** Checks and, when a new search starts, records it. Fails open (allowed) if the accounts database is unreachable. */
-export async function consumeSearch(user: Pick<User, "id" | "plan" | "isAdmin">, kind: SearchKind): Promise<Decision> {
-  const limit = limitFor(user, kind);
+export async function consumeSearch(user: Pick<User, "id" | "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean): Promise<Decision> {
+  const limit = limitFor(user, kind, unlimited);
   const { accountsSql } = await import("./accounts");
   try {
     const sql = await accountsSql();
