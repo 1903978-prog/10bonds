@@ -164,7 +164,8 @@ export const COMPARISONS: ComparisonDef[] = [
 export const comparisonById = (id: string) => COMPARISONS.find((c) => c.id === id);
 export const comparisonBySlug = (locale: Locale, slug: string) => COMPARISONS.find((c) => c.text[locale].slug === slug);
 
-export type ComparisonRow = { rank: number; issuer: string; ytm: number; duration: number; risk: number | null; maturityYear: number | null };
+// sp: the S&P grade, drawn for the admin only (never shown to customers).
+export type ComparisonRow = { rank: number; issuer: string; ytm: number; duration: number; risk: number | null; sp: string | null; maturityYear: number | null };
 export type ComparisonData = {
   def: ComparisonDef;
   bonds: number; // matching bonds
@@ -176,7 +177,7 @@ export type ComparisonData = {
   investmentGradeShare: number | null; // 0..1 of issuers
 };
 
-const toRow = (b: PublicBond, i: number): ComparisonRow => ({ rank: i + 1, issuer: b.issuer ?? b.name, ytm: b.grossYtm!, duration: b.modifiedDuration!, risk: bondRisk(b), maturityYear: year(b) });
+const toRow = (b: PublicBond, i: number): ComparisonRow => ({ rank: i + 1, issuer: b.issuer ?? b.name, ytm: b.grossYtm!, duration: b.modifiedDuration!, risk: bondRisk(b), sp: b.ratingSp?.trim() || null, maturityYear: year(b) });
 
 /** One bond per issuer (the site's own rule), highest yield first. */
 function perIssuer(bonds: PublicBond[]): PublicBond[] {

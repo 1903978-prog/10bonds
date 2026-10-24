@@ -68,9 +68,9 @@ export const tierFeatures = (tier: Tier): FeatureKey[] => (tier === "visitor" ? 
 /**
  * Cut the ranked list down to what this tier and these features allow. Done on the server so hidden data never reaches
  * the browser. Visitors see the first rows only; a signed-in account sees the full list, with ISINs ("isin") and the
- * portfolio figures ("portfolio_sim") when its plan has them.
+ * portfolio figures ("portfolio_sim") when its plan has them. `admin`: also each bond's S&P grade (the owner only).
  */
-export function shapeForTier(ranked: RankedBond[], tier: Tier, features: FeatureKey[] = tierFeatures(tier)): ResultsPayload {
+export function shapeForTier(ranked: RankedBond[], tier: Tier, features: FeatureKey[] = tierFeatures(tier), admin = false): ResultsPayload {
   if (tier === "visitor") {
     return {
       tier,
@@ -93,6 +93,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
       minInvestment: b.minInvestment ?? null,
       ...(has.has("isin") ? { name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity, ...(whyOf(b) ? { why: whyOf(b) } : {}) } : {}),
       ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100 } : {}),
+      ...(admin ? { sp: b.ratingSp?.trim() || null } : {}),
       ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
     })),
     lockedCount: 0,

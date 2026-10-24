@@ -18,6 +18,7 @@ export type Position = {
   ytm: number;
   duration: number;
   risk: number | null;
+  sp?: string | null; // S&P grade: added for the admin only (app/api/pro/replace)
 };
 
 export type CurvePoint = { risk: number; best: number; typical: number; count: number };

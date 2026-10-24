@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CurvePoint } from "@/lib/lossCurve";
+import { useBoxSize } from "@/components/useBoxSize";
 
 /** The chart starts at this target yield; lower targets are not shown. */
 const X_START = 3;
@@ -32,12 +33,12 @@ export function curveSlopes(shown: CurvePoint[]) {
 /**
  * Expected loss on your money against the target average yield, with a dot for the current target and a second curve:
  * how much more expected loss one extra point of yield costs (dashed line, no axis; read it on hover). Hovering shows the
- * exact target, expected loss and slope at that point. Drawn in the same box as the results table, so it keeps the
- * table's size and nothing around it moves.
+ * exact target, expected loss and slope at that point. It fills the box it is put in, drawn at the box's real pixel size.
  */
-export default function LossChart({ points, max, current, loss, xLabel, yLabel, slopeLabel, hoverText, compact = false, onPick }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; slopeLabel: string; hoverText: string; compact?: boolean; onPick?: (ytm: number) => void }) {
-  // Compact is the short chart above the 10 bonds: same drawing, less height.
-  const W = 800, H = compact ? 200 : 360, L = compact ? 64 : 56, R = 16, T = 12, B = 44;
+export default function LossChart({ points, max, current, loss, xLabel, yLabel, slopeLabel, hoverText, onPick }: { points: CurvePoint[] | null; max: number; current: number; loss: number | null; xLabel: string; yLabel: string; slopeLabel: string; hoverText: string; onPick?: (ytm: number) => void }) {
+  const [box, size] = useBoxSize<HTMLDivElement>();
+  const F = size.w < 520 ? 12 : 14; // font size in px
+  const W = size.w, H = size.h, L = F * 5, R = 16, T = 14, B = F * 4;
   const shown = shownPoints(points);
   const x0 = X_START, x1 = Math.max(max, x0 + 0.5);
   const yMax = Math.max(0.01, ...shown.map((p) => p.loss), loss ?? 0) * 1.1;
@@ -71,34 +72,36 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
   const h = hover !== null ? shown[hover] : null;
   const hs = hover === null ? 0 : slopes[hover];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`${yLabel} / ${xLabel}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={() => { if (onPick && h) onPick(h.ytm); }} style={onPick ? { cursor: "pointer" } : undefined}>
+    <div ref={box} className="h-full w-full overflow-hidden">
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" role="img" aria-label={`${yLabel} / ${xLabel}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={() => { if (onPick && h) onPick(h.ytm); }} style={onPick ? { cursor: "pointer" } : undefined}>
       {yTicks.map((v) => (
         <g key={`y${v}`}>
           <line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#e5e5ea" />
-          <text x={L - 10} y={Y(v) + 4} textAnchor="end" className="fill-[#86868b] text-[12px]">{v.toFixed(2)}%</text>
+          <text x={L - 10} y={Y(v) + 4} textAnchor="end" fontSize={F} className="fill-[#86868b]">{v.toFixed(2)}%</text>
         </g>
       ))}
       {xTicks.map((v) => (
-        <text key={`x${v}`} x={X(v)} y={H - B + 18} textAnchor="middle" className="fill-[#86868b] text-[12px]">{v.toFixed(1)}%</text>
+        <text key={`x${v}`} x={X(v)} y={H - B + F + 8} textAnchor="middle" fontSize={F} className="fill-[#86868b]">{v.toFixed(1)}%</text>
       ))}
-      <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" className="fill-[#86868b] text-[12px]">{xLabel}</text>
-      <text x={compact ? 10 : 20} y={H / 2} textAnchor="middle" transform={`rotate(-90 ${compact ? 10 : 20} ${H / 2})`} className="fill-[#86868b] text-[12px]">{yLabel}</text>
-      <g data-testid="loss-chart-legend" className="text-[12px]">
-        <line x1={L + 8} x2={L + 28} y1={T + 12} y2={T + 12} stroke="#0066cc" strokeWidth={2.5} />
-        <text x={L + 34} y={T + 16} className="fill-[#1d1d1f]">{yLabel}</text>
-        <line x1={L + 8} x2={L + 28} y1={T + 30} y2={T + 30} stroke="#86868b" strokeWidth={1.5} strokeDasharray="5 4" />
-        <text x={L + 34} y={T + 34} className="fill-[#1d1d1f]">{slopeLabel}</text>
+      <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" fontSize={F} className="fill-[#86868b]">{xLabel}</text>
+      <text x={F} y={(T + H - B) / 2} textAnchor="middle" transform={`rotate(-90 ${F} ${(T + H - B) / 2})`} fontSize={F} className="fill-[#86868b]">{yLabel}</text>
+      <g data-testid="loss-chart-legend" fontSize={F}>
+        <line x1={L + 8} x2={L + 32} y1={T + 10} y2={T + 10} stroke="#0066cc" strokeWidth={3} />
+        <text x={L + 40} y={T + 10 + F / 3} className="fill-[#1d1d1f]">{yLabel}</text>
+        <line x1={L + 8} x2={L + 32} y1={T + 16 + F} y2={T + 16 + F} stroke="#86868b" strokeWidth={1.5} strokeDasharray="5 4" />
+        <text x={L + 40} y={T + 16 + F + F / 3} className="fill-[#1d1d1f]">{slopeLabel}</text>
       </g>
       {slopePath && <path d={slopePath} fill="none" stroke="#86868b" strokeWidth={1.5} strokeDasharray="5 4" />}
-      {path && <path d={path} fill="none" stroke="#0066cc" strokeWidth={2.5} />}
-      {loss !== null && <circle cx={X(current)} cy={Y(loss)} r={6} fill="#0066cc" stroke="#fff" strokeWidth={2} />}
+      {path && <path d={path} fill="none" stroke="#0066cc" strokeWidth={3} strokeLinejoin="round" />}
+      {loss !== null && <circle cx={X(current)} cy={Y(loss)} r={7} fill="#0066cc" stroke="#fff" strokeWidth={2} />}
       {h && hover !== null && (
         <g pointerEvents="none">
           <line x1={X(h.ytm)} x2={X(h.ytm)} y1={T} y2={H - B} stroke="#86868b" strokeDasharray="2 3" />
           <circle cx={X(h.ytm)} cy={Y(h.loss)} r={4} fill="#0066cc" />
-          <text x={L + 8} y={H - B - 10} className="fill-[#1d1d1f] text-[13px]">{hoverText.replace("{y}", h.ytm.toFixed(2)).replace("{l}", h.loss.toFixed(2)).replace("{s}", hs.toFixed(2))}</text>
+          <text x={L + 8} y={H - B - 10} fontSize={F} className="fill-[#1d1d1f]">{hoverText.replace("{y}", h.ytm.toFixed(2)).replace("{l}", h.loss.toFixed(2)).replace("{s}", hs.toFixed(2))}</text>
         </g>
       )}
     </svg>
+    </div>
   );
 }

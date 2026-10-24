@@ -22,6 +22,7 @@ export type DropRow = {
   name: string;
   currency: string;
   risk: number;
+  sp: string | null; // S&P grade: this page is admin only
   maturity: string | null;
   coupon: number | null;
   price: number;
@@ -99,7 +100,7 @@ export function computeRows(bonds: PublicBond[], h: History): DropRow[] {
     const today = (b.ytmAsOf ?? new Date().toISOString()).slice(0, 10);
     const series = h.daily.get(b.isin);
     rows.push({
-      isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, maturity: b.maturity, coupon: b.coupon, price, ytm: b.grossYtm,
+      isin: b.isin, issuer: b.issuer ?? b.name, name: b.name, currency: b.currency, risk, sp: b.ratingSp?.trim() || null, maturity: b.maturity, coupon: b.coupon, price, ytm: b.grossYtm,
       min52w, max52w,
       vsMax: pct(price, max52w),
       vsMin: pct(price, min52w),

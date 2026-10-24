@@ -7,7 +7,7 @@ import { lifeYears } from "./lifeYears";
 
 /** A bond left out of the top 10 that could take a place in it: Plus swaps it in. */
 export type AltRow = Required<Pick<ResultRow, "issuer" | "ytm" | "name" | "isin" | "duration">> &
-  Pick<ResultRow, "risk" | "coupon" | "maturity" | "country" | "minInvestment" | "pd" | "life"> & { adjYtm?: number };
+  Pick<ResultRow, "risk" | "sp" | "coupon" | "maturity" | "country" | "minInvestment" | "pd" | "life"> & { adjYtm?: number };
 
 export const MAX_ALTERNATIVES = 40;
 
@@ -16,7 +16,7 @@ export const MAX_ALTERNATIVES = 40;
  * risk limit), best yield after expected losses first. `withScore` adds the yield after losses (Premium, to pick the
  * bond an added one replaces).
  */
-export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], duration: number, risk: number, withScore: boolean, max = MAX_ALTERNATIVES): AltRow[] {
+export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], duration: number, risk: number, withScore: boolean, max = MAX_ALTERNATIVES, admin = false): AltRow[] {
   if (!chosen.length) return [];
   const { pool } = portfolioPool(withinRisk(bonds, risk), duration);
   const inList = new Set(chosen.map((b) => b.isin));
@@ -38,6 +38,7 @@ export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], durat
       ytm: b.grossYtm!,
       duration: b.modifiedDuration!,
       risk: bondRisk(b),
+      ...(admin ? { sp: b.ratingSp?.trim() || null } : {}),
       coupon: b.coupon,
       maturity: b.maturity,
       country: b.country,

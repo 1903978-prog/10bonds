@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { parseFilter } from "@/lib/bondFilter";
 import { currentUser } from "@/lib/currentUser";
+import { featuresFor } from "@/lib/planFeatures";
 import { TERMS } from "@/lib/limits";
 import { sliderFor } from "@/lib/sliderCache";
 
@@ -9,7 +10,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * The 30 positions of the "Return & risk" slider for a horizon and bond filter: what each one searches.
- * Everyone gets the risk limit and target to search; the admin also gets the figures and ISINs (the check table).
+ * Everyone gets the risk limit and target to search; plans with the chart ("loss_chart") also get each position's return
+ * and expected loss (the 30 dots of the chart); the admin also gets the other figures and ISINs (the check table).
  * 202 while the positions are still being worked out.
  */
 export async function GET(req: Request) {
@@ -26,8 +28,9 @@ export async function GET(req: Request) {
   }
   if (!out.positions) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
   const user = await currentUser().catch(() => null);
+  const chart = !user?.isAdmin && (await featuresFor(user).catch(() => null))?.includes("loss_chart") === true;
   const positions = user?.isAdmin
     ? out.positions
-    : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable }));
+    : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable, ...(chart ? { ytm: p.ytm, expectedLoss: p.expectedLoss } : {}) }));
   return NextResponse.json({ positions }, { headers: { "Cache-Control": "private, max-age=300" } });
 }

@@ -59,7 +59,7 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
     [f.issueDate, b.issueDate ? fmtDay(l, b.issueDate) : "–"],
     [f.callable, callableLabel(l, b.callable)],
     [t.minimum, fmtMin(b.minInvestment, b.currency)],
-    [t.risk, <RiskBadge key="r" risk={risk} />],
+    [t.risk, <RiskBadge key="r" risk={risk} sp={user?.isAdmin === true ? b.ratingSp?.trim() || null : undefined} />],
   ];
 
   const card = "rounded-2xl bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5";

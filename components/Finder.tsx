@@ -12,6 +12,7 @@ import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import LossChart, { slopeAt } from "@/components/LossChart";
 import AllCurvesChart from "@/components/AllCurvesChart";
+import SliderCurveChart from "@/components/SliderCurveChart";
 import { nearestLoss } from "@/lib/lossCurve";
 import type { CurvePoint } from "@/lib/lossCurve";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
@@ -103,11 +104,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The highest yield available at each horizon and risk level, loaded once, so the yield slider follows both at once.
   const capFor = (d: number, r: number) => caps?.[String(r)]?.[String(Math.round(d * 100) / 100)] ?? LIMITS.ytm.max;
   const ytmMax = capFor(duration, risk);
-  // With the chart open, a click on a dot sets the target to that point and shows its 10 bonds below the chart.
-  const [picked, setPicked] = useState(false);
+  // With the chart open (Advanced), a click on the curve sets the target to that point; its 10 bonds show beside the chart.
   const pickYtm = (y: number) => {
+    setTouched(true);
     setYtm(Math.min(ytmMax, Math.max(LIMITS.ytm.min, Math.round(y * 100) / 100)));
-    setPicked(true);
   };
   // The highest risk level that has bonds at each horizon: the risk slider stops there (no risk-7 bonds = 6 to 1).
   const [maxRisk, setMaxRisk] = useState<Record<string, number | null> | null>(null);
@@ -305,12 +305,20 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const paid = features.has("portfolio_sim");
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
   const [chartOn, setChartOn] = useState(false);
-  useEffect(() => { if (!chartOn) setPicked(false); }, [chartOn]);
   const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
   // Admin only: every horizon from 2 to 10 years on one chart, in place of the single curve.
   const [showAll, setShowAll] = useState(false);
   const [allCurves, setAllCurves] = useState<{ duration: number; points: CurvePoint[]; max: number }[] | null>(null);
   const chartable = (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
+  // Chart mode (Livio 24/10): the chart takes the place of the controls on the left, the 10 bonds sit on the right.
+  // It stays on while a new list loads, so nothing jumps between searches.
+  const curveMode = chartOn && (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data;
+  // The height of the page with the controls showing: chart mode keeps it, so the page never grows or scrolls.
+  const pageBox = useRef<HTMLDivElement>(null);
+  const [pageH, setPageH] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!curveMode && pageBox.current) setPageH(pageBox.current.offsetHeight);
+  });
   useEffect(() => {
     if (!chartOn || !chartable) return;
     const ctrl = new AbortController();
@@ -347,11 +355,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   return (
     <FinderLangContext.Provider value={lang}>
-    <div className="finder-wide grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
+    <div ref={pageBox} className={`finder-wide grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:gap-5 ${curveMode ? "" : "lg:grid-cols-[340px_minmax(0,1fr)]"}`}>
       {/* Inputs */}
       {/* On phones the mode tabs sit on top so they never move; in 1-bond mode the title and the two portfolio
           sliders give way so slider, options, curve and bond name fit on one screen. */}
-      <section className="flex flex-col rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] max-sm:py-4 sm:p-6">
+      <section className={`flex flex-col rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] max-sm:py-4 sm:p-6 ${curveMode ? "lg:hidden" : ""}`}>
         <div className={mode === "single" ? "max-lg:hidden" : "max-lg:mt-3"}>
         <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
           {t.h1}
@@ -534,7 +542,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </section>
       ) : (
       // On phones this box gives way to the full-screen results page (PhoneResults), so the slider page never scrolls down to it.
-      <section ref={resultsBox} className="relative hidden flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:flex sm:p-5">
+      <section
+        ref={resultsBox}
+        className={`relative hidden flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:flex sm:p-5 ${curveMode ? "lg:min-h-[var(--page-h)]" : ""}`}
+        style={pageH ? { ["--page-h" as string]: `${pageH}px` } : undefined}
+      >
         {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
         {!touched && (
           <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
@@ -542,14 +554,69 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
-        {chartOn && chartable ? (
-          // With the chart on, the same row shows the chart's three numbers: the target, the expected loss and the extra loss per +1 point.
-          <div className="grid grid-cols-3 gap-2">
-            <Stat value={pct(ytm)} label={t.chartX} />
-            <Stat value={curve ? pct(data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
-            <Stat value={curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
+        {curveMode ? (
+          // Chart mode: the chart on the left, filling its half of the page; the three numbers and the 10 bonds on the right.
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-5" data-testid="curve-mode">
+            <div className="flex min-h-[340px] min-w-0 flex-col">
+              <div className="mb-1 flex h-7 justify-end">
+                {chartable && (
+                  <div className="flex justify-end gap-2">
+                    {chartOn && isAdmin && (
+                      <button type="button" onClick={() => setShowAll((v) => !v)} data-testid="all-curves-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
+                        {showAll ? "One curve" : "See all curves"}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setChartOn((v) => !v)} data-testid="loss-chart-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
+                      {chartOn ? t.chartOff : t.chartOn}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="relative min-h-0 flex-1" data-testid="loss-chart">
+                {showAll && isAdmin ? (
+                  allCurves && <AllCurvesChart curves={allCurves} xLabel={t.chartX} yLabel={t.chartY} yearsLabel="yrs" />
+                ) : simple ? (
+                  positions?.some((p) => p.ytm != null) && (
+                    <SliderCurveChart positions={positions} current={mix} onPick={changeMix} xLabel={t.chartX} yLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
+                  )
+                ) : (
+                  curve && <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
+                )}
+              </div>
+            </div>
+            <div className={`flex min-w-0 flex-col transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+              <div className="grid grid-cols-3 gap-2">
+                <Stat value={pct(summary?.avgYtm ?? ytm)} label={t.chartX} />
+                <Stat value={summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : curve ? pct(nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
+                <Stat value={simple ? positionSlope(positions, mix) : curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
+              </div>
+              <div className="relative mt-3">
+                <Results
+                  narrow
+                dense
+                show={show}
+                lang={lang}
+                data={data}
+                list={list}
+                setList={setList}
+                features={features}
+                onExcluded={() => setExcludedAt(Date.now())}
+                signedIn={signedIn}
+                whyQuery={whyQuery}
+                currency={currency}
+                message={
+                  limit ? <LimitReached quota={limit} />
+                  : error ? <p className="text-sm text-mute">{error}</p>
+                  : data && data.rows.length === 0 ? <p className="text-sm text-mute">{t.none}</p>
+                  : null
+                }
+              />
+              </div>
+              <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
+            </div>
           </div>
         ) : (
+        <>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
@@ -557,7 +624,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
-        )}
         <div className="mt-1.5 h-4">
           {data && !paid && (
             <Link href={lockTo.href} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline" data-testid="avg-unlock">
@@ -582,19 +648,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
             )}
           </div>
-          <div className="relative">
-          {chartOn && chartable && (
-            <div className="relative h-[200px] bg-white" data-testid="loss-chart">
-              {showAll && isAdmin && allCurves ? (
-                <AllCurvesChart curves={allCurves} xLabel={t.chartX} yLabel={t.chartY} yearsLabel="yrs" />
-              ) : curve && !(showAll && isAdmin) ? (
-                <LossChart compact points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
-              ) : null}
-            </div>
-          )}
-          <div className={chartOn && chartable && !picked ? "invisible" : undefined}>
           <Results
-            dense={chartOn && chartable}
+            dense={false}
             show={show}
             lang={lang}
             data={data}
@@ -612,13 +667,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               : null
             }
           />
-          </div>
-          {chartOn && chartable && !picked && (
-            <p className="pointer-events-none absolute inset-x-0 bottom-0 top-[200px] flex items-center justify-center text-sm text-mute" data-testid="chart-pick-hint">{t.chartPick}</p>
-          )}
-          </div>
           <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
         </div>
+        </>
+        )}
 
         <div className="mt-auto pt-2">
           {data?.source === "live" && isStale(data.asOf) ? (
@@ -670,6 +722,17 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   );
 }
 
+/** Extra expected loss per +1 point of return around this slider position (between its neighbouring portfolios). */
+function positionSlope(positions: SliderPosition[] | null, at: number): string {
+  const pts = (positions ?? []).filter((p) => !p.unavailable && !p.sameAs && p.ytm != null && p.expectedLoss != null);
+  if (pts.length < 2) return "—";
+  const here = positions?.[at - 1];
+  const root = here?.sameAs ?? at;
+  const i = Math.max(0, pts.findIndex((p) => p.position === root));
+  const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+  return b.ytm === a.ytm ? "—" : ((b.expectedLoss! - a.expectedLoss!) / (b.ytm! - a.ytm!)).toFixed(2);
+}
+
 /** Admin only (Livio): the expected loss on your money worked out bond by bond, in the yellow admin style. */
 function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
   if (!rows.length || rows.some((r) => r.pd == null)) return null;
@@ -683,7 +746,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
           {rows.map((r, i) => (
             <tr key={r.isin ?? i}>
               <td className="pr-2">{i + 1}. {r.issuer}</td>
-              <td className="pr-2 text-right">risk {r.risk ?? "–"}</td>
+              <td className="pr-2 text-right">risk {r.risk ?? "–"}{r.sp !== undefined && <> · S&amp;P {r.sp ?? "–"}</>}</td>
               <td className="pr-2 text-right">{r.life != null ? `${r.life.toFixed(1)} yrs` : "–"}</td>
               <td className="pr-2 text-right">default {pct(r.pd!)}</td>
               <td className="pr-2 text-right">× {LOSS_GIVEN_DEFAULT * 100}% = {pct(r.pd! * LOSS_GIVEN_DEFAULT)}</td>
@@ -1090,8 +1153,9 @@ const DENSE_HEAD_H = 24;
 const DENSE_ROW_H = 22;
 const CARD_H = 64;
 
-function Results({ data, list, setList, features, onExcluded, signedIn, currency, message, show, lang, whyQuery, dense = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; onExcluded: () => void; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string; dense?: boolean }) {
-  // Dense: shorter rows, used under the chart so the chart and the 10 bonds fit one screen.
+function Results({ data, list, setList, features, onExcluded, signedIn, currency, message, show, lang, whyQuery, dense = false, narrow = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; onExcluded: () => void; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string; dense?: boolean; narrow?: boolean }) {
+  // Dense: shorter rows, used beside the chart so the chart and the 10 bonds fit one screen. Narrow: half-width list
+  // beside the chart, without the bond name and minimum columns (the issuer, return, duration and risk stay).
   const rowH = dense ? DENSE_ROW_H : ROW_H;
   const headH = dense ? DENSE_HEAD_H : HEAD_H;
   const t = useFinderText();
@@ -1127,11 +1191,11 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       <table className="hidden w-full table-fixed text-sm sm:table">
         <colgroup>
           <col className="w-9" />
-          <col className="w-[24%]" />
-          <col />
-          <col className="w-[6.5rem]" />
-          <col className="w-[6.5rem]" />
-          <col className="w-[9rem]" />
+          {narrow ? <col /> : <col className="w-[24%]" />}
+          {!narrow && <col />}
+          <col className={narrow ? "w-[4.75rem]" : "w-[6.5rem]"} />
+          <col className={narrow ? "w-[3.5rem]" : "w-[6.5rem]"} />
+          {!narrow && <col className="w-[9rem]" />}
           <col className="w-[5rem]" />
           <col className="w-8" />
           <col className="w-8" />
@@ -1140,10 +1204,10 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           <tr className="border-b border-line text-left text-xs text-mute" style={{ height: headH }}>
             <th className="py-0 pl-2 font-medium">#</th>
             <th className="truncate py-0 pr-3 font-medium">{t.issuer}</th>
-            <th className="truncate py-0 pr-3 font-medium">{t.bond}</th>
-            <th className="truncate px-3 py-0 text-center font-medium">{t.yield}</th>
-            <th className="truncate px-3 py-0 text-center font-medium">{t.duration}</th>
-            <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>
+            {!narrow && <th className="truncate py-0 pr-3 font-medium">{t.bond}</th>}
+            <th className={`truncate ${narrow ? "px-1" : "px-3"} py-0 text-center font-medium`}>{t.yield}</th>
+            <th className={`truncate ${narrow ? "px-1" : "px-3"} py-0 text-center font-medium`}>{t.duration}</th>
+            {!narrow && <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>}
             <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
             <th aria-label={t.swap} />
             <th aria-label={t.exclude} />
@@ -1154,7 +1218,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: rowH }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={r.issuer}>{r.issuer}</td>
-              <td className="overflow-hidden py-0 pr-3">
+              {!narrow && <td className="overflow-hidden py-0 pr-3">
                 {paid ? (
                   <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
                 ) : signedIn ? (
@@ -1162,11 +1226,11 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
                 ) : (
                   <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
-              </td>
-              <td className="px-3 py-0 text-center font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
-              <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
-              <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
-              <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
+              </td>}
+              <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center font-semibold tabular-nums`} title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
+              <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
+              {!narrow && <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>}
+              <td className="px-1 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
               <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
@@ -1174,14 +1238,14 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           {Array.from({ length: locked }).map((_, i) => (
             <tr key={`l${i}`} aria-hidden className={`select-none border-b border-line/60 blur-[5px]${hide(rows.length + i)}`} style={{ height: rowH }}>
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
-              <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
+              <td colSpan={narrow ? 3 : 5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
               <td />
               <td />
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={9} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={narrow ? 7 : 9} /></tr>
           ))}
         </tbody>
       </table>
@@ -1195,9 +1259,9 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <div className="truncate font-medium">{r.issuer}</div>
               <div className="truncate text-xs leading-relaxed text-mute">
                 {paid
-                  ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} />{r.minInvestment != null && <> · min {fmtMin(r.minInvestment, currency)}</>}</>
+                  ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} sp={r.sp} />{r.minInvestment != null && <> · min {fmtMin(r.minInvestment, currency)}</>}</>
                   : signedIn
-                    ? <>{r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} /> · {t.isinPlus}</>
+                    ? <>{r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} sp={r.sp} /> · {t.isinPlus}</>
                     : t.detailsFree}
               </div>
             </div>
@@ -1305,7 +1369,10 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
   };
   const mc = data?.monteCarlo;
   const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
-  const cols = "grid grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem] items-center gap-x-1.5";
+  // The admin's risk column also holds the S&P slot (fixed width either way, so nothing moves when results arrive).
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
+  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
   return (
     <div
       role="dialog"
@@ -1354,7 +1421,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
                 <div className="truncate text-[11px] leading-tight text-mute">{paid ? r.isin : signedIn ? t.isinPlus : t.detailsFree}</div>
               </div>
               <span className="text-right text-[13px] tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</span>
-              <span className="text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</span>
+              <span className="text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
               <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
               <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
@@ -1610,7 +1677,7 @@ function SwapPanel({ row, options, onPick, onExclude, onClose }: { row: ResultRo
               </div>
               <span className="w-14 text-right font-semibold tabular-nums">{pct(b.ytm)}</span>
               <span className="hidden w-12 text-right tabular-nums sm:inline">{b.duration?.toFixed(1)}</span>
-              <span className="w-8 text-center"><RiskBadge risk={b.risk} /></span>
+              <span className={`${b.sp !== undefined ? "w-[4.5rem]" : "w-8"} text-center`}><RiskBadge risk={b.risk} sp={b.sp} /></span>
               <button type="button" onClick={() => onPick(b)} className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90">{t.swapPick}</button>
             </li>
           ))}
