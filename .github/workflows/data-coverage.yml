@@ -39,3 +39,10 @@ jobs:
           else
             echo "no lr_score column yet"
           fi
+          echo "== livio_rating / livio_rating_basis / lr_version filled, and samples"
+          for c in livio_rating livio_rating_basis lr_version lr_as_of; do
+            if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
+              echo "-- $c"; q "select currency, count(*), count($c) from public_bonds group by 1 order by 2 desc limit 3"
+              q "select $c::text, count(*) from public_bonds group by 1 order by 2 desc limit 12"
+            fi
+          done
