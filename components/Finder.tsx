@@ -430,7 +430,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
         {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
-        <GuideTips lang={lang} only={simple ? (mode === "portfolio" ? ["horizon", "return"] : ["horizon"]) : mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
+        <GuideTips lang={lang} simple={simple} only={simple ? (mode === "portfolio" ? ["horizon", "return"] : ["horizon"]) : mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
         {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
         {/* Shows the list for the choices above (in place of the frontier chart) and brings it into view on phones.
             In 1-bond mode it stays in place, hidden, so nothing moves. */}

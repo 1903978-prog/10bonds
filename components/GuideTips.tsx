@@ -11,8 +11,12 @@ import type { FinderLang } from "@/lib/finderText";
 const KEY = "tb_tips";
 type Step = { tip: string; title: string; body: string };
 
-const TEXT: Record<FinderLang, { steps: Step[]; next: string; done: string; skip: string }> = {
+const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; next: string; done: string; skip: string }> = {
   en: {
+    simple: [
+      { tip: "horizon", title: "1. Choose the term", body: "Short, medium or long term." },
+      { tip: "return", title: "2. Set risk versus return", body: "One slider: lower risk on the left, higher return potential on the right." },
+    ],
     steps: [
       { tip: "currency", title: "1. Select the currency", body: "Euro or US dollar bonds." },
       { tip: "size", title: "2. Choose the bond size", body: "The minimum order. 1k–10k keeps bonds you can buy with small amounts." },
@@ -23,6 +27,10 @@ const TEXT: Record<FinderLang, { steps: Step[]; next: string; done: string; skip
     next: "Next", done: "Got it", skip: "Skip",
   },
   it: {
+    simple: [
+      { tip: "horizon", title: "1. Scegli la durata", body: "Breve, medio o lungo termine." },
+      { tip: "return", title: "2. Imposta rischio e rendimento", body: "Un solo cursore: rischio più basso a sinistra, rendimento potenziale più alto a destra." },
+    ],
     steps: [
       { tip: "currency", title: "1. Scegli la valuta", body: "Obbligazioni in euro o in dollari USA." },
       { tip: "size", title: "2. Scegli il taglio", body: "L'importo minimo. 1k–10k tiene le obbligazioni acquistabili con piccole somme." },
@@ -33,6 +41,10 @@ const TEXT: Record<FinderLang, { steps: Step[]; next: string; done: string; skip
     next: "Avanti", done: "Ho capito", skip: "Salta",
   },
   fr: {
+    simple: [
+      { tip: "horizon", title: "1. Choisissez la durée", body: "Court, moyen ou long terme." },
+      { tip: "return", title: "2. Réglez risque et rendement", body: "Un seul curseur : risque plus faible à gauche, rendement potentiel plus élevé à droite." },
+    ],
     steps: [
       { tip: "currency", title: "1. Choisissez la devise", body: "Obligations en euros ou en dollars US." },
       { tip: "size", title: "2. Choisissez la coupure", body: "Le montant minimum. 1k–10k garde les obligations accessibles avec de petites sommes." },
@@ -43,6 +55,10 @@ const TEXT: Record<FinderLang, { steps: Step[]; next: string; done: string; skip
     next: "Suivant", done: "Compris", skip: "Passer",
   },
   de: {
+    simple: [
+      { tip: "horizon", title: "1. Laufzeit wählen", body: "Kurz-, mittel- oder langfristig." },
+      { tip: "return", title: "2. Risiko und Rendite einstellen", body: "Ein Regler: geringeres Risiko links, höheres Renditepotenzial rechts." },
+    ],
     steps: [
       { tip: "currency", title: "1. Währung wählen", body: "Anleihen in Euro oder US-Dollar." },
       { tip: "size", title: "2. Stückelung wählen", body: "Die Mindestanlage. 1k–10k zeigt Anleihen, die mit kleinen Beträgen kaufbar sind." },
@@ -56,10 +72,11 @@ const TEXT: Record<FinderLang, { steps: Step[]; next: string; done: string; skip
 
 const WIDTH = 260;
 
-/** `only` limits the tour to the controls on screen (1-bond mode hides return and risk). */
-export default function GuideTips({ lang = "en", only }: { lang?: FinderLang; only?: string[] }) {
+/** `only` limits the tour to the controls on screen (1-bond mode hides return and risk); `simple` is the term + one-slider search. */
+export default function GuideTips({ lang = "en", only, simple }: { lang?: FinderLang; only?: string[]; simple?: boolean }) {
   const t = TEXT[lang];
-  const steps = only ? t.steps.filter((s) => only.includes(s.tip)) : t.steps;
+  const all = simple ? t.simple : t.steps;
+  const steps = only ? all.filter((s) => only.includes(s.tip)) : all;
   const [i, setI] = useState<number | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; side: "right" | "below" } | null>(null);
 
