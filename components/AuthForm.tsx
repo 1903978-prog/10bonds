@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { solveChallenge } from "@/lib/solveChallenge";
-import { flushNow, track } from "@/lib/track";
+import { flushNow, track, trackOnce } from "@/lib/track";
 import { NEWSLETTER_TEXT } from "@/lib/newsletterText";
 
 // Sign-up agreement line: [before link, link text, after link], in the visitor's chosen language.
@@ -17,7 +17,7 @@ type AgreeLang = keyof typeof AGREE;
 
 export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [password, setPassword] = useState("");
   const [accept, setAccept] = useState(false);
   const [newsletter, setNewsletter] = useState(false);
@@ -74,7 +74,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       const res = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signup ? { email, username, password, acceptTerms: accept, newsletter, website, code: code.trim() || undefined, ...check } : { email, password }),
+        body: JSON.stringify(signup ? { email, password, acceptTerms: accept, newsletter, website, code: code.trim() || undefined, ...check } : { email, password }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
@@ -86,7 +86,10 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       track(signup ? "signup" : "login", null);
       flushNow();
       if (body.codeError) alert(body.codeError);
-      window.location.href = signup ? (body.codeApplied ? "/?welcome=code" : "/?welcome=1") : after();
+      // Straight back to where sign-up was opened (the saved result is restored there); no intermediate page.
+      const back = after();
+      const q = body.codeApplied ? "welcome=code" : "welcome=1";
+      window.location.href = signup ? `${back}${back.includes("?") ? "&" : "?"}${q}` : back;
     } catch (err) {
       setStep(null);
       setError((err as Error).message);
@@ -121,7 +124,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
     <div className="mx-auto max-w-md rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7">
       <h1 className="text-[24px] font-semibold tracking-tight">{signup ? "Create your free account" : "Sign in"}</h1>
       <p className="mt-2 text-[15px] text-mute">
-        {signup ? "Your full top 10 bonds. Free, no card needed." : "Welcome back."}
+        {signup ? "Free, no card needed." : "Welcome back."}
       </p>
       <form onSubmit={submit} className="mt-4 space-y-3">
         <label className="block">
@@ -131,39 +134,28 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
             required
             autoComplete={signup ? "email" : "username"}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); if (signup) trackOnce("signup_started"); }}
+            inputMode={signup ? "email" : undefined}
+            autoCapitalize="none"
+            autoCorrect="off"
             className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
           />
         </label>
-        {signup && (
-          <label className="block">
-            <span className="text-sm font-medium">Username</span>
-            <input
-              type="text"
-              required
-              minLength={3}
-              maxLength={24}
-              pattern="[A-Za-z0-9._\-]{3,24}"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="3–24 letters, digits, . - _"
-              className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
-            />
-          </label>
-        )}
         <label className="block">
           <span className="text-sm font-medium">Password</span>
+          <div className="relative">
           <input
-            type="password"
+            type={showPw ? "text" : "password"}
             required
             minLength={signup ? 8 : undefined}
             autoComplete={signup ? "new-password" : "current-password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={signup ? "At least 8 characters" : undefined}
-            className="mt-1.5 w-full rounded-xl border border-line px-3.5 py-2.5 text-[15px] outline-none focus:border-accent"
+            className="mt-1.5 w-full rounded-xl border border-line py-2.5 pl-3.5 pr-16 text-[15px] outline-none focus:border-accent"
           />
+          <button type="button" onClick={() => setShowPw((v) => !v)} aria-pressed={showPw} className="absolute right-3 top-[calc(50%+3px)] -translate-y-1/2 text-xs font-medium text-accent">{showPw ? "Hide" : "Show"}</button>
+          </div>
           {!signup && (
             <Link href="/forgot-password" className="mt-1.5 block text-right text-sm text-accent" data-testid="forgot-link">Forgot password?</Link>
           )}

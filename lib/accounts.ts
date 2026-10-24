@@ -252,6 +252,13 @@ export function normaliseUsername(raw: unknown): string | null {
   return /^[A-Za-z0-9._-]{3,24}$/.test(u) ? u : null;
 }
 
+/** A username made from the e-mail's first part plus a short random tail, for sign-ups that do not ask for one. */
+export function generateUsername(email: string): string {
+  const base = (email.split("@")[0] ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 14) || "user";
+  const tail = Math.random().toString(36).slice(2, 8);
+  return `${base}-${tail}`.slice(0, 24).padEnd(3, "x");
+}
+
 export function normaliseEmail(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const e = raw.trim().toLowerCase();

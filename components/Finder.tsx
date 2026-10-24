@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { DURATION_STEPS, LIMITS, TERMS, isOpenEnded, termOf } from "@/lib/limits";
@@ -15,7 +15,7 @@ import AllCurvesChart from "@/components/AllCurvesChart";
 import { nearestLoss } from "@/lib/lossCurve";
 import type { CurvePoint } from "@/lib/lossCurve";
 import { FINDER_TEXT, FinderLangContext, useFinderText, type FinderLang } from "@/lib/finderText";
-import { track } from "@/lib/track";
+import { track, trackOnce } from "@/lib/track";
 import SingleBond from "./SingleBond";
 import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
@@ -32,11 +32,13 @@ import { SLIDER_POSITIONS, SLIDER_START, ceilingOf, levelOf, moodOf, type Slider
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
+import { clearResume, readResume, writeResume } from "@/lib/finderResume";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
   source: "live" | "sample";
   scanned?: number;
+  issuers?: number; // Different issuers among the bonds searched
   found?: number[];
   monteCarlo?: { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
   asOf: string | null;
@@ -87,6 +89,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [touched, setTouched] = useState(false);
   // iPhone (the owner, 24/10/2026): "Build my portfolio" opens the results as their own full-screen page, no scrolling.
   const [sheet, setSheet] = useState(false);
+  // Sign-up funnel steps (consent-only usage stats; no choices or figures are sent).
+  useEffect(() => { if (touched) trackOnce("finder_started"); }, [touched]);
   // The owner watches the show 3x faster.
   const show = useScanShow(data, touched, isAdmin ? 1000 / 3 : 1000);
 
@@ -201,6 +205,39 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   useEffect(() => {
     preview.current = new URLSearchParams(window.location.search).get("preview");
   }, []);
+  // Sign-up from a result (the owner, 24/10/2026): the choices on screen are kept in this browser for an hour, and once
+  // the account is open the finder comes back on the same result. Only the slider choices are kept, nothing personal.
+  const [resumed, setResumed] = useState(0);
+  useEffect(() => {
+    const save = (e: MouseEvent) => {
+      const href = (e.target as HTMLElement | null)?.closest?.("a[href]")?.getAttribute("href") ?? "";
+      if (!touched || !/^\/(signup|login)(?:[?#]|$)/.test(href)) return;
+      writeResume({ duration, mix, currency, size, mode, sheet });
+    };
+    document.addEventListener("click", save, true);
+    return () => document.removeEventListener("click", save, true);
+  }, [touched, duration, mix, currency, size, mode, sheet]);
+  useEffect(() => {
+    const r = readResume();
+    if (!r) return;
+    loadMe().then((me) => {
+      if (!me) return;
+      clearResume();
+      setDuration(r.duration);
+      setMix(r.mix);
+      setCurrency(r.currency);
+      setSize(r.size);
+      setMode(r.mode);
+      setTouched(true);
+      if (r.sheet && r.mode === "portfolio" && window.matchMedia("(max-width: 639px)").matches) setSheet(true);
+      setResumed((n) => n + 1);
+    });
+  }, []);
+  useEffect(() => {
+    if (resumed && simple) applyMix(Math.max(mix, positions ? firstOpen : 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumed]);
+
 
   useEffect(() => {
     // Only the portfolio list is searched here (the 1-bond mode asks for its own data), so it never uses a portfolio search.
@@ -256,6 +293,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
   useEffect(() => setList(null), [data]);
+  // Funnel: the first list shown after the visitor moved a control or pressed the button; a visitor sees the 3-bond preview.
+  useEffect(() => {
+    if (!touched || !data || mode !== "portfolio") return;
+    trackOnce("portfolio_generated", { tier: data.tier });
+    if (data.lockedCount > 0) trackOnce("preview_view");
+  }, [touched, data, mode]);
   const tier = data?.tier ?? "visitor";
   // What this plan includes comes with each answer (the admin's feature table, /admin/features).
   const features = new Set<FeatureKey>(data?.features ?? []);
@@ -300,7 +343,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   if (preview.current) why.set("preview", preview.current);
   const whyQuery = why.toString();
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
-  const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: "/signup", label: t.avgSignUp };
+  const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: signupHref(lang), label: t.avgSignUp };
 
   return (
     <FinderLangContext.Provider value={lang}>
@@ -587,9 +630,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           ) : data?.source === "sample" ? (
             <p className="truncate text-[11px] leading-snug text-amber-800" role="status" data-testid="yields-date">{t.sample}</p>
           ) : (
-            <p className="text-[11px] leading-snug text-mute" data-testid="yields-date">
+            <p className="truncate text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
-              {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.
+              {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>
@@ -601,6 +644,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {sheet && mode === "portfolio" && createPortal(
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
+            currency={currency}
             onClose={() => setSheet(false)}
             data={data}
             list={list}
@@ -1233,7 +1277,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded }: { onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency }: { currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
@@ -1323,7 +1367,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
                 <p className="text-[17px] font-semibold">{t.more(locked)}</p>
                 <p className="-mt-1 text-sm text-mute">{t.noCard}</p>
-                <Link href="/signup" className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm">{t.seeAll}</Link>
+                <Link href={signupHref(lang)} className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm">{t.seeAll}</Link>
               </div>
             </li>
           )}
@@ -1344,7 +1388,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
       {data?.source === "sample" ? (
         <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
       ) : (
-        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.</p>
+        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}</p>
       )}
       <p className="h-[25px] shrink-0 overflow-hidden text-[10px] leading-[12.5px] text-mute" data-testid="phone-mc">
         {mc?.expYield != null && mc.p5 != null && !list ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
@@ -1357,6 +1401,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
 /** Drawn over the blurred row slots after the visible rows: the sign-up offer. */
 function LockedOverlay({ count, top }: { count: number; top: number }) {
   const t = useFinderText();
+  const lang = useContext(FinderLangContext);
   // Desktop rows are ROW_H tall under a HEAD_H header; phone cards are CARD_H tall with 8px gaps.
   const style = {
     ["--top-d" as string]: `${HEAD_H + top * ROW_H}px`,
@@ -1367,7 +1412,7 @@ function LockedOverlay({ count, top }: { count: number; top: number }) {
       <p className="text-[17px] font-semibold">{t.more(count)}</p>
       <p className="-mt-1 text-sm text-mute">{t.noCard}</p>
       <Link
-        href="/signup"
+        href={signupHref(lang)}
         className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#0077ed]"
       >
         {t.seeAll}
@@ -1391,6 +1436,21 @@ function Lock() {
   );
 }
 
+
+/** Sign-up link that returns to this home page (the saved result is restored there). */
+const signupHref = (lang: FinderLang) => `/signup?next=${lang === "en" ? "/" : `/${lang}`}`;
+
+const FACT_WORDS = {
+  en: ["bonds", "issuers"], it: ["obbligazioni", "emittenti"], fr: ["obligations", "émetteurs"], de: ["Anleihen", "Emittenten"],
+} as const;
+
+/** "12,345 bonds · 1,234 issuers" from the data of this search (never typed in by hand); empty until the data is in. */
+function dataFacts(data: Response | null, lang: FinderLang, currency: string): string {
+  if (!data?.scanned || !data.issuers || data.source !== "live") return "";
+  const f = new Intl.NumberFormat(lang);
+  const w = FACT_WORDS[lang];
+  return ` ${f.format(data.scanned)} ${currency} ${w[0]} · ${f.format(data.issuers)} ${w[1]}.`;
+}
 
 /** "19 Oct 2026, 06:16" in the page's language, instead of the raw ISO time. */
 function plainDate(iso: string, lang: FinderLang): string {
@@ -1515,3 +1575,4 @@ function SwapPanel({ row, options, onPick, onExclude, onClose }: { row: ResultRo
     </PanelShell>
   );
 }
+
