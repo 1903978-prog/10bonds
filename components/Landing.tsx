@@ -37,7 +37,8 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   return (
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
       <section className="grid items-center gap-5 pt-2 lg:grid-cols-[1.12fr_1fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
-        <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
+        <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
+        <p className="mb-1 text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] sm:mb-2 sm:text-[12px]" style={{ color: MUTE }} data-testid="landing-eyebrow">{t.eyebrow}</p>
         <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[58px]">
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
@@ -51,12 +52,12 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         {/* The free test is the main way in; sign up and sign in sit next to it. One row on every screen. */}
         <div className="flex items-center gap-2 sm:gap-3 lg:col-start-1 lg:row-start-2 lg:self-start">
           <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
-            className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-4 py-3.5 text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 font-semibold text-white shadow-sm transition hover:opacity-90"
+            className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-3 py-3.5 text-[13px] min-[360px]:px-4 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 font-semibold text-white shadow-sm transition hover:opacity-90"
             style={{ background: NAVY }}>
             {t.cta} <span aria-hidden className="hidden min-[400px]:inline">↗</span>
           </button>
-          <Link href="/signup" className="whitespace-nowrap rounded-lg border-[1.5px] px-3 py-3 text-center text-[14px] min-[400px]:text-[15px] sm:px-5 font-semibold transition hover:bg-white" style={{ borderColor: NAVY, color: NAVY }}>{t.signUp}</Link>
-          <Link href="/login" className="whitespace-nowrap rounded-lg px-1 py-3 text-center text-[14px] min-[400px]:text-[15px] font-semibold underline sm:px-3 decoration-[1.5px] underline-offset-4" style={{ color: NAVY }}>{t.signIn}</Link>
+          <Link href="/signup" className="whitespace-nowrap rounded-lg border-[1.5px] px-2.5 py-3 text-center text-[13px] min-[360px]:px-3 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:px-5 font-semibold transition hover:bg-white" style={{ borderColor: NAVY, color: NAVY }}>{t.signUp}</Link>
+          <Link href="/login" className="whitespace-nowrap rounded-lg px-1 py-3 text-center text-[13px] min-[360px]:text-[14px] min-[400px]:text-[15px] font-semibold underline sm:px-3 decoration-[1.5px] underline-offset-4" style={{ color: NAVY }}>{t.signIn}</Link>
         </div>
       </section>
     </div>
