@@ -108,13 +108,13 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
+          <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] sm:line-clamp-2 sm:min-h-[2.6em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
           {big(bench?.ret, false)}
           <p className="mt-1.5 text-[12px]" style={{ color: MUTE }}>{t.grossYtm}</p>
           {rows(false, bench?.duration, bench ? `≈ ${num(bench.risk, 0)}` : null, t.notMatched)}
         </div>
         <div className="rounded-[14px] p-2.5 min-[380px]:p-3 shadow-[0_8px_24px_rgba(17,45,59,0.25)] lg:p-4" style={{ background: NAVY }}>
-          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8fe0b8]"><span className="sm:hidden">{t.aiShort}</span><span className="hidden sm:inline">{t.ai}</span></p>
+          <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] text-[#8fe0b8] sm:line-clamp-2 sm:min-h-[2.6em]"><span className="sm:hidden">{t.aiShort}</span><span className="hidden sm:inline">{t.ai}</span></p>
           {big(p?.ytm, true)}
           <p className="mt-1.5 text-[12px] text-white/70">{t.illGrossYtm}</p>
           {rows(true, p?.duration, p ? num(p.avgRisk, 1) : null, t.modelEstimated)}
