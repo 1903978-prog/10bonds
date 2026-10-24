@@ -64,7 +64,7 @@ export default function AdminPanel() {
   return (
     <div className="space-y-6">
       <h1 className="text-[32px] font-semibold tracking-tight">Admin</h1>
-      <p className="-mt-4 text-sm text-mute">Only you can see this page. · <Link href="/admin/pro" className="text-accent">Professional access requests</Link> · <Link href="/admin/features" className="text-accent">Plan features</Link> · <Link href="/admin/risk-premium" className="text-accent">Bond engine: Risk Premium Model</Link> · <Link href="/admin/brokers" className="text-accent">Broker management</Link> · <Link href="/admin/seo" className="text-accent">SEO Management</Link> · <Link href="/admin/benchmark" className="text-accent">ETF comparison</Link> · <Link href="/admin/welcome-email" className="text-accent">Welcome e-mail</Link> · <Link href="/admin/landingpage1" className="text-accent">Landing page 1 (saved)</Link></p>
+      <p className="-mt-4 text-sm text-mute">Only you can see this page. · <Link href="/admin/pro" className="text-accent">Professional access requests</Link> · <Link href="/admin/features" className="text-accent">Plan features</Link> · <Link href="/admin/risk-premium" className="text-accent">Bond engine: Risk Premium Model</Link> · <Link href="/admin/brokers" className="text-accent">Broker management</Link> · <Link href="/admin/seo" className="text-accent">SEO Management</Link> · <Link href="/admin/benchmark" className="text-accent">ETF comparison</Link> · <Link href="/admin/welcome-email" className="text-accent">Welcome e-mail</Link> · <Link href="/admin/weekly-email" className="text-accent">Weekly e-mail</Link> · <Link href="/admin/landingpage1" className="text-accent">Landing page 1 (saved)</Link></p>
 
 
       {s && (

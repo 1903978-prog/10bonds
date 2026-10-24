@@ -22,12 +22,14 @@ async function buildAll() {
   const { proTableReady } = await import("./pro");
   const { riskTablesReady } = await import("./riskPremium/store");
   const { ytmHistoryReady } = await import("./ytmHistory");
+  const { weeklyTablesReady } = await import("./weeklySend");
   const sql = await accountsSql();
   await seoSql();
   await brokerTablesReady();
   await proTableReady();
   await riskTablesReady();
   await ytmHistoryReady();
+  await weeklyTablesReady();
   return sql;
 }
 
