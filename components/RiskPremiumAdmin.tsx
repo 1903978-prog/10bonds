@@ -5,6 +5,7 @@ import { CURVE_RATINGS, type CurveRating } from "@/lib/riskPremium/curve";
 import { shortStatus, STATUS_LABEL, type RiskStatus } from "@/lib/riskPremium/status";
 import type { CurveVersion } from "@/lib/riskPremium/versions";
 import type { BracketRow, Row } from "@/lib/riskPremium/shadow";
+import { GptRate, GPT_HEAD } from "@/components/GptRate";
 
 // Admin -> Bond Engine -> Risk Premium Model. Curve versions (drafts until activated), the shadow comparison of the
 // current and risk-adjusted top 10, exceptional spread reviews, sensitivity and the audit trail.
@@ -277,7 +278,7 @@ function BracketCard({ rows, min, max }: { rows: BracketRow[]; min: number; max:
         <table className="w-full table-fixed text-xs tabular-nums">
           <thead className="sticky top-0 bg-white">
             <tr className="text-left text-mute">
-              <th className="w-6">#</th><th className="w-44">Issuer</th><th className="w-12 text-right">Yield</th><th className="w-10 text-right">Risk</th><th className="w-10 text-right">Dur.</th><th className="w-14 text-right">Over AAA</th><th className="w-10 text-right">Req.</th><th className="w-12 text-right">Surplus</th><th className="pl-3">Why</th>
+              <th className="w-6">#</th><th className="w-44">Issuer</th><th className="w-12 text-right">Yield</th><th className="w-10 text-right">Risk</th><th className="w-14 text-center">{GPT_HEAD}</th><th className="w-10 text-right">Dur.</th><th className="w-14 text-right">Over AAA</th><th className="w-10 text-right">Req.</th><th className="w-12 text-right">Surplus</th><th className="pl-3">Why</th>
             </tr>
           </thead>
           <tbody>
@@ -287,6 +288,7 @@ function BracketCard({ rows, min, max }: { rows: BracketRow[]; min: number; max:
                 <td className="truncate" title={`${r.name} · ${r.isin}`}>{r.issuer}</td>
                 <td className="text-right">{r.ytm.toFixed(2)}</td>
                 <td className="text-right">{r.risk ?? "–"}</td>
+                <td className="text-center"><GptRate isin={r.isin} /></td>
                 <td className="text-right">{r.duration.toFixed(1)}</td>
                 <td className="text-right">{r.spreadBp === null ? "–" : Math.round(r.spreadBp)}</td>
                 <td className="text-right">{r.requiredBp ?? "–"}</td>
@@ -317,7 +319,7 @@ function BondTable({ rows, compact, extra }: { rows: Row[]; compact?: boolean; e
     <table className="w-full table-fixed text-xs tabular-nums">
       <thead>
         <tr className="text-left text-mute">
-          {compact && <th className="w-5">#</th>}<th>Issuer</th>{!compact && <th className="w-28">ISIN</th>}<th className="w-12 text-right">Yield</th><th className="w-14 text-right">Rating</th><th className="w-10 text-right">Req.</th><th className="w-12 text-right">Spread</th><th className="w-12 text-right">Surplus</th>{!compact && <th className="w-14 text-right">Adj. yld</th>}<th className={compact ? "w-24" : "w-48"}>{extra ? "" : "Status"}</th>
+          {compact && <th className="w-5">#</th>}<th>Issuer</th>{!compact && <th className="w-28">ISIN</th>}<th className="w-12 text-right">Yield</th><th className="w-14 text-right">Rating</th><th className="w-14 text-center">{GPT_HEAD}</th><th className="w-10 text-right">Req.</th><th className="w-12 text-right">Spread</th><th className="w-12 text-right">Surplus</th>{!compact && <th className="w-14 text-right">Adj. yld</th>}<th className={compact ? "w-24" : "w-48"}>{extra ? "" : "Status"}</th>
         </tr>
       </thead>
       <tbody>
@@ -328,6 +330,7 @@ function BondTable({ rows, compact, extra }: { rows: Row[]; compact?: boolean; e
             {!compact && <td className="truncate">{r.isin}</td>}
             <td className="text-right">{r.ytm.toFixed(2)}</td>
             <td className="text-right" title={r.ratingSource ?? ""}>{r.rating ?? "–"}</td>
+            <td className="text-center"><GptRate isin={r.isin} /></td>
             <td className="text-right">{r.requiredBp ?? "–"}</td>
             <td className="text-right">{r.spreadBp === null ? "–" : Math.round(r.spreadBp)}</td>
             <td className={`text-right ${r.surplusBp !== null && r.surplusBp <= 0 ? "text-red-700" : ""}`}>{bp(r.surplusBp)}</td>

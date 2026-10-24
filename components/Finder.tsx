@@ -36,6 +36,8 @@ import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
 import { clearResume, readResume, writeResume } from "@/lib/finderResume";
 import { isinText, parseGptRatings } from "@/lib/gptRatings";
+import { saveGptRatings, useGptRatings } from "@/lib/gptStore";
+import { GptRate, GPT_HEAD } from "./GptRate";
 import { couponTypeLabel } from "@/lib/bondFacts";
 
 type Response = ResultsPayload & {
@@ -812,6 +814,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
             <tr key={r.isin ?? i}>
               <td className="pr-2">{i + 1}. {r.issuer}</td>
               <td className="pr-2 text-right">risk {r.risk ?? "–"}{r.sp !== undefined && <> · S&amp;P {r.sp ?? "–"}</>}</td>
+              <td className="pr-2 text-right">GPT <GptRate isin={r.isin} /></td>
               <td className="pr-2 text-right">{r.life != null ? `${r.life.toFixed(1)} yrs` : "–"}</td>
               <td className="pr-2 text-right">default {pct(r.pd!)}</td>
               <td className="pr-2 text-right">× {LOSS_GIVEN_DEFAULT * 100}% = {pct(r.pd! * LOSS_GIVEN_DEFAULT)}</td>
@@ -819,7 +822,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
             </tr>
           ))}
           <tr className="border-t border-amber-300 font-medium">
-            <td colSpan={5} className="pr-2">Expected loss on your money (sum) · chance of any default {pct(listLossChance(rows.map((r) => r.pd!)), 1)}</td>
+            <td colSpan={6} className="pr-2">Expected loss on your money (sum) · chance of any default {pct(listLossChance(rows.map((r) => r.pd!)), 1)}</td>
             <td className="text-right">{pct(listLifeLoss(rows.map((r) => r.pd!)), 3)}</td>
           </tr>
         </tbody>
@@ -1303,7 +1306,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
   // Admin only (the owner, 24/10/2026): a details line under each bond, copy the ISINs for GPT and show GPT's ratings.
   const [admin, setAdmin] = useState(false);
   useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
-  const [gpt, setGpt] = useGptRatings();
+  const gpt = useGptRatings(admin);
   const swapIn = (slot: number, b: ResultRow) => {
     setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
     setPanel(null);
@@ -1334,6 +1337,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           <col className={narrow ? "w-[3.5rem]" : "w-[6.5rem]"} />
           {!narrow && <col className="w-[9rem]" />}
           <col className="w-[5rem]" />
+          {admin && <col className="w-[3.75rem]" />}
           <col className="w-8" />
           <col className="w-8" />
         </colgroup>
@@ -1346,6 +1350,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <th className={`truncate ${narrow ? "px-1" : "px-3"} py-0 text-center font-medium`}>{t.duration}</th>
             {!narrow && <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>}
             <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
+            {admin && <th className="truncate px-1 py-0 text-center font-medium text-amber-800">{GPT_HEAD}</th>}
             <th aria-label={t.swap} />
             <th aria-label={t.exclude} />
           </tr>
@@ -1355,13 +1360,13 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: rowH }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={admin && narrow ? `${r.issuer} · ${r.isin} · ${adminFacts(r)}` : r.issuer}>
-                {admin && narrow && r.isin && gpt[r.isin] && <GptTag grade={gpt[r.isin]} />}{r.issuer}
+                {r.issuer}
               </td>
               {!narrow && <td className="overflow-hidden py-0 pr-3">
                 {admin && !dense ? (
                   <div className="leading-tight" data-testid="admin-facts">
                     <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
-                    <div className="truncate text-[10px] text-amber-800">{r.isin && gpt[r.isin] && <GptTag grade={gpt[r.isin]} />}{adminFacts(r)}</div>
+                    <div className="truncate text-[10px] text-amber-800">{adminFacts(r)}</div>
                   </div>
                 ) : paid ? (
                   <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
@@ -1375,6 +1380,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               {!narrow && <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>}
               <td className="px-1 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
+              {admin && <td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
               <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
@@ -1384,12 +1390,13 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
               <td colSpan={narrow ? 3 : 5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
+              {admin && <td />}
               <td />
               <td />
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={narrow ? 7 : 9} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={(narrow ? 7 : 9) + (admin ? 1 : 0)} /></tr>
           ))}
         </tbody>
       </table>
@@ -1439,7 +1446,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           onClose={() => setPanel(null)}
         />
       )}
-      {panel?.kind === "gpt" && admin && <GptPastePanel onSave={(m) => { setGpt(m); setPanel(null); }} onClose={() => setPanel(null)} />}
+      {panel?.kind === "gpt" && admin && <GptPastePanel onSaved={() => setPanel(null)} onClose={() => setPanel(null)} />}
       {message && (
         <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
           {message}
@@ -1526,8 +1533,7 @@ function PhoneResults({ title, onClose, data, list, setList, features, signedIn,
   // The admin's risk column also holds the S&P slot (fixed width either way, so nothing moves when results arrive).
   const [admin, setAdmin] = useState(false);
   useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
-  const [gpt] = useGptRatings();
-  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
+  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_2.5rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
   return (
     <div
       role="dialog"
@@ -1564,6 +1570,7 @@ function PhoneResults({ title, onClose, data, list, setList, features, signedIn,
           <span>{t.issuer}</span>
           <span className="text-right">{t.yrs}</span>
           <span className="text-center">{t.risk}</span>
+          {admin && <span className="text-center text-amber-800">GPT</span>}
           <span className="text-right">{t.yield}</span>
           <span />
           <span />
@@ -1575,13 +1582,14 @@ function PhoneResults({ title, onClose, data, list, setList, features, signedIn,
               <div className="min-w-0">
                 <div className="truncate text-[15px] font-medium leading-tight">{r.issuer}</div>
                 {admin ? (
-                  <div className="truncate text-[11px] leading-tight text-amber-800" title={adminFacts(r)}>{r.isin && gpt[r.isin] && <GptTag grade={gpt[r.isin]} />}{r.isin}</div>
+                  <div className="truncate text-[11px] leading-tight text-amber-800" title={adminFacts(r)}>{r.isin}</div>
                 ) : (
                   <div className="truncate text-[11px] leading-tight text-mute">{paid ? r.isin : signedIn ? t.isinPlus : t.detailsFree}</div>
                 )}
               </div>
               <span className="text-right text-[13px] tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</span>
               <span className="text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
+              {admin && <span className="text-center"><GptRate isin={r.isin} /></span>}
               <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
               <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
@@ -1638,25 +1646,6 @@ function adminFacts(r: ResultRow): string {
   return `${m} · ${r.seniority || "–"} · ${couponTypeLabel("en", r.couponType)}`;
 }
 
-const GPT_KEY = "tb_gpt_ratings";
-
-/** Admin only: GPT's ratings pasted back (ISIN -> grade), kept for this browser session. */
-function useGptRatings(): [Record<string, string>, (m: Record<string, string>) => void] {
-  const [map, setMap] = useState<Record<string, string>>({});
-  useEffect(() => {
-    try { setMap(JSON.parse(sessionStorage.getItem(GPT_KEY) || "{}")); } catch { /* none kept */ }
-  }, []);
-  const save = (m: Record<string, string>) => {
-    setMap(m);
-    try { sessionStorage.setItem(GPT_KEY, JSON.stringify(m)); } catch { /* kept on screen only */ }
-  };
-  return [map, save];
-}
-
-function GptTag({ grade }: { grade: string }) {
-  return <span className="mr-1 inline-block rounded border border-amber-300 bg-amber-100 px-1 text-[10px] font-semibold leading-[14px] text-amber-900" title="GPT rating (admin only)">GPT {grade}</span>;
-}
-
 /** A yellow admin chip that copies text; "Copied" shows in the same fixed width for 2 seconds. */
 function CopyChip({ text, label, testId }: { text: string; label: string; testId: string }) {
   const [done, setDone] = useState(false);
@@ -1672,9 +1661,10 @@ function CopyChip({ text, label, testId }: { text: string; label: string; testId
   );
 }
 
-/** Admin only: paste GPT's answer; the ISIN and rating pairs found are shown next to each bond. */
-function GptPastePanel({ onSave, onClose }: { onSave: (m: Record<string, string>) => void; onClose: () => void }) {
+/** Admin only: paste GPT's answer; the ratings found are saved in the database and shown in every "GPT rate" column. */
+function GptPastePanel({ onSaved, onClose }: { onSaved: () => void; onClose: () => void }) {
   const [text, setText] = useState("");
+  const [state, setState] = useState<"" | "saving" | "error">("");
   const found = parseGptRatings(text);
   const n = Object.keys(found).length;
   return (
@@ -1682,16 +1672,24 @@ function GptPastePanel({ onSave, onClose }: { onSave: (m: Record<string, string>
       <textarea
         autoFocus
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => { setText(e.target.value); setState(""); }}
         data-testid="gpt-paste"
-        placeholder="Paste GPT's table of ISINs and ratings here"
+        placeholder="Paste GPT's answer here (ISIN | Rating | Basis)"
         className="mt-1 min-h-0 w-full flex-1 resize-none rounded-lg border border-amber-300 bg-amber-50 p-2 font-mono text-[11px] text-ink outline-none"
       />
       <div className="mt-2 flex h-7 shrink-0 items-center justify-between gap-2 text-[12px]">
-        <span className="text-mute">{n} rating{n === 1 ? "" : "s"} found</span>
+        <span className={state === "error" ? "text-red-700" : "text-mute"}>{state === "error" ? "Not saved, try again" : `${n} rating${n === 1 ? "" : "s"} found`}</span>
         <span className="flex gap-2">
-          <button type="button" onClick={() => onSave({})} className="rounded-full px-3 py-1 text-mute hover:bg-canvas">Clear</button>
-          <button type="button" disabled={!n} onClick={() => onSave(found)} data-testid="gpt-show" className="rounded-full bg-amber-500 px-3 py-1 font-medium text-white disabled:opacity-40">Show ratings</button>
+          <button type="button" onClick={() => { setText(""); setState(""); }} className="rounded-full px-3 py-1 text-mute hover:bg-canvas">Clear</button>
+          <button
+            type="button"
+            disabled={!n || state === "saving"}
+            onClick={async () => { setState("saving"); if (await saveGptRatings(found)) onSaved(); else setState("error"); }}
+            data-testid="gpt-show"
+            className="w-28 rounded-full bg-amber-500 py-1 font-medium text-white disabled:opacity-40"
+          >
+            {state === "saving" ? "Saving…" : "Save ratings"}
+          </button>
         </span>
       </div>
     </PanelShell>
@@ -1904,6 +1902,7 @@ function SwapPanel({ row, options, onPick, onExclude, onClose }: { row: ResultRo
               <span className="w-14 text-right font-semibold tabular-nums">{pct(b.ytm)}</span>
               <span className="hidden w-12 text-right tabular-nums sm:inline">{b.duration?.toFixed(1)}</span>
               <span className={`${b.sp !== undefined ? "w-[4.5rem]" : "w-8"} text-center`}><RiskBadge risk={b.risk} sp={b.sp} /></span>
+              {b.sp !== undefined && <span className="w-10 text-center" title={GPT_HEAD}><GptRate isin={b.isin} /></span>}
               <button type="button" onClick={() => onPick(b)} className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90">{t.swapPick}</button>
             </li>
           ))}
