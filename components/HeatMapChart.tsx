@@ -42,38 +42,44 @@ export default function HeatMapChart({ map: got, method, onMethod, retLabel, yea
       {!map ? (
         <div className="flex flex-1 items-center justify-center text-[12px] text-mute">{got === "unavailable" ? "Not available yet for this methodology." : "Preparing heat map…"}</div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-px" style={{ gridTemplateColumns: `2.6rem repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr)) 1.1rem` }}>
-          {rows.map(({ y, cells }) => {
-            const vals = cells.filter((c): c is number => c !== null);
-            const min = vals.length ? Math.min(...vals) : null;
-            return [
-              <div key={`y${y}`} className="flex items-center justify-end pr-1.5 text-mute">{y.toFixed(1)}%</div>,
-              ...cells.map((c, i) => {
-                const band = c === null ? null : bandOf(c);
-                const best = c !== null && c === min;
-                return (
-                  <div
-                    key={`${y}-${i}`}
-                    title={`${horizonLabel(map.horizons[i])} ${yearsLabel} · ${y.toFixed(1)}% → ${c === null ? "–" : `${c.toFixed(2)}%`}`}
-                    className={`flex items-center justify-center overflow-hidden rounded-[3px] ${best ? "ring-2 ring-inset ring-[#1d1d1f]" : ""}`}
-                    style={band ? { background: band.bg, color: band.fg } : { background: "#f2f2f4", color: "#a1a1a6" }}
-                    data-testid="heat-cell"
-                  >
-                    {c === null ? "–" : c.toFixed(2)}
-                  </div>
-                );
-              }),
-            ];
-          })}
-          <div className="flex items-center justify-end pr-1.5 text-mute">{yearsLabel}</div>
-          {map.horizons.map((d) => (
-            <div key={`h${d}`} className="flex items-center justify-center text-mute">{horizonLabel(d)}</div>
-          ))}
+        <div className="flex min-h-0 flex-1">
+          {/* Y axis title, written upwards next to the return values like the other charts. */}
+          <div className="flex w-4 shrink-0 items-center justify-center text-mute">
+            <span className="whitespace-nowrap [writing-mode:vertical-rl] rotate-180">{retLabel} ↑</span>
+          </div>
+          <div className="grid min-h-0 flex-1 gap-px" style={{ gridTemplateColumns: `2.6rem repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr)) 1.1rem` }}>
+            {rows.map(({ y, cells }) => {
+              const vals = cells.filter((c): c is number => c !== null);
+              const min = vals.length ? Math.min(...vals) : null;
+              return [
+                <div key={`y${y}`} className="flex items-center justify-end pr-1.5 text-mute">{y.toFixed(1)}%</div>,
+                ...cells.map((c, i) => {
+                  const band = c === null ? null : bandOf(c);
+                  const best = c !== null && c === min;
+                  return (
+                    <div
+                      key={`${y}-${i}`}
+                      title={`${horizonLabel(map.horizons[i])} ${yearsLabel} · ${y.toFixed(1)}% → ${c === null ? "–" : `${c.toFixed(2)}%`}`}
+                      className={`flex items-center justify-center overflow-hidden rounded-[3px] ${best ? "ring-2 ring-inset ring-[#1d1d1f]" : ""}`}
+                      style={band ? { background: band.bg, color: band.fg } : { background: "#f2f2f4", color: "#a1a1a6" }}
+                      data-testid="heat-cell"
+                    >
+                      {c === null ? "–" : c.toFixed(2)}
+                    </div>
+                  );
+                }),
+              ];
+            })}
+            <div className="flex items-center justify-end pr-1.5 text-mute">{yearsLabel}</div>
+            {map.horizons.map((d) => (
+              <div key={`h${d}`} className="flex items-center justify-center text-mute">{horizonLabel(d)}</div>
+            ))}
+          </div>
         </div>
       )}
       {/* Fixed-height legend under the grid: the colour bands, and what the numbers are. */}
       <div className="mt-1.5 flex h-4 items-center gap-2 text-mute">
-        <span className="shrink-0">{retLabel} ↑ · expected loss %</span>
+        <span className="shrink-0">Expected loss %</span>
         <div className="flex min-w-0 flex-1 overflow-hidden rounded-[3px]">
           {BANDS.map((b, i) => (
             <div key={b.to} className="flex h-3.5 flex-1 items-center justify-center text-[9px]" style={{ background: b.bg, color: b.fg }}>
