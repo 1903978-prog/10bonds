@@ -551,7 +551,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         )}
         {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
         <GuideTips lang={lang} simple={simple} only={simple ? (mode === "portfolio" ? ["horizon", "return"] : ["horizon"]) : mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
-        {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
+        {isAdmin && mode === "portfolio" && (
+          <details className="mt-2" data-testid="admin-tuner-box">
+            <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: tuning</summary>
+            <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />
+          </details>
+        )}
         {/* Shows the list for the choices above (in place of the frontier chart) and brings it into view on phones.
             In 1-bond mode it stays in place, hidden, so nothing moves. */}
         <div className={`mt-auto pt-4 ${mode === "portfolio" ? "" : "invisible max-lg:hidden"}`} aria-hidden={mode !== "portfolio"}>
@@ -740,7 +745,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>
           <MonteCarloNote data={data} lang={lang} edited={list !== null} />
-          {isAdmin && data && <AdminLossCalc rows={(list ?? data.rows).slice(0, 10)} />}
+          {isAdmin && data && (
+            <details className="mt-2" data-testid="admin-calc-box">
+              <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: calculation per bond</summary>
+              <AdminLossCalc rows={(list ?? data.rows).slice(0, 10)} />
+            </details>
+          )}
         </div>
       </section>
       )}
