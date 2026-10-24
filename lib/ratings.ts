@@ -37,16 +37,22 @@ const NOTCH_OF_LR_RISK = [0, 2, 5, 7, 8, 9, 11, 14, 17, 19];
 
 /**
  * Rating used for the risk score: the 10bonds.com rating when the bond has one (the owner, 20/10/2026), else S&P first
- * (so a BB- bond is always risk 7), else Moody's, else Fitch, else the resolved one.
+ * (so a BB- bond is always risk 7), else Moody's, else Fitch. Nothing else counts: the copy's "resolved" rating can be
+ * inferred (e.g. from the issuer), and a bond with no real rating is never shown anywhere (the owner, 24/10/2026).
  */
 export function bondNotch(b: RatedBond): number | null {
   const lr = riskOfLr(b.lrScore);
   if (lr !== null) return NOTCH_OF_LR_RISK[lr - 1];
-  for (const g of [b.ratingSp, b.ratingMoodys, b.ratingFitch, b.ratingResolved]) {
+  for (const g of [b.ratingSp, b.ratingMoodys, b.ratingFitch]) {
     const n = notchOf(g);
     if (n !== null) return n;
   }
   return null;
+}
+
+/** True only for a bond with a real rating (10bonds.com, S&P, Moody's or Fitch, not NR or D): the only bonds ever shown. */
+export function hasRealRating(b: RatedBond): boolean {
+  return bondRisk(b) !== null;
 }
 
 export const INVESTMENT_GRADE_LAST_NOTCH = 9; // BBB-
