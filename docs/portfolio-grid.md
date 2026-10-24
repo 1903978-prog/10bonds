@@ -1,7 +1,9 @@
 # One slider, 20-30 portfolios: method (proposal)
 
-Status: proposal for the owner, 24/10/2026. Today the one "Return and risk" slider has 10 steps: step k = highest risk k
-and the top-return list at that risk. This note describes how to turn it into 20-30 distinct, documented portfolios.
+Status 24/10/2026: the slider now has 30 steps, as the owner asked (lib/mixSteps.ts): 10 major steps set the highest
+risk accepted, each with 3 sub-steps for the desired return (low, medium, high). High = the slider maximum at that risk;
+low and medium sit at 1/3 and 2/3 of the way from the maximum at the risk below (1% under risk 1), so the return never
+goes down from one step to the next. Steps 3 and 4 below (Pareto filter) are an optional later refinement.
 
 ## The two parameters
 

@@ -26,6 +26,7 @@ import { loadMe } from "@/lib/me";
 import WhyTable from "./WhyTable";
 import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
+import { MIX_START, MIX_STEPS, mixTarget } from "@/lib/mixSteps";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
@@ -129,19 +130,23 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     followCap(capFor(duration, r));
   };
 
-  // One slider for everyone (the owner, 24/10/2026): step k of 10 = highest risk k with the highest return at that risk
-  // (the top-return list). Above the highest risk with bonds at this horizon, the list is the one at that risk.
-  const changeMix = (k: number) => {
-    const r = Math.min(k, riskTop);
-    setTouched(true);
-    setRisk(r);
-    setYtm(capFor(duration, r));
+  // One slider for everyone (the owner, 24/10/2026): 30 steps, 10 risk levels × low/medium/high return (lib/mixSteps.ts).
+  const [mix, setMix] = useState(MIX_START);
+  const applyMix = (step: number, d = duration) => {
+    const m = mixTarget(step, (r) => capFor(d, r), riskTopFor(d));
+    setRisk(m.risk);
+    setYtm(m.ytm);
   };
-  // Without the admin's separate sliders the target is always the maximum, so it follows the horizon, data and risk.
+  const changeMix = (step: number) => {
+    setTouched(true);
+    setMix(step);
+    applyMix(step);
+  };
+  // Without the admin's separate sliders the step decides risk and return, so they follow the horizon and the data.
   useEffect(() => {
-    if (!isAdmin && caps) setYtm(capFor(duration, risk));
+    if (!isAdmin && caps) applyMix(mix);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, caps, duration, risk]);
+  }, [isAdmin, caps, maxRisk, duration]);
 
   useEffect(() => {
     preview.current = new URLSearchParams(window.location.search).get("preview");
@@ -299,10 +304,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           tip="return"
           label={t.mixLabel}
           hint={t.yieldHint}
-          value={risk}
+          value={mix}
           display={<span className="flex items-center gap-2"><RiskBadge risk={risk} /><span className="w-[60px] text-right">{caps ? `${ytm.toFixed(2)}%` : "–"}</span></span>}
-          min={LIMITS.risk.min}
-          max={LIMITS.risk.max}
+          min={0}
+          max={MIX_STEPS - 1}
           step={1}
           minLabel={t.lowReturn}
           maxLabel={t.highReturn}
