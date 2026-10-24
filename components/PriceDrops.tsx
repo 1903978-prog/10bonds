@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
+import { GptRate, GPT_HEAD } from "@/components/GptRate";
 import type { DropRow, DropsData, SortKey } from "@/lib/priceHistory";
 import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
@@ -114,6 +115,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
               <th className="w-10 pl-4 font-medium">#</th>
               <th className="pr-3 font-medium">{t.issuer}</th>
               <th className="w-[84px] text-center font-medium">{t.risk}</th>
+              <th className="w-[64px] text-center font-medium text-amber-800">{GPT_HEAD}</th>
               <th className="w-[100px] text-center font-medium">{t.maturity}</th>
               <th className="w-16 text-right font-medium">{t.price}</th>
               <SortHead k="ytm" className="w-[64px]" />
@@ -131,6 +133,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className="pl-4 text-mute tabular-nums">{at * ROWS + i + 1}</td>
                     <td className="truncate pr-3 font-medium" title={`${r.name} · ${r.isin}`}>{r.issuer} <span className="font-normal text-mute">{r.isin}</span></td>
                     <td className="text-center"><RiskBadge risk={r.risk} sp={r.sp} /></td>
+                    <td className="text-center"><GptRate isin={r.isin} /></td>
                     <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
                     <td className={`text-right tabular-nums ${sort === "ytm" ? "font-medium" : ""}`}>{r.ytm === null ? "–" : `${num(r.ytm)}%`}</td>
@@ -140,7 +143,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className={`pr-4 text-right tabular-nums ${sort === "gain1y" ? "font-medium" : ""}`}>{r.gain1y === null ? "–" : `${num(r.gain1y, 1)}%`}</td>
                   </>
                 ) : (
-                  <td colSpan={13} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
+                  <td colSpan={14} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
                 )}
               </tr>
             ))}

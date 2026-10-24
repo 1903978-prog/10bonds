@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { FinderLang } from "@/lib/finderText";
 import type { WhyRow } from "@/lib/whyList";
 import { SpSlot } from "@/components/RiskBadge";
+import { GptRate, GPT_HEAD } from "@/components/GptRate";
 
 // Small icon under the results: opens "why in or out" for the current search, every bond of the search window with
 // the reason it is in the top 10 or not (Premium, Pro and admin; others see the Plans link). The table scrolls inside
@@ -43,6 +44,8 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
 
   const rows = state && "rows" in state ? state.rows : null;
   const bp = rows?.some((r) => r.surplusBp !== undefined);
+  // The S&P grade comes to the admin only: the same rows get the "GPT rate" column.
+  const admin = rows?.some((r) => r.sp !== undefined);
   const n = (x: number | null | undefined, plus = false) => (x === null || x === undefined ? "–" : `${plus && x > 0 ? "+" : ""}${Math.round(x)}`);
 
   return (
@@ -78,6 +81,7 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
                     <tr>
                       <th className="py-1 pr-2">#</th><th className="pr-2">{t.issuer}</th><th className="pr-2 text-right">{t.yld}</th><th className="pr-2 text-right">{t.risk}</th><th className="pr-2 text-right">{t.dur}</th>
                       {bp && <><th className="pr-2 text-right">{t.surplus}</th></>}
+                      {admin && <th className="w-14 pr-2 text-center text-amber-800">{GPT_HEAD}</th>}
                       <th>{t.why}</th>
                       {onAdd && <th />}
                     </tr>
@@ -91,6 +95,7 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
                         <td className="whitespace-nowrap pr-2 text-right">{r.risk ?? "–"}{r.sp !== undefined && <> <SpSlot sp={r.sp} /></>}</td>
                         <td className="pr-2 text-right">{r.duration.toFixed(1)}</td>
                         {bp && <><td className="pr-2 text-right">{n(r.surplusBp, true)}</td></>}
+                        {admin && <td className="pr-2 text-center"><GptRate isin={r.isin} /></td>}
                         <td>{r.why}</td>
                         {onAdd && (
                           <td className="py-0.5 pl-2 text-right">
