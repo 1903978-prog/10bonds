@@ -9,8 +9,8 @@ const en = {
   eyebrow: "Bond investments",
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
   tagline: "Smarter bond selection. Higher potential return.",
-  cardTitleBench: "AI portfolio vs Average Bond ETF",
-  cardTitleBenchShort: "AI vs Average Bond ETF",
+  cardTitleBench: "Average Bond ETF vs AI portfolio",
+  cardTitleBenchShort: "Average Bond ETF vs AI",
   bench: "Bond ETF benchmark",
   benchShort: "ETF benchmark",
   ai: "AI-selected portfolio",
@@ -76,8 +76,8 @@ export type LandingText = typeof en;
 const it: LandingText = {
   eyebrow: "Investimenti obbligazionari",
   tagline: "Selezione obbligazionaria più intelligente. Rendimento potenziale più alto.",
-  cardTitleBench: "Portafoglio IA e ETF obbligazionario medio",
-  cardTitleBenchShort: "IA e ETF obbligazionario medio",
+  cardTitleBench: "ETF obbligazionario medio e portafoglio IA",
+  cardTitleBenchShort: "ETF obbligazionario medio e IA",
   bench: "Benchmark di ETF obbligazionari",
   benchShort: "Benchmark ETF",
   ai: "Portafoglio selezionato dall'IA",
@@ -141,8 +141,8 @@ const it: LandingText = {
 const fr: LandingText = {
   eyebrow: "Investissement obligataire",
   tagline: "Une sélection obligataire plus intelligente. Un rendement potentiel plus élevé.",
-  cardTitleBench: "Portefeuille IA et ETF obligataire moyen",
-  cardTitleBenchShort: "IA et ETF obligataire moyen",
+  cardTitleBench: "ETF obligataire moyen et portefeuille IA",
+  cardTitleBenchShort: "ETF obligataire moyen et IA",
   bench: "Référence d'ETF obligataires",
   benchShort: "Référence ETF",
   ai: "Portefeuille sélectionné par l'IA",
@@ -206,8 +206,8 @@ const fr: LandingText = {
 const de: LandingText = {
   eyebrow: "Anleihen-Investments",
   tagline: "Klügere Anleihenauswahl. Höhere potenzielle Rendite.",
-  cardTitleBench: "KI-Portfolio und durchschnittlicher Anleihen-ETF",
-  cardTitleBenchShort: "KI und Anleihen-ETF",
+  cardTitleBench: "Durchschnittlicher Anleihen-ETF und KI-Portfolio",
+  cardTitleBenchShort: "Anleihen-ETF und KI",
   bench: "Anleihen-ETF-Benchmark",
   benchShort: "ETF-Benchmark",
   ai: "KI-ausgewähltes Portfolio",
