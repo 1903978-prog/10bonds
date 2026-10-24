@@ -46,9 +46,9 @@ const en = {
   optimizedDot: "AI",
   chartLabel: "Illustration of the efficient frontier",
   steps: [
-    { k: "01 / Horizon", t: "Duration", s: "The length of the bond exposure, in years." },
-    { k: "02 / Target", t: "Target return", s: "A yearly return level to explore, used as a filter." },
-    { k: "03 / Compare", t: "A 10-bond list", s: "Diversified by issuer, with return, duration and modeled risk." },
+    { k: "01 / Horizon", t: "Duration", s: "Short, medium or long term." },
+    { k: "02 / Balance", t: "Risk versus return", s: "One slider sets the balance between modeled risk and return." },
+    { k: "03 / Portfolio", t: "A Pareto-efficient portfolio", s: "10 bonds from different issuers, modeled with Monte Carlo analysis." },
   ],
   stepsTitle: "Three steps. Ten bonds.",
 };
@@ -96,9 +96,9 @@ const it: LandingText = {
   optimizedDot: "IA",
   chartLabel: "Illustrazione della frontiera efficiente",
   steps: [
-    { k: "01 / Orizzonte", t: "Durata", s: "L'orizzonte dell'investimento in obbligazioni, in anni." },
-    { k: "02 / Obiettivo", t: "Rendimento obiettivo", s: "Un livello di rendimento annuo da esplorare, usato come filtro." },
-    { k: "03 / Confronto", t: "Una lista di 10 obbligazioni", s: "Distribuita tra emittenti, con rendimento, durata e rischio stimato." },
+    { k: "01 / Orizzonte", t: "Durata", s: "Breve, medio o lungo termine." },
+    { k: "02 / Equilibrio", t: "Rischio e rendimento", s: "Un solo cursore regola l'equilibrio tra rischio stimato e rendimento." },
+    { k: "03 / Portafoglio", t: "Un portafoglio Pareto-efficiente", s: "10 obbligazioni di emittenti diversi, modellato con analisi Monte Carlo." },
   ],
   stepsTitle: "Tre passi. Dieci obbligazioni.",
 };
@@ -145,9 +145,9 @@ const fr: LandingText = {
   optimizedDot: "IA",
   chartLabel: "Illustration de la frontière efficiente",
   steps: [
-    { k: "01 / Horizon", t: "Durée", s: "L'horizon de détention des obligations, en années." },
-    { k: "02 / Objectif", t: "Rendement visé", s: "Un niveau de rendement annuel à explorer, utilisé comme filtre." },
-    { k: "03 / Comparer", t: "Une liste de 10 obligations", s: "Répartie entre émetteurs, avec rendement, durée et risque modélisé." },
+    { k: "01 / Horizon", t: "Durée", s: "Court, moyen ou long terme." },
+    { k: "02 / Équilibre", t: "Risque et rendement", s: "Un seul curseur règle l'équilibre entre risque modélisé et rendement." },
+    { k: "03 / Portefeuille", t: "Un portefeuille Pareto-efficient", s: "10 obligations d'émetteurs différents, modélisé par analyse Monte Carlo." },
   ],
   stepsTitle: "Trois étapes. Dix obligations.",
 };
@@ -194,9 +194,9 @@ const de: LandingText = {
   optimizedDot: "KI",
   chartLabel: "Illustration der effizienten Grenze",
   steps: [
-    { k: "01 / Horizont", t: "Laufzeit", s: "Der Anlagehorizont der Anleihen, in Jahren." },
-    { k: "02 / Ziel", t: "Zielrendite", s: "Eine Jahresrendite zum Erkunden, als Filter genutzt." },
-    { k: "03 / Vergleichen", t: "Eine Liste mit 10 Anleihen", s: "Über Emittenten verteilt, mit Rendite, Laufzeit und modelliertem Risiko." },
+    { k: "01 / Horizont", t: "Laufzeit", s: "Kurz-, mittel- oder langfristig." },
+    { k: "02 / Balance", t: "Risiko und Rendite", s: "Ein Regler steuert das Verhältnis von modelliertem Risiko und Rendite." },
+    { k: "03 / Portfolio", t: "Ein Pareto-effizientes Portfolio", s: "10 Anleihen verschiedener Emittenten, modelliert mit Monte-Carlo-Analyse." },
   ],
   stepsTitle: "Drei Schritte. Zehn Anleihen.",
 };
