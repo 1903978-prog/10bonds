@@ -4,6 +4,9 @@ The bond details (one-bond card and `/bonds/{ISIN}` pages) now show every bond t
 exports the columns below, those fields show "–". Coupon type is already filled where possible: zero coupon when
 `coupon = 0`, fixed when `structure_modelled = true`.
 
+Status 24/10/2026 (data coverage workflow): `seniority` exists (USD 11,856 of 11,858 filled, EUR only 2,579 of 4,957);
+`coupon_type`, `issue_date` and `callable` do not exist yet. Please fill EUR seniority and add the other three.
+
 Add to `public.public_bonds` (same nightly export, one row per ISIN). All optional; the site reads them when present.
 
 | Column | Type | Content |
