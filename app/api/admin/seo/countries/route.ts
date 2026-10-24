@@ -6,6 +6,7 @@ import { LOCALE, LOCALES, type Locale } from "@/lib/seo/locales";
 import { round2 } from "@/lib/seo/rubric";
 import { comparisonPages, indexable } from "@/lib/seo/site";
 import { getSeoSetting, latestAssessments, listGuides, listKeywords } from "@/lib/seo/store";
+import { gscProperty } from "@/lib/seo/engines";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -16,7 +17,7 @@ export const maxDuration = 60;
  */
 export async function GET() {
   if (!(await seoAdmin())) return notFound();
-  const [guides, keywords, { pages, source }, gscSite] = await Promise.all([listGuides(), listKeywords(), comparisonPages(), getSeoSetting("gsc_site")]);
+  const [guides, keywords, { pages, source }, gscSite] = await Promise.all([listGuides(), listKeywords(), comparisonPages(), gscProperty()]);
   const gsc = serviceAccount() && gscSite ? await searchConsole(gscSite).catch(() => null) : null;
   const inMarket = (url: string, m: Locale) => {
     try {

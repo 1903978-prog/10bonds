@@ -1,4 +1,6 @@
-import { bing, google, type Engine } from "./engines";
+import { bing, google, gscProperty, type Engine } from "./engines";
+import { syncKeywords } from "./rankings";
+import { SEO_MARKETS } from "./input";
 import { dailyVisits } from "../accounts";
 import { listKeywords, seoSql } from "./store";
 
@@ -41,6 +43,9 @@ export async function takeSnapshot(force = false): Promise<boolean> {
     const have = await s`select clicks, tracked from app.seo_daily_stats where day = ${day}`;
     if (have.length >= 3 && have.every((r) => r.clicks !== null || r.tracked !== null)) return false;
   }
+  // Every market's keyword positions are refreshed here too, so the rankings table fills even when nobody opens it.
+  const site = await gscProperty().catch(() => null);
+  if (site) for (const m of SEO_MARKETS) await syncKeywords(m, site).catch((e) => console.error(`Keyword sync ${m} failed:`, (e as Error).message));
   const [g, b, kws] = await Promise.all([google(), bing(), listKeywords().catch(() => [])]);
   await save(fromEngine(day, "google", g));
   await save(fromEngine(day, "bing", b));

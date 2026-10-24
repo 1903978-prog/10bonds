@@ -9,6 +9,7 @@ import { CALCULATORS } from "@/lib/seo/calculators";
 import { comparisonById } from "@/lib/seo/comparisons";
 import { comparisonPages, indexable } from "@/lib/seo/site";
 import { deleteKeyword, getSeoSetting, importKeywordData, listGuides, listKeywords, saveKeyword } from "@/lib/seo/store";
+import { gscProperty } from "@/lib/seo/engines";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
   if (!(await seoAdmin())) return notFound();
   const market = seoMarketOf(new URL(req.url).searchParams.get("market"));
   const [keywords, guides, { pages, source }, gscSite, brokers] = await Promise.all([
-    listKeywords(market), isEuMarket(market) ? listGuides(false, market) : Promise.resolve([]), comparisonPages(), getSeoSetting("gsc_site"), loadPublicData().catch(() => null),
+    listKeywords(market), isEuMarket(market) ? listGuides(false, market) : Promise.resolve([]), comparisonPages(), gscProperty(), loadPublicData().catch(() => null),
   ]);
   const gsc = !!serviceAccount() && !!gscSite;
   const rows = keywords
@@ -106,7 +107,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ updated: n, rows: data.length });
     }
     case "sync": {
-      const site = await getSeoSetting("gsc_site");
+      const site = await gscProperty();
       if (!serviceAccount() || !site) return bad("Connect Search Console first (Performance tab).");
       return NextResponse.json(await syncKeywords(market, site));
     }

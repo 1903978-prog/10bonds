@@ -5,6 +5,7 @@ import { serviceAccount, submitSitemap } from "./google";
 import { pathOf } from "./locales";
 import { BOND_SITEMAP, bondPageUrls } from "./bondPages";
 import { getSeoSetting, seoSql, setSeoSetting, type Guide } from "./store";
+import { gscProperty } from "./engines";
 
 // When a guide goes live it is sent, by itself, to:
 // - IndexNow (Bing, Yandex, Seznam, Naver share it): the page address, so they crawl it within minutes. No setup.
@@ -63,7 +64,7 @@ export async function indexNow(urls: string[]): Promise<void> {
 
 /** Re-submits the sitemap in Search Console. Needs the service account and the property set in Admin -> SEO. */
 export async function pingGoogle(): Promise<void> {
-  const site = await getSeoSetting("gsc_site");
+  const site = await gscProperty();
   if (!serviceAccount() || !site) throw new Error("not configured");
   await submitSitemap(site, `${SITE_URL}/sitemap.xml`);
   await submitSitemap(site, SITE_URL + BOND_SITEMAP);
