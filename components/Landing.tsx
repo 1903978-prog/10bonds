@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
@@ -13,10 +12,11 @@ const GREEN = "#127052";
 const MUTE = "#52666F";
 
 // The comparison (the owner, 24/10/2026): the admin's provisional bond ETF benchmark (no provider named in public) against
-// one live 10bonds slider list, both from /api/benchmark. Not equal risk or duration; labelled illustrative on screen.
+// one live 10bonds slider list, both from /api/benchmark. Not equal risk or duration. No disclaimer text on the page (the owner, 24/10/2026):
+// the caveats, fee wording and "illustrative" live in the Disclaimer page (lib/disclaimer.ts), linked from the footer.
 type Bench = { ret: number; risk: number; duration: number; portfolio: { ytm: number; avgRisk: number; duration: number | null } | null };
 
-/** First-visit landing page, kept minimal (the owner, 24/10/2026): the headline, an illustrative 2-portfolio comparison, the free test plus sign up / sign in. */
+/** First-visit landing page, kept minimal (the owner, 24/10/2026): the headline, a 2-portfolio comparison, the free test plus sign up / sign in. */
 export default function Landing({ lang, heading = true, onClose }: { lang: FinderLang; heading?: boolean; onClose: () => void }) {
   const t = LANDING_TEXT[lang];
   const Title = heading ? "h1" : "h2";
@@ -62,9 +62,8 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         </div>
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <Comparison t={t} num={num} bench={bench} />
-          <p className="mt-1.5 text-[9.5px] leading-[1.3] sm:mt-2 sm:text-[10px]" style={{ color: MUTE }} data-testid="landing-footnote">{t.footnote}</p>
         </div>
-        {/* The free test is the main way in; sign up and sign in sit next to it. One row on every screen. */}
+        {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
         <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
         <div className="flex items-center gap-2 sm:gap-3">
           <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
@@ -72,8 +71,6 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
             style={{ background: NAVY }}>
             {t.cta} <span aria-hidden className="hidden min-[400px]:inline">↗</span>
           </button>
-          <Link href="/signup" className="whitespace-nowrap rounded-lg border-[1.5px] px-2.5 py-3 text-center text-[13px] min-[360px]:px-3 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:px-5 font-semibold transition hover:bg-white" style={{ borderColor: NAVY, color: NAVY }}>{t.signUp}</Link>
-          <Link href="/login" className="whitespace-nowrap rounded-lg px-1 py-3 text-center text-[13px] min-[360px]:text-[14px] min-[400px]:text-[15px] font-semibold underline sm:px-3 decoration-[1.5px] underline-offset-4" style={{ color: NAVY }}>{t.signIn}</Link>
         </div>
         {/* The quant methodology paper, for everyone (the owner, 24/10/2026). One small line, so the page still fits one screen. */}
         <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="landing-paper"
@@ -97,7 +94,7 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
       {/* Phones get the short words, so nothing is cut at 320 px. */}
       {[
         [t.duration, t.duration, ...yrs(duration)],
-        [t.creditRisk, t.creditRiskShort, risk === null ? "–" : `${risk} ${word}`, risk ?? "–"],
+        [t.creditRisk, t.creditRiskShort, risk === null ? "–" : `${risk} ${word}`.trim(), risk ?? "–"],
       ].map(([k, ks, v, vs]) => (
         <div key={k} className="flex justify-between gap-2">
           <dt className="min-w-0 truncate"><span className="sm:hidden">{ks}</span><span className="hidden sm:inline">{k}</span></dt>
@@ -115,7 +112,6 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
     <div className="rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[15px] font-semibold tracking-tight lg:text-[14px]"><span className="sm:hidden">{t.cardTitleBenchShort}</span><span className="hidden sm:inline">{t.cardTitleBench}</span></h2>
-        <span className="shrink-0 rounded-md bg-[#EDF3F0] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em]" style={{ color: MUTE }}><span className="sm:hidden">{t.illustrativeShort}</span><span className="hidden sm:inline">{t.illustrative}</span></span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
@@ -131,12 +127,8 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
           {rows(true, p?.duration, p ? num(p.avgRisk, 1) : null, t.modelEstimated)}
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-4 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3">
+      <div className="mt-3 flex items-center justify-center gap-4 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3">
         <p className="shrink-0 text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : ""}${num(p.ytm - bench.ret)}` : "–"}<span className="text-[0.7em]"> pp</span></p>
-        <div className="min-w-0">
-          <p className="text-[13px] font-semibold leading-snug"><span className="sm:hidden">{t.diffTitleShort}</span><span className="hidden sm:inline">{t.diffTitle}</span></p>
-          <p className="text-[12px] leading-snug" style={{ color: MUTE }}>{t.diffSub}</p>
-        </div>
       </div>
     </div>
   );
