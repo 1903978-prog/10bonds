@@ -482,11 +482,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
-                  <button type="button" data-testid="admin-method" title="Methodology 1 = what customers get; Spread rules = minimum extra return per rating step (admin only)" onClick={() => setSpread((v) => !v)} className="w-[5.5rem] shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                    {spread ? "Spread rules" : "Method 1"}
-                  </button>
-                  <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                    {positions ? `${positions.length}-position table` : "Position table (preparing…)"}
+                  {/* Two-option switch, fixed width: the active methodology is the filled side. */}
+                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Method 1 = what customers get; Spread rules = minimum extra return per rating step (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
+                    {([["m1", "Method 1"], ["spread", "Spread rules"]] as const).map(([k, label]) => (
+                      <button key={k} type="button" role="radio" aria-checked={method === k} data-testid={`admin-method-${k}`} onClick={() => setSpread(k === "spread")} className={`flex-1 whitespace-nowrap rounded-full px-1 ${method === k ? "bg-amber-500 text-white" : "text-amber-900"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" data-testid="slider-check-open" title="Position table" onClick={() => setDiagOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                    {positions ? `Table ${positions.length}` : "Table…"}
                   </button>
                   <span data-testid="mix-admin-tag" title={`${positions?.[mix - 1]?.belowHurdle ?? "–"} bonds pay less than the spread rules ask over a safer bond not in the list`} className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
                     #{mix}/{mixMax} · worst <RiskBadge risk={positions?.[mix - 1]?.worstRisk ?? risk} /> · target {ytm.toFixed(2)}% · {positions?.[mix - 1]?.belowHurdle ?? "–"} &lt; hurdle
@@ -778,6 +783,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             <p className="truncate text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
               {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}
+              {isAdmin && <span className="text-amber-800" data-testid="admin-method-footer"> Method: {method === "spread" ? "Spread rules" : "Method 1"}.</span>}
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>
