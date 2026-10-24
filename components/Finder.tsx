@@ -342,12 +342,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   useEffect(() => {
     if (!touched || !data || mode !== "portfolio") return;
     trackOnce("portfolio_generated", { tier: data.tier });
-    if (data.lockedCount > 0) trackOnce("preview_view");
+    if (data.tier === "visitor") trackOnce("preview_view");
   }, [touched, data, mode]);
   const tier = data?.tier ?? "visitor";
   // What this plan includes comes with each answer (the admin's feature table, /admin/features).
   const features = new Set<FeatureKey>(data?.features ?? []);
-  const paid = features.has("portfolio_sim");
+  // Visitors get the two averages too (the owner, 24/10/2026); only the bond names wait for a free account.
+  const paid = features.has("portfolio_sim") || tier === "visitor";
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
   const [chartOn, setChartOn] = useState(false);
   const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
@@ -419,7 +420,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   if (preview.current) why.set("preview", preview.current);
   const whyQuery = why.toString();
   // Visitors are asked to open a free account first; upgrade prompts come only after that.
-  const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: signupHref(lang), label: t.avgSignUp };
+  const lockTo = signedIn ? { href: "/pricing", label: t.avgPlus } : { href: signupHref(lang), label: t.namesSignUp };
 
   return (
     <FinderLangContext.Provider value={lang}>
@@ -717,7 +718,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">
-          {data && !paid && (
+          {data && (!paid || !signedIn) && (
             <Link href={lockTo.href} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline" data-testid="avg-unlock">
               <Lock /> {lockTo.label}
             </Link>
@@ -1365,7 +1366,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: rowH }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={admin && narrow ? `${r.issuer} · ${r.isin} · ${adminFacts(r)}` : r.issuer}>
-                {r.issuer}
+                {r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}
               </td>
               {!narrow && <td className="overflow-hidden py-0 pr-3">
                 {admin && !dense ? (
@@ -1382,9 +1383,9 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
                 )}
               </td>}
               <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center font-semibold tabular-nums`} title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
-              <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
+              <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{r.duration != null ? r.duration.toFixed(1) : <Dim />}</td>
               {!narrow && <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>}
-              <td className="px-1 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
+              <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
               {admin && <td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
               <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
@@ -1412,13 +1413,15 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4${hide(i)}`} style={{ height: CARD_H }}>
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
-              <div className="truncate font-medium">{r.issuer}</div>
+              <div className="truncate font-medium">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</div>
               <div className="truncate text-xs leading-relaxed text-mute">
                 {paid
                   ? <>{r.isin} · {r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} sp={r.sp} />{r.minInvestment != null && <> · min {fmtMin(r.minInvestment, currency)}</>}</>
                   : signedIn
                     ? <>{r.duration?.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} sp={r.sp} /> · {t.isinPlus}</>
-                    : t.detailsFree}
+                    : r.duration != null
+                      ? <>{r.duration.toFixed(1)} {t.yrs} · {t.risk} <RiskBadge risk={r.risk} /> · {t.freeAccount}</>
+                      : t.detailsFree}
               </div>
             </div>
             <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
@@ -1564,7 +1567,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
         <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[62px]" />
       </div>
       <div className="flex h-5 shrink-0 items-center">
-        {data && ret === null && (
+        {data && (ret === null || !signedIn) && (
           <Link href={lock.href} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent" data-testid="phone-unlock"><Lock /> {lock.label}</Link>
         )}
       </div>
@@ -1585,15 +1588,15 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
             <li key={r.rank} className={`${cols} min-h-0 border-b border-line/60`}>
               <span className="text-[12px] tabular-nums text-mute">{r.rank}</span>
               <div className="min-w-0">
-                <div className="truncate text-[15px] font-medium leading-tight">{r.issuer}</div>
+                <div className="truncate text-[15px] font-medium leading-tight">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</div>
                 {admin ? (
                   <div className="truncate text-[11px] leading-tight text-amber-800" title={adminFacts(r)}>{r.isin}</div>
                 ) : (
-                  <div className="truncate text-[11px] leading-tight text-mute">{paid ? r.isin : signedIn ? t.isinPlus : t.detailsFree}</div>
+                  <div className="truncate text-[11px] leading-tight text-mute">{paid ? r.isin : signedIn ? t.isinPlus : t.freeAccount}</div>
                 )}
               </div>
-              <span className="text-right text-[13px] tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</span>
-              <span className="text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
+              <span className="text-right text-[13px] tabular-nums">{r.duration != null ? r.duration.toFixed(1) : <Dim />}</span>
+              <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
               {admin && <span className="text-center"><GptRate isin={r.isin} /></span>}
               <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
@@ -1725,6 +1728,12 @@ function LockedOverlay({ count, top }: { count: number; top: number }) {
 }
 
 
+
+/** A visitor's bond name: a blurred stand-in of varying length (the real issuer is never sent to the browser). */
+const FAKE_NAMES = ["Xxxxxx Group", "Xxx Bank Xx", "Xxxxxxx AB", "Xxxxx Energy", "Xxxx Holding", "Xxxxxxxxx", "Xxxx Finance", "Xxxxxx SpA", "Xxxxx Telecom", "Xxxxxxx NV"];
+function HiddenName({ rank }: { rank: number }) {
+  return <span aria-hidden className="select-none blur-[5px]">{FAKE_NAMES[(rank - 1) % FAKE_NAMES.length]}</span>;
+}
 
 function Dim() {
   return <span className="inline-block h-3 w-8 rounded bg-line align-middle" />;

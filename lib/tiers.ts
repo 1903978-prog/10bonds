@@ -5,12 +5,12 @@ import { bondLossChance, listLifeLoss, lossAdjustedYield } from "./expectedLoss"
 import { lifeYears } from "./lifeYears";
 import { defaultMatrix, featuresOf, type FeatureKey } from "./features";
 
-/** Rows a visitor without an account sees. A free account sees the full top 10, without ISINs. */
-export const VISITOR_VISIBLE = 3;
 
 export type ResultRow = {
   rank: number;
   issuer: string;
+  // Visitors: the issuer is left out ("") and the page shows a blurred placeholder.
+  hidden?: boolean;
   ytm: number;
   // Signed-in accounts.
   duration?: number;
@@ -67,16 +67,19 @@ export const tierFeatures = (tier: Tier): FeatureKey[] => (tier === "visitor" ? 
 
 /**
  * Cut the ranked list down to what this tier and these features allow. Done on the server so hidden data never reaches
- * the browser. Visitors see the first rows only; a signed-in account sees the full list, with ISINs ("isin") and the
+ * the browser. Visitors see all rows without issuer names; a signed-in account sees the full list, with ISINs ("isin") and the
  * portfolio figures ("portfolio_sim") when its plan has them. `admin`: also each bond's S&P grade (the owner only).
  */
 export function shapeForTier(ranked: RankedBond[], tier: Tier, features: FeatureKey[] = tierFeatures(tier), admin = false): ResultsPayload {
+  // Visitors (the owner, 24/10/2026): all 10 bonds with return, years and risk, plus the two averages; the issuer is
+  // never sent (the page draws a blurred placeholder), so the names stay behind the free account.
   if (tier === "visitor") {
+    const top = ranked.slice(0, RESULT_COUNT);
     return {
       tier,
-      rows: ranked.slice(0, VISITOR_VISIBLE).map((b) => ({ rank: b.rank, issuer: b.issuer ?? b.name, ytm: b.grossYtm! })),
-      lockedCount: Math.max(0, Math.min(ranked.length, RESULT_COUNT) - VISITOR_VISIBLE),
-      summary: null,
+      rows: top.map((b) => ({ rank: b.rank, issuer: "", hidden: true, ytm: b.grossYtm!, duration: b.modifiedDuration!, risk: bondRisk(b) })),
+      lockedCount: 0,
+      summary: top.length ? { count: top.length, avgYtm: averages(top).ytm, avgDuration: averages(top).duration, avgRisk: averageRisk(top.map(bondRisk)), lifeLoss: listLifeLoss(top.map(pdOf)) } : null,
     };
   }
   const has = new Set(features);
