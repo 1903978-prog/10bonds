@@ -607,7 +607,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             setList={setList}
             features={features}
             signedIn={signedIn}
-            currency={currency}
             loading={loading}
             lang={lang}
             ret={!data ? "—" : paid ? pct(summary?.avgYtm) : null}
@@ -1234,7 +1233,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ onClose, data, list, setList, features, signedIn, currency, loading, lang, ret, loss, lock, message, onExcluded }: { onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; currency: string; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded }: { onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
