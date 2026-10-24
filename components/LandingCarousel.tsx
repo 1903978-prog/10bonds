@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { RiskBadge, riskColor } from "@/components/RiskBadge";
 import type { LandingText } from "@/lib/landingText";
+import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { findCompany } from "@/lib/companiesInFocus";
 
 const LVMH = "FR0013482841";
@@ -12,7 +13,7 @@ const NAVY = "#112D3B";
 const GREEN = "#127052";
 const MUTE = "#52666F";
 const BLUE = "#0066cc";
-const EVERY = 6000; // ms per slide while nobody touches the carousel
+const EVERY = 3000; // ms per slide (the owner, 24/10/2026)
 
 /** One card of the landing carousel: same white card as the comparison, filling the carousel's fixed height. */
 export function SlideCard({ title, children, href }: { title: ReactNode; children: ReactNode; href?: string }) {
@@ -40,17 +41,17 @@ function inner(title: ReactNode, children: ReactNode) {
 export default function LandingCarousel({ t, slides }: { t: LandingText; slides: { key: string; node: ReactNode }[] }) {
   const [at, setAt] = useState(0);
   const [held, setHeld] = useState(false);
-  const [stopped, setStopped] = useState(false);
   const touch = useRef<number | null>(null);
   const n = slides.length;
 
   useEffect(() => {
-    if (held || stopped || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (held || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = setTimeout(() => setAt((i) => (i + 1) % n), EVERY);
     return () => clearTimeout(id);
-  }, [at, held, stopped, n]);
+  }, [at, held, n]);
 
-  const go = (i: number) => { setStopped(true); setAt(((i % n) + n) % n); };
+  // A tap on an arrow or dot moves at once and restarts the 3 s count.
+  const go = (i: number) => setAt(((i % n) + n) % n);
 
   return (
     <div
@@ -74,6 +75,14 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
           className={`min-w-0 [grid-area:1/1] transition-opacity duration-500 ${i === at ? "opacity-100" : "pointer-events-none opacity-0"}`}>
           {s.node}
         </div>
+      ))}
+      {/* Arrows on the card's sides, over its padding, so they take no room of their own. */}
+      {([-1, 1] as const).map((d) => (
+        <button key={d} type="button" onClick={() => go(at + d)} aria-label={d < 0 ? t.carousel.prev : t.carousel.next} data-testid={d < 0 ? "carousel-prev" : "carousel-next"}
+          className={`absolute top-1/2 grid h-7 w-7 lg:h-8 lg:w-8 -translate-y-1/2 place-items-center rounded-full border border-[#e3ebe7] bg-white text-[18px] leading-none shadow-[0_4px_14px_rgba(17,45,59,0.14)] transition hover:bg-[#F7F9F8] ${d < 0 ? "-left-3.5 lg:-left-4" : "-right-3.5 lg:-right-4"}`}
+          style={{ color: NAVY }}>
+          <span aria-hidden className="-mt-0.5">{d < 0 ? "‹" : "›"}</span>
+        </button>
       ))}
       <div className="absolute right-3 top-[15px] flex items-center lg:right-4 lg:top-[19px]">
         {slides.map((s, i) => (
@@ -124,25 +133,23 @@ export function CurveSlide({ t }: { t: LandingText }) {
 }
 
 /** The portfolio: ten bonds, names hidden as on the visitor's list. */
-export function ListSlide({ t }: { t: LandingText }) {
+export function ListSlide({ t, bonds }: { t: LandingText; bonds: BenchmarkBond[] | undefined }) {
   const c = t.carousel;
-  const rows: [number, number, number, number][] = [ // name width %, risk, return, year
-    [62, 5, 4.92, 2031], [48, 4, 4.71, 2030], [70, 6, 4.66, 2032], [55, 3, 4.38, 2030], [44, 5, 4.35, 2031],
-    [66, 4, 4.21, 2029], [52, 3, 4.08, 2031], [60, 4, 3.97, 2030], [40, 2, 3.71, 2029], [58, 3, 3.64, 2030],
-  ];
+  // Always 10 rows, "–" until the live list is there, so nothing moves when it arrives.
+  const rows = Array.from({ length: 10 }, (_, i) => bonds?.[i] ?? null);
   return (
     <SlideCard title={c.list}>
       <div className="flex text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTE }}>
-        <span className="w-5" /><span className="min-w-0 flex-1 truncate">{c.bond}</span><span className="w-[72px] truncate text-right">{c.maturity}</span><span className="w-12 text-center">{c.risk}</span><span className="w-14 text-right">{c.ret}</span>
+        <span className="w-5" /><span className="min-w-0 flex-1 truncate">{c.bond}</span><span className="w-[60px] truncate text-right">{c.maturity}</span><span className="w-11 text-center">{c.risk}</span><span className="w-14 text-right">{c.ret}</span>
       </div>
-      <ol className="mt-1 flex flex-1 flex-col justify-between">
-        {rows.map(([w, risk, ret, yr], i) => (
+      <ol className="mt-1 flex flex-1 flex-col justify-between" data-testid="carousel-list">
+        {rows.map((b, i) => (
           <li key={i} className="flex items-center border-t border-[#eef2f0] text-[11.5px] leading-[19px] tabular-nums lg:py-[2px] lg:text-[12px]">
             <span className="w-5 shrink-0" style={{ color: MUTE }}>{i + 1}</span>
-            <span className="flex-1"><span className="block h-2 rounded-full bg-[#dfe7e3] blur-[1.5px]" style={{ width: `${w}%` }} /></span>
-            <span className="w-[72px] text-right" style={{ color: MUTE }}>{yr}</span>
-            <span className="w-12 text-center"><RiskBadge risk={risk} /></span>
-            <span className="w-14 text-right font-semibold">{ret.toLocaleString(c.locale, { minimumFractionDigits: 2 })}%</span>
+            <span className="min-w-0 flex-1 truncate pr-2 font-medium" title={b?.name}>{b?.name ?? "–"}</span>
+            <span className="w-[60px] shrink-0 text-right" style={{ color: MUTE }}>{b?.year ?? "–"}</span>
+            <span className="w-11 shrink-0 text-center">{b?.risk != null ? <RiskBadge risk={b.risk} /> : "–"}</span>
+            <span className="w-14 shrink-0 text-right font-semibold">{b?.ytm != null ? `${b.ytm.toLocaleString(c.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : "–"}</span>
           </li>
         ))}
       </ol>

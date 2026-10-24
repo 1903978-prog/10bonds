@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
+import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
 import LandingCarousel, { CompanySlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
 
@@ -15,7 +16,7 @@ const MUTE = "#52666F";
 // The comparison (the owner, 24/10/2026): the admin's provisional bond ETF benchmark (no provider named in public) against
 // one live 10bonds slider list, both from /api/benchmark. Not equal risk or duration. No disclaimer text on the page (the owner, 24/10/2026):
 // the caveats, fee wording and "illustrative" live in the Disclaimer page (lib/disclaimer.ts), linked from the footer.
-type Bench = { ret: number; risk: number; duration: number; portfolio: { ytm: number; avgRisk: number; duration: number | null } | null };
+type Bench = { ret: number; risk: number; duration: number; portfolio: { ytm: number; avgRisk: number; duration: number | null; bonds?: BenchmarkBond[] } | null };
 
 /** First-visit landing page, kept minimal (the owner, 24/10/2026): the headline, a 2-portfolio comparison, the free test plus sign up / sign in. */
 export default function Landing({ lang, heading = true, onClose }: { lang: FinderLang; heading?: boolean; onClose: () => void }) {
@@ -62,11 +63,11 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
         <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          {/* One bond's curve first: the reason to sign up (the owner, 24/10/2026). */}
+          {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
           <LandingCarousel t={t} slides={[
-            { key: "curve", node: <CurveSlide t={t} /> },
             { key: "compare", node: <Comparison t={t} num={num} bench={bench} /> },
-            { key: "list", node: <ListSlide t={t} /> },
+            { key: "curve", node: <CurveSlide t={t} /> },
+            { key: "list", node: <ListSlide t={t} bonds={bench?.portfolio?.bonds} /> },
             { key: "country", node: <CountrySlide t={t} /> },
             { key: "company", node: <CompanySlide t={t} /> },
           ]} />
