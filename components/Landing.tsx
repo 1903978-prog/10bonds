@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { FinderLang } from "@/lib/finderText";
+import { trackOnce } from "@/lib/track";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
@@ -21,6 +22,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   const Title = heading ? "h1" : "h2";
   const num = (n: number, d = 2) => n.toLocaleString(LANDING_NUM[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
 
+  useEffect(() => trackOnce("landing_view", { variant: "a" }), []);
   // Escape skips to the finder, as the old intro did.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -39,7 +41,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <Comparison t={t} num={num} />
         </div>
-        <button type="button" onClick={onClose} data-testid="intro-skip"
+        <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
           className="flex w-full items-center justify-between gap-6 rounded-lg px-5 py-3.5 text-[15px] font-semibold text-white shadow-sm transition hover:opacity-90 sm:w-auto sm:justify-self-start lg:col-start-1 lg:row-start-2 lg:self-start"
           style={{ background: NAVY }}>
           {t.cta} <span aria-hidden>↗</span>

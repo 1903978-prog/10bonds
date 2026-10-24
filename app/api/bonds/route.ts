@@ -81,7 +81,7 @@ export async function GET(req: Request) {
   const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
   const alternatives = has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table")) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features), features, excluded: skip !== null, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
+    { ...shapeForTier(results, tier, features), features, excluded: skip !== null, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

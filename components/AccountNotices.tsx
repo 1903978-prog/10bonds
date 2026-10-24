@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackOnce } from "@/lib/track";
 import { fmtDate, loadMe, type Me } from "@/lib/me";
 
 /**
@@ -19,6 +20,7 @@ export default function AccountNotices() {
     setWelcome(q.get("welcome") === "1" || q.get("welcome") === "code");
     setWithCode(q.get("welcome") === "code");
     setConfirmed(q.get("confirmed"));
+    if (q.get("confirmed") === "1") trackOnce("email_verified");
     loadMe().then(setMe);
   }, []);
 

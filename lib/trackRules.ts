@@ -1,5 +1,11 @@
 /** Usage events the site records (only with the visitor's consent). Shared by browser and server. */
-export const EVENT_KINDS = ["page_view", "search", "click", "signup", "login"] as const;
+// "signup" = registration completed. The sign-up funnel (the owner, 24/10/2026): landing_view, cta_click (the landing button),
+// finder_started (first control moved), portfolio_generated, preview_view (a visitor sees the 3-bond preview),
+// signup_started (first field of the sign-up form), signup, email_verified, plan_selected (a paid plan's button).
+export const EVENT_KINDS = ["page_view", "search", "click", "signup", "login", "landing_view", "cta_click", "finder_started", "portfolio_generated", "preview_view", "signup_started", "email_verified", "plan_selected"] as const;
+
+/** The funnel steps in order, for the admin page. */
+export const FUNNEL = ["landing_view", "cta_click", "finder_started", "portfolio_generated", "preview_view", "signup_started", "signup", "email_verified", "plan_selected"] as const satisfies readonly EventKind[];
 export type EventKind = (typeof EVENT_KINDS)[number];
 
 export type IncomingEvent = { kind: EventKind; path: string | null; detail: Record<string, string | number | boolean | null> | null };
