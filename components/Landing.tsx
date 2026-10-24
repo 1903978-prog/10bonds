@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
 
@@ -22,15 +22,23 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   const num = (n: number, d = 2) => n.toLocaleString(LANDING_NUM[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
   const sel = lang === "en" ? "/selection-methodology" : `/selection-methodology?lang=${lang}`;
 
-  // The phone's sticky button steps aside once the footer comes into view, so it never hides the footer's links.
+  // The phone's sticky button only comes in once the in-page button has scrolled away above the screen,
+  // so on the first screen it never covers the comparison card. It steps aside again when the footer comes into view.
   const [footer, setFooter] = useState(false);
+  const [passed, setPassed] = useState(false);
+  const phoneCta = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = document.querySelector("footer");
-    if (!el || !("IntersectionObserver" in window)) return;
-    const io = new IntersectionObserver(([e]) => setFooter(e.isIntersecting));
-    io.observe(el);
+    if (!("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver((es) => es.forEach((e) => {
+      if (e.target === el) setFooter(e.isIntersecting);
+      else setPassed(!e.isIntersecting && e.boundingClientRect.top < 0);
+    }));
+    if (el) io.observe(el);
+    if (phoneCta.current) io.observe(phoneCta.current);
     return () => io.disconnect();
   }, []);
+  const sticky = passed && !footer;
 
   // Escape skips to the finder, as the old intro did.
   useEffect(() => {
@@ -42,33 +50,46 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   const cta = `rounded-lg px-5 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:opacity-90`;
   return (
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] pb-24 text-[#132D3B] lg:pb-0">
-      <section className="grid items-center gap-6 pt-2 lg:grid-cols-[1.12fr_1fr] lg:gap-10 lg:pt-2">
+      <section className="grid items-center gap-4 pt-1 sm:gap-6 sm:pt-2 lg:grid-cols-[1.12fr_1fr] lg:gap-10 lg:pt-2">
         <div>
-          <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em]" style={{ color: GREEN }}>
+          <p className="flex items-center gap-2 text-[11px] font-semibold sm:text-[12px] uppercase tracking-[0.12em]" style={{ color: GREEN }}>
             <span className="inline-block h-2 w-2 rounded-full" style={{ background: GREEN }} aria-hidden />
             {t.kicker}
           </p>
-          <Title className="mt-3 text-[clamp(38px,11vw,48px)] font-bold leading-[1.02] tracking-[-0.035em] lg:text-[58px]">
+          <Title className="mt-2 text-[clamp(28px,8vw,32px)] font-bold sm:mt-3 sm:text-[48px] leading-[1.02] tracking-[-0.035em] lg:text-[58px]">
             <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
             <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
           </Title>
-          <p className="mt-4 max-w-[34rem] text-[16px] leading-relaxed lg:text-[17px]" style={{ color: MUTE }}>{t.lead}</p>
-          <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-            <button type="button" onClick={onClose} className={`${cta} flex items-center justify-between gap-6 py-3.5`} style={{ background: NAVY }} data-testid="intro-skip">
-              {t.cta} <span aria-hidden>↗</span>
-            </button>
-            <a href={sel} className="hidden text-[15px] font-semibold underline decoration-[1.5px] underline-offset-4 sm:inline" style={{ color: NAVY }}>{t.how}</a>
+          <p className="mt-2 max-w-[34rem] text-[14px] leading-snug sm:mt-4 sm:text-[16px] sm:leading-relaxed lg:text-[17px]" style={{ color: MUTE }}>{t.lead}</p>
+          <div className="hidden sm:block">
+            <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+              <button type="button" onClick={onClose} className={`${cta} flex items-center justify-between gap-6 py-3.5`} style={{ background: NAVY }} data-testid="intro-skip">
+                {t.cta} <span aria-hidden>↗</span>
+              </button>
+              <a href={sel} className="hidden text-[15px] font-semibold underline decoration-[1.5px] underline-offset-4 sm:inline" style={{ color: NAVY }}>{t.how}</a>
+            </div>
+            <ul className="mt-5 flex flex-wrap justify-between gap-x-5 gap-y-1 text-[12.5px] sm:justify-start" style={{ color: MUTE }}>
+              {t.checks.map((c, i) => (
+                <li key={c} className="flex items-center gap-1.5">
+                  <span style={{ color: GREEN }} aria-hidden>✓</span>
+                  <span className="sm:hidden">{t.checksShort[i]}</span><span className="hidden sm:inline">{c}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="mt-5 flex flex-wrap justify-between gap-x-5 gap-y-1 text-[12.5px] sm:justify-start" style={{ color: MUTE }}>
-            {t.checks.map((c, i) => (
-              <li key={c} className="flex items-center gap-1.5">
-                <span style={{ color: GREEN }} aria-hidden>✓</span>
-                <span className="sm:hidden">{t.checksShort[i]}</span><span className="hidden sm:inline">{c}</span>
-              </li>
+        </div>
+        <Comparison t={t} num={num} />
+        {/* Phones: the button sits under the card, so headline, card and button all fit the first screen. */}
+        <div ref={phoneCta} className="-mt-2 sm:hidden">
+          <button type="button" onClick={onClose} className={`${cta} flex w-full items-center justify-between gap-6 py-3.5`} style={{ background: NAVY }}>
+            {t.cta} <span aria-hidden>↗</span>
+          </button>
+          <ul className="mt-3 flex flex-wrap justify-between gap-x-5 gap-y-1 text-[12.5px]" style={{ color: MUTE }}>
+            {t.checksShort.map((c) => (
+              <li key={c} className="flex items-center gap-1.5"><span style={{ color: GREEN }} aria-hidden>✓</span>{c}</li>
             ))}
           </ul>
         </div>
-        <Comparison t={t} num={num} />
       </section>
 
       <Frontier t={t} num={num} />
@@ -97,7 +118,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
       </section>
 
       {/* Phones: the builder is always one tap away. Fixed, so it never moves anything; the page keeps room for it. */}
-      <div className={`fixed inset-x-0 bottom-0 z-30 transition-opacity lg:hidden ${footer ? "pointer-events-none opacity-0" : ""}`} inert={footer}>
+      <div className={`fixed inset-x-0 bottom-0 z-30 transition-opacity lg:hidden ${sticky ? "" : "pointer-events-none opacity-0"}`} inert={!sticky}>
         <div className="bg-gradient-to-t from-[#F7F9F8] via-[#F7F9F8]/90 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-4">
           <button type="button" onClick={onClose} className={`${cta} w-full text-center`} style={{ background: NAVY }}>
             {t.sticky} <span aria-hidden>↗</span>
@@ -112,7 +133,7 @@ type Num = (n: number, d?: number) => string;
 
 function Comparison({ t, num }: { t: LandingText; num: Num }) {
   const rows = (dark: boolean) => (
-    <dl className={`mt-3 space-y-1.5 border-t pt-3 text-[12px] lg:mt-3 lg:text-[12.5px] ${dark ? "border-white/15 text-white/70" : "border-[#e3ebe7]"}`} style={dark ? undefined : { color: MUTE }}>
+    <dl className={`mt-3 space-y-1.5 border-t pt-3 text-[11.5px] min-[380px]:text-[12px] lg:mt-3 lg:text-[12.5px] ${dark ? "border-white/15 text-white/70" : "border-[#e3ebe7]"}`} style={dark ? undefined : { color: MUTE }}>
       {/* Phones get the short words (5.0y, Modeled risk), so nothing is cut at 320 px. */}
       {[
         [t.duration, t.duration, t.years(num(DURATION, 1)), `${num(DURATION, 1)}y`],
@@ -138,13 +159,13 @@ function Comparison({ t, num }: { t: LandingText; num: Num }) {
         <span className="shrink-0 rounded-md bg-[#EDF3F0] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em]" style={{ color: MUTE }}><span className="sm:hidden">{t.illustrativeShort}</span><span className="hidden sm:inline">{t.illustrative}</span></span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2.5 lg:gap-3">
-        <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-3 lg:p-4">
+        <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTE }}>{t.manual}</p>
           {big(MANUAL, false)}
           <p className="mt-1.5 text-[12px]" style={{ color: MUTE }}>{t.perYear}</p>
           {rows(false)}
         </div>
-        <div className="rounded-[14px] p-3 shadow-[0_8px_24px_rgba(17,45,59,0.25)] lg:p-4" style={{ background: NAVY }}>
+        <div className="rounded-[14px] p-2.5 min-[380px]:p-3 shadow-[0_8px_24px_rgba(17,45,59,0.25)] lg:p-4" style={{ background: NAVY }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8fe0b8]">+ {t.optimized}</p>
           {big(OPTIMIZED, true)}
           <p className="mt-1.5 text-[12px] text-white/70">{t.perYear}</p>
