@@ -24,7 +24,6 @@ import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
 import { MC_PATHS } from "@/lib/monteCarlo";
 import { loadMe } from "@/lib/me";
-import type { EtfBenchmark } from "@/lib/etfBenchmark";
 import WhyTable from "./WhyTable";
 import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
@@ -239,11 +238,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simple, caps, maxRisk, duration, positions]);
 
-  // ETF comparison (the owner, 24/10/2026): the admin's ETF average beside the lowest-risk slider list that returns more.
-  const [etf, setEtf] = useState<EtfBenchmark | null>(null);
-  useEffect(() => {
-    fetch("/api/benchmark").then((r) => (r.ok ? r.json() : null)).then((b) => setEtf(b?.on ? b : null)).catch(() => {});
-  }, []);
   useEffect(() => {
     preview.current = new URLSearchParams(window.location.search).get("preview");
   }, []);
@@ -676,11 +670,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         ) : (
         <>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {etf ? (
-            <EtfBox etf={etf} ret={!data ? null : paid ? summary?.avgYtm ?? null : undefined} risk={data ? summary?.avgRisk ?? null : null} lang={lang} />
-          ) : (
-            <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
-          )}
+          {/* The ETF benchmark shows on the landing page only (the owner, 24/10/2026). */}
+          <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? (summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—") : null} label={t.lifeLoss} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
@@ -777,7 +768,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             ret={!data ? "—" : paid ? pct(summary?.avgYtm) : null}
             loss={!data ? "—" : paid && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : paid ? "—" : null}
             lock={lockTo}
-            etfBox={etf ? <EtfBox phone etf={etf} ret={!data ? null : paid ? summary?.avgYtm ?? null : undefined} risk={data ? summary?.avgRisk ?? null : null} lang={lang} /> : null}
             onExcluded={() => setExcludedAt(Date.now())}
             message={
               limit ? <LimitReached quota={limit} />
@@ -1036,56 +1026,6 @@ function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null;
         <div className="text-xl font-semibold leading-tight tabular-nums tracking-tight">{value}</div>
       )}
       <div className="text-[11px] leading-tight text-mute">{label}</div>
-    </div>
-  );
-}
-
-/**
- * First box of the results row (the owner, 24/10/2026): the illustrative bond ETF benchmark next to the list on screen
- * (return and average risk). Better figures in green. Fixed size whatever the data.
- */
-function EtfBox({ etf, ret, risk, lang, phone = false }: { etf: EtfBenchmark; ret: number | null | undefined; risk: number | null; lang: FinderLang; phone?: boolean }) {
-  const t = useFinderText();
-  const loc = { en: "en-GB", it: "it-IT", fr: "fr-FR", de: "de-DE" }[lang] ?? "en-GB";
-  const date = new Date(`${etf.asOf}T12:00:00Z`).toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric" });
-  // ret undefined = locked for this plan (same lock as the average return box).
-  const better = (good: boolean) => (good ? "text-emerald-700" : "");
-  const ours = (
-    <>
-      <span className={`font-semibold tabular-nums ${better(ret != null && ret > etf.ret)}`}>{ret === undefined ? <span className="inline-flex items-center gap-1 text-mute/60"><Lock /> —</span> : ret === null ? "—" : `${ret.toFixed(2)}%`}</span>
-      <span className={`tabular-nums ${better(risk !== null && risk < etf.risk)}`}>{t.etfRisk} {risk === null ? "–" : risk.toFixed(1)}</span>
-    </>
-  );
-  const theirs = (
-    <>
-      <span className="font-semibold tabular-nums">{etf.ret.toFixed(2)}%</span>
-      <span className="tabular-nums">{t.etfRisk} {etf.risk.toFixed(1)}</span>
-    </>
-  );
-  const tip = t.etfTip(date, etf.riskRange || etf.risk.toFixed(1));
-  if (phone) {
-    return (
-      <div className="flex h-[46px] items-center gap-2 rounded-xl border border-line/70 px-3 text-[12px]" title={tip} data-testid="etf-box">
-        <div className="flex min-w-0 flex-1 flex-col leading-tight">
-          <span className="truncate text-[10px] text-mute">{t.etfSide} · {date}</span>
-          <span className="flex gap-1.5">{theirs}</span>
-        </div>
-        <span className="text-[11px] text-mute">{t.etfVs}</span>
-        <div className="flex min-w-0 flex-1 flex-col items-end leading-tight" data-testid="etf-ours">
-          <span className="truncate text-[10px] text-mute">{t.ourSide}</span>
-          <span className="flex gap-1.5">{ours}</span>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="flex h-[60px] flex-col justify-center rounded-xl border border-line/70 px-2 py-1 text-center" title={tip} data-testid="etf-box">
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 text-[13px] leading-tight">
-        <div className="flex flex-col items-center">{theirs}</div>
-        <span className="text-[10px] text-mute">{t.etfVs}</span>
-        <div className="flex flex-col items-center" data-testid="etf-ours">{ours}</div>
-      </div>
-      <div className="mt-0.5 truncate text-[10px] leading-tight text-mute">{t.etfSide} · {date} {t.etfVs} {t.ourSide}</div>
     </div>
   );
 }
@@ -1532,7 +1472,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency, etfBox }: { arrows: boolean; title: (text: string) => ReactNode; etfBox: ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency }: { arrows: boolean; title: (text: string) => ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
@@ -1583,7 +1523,6 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
         <Stat value={ret} label={t.retYear} lock={lock} h="h-[62px]" />
         <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[62px]" />
       </div>
-      {etfBox && <div className="mt-2 shrink-0">{etfBox}</div>}
       <div className="flex h-5 shrink-0 items-center">
         {data && ret === null && (
           <Link href={lock.href} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent" data-testid="phone-unlock"><Lock /> {lock.label}</Link>
