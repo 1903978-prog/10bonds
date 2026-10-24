@@ -2,7 +2,7 @@ import postgres from "postgres";
 import { cleanPgUrl } from "./pgUrl";
 import type { PublicBond } from "./types";
 import { SAMPLE_BONDS } from "./sample-bonds";
-import { bondNotch } from "./ratings";
+import { hasRealRating } from "./ratings";
 import { correctedMin } from "./minOverrides";
 import { dormantReason } from "./dormant";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
@@ -70,7 +70,7 @@ async function reload() {
     if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_DATA !== "1") {
       throw new Error("Bond data is not connected yet.");
     }
-    cache = { at: Date.now(), rated: SAMPLE_BONDS, source: "sample", unrated: 0, total: SAMPLE_BONDS.length, bySd: new Map() };
+    cache = { at: Date.now(), rated: SAMPLE_BONDS.filter(hasRealRating), source: "sample", unrated: 0, total: SAMPLE_BONDS.length, bySd: new Map() };
     return;
   }
 
@@ -115,7 +115,7 @@ async function reload() {
   const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);
   // Unrated bonds never appear on the site (the owner, 18/10/2026).
   const current = dropStale(bonds);
-  const rated = current.filter((b) => bondNotch(b) !== null);
+  const rated = current.filter(hasRealRating);
   // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
   const [{ total }] = await client`select count(*)::int total from public_bonds`;
   cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), bySd: new Map() };
