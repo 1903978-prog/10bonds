@@ -110,15 +110,21 @@ describe("exact frontier", () => {
     const bonds = universe(7, 60, 3);
     const f = exactFrontier(bonds, 4, stepGap);
     expect(f.points.length).toBeGreaterThan(10);
-    const notch = (b: PublicBond) => bondNotch(b)!;
+    const info = new Map(bonds.map((b) => [b.isin, { notch: bondNotch(b)!, pd: pdOf(b), issuer: issuerKey(b), years: lifeYears(b) }]));
+    const pool = bonds.filter((d) => Math.abs(d.modifiedDuration! - 4) <= 0.8);
+    let bad = 0;
     for (const p of f.points) {
       const used = new Set(p.rows.map(issuerKey));
-      for (const b of p.rows)
-        for (const d of bonds)
-          if (!used.has(issuerKey(d)) && notch(d) < notch(b) && pdOf(d) < pdOf(b) && Math.abs(d.modifiedDuration! - 4) <= 0.8)
-            expect(d.grossYtm!).toBeLessThan(b.grossYtm! - stepGap(notch(d), notch(b), lifeYears(b)) + 1e-9);
+      for (const b of p.rows) {
+        const x = info.get(b.isin)!;
+        for (const d of pool) {
+          const y = info.get(d.isin)!;
+          if (!used.has(y.issuer) && y.notch < x.notch && y.pd < x.pd && d.grossYtm! >= b.grossYtm! - stepGap(y.notch, x.notch, x.years) + 1e-9) bad++;
+        }
+      }
     }
-  });
+    expect(bad).toBe(0);
+  }, 30000);
 
   it("AA at 4.00% beats A at 4.05% (A needs 15 bp more), but not A at 4.20%", () => {
     const filler = Array.from({ length: 9 }, (_, i) => bond(`F${i}`, `Filler ${i}`, 5, 4, "AAA"));
