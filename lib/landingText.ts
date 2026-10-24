@@ -72,6 +72,17 @@ const en = {
   paperShort: "Methodology (PDF)",
   // The carousel on the right (the owner, 24/10/2026): one bond's curve first, the reason to sign up.
   carousel: {
+    // Action titles, one per slide (the owner, 24/10/2026): [desktop, phone].
+    act: {
+      compare: ["Compare the AI portfolio with a bond ETF", "AI portfolio vs bond ETF"],
+      frontier: ["Find the best return/risk portfolio", "Best return/risk portfolio"],
+      curves: ["Compare horizons from 2 to 10 years", "Compare 2-10 year horizons"],
+      curve: ["Find the best bond for each risk level", "Best bond for each risk"],
+      list: ["See the top 10 bonds", "See the top 10 bonds"],
+      country: ["Check country risk", "Check country risk"],
+      company: ["Check company risk", "Check company risk"],
+    },
+    yrs: "yrs",
     locale: "en-GB", label: "What 10bonds shows", slide: "Slide", prev: "Previous", next: "Next",
     frontierShort: "Best return/risk portfolio", frontier: "Finding the best return/risk portfolio", lossAxis: "Expected loss on the money invested",
     curveShort: "One bond, every risk level", curve: "One bond: best return for each risk level", curveX: "Higher risk → lower risk", curveCta: "Free with sign-up →",
@@ -147,6 +158,16 @@ const it: LandingText = {
   paper: "Metodologia scientifica (PDF, in inglese)",
   paperShort: "Metodologia (PDF)",
   carousel: {
+    act: {
+      compare: ["Confronta il portafoglio IA con un ETF obbligazionario", "Portafoglio IA vs ETF"],
+      frontier: ["Trova il miglior portafoglio rendimento/rischio", "Miglior rendimento/rischio"],
+      curves: ["Confronta gli orizzonti da 2 a 10 anni", "Confronta orizzonti 2-10 anni"],
+      curve: ["Trova la migliore obbligazione per ogni livello di rischio", "Migliore per ogni rischio"],
+      list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
+      country: ["Verifica il rischio paese", "Verifica il rischio paese"],
+      company: ["Verifica il rischio società", "Verifica il rischio società"],
+    },
+    yrs: "anni",
     locale: "it-IT", label: "Cosa mostra 10bonds", slide: "Immagine", prev: "Precedente", next: "Successiva",
     frontierShort: "Miglior portafoglio", frontier: "Alla ricerca del miglior portafoglio rendimento/rischio", lossAxis: "Perdita attesa sul capitale investito",
     curveShort: "Un'obbligazione, ogni rischio", curve: "Un'obbligazione: miglior rendimento per livello di rischio", curveX: "Rischio più alto → più basso", curveCta: "Gratis con la registrazione →",
@@ -221,6 +242,16 @@ const fr: LandingText = {
   paper: "Méthodologie scientifique (PDF, en anglais)",
   paperShort: "Méthodologie (PDF)",
   carousel: {
+    act: {
+      compare: ["Comparer le portefeuille IA à un ETF obligataire", "Portefeuille IA vs ETF"],
+      frontier: ["Trouver le meilleur portefeuille rendement/risque", "Meilleur rendement/risque"],
+      curves: ["Comparer les horizons de 2 à 10 ans", "Comparer 2 à 10 ans"],
+      curve: ["Trouver la meilleure obligation pour chaque risque", "Meilleure par risque"],
+      list: ["Voir les 10 obligations top", "Voir les 10 top"],
+      country: ["Vérifier le risque pays", "Vérifier le risque pays"],
+      company: ["Vérifier le risque entreprise", "Risque entreprise"],
+    },
+    yrs: "ans",
     locale: "fr-FR", label: "Ce que montre 10bonds", slide: "Image", prev: "Précédente", next: "Suivante",
     frontierShort: "Meilleur portefeuille", frontier: "Trouver le meilleur portefeuille rendement/risque", lossAxis: "Perte attendue sur le capital investi",
     curveShort: "Une obligation, chaque risque", curve: "Une obligation : meilleur rendement par niveau de risque", curveX: "Risque plus élevé → plus faible", curveCta: "Gratuit avec inscription →",
@@ -295,6 +326,16 @@ const de: LandingText = {
   paper: "Wissenschaftliche Methodik (PDF, auf Englisch)",
   paperShort: "Methodik (PDF)",
   carousel: {
+    act: {
+      compare: ["KI-Portfolio mit einem Anleihe-ETF vergleichen", "KI-Portfolio vs ETF"],
+      frontier: ["Das beste Rendite-Risiko-Portfolio finden", "Bestes Rendite-Risiko"],
+      curves: ["Laufzeiten von 2 bis 10 Jahren vergleichen", "2-10 Jahre vergleichen"],
+      curve: ["Die beste Anleihe je Risikostufe finden", "Beste je Risikostufe"],
+      list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
+      country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
+      company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],
+    },
+    yrs: "J.",
     locale: "de-DE", label: "Was 10bonds zeigt", slide: "Bild", prev: "Zurück", next: "Weiter",
     frontierShort: "Bestes Portfolio", frontier: "Das beste Rendite-Risiko-Portfolio finden", lossAxis: "Erwarteter Verlust auf das investierte Kapital",
     curveShort: "Eine Anleihe, jedes Risiko", curve: "Eine Anleihe: beste Rendite je Risikostufe", curveX: "Höheres Risiko → niedrigeres", curveCta: "Gratis mit Anmeldung →",

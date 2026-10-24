@@ -5,7 +5,7 @@ import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import LandingCarousel, { CompanySlide, FrontierSlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
+import LandingCarousel, { actionTitle, CompanySlide, CurvesSlide, FrontierSlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
@@ -67,6 +67,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <LandingCarousel t={t} slides={[
             { key: "compare", node: <Comparison t={t} num={num} bench={bench} /> },
             { key: "frontier", node: <FrontierSlide t={t} /> },
+            { key: "curves", node: <CurvesSlide t={t} /> },
             { key: "curve", node: <CurveSlide t={t} /> },
             { key: "list", node: <ListSlide t={t} bonds={bench?.portfolio?.bonds} /> },
             { key: "country", node: <CountrySlide t={t} /> },
@@ -119,7 +120,7 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
     </p>
   );
   return (
-    <SlideCard title={<><span className="sm:hidden">{t.cardTitleBenchShort}</span><span className="hidden sm:inline">{t.cardTitleBench}</span></>}>
+    <SlideCard title={actionTitle(t.carousel.act.compare)}>
       <div className="mt-1 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
           <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] sm:line-clamp-2 sm:min-h-[2.6em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>

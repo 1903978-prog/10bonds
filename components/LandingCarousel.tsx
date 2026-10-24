@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RiskBadge, riskColor } from "@/components/RiskBadge";
 import type { LandingText } from "@/lib/landingText";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
+import { COLOURS } from "@/components/AllCurvesChart";
 import { findCompany } from "@/lib/companiesInFocus";
 
 const LVMH = "FR0013482841";
@@ -14,6 +15,11 @@ const GREEN = "#127052";
 const MUTE = "#52666F";
 const BLUE = "#0066cc";
 const EVERY = 3000; // ms per slide (the owner, 24/10/2026)
+
+/** A slide's action title: the long one on desktop, the short one on phones. */
+export const actionTitle = ([long, short]: readonly [string, string] | string[]) => (
+  <><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{long}</span></>
+);
 
 /** One card of the landing carousel: same white card as the comparison, filling the carousel's fixed height. */
 export function SlideCard({ title, children, href }: { title: ReactNode; children: ReactNode; href?: string }) {
@@ -27,7 +33,7 @@ function inner(title: ReactNode, children: ReactNode) {
   return (
     <>
       {/* Right padding keeps the title clear of the dots, which sit in the same corner on every slide. */}
-      <h2 className="truncate pr-24 text-[15px] font-semibold tracking-tight lg:text-[14px]">{title}</h2>
+      <h2 className="truncate pr-28 text-[15px] font-semibold tracking-tight lg:text-[14px]">{title}</h2>
       <div className="mt-3 flex min-h-0 flex-1 flex-col">{children}</div>
     </>
   );
@@ -111,7 +117,7 @@ export function FrontierSlide({ t }: { t: LandingText }) {
   const pct = (v: number, d: number) => `${v.toLocaleString(c.locale, { minimumFractionDigits: d, maximumFractionDigits: d })}%`;
   const PICK = 7; // position 8, filled as on the finder
   return (
-    <SlideCard title={<><span className="sm:hidden">{c.frontierShort}</span><span className="hidden sm:inline">{c.frontier}</span></>}>
+    <SlideCard title={actionTitle(c.act.frontier)}>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-0 min-h-[150px] w-full flex-1" role="img" aria-label={c.frontier} fontSize={9}>
         {[4, 5, 6, 7].map((v) => (
           <g key={v}>
@@ -133,6 +139,49 @@ export function FrontierSlide({ t }: { t: LandingText }) {
   );
 }
 
+/** Horizons: one return/risk curve per horizon, 2 to 10 years, as on the finder's "all curves" chart; legend bottom right. */
+export function CurvesSlide({ t }: { t: LandingText }) {
+  const c = t.carousel;
+  const W = 320, H = 170, L = 30, R = 22, T = 8, B = 28;
+  // [years, top return, last loss]: middle horizons reach the most, short ones stop early.
+  const curves: [number, number, number][] = [[2, 5.9, 1.3], [3, 5.85, 2.4], [4, 7.2, 4.4], [5, 7.0, 5.2], [6, 6.05, 4.8], [7, 5.75, 3.8], [8, 5.85, 4.1], [9, 5.85, 4.3], [10, 5.85, 4.8]];
+  const x = (l: number) => L + (l / 5.4) * (W - L - R);
+  const y = (v: number) => T + ((7.4 - v) / 4.2) * (H - T - B);
+  const pct = (v: number, d: number) => `${v.toLocaleString(c.locale, { minimumFractionDigits: d, maximumFractionDigits: d })}%`;
+  const path = ([yrs, top, last]: [number, number, number]) => Array.from({ length: 24 }, (_, i) => {
+    const l = last * Math.pow(i / 23, 1.5);
+    const v = 3.3 + (top - 3.3) * (1 - Math.exp(-l / (0.25 + yrs * 0.12))) - Math.max(0, yrs - 5) * 0.06 * (1 - l / last);
+    return `${i ? "L" : "M"}${x(l).toFixed(1)},${y(v).toFixed(1)}`;
+  }).join(" ");
+  return (
+    <SlideCard title={actionTitle(c.act.curves)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-0 min-h-[150px] w-full flex-1" role="img" aria-label={c.act.curves[0]} fontSize={9}>
+        {[4, 5, 6, 7].map((v) => (
+          <g key={v}>
+            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#eef2f0" />
+            <text x={L - 5} y={y(v) + 3} textAnchor="end" fill={MUTE}>{pct(v, 1)}</text>
+          </g>
+        ))}
+        {[0, 1, 2, 3, 4, 5].map((l) => <text key={l} x={x(l)} y={H - B + 13} textAnchor="middle" fill={MUTE}>{pct(l, 0)}</text>)}
+        <text x={(L + W - R) / 2} y={H - 3} textAnchor="middle" fill={MUTE}>{c.lossAxis}</text>
+        {curves.map((k, i) => <path key={k[0]} d={path(k)} fill="none" stroke={COLOURS[i]} strokeWidth={1.6} strokeLinejoin="round" />)}
+        {/* Legend bottom right, under the curves, in three columns. */}
+        <g fontSize={8}>
+          {curves.map(([yrs], i) => {
+            const lx = W - R - 126 + Math.floor(i / 3) * 43, ly = H - B - 23 + (i % 3) * 9;
+            return (
+              <g key={yrs}>
+                <line x1={lx} x2={lx + 10} y1={ly - 3} y2={ly - 3} stroke={COLOURS[i]} strokeWidth={2.5} strokeLinecap="round" />
+                <text x={lx + 13} y={ly} fill="#132D3B">{yrs} {c.yrs}</text>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+    </SlideCard>
+  );
+}
+
 /** One bond: the finder's "best return for each risk level" curve, the reason to sign up. */
 export function CurveSlide({ t }: { t: LandingText }) {
   const c = t.carousel;
@@ -142,7 +191,7 @@ export function CurveSlide({ t }: { t: LandingText }) {
   const y = (v: number) => T + ((5.6 - v) / 3.1) * (H - T - B);
   const fmt = (v: number) => v.toLocaleString(c.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return (
-    <SlideCard title={<><span className="sm:hidden">{c.curveShort}</span><span className="hidden sm:inline">{c.curve}</span></>}>
+    <SlideCard title={actionTitle(c.act.curve)}>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-0 min-h-[150px] w-full flex-1" role="img" aria-label={c.curve} fontSize={9}>
         {[2.5, 3.5, 4.5].map((v) => (
           <g key={v}>
@@ -173,7 +222,7 @@ export function ListSlide({ t, bonds }: { t: LandingText; bonds: BenchmarkBond[]
   // Always 10 rows, "–" until the live list is there, so nothing moves when it arrives.
   const rows = Array.from({ length: 10 }, (_, i) => bonds?.[i] ?? null);
   return (
-    <SlideCard title={c.list}>
+    <SlideCard title={actionTitle(c.act.list)}>
       <div className="flex text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTE }}>
         <span className="w-5" /><span className="min-w-0 flex-1 truncate">{c.bond}</span><span className="w-[60px] truncate text-right">{c.maturity}</span><span className="w-11 text-center">{c.risk}</span><span className="w-14 text-right">{c.ret}</span>
       </div>
@@ -197,7 +246,7 @@ export function CountrySlide({ t }: { t: LandingText }) {
   const c = t.carousel;
   const rows: [string, number][] = [["de", 1], ["nl", 1], ["fr", 3], ["es", 3], ["it", 4], ["ro", 6]];
   return (
-    <SlideCard title={c.country} href="/risk-assessment">
+    <SlideCard title={actionTitle(c.act.country)} href="/risk-assessment">
       <ul className="flex flex-1 flex-col justify-around">
         {rows.map(([k, risk]) => (
           <li key={k} className="flex items-center gap-3 text-[12.5px] lg:text-[13px]">
@@ -220,7 +269,7 @@ export function CompanySlide({ t }: { t: LandingText }) {
   // Same score as the LVMH page in Risk assessment.
   const risk = findCompany(LVMH)?.risk ?? 2;
   return (
-    <SlideCard title={c.company} href={`/risk-assessment/${LVMH}`}>
+    <SlideCard title={actionTitle(c.act.company)} href={`/risk-assessment/${LVMH}`}>
       <div className="flex flex-1 flex-col justify-center gap-4">
         <div className="flex items-center gap-4">
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[14px] text-[13px] font-bold tracking-[0.12em] text-white" style={{ background: NAVY }}>LVMH</span>
