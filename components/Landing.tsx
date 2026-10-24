@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
+import LandingCarousel, { CompanySlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
@@ -60,8 +61,15 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         </Title>
         <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
-        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <Comparison t={t} num={num} bench={bench} />
+        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          {/* One bond's curve first: the reason to sign up (the owner, 24/10/2026). */}
+          <LandingCarousel t={t} slides={[
+            { key: "curve", node: <CurveSlide t={t} /> },
+            { key: "compare", node: <Comparison t={t} num={num} bench={bench} /> },
+            { key: "list", node: <ListSlide t={t} /> },
+            { key: "country", node: <CountrySlide t={t} /> },
+            { key: "company", node: <CompanySlide t={t} /> },
+          ]} />
         </div>
         {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
         <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
@@ -109,11 +117,8 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
     </p>
   );
   return (
-    <div className="rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-semibold tracking-tight lg:text-[14px]"><span className="sm:hidden">{t.cardTitleBenchShort}</span><span className="hidden sm:inline">{t.cardTitleBench}</span></h2>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-2.5 lg:gap-3">
+    <SlideCard title={<><span className="sm:hidden">{t.cardTitleBenchShort}</span><span className="hidden sm:inline">{t.cardTitleBench}</span></>}>
+      <div className="mt-1 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
           <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] sm:line-clamp-2 sm:min-h-[2.6em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
           {big(bench?.ret, false)}
@@ -130,6 +135,6 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
       <div className="mt-3 flex items-center justify-center gap-4 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3">
         <p className="shrink-0 text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : ""}${num(p.ytm - bench.ret)}` : "–"}<span className="text-[0.7em]"> pp</span></p>
       </div>
-    </div>
+    </SlideCard>
   );
 }

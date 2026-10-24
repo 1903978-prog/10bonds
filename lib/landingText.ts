@@ -70,6 +70,15 @@ const en = {
   // The quant methodology paper (the owner, 24/10/2026), English only: public/methodology/10bonds-quant-methodology.pdf.
   paper: "Scientific methodology (PDF)",
   paperShort: "Methodology (PDF)",
+  // The carousel on the right (the owner, 24/10/2026): one bond's curve first, the reason to sign up.
+  carousel: {
+    locale: "en-GB", label: "What 10bonds shows", slide: "Slide",
+    curveShort: "One bond, every risk level", curve: "One bond: best return for each risk level", curveX: "Higher risk → lower risk", curveCta: "Free with sign-up →",
+    list: "Portfolio: top 10 bonds", bond: "Bond", maturity: "Maturity", risk: "Risk", ret: "Return",
+    country: "Country risk", company: "Company risk", sector: "Luxury goods · France", rating: "10bonds.com rating",
+    scale: "Risk 1 (lowest) to 10 (highest).",
+    countries: { de: "Germany", nl: "Netherlands", fr: "France", es: "Spain", it: "Italy", ro: "Romania" },
+  },
 };
 export type LandingText = typeof en;
 
@@ -136,6 +145,14 @@ const it: LandingText = {
   stepsTitle: "Tre passi. Dieci obbligazioni.",
   paper: "Metodologia scientifica (PDF, in inglese)",
   paperShort: "Metodologia (PDF)",
+  carousel: {
+    locale: "it-IT", label: "Cosa mostra 10bonds", slide: "Immagine",
+    curveShort: "Un'obbligazione, ogni rischio", curve: "Un'obbligazione: miglior rendimento per livello di rischio", curveX: "Rischio più alto → più basso", curveCta: "Gratis con la registrazione →",
+    list: "Portafoglio: le 10 obbligazioni top", bond: "Obbligazione", maturity: "Scadenza", risk: "Rischio", ret: "Rendimento",
+    country: "Rischio paese", company: "Rischio società", sector: "Beni di lusso · Francia", rating: "Rating 10bonds.com",
+    scale: "Rischio da 1 (minimo) a 10 (massimo).",
+    countries: { de: "Germania", nl: "Paesi Bassi", fr: "Francia", es: "Spagna", it: "Italia", ro: "Romania" },
+  },
 };
 
 const fr: LandingText = {
@@ -201,6 +218,14 @@ const fr: LandingText = {
   stepsTitle: "Trois étapes. Dix obligations.",
   paper: "Méthodologie scientifique (PDF, en anglais)",
   paperShort: "Méthodologie (PDF)",
+  carousel: {
+    locale: "fr-FR", label: "Ce que montre 10bonds", slide: "Image",
+    curveShort: "Une obligation, chaque risque", curve: "Une obligation : meilleur rendement par niveau de risque", curveX: "Risque plus élevé → plus faible", curveCta: "Gratuit avec inscription →",
+    list: "Portefeuille : les 10 obligations top", bond: "Obligation", maturity: "Échéance", risk: "Risque", ret: "Rendement",
+    country: "Risque pays", company: "Risque entreprise", sector: "Luxe · France", rating: "Notation 10bonds.com",
+    scale: "Risque de 1 (le plus bas) à 10 (le plus haut).",
+    countries: { de: "Allemagne", nl: "Pays-Bas", fr: "France", es: "Espagne", it: "Italie", ro: "Roumanie" },
+  },
 };
 
 const de: LandingText = {
@@ -266,6 +291,14 @@ const de: LandingText = {
   stepsTitle: "Drei Schritte. Zehn Anleihen.",
   paper: "Wissenschaftliche Methodik (PDF, auf Englisch)",
   paperShort: "Methodik (PDF)",
+  carousel: {
+    locale: "de-DE", label: "Was 10bonds zeigt", slide: "Bild",
+    curveShort: "Eine Anleihe, jedes Risiko", curve: "Eine Anleihe: beste Rendite je Risikostufe", curveX: "Höheres Risiko → niedrigeres", curveCta: "Gratis mit Anmeldung →",
+    list: "Portfolio: die Top-10-Anleihen", bond: "Anleihe", maturity: "Fälligkeit", risk: "Risiko", ret: "Rendite",
+    country: "Länderrisiko", company: "Unternehmensrisiko", sector: "Luxusgüter · Frankreich", rating: "10bonds.com-Rating",
+    scale: "Risiko 1 (niedrigstes) bis 10 (höchstes).",
+    countries: { de: "Deutschland", nl: "Niederlande", fr: "Frankreich", es: "Spanien", it: "Italien", ro: "Rumänien" },
+  },
 };
 
 export const LANDING_TEXT: Record<FinderLang, LandingText> = { en, it, fr, de };
