@@ -1136,6 +1136,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           <col className="w-[9rem]" />
           <col className="w-[5rem]" />
           <col className="w-8" />
+          <col className="w-8" />
         </colgroup>
         <thead>
           <tr className="border-b border-line text-left text-xs text-mute" style={{ height: headH }}>
@@ -1147,6 +1148,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>
             <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
             <th aria-label={t.swap} />
+            <th aria-label={t.exclude} />
           </tr>
         </thead>
         <tbody>
@@ -1167,7 +1169,8 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</td>
               <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>
               <td className="px-3 py-0 text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</td>
-              <td className="py-0 text-center">{canEdit && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
+              <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
+              <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
@@ -1176,10 +1179,11 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td colSpan={5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
               <td />
+              <td />
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={8} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={9} /></tr>
           ))}
         </tbody>
       </table>
@@ -1200,7 +1204,10 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               </div>
             </div>
             <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
-            <span className="-mr-2 w-7 shrink-0 text-center">{canEdit && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</span>
+            <span className="-mr-2 flex shrink-0 items-center">
+              <span className="w-7 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</span>
+              <span className="w-9 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big />}</span>
+            </span>
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (
@@ -1300,7 +1307,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
   };
   const mc = data?.monteCarlo;
   const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
-  const cols = "grid grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem] items-center gap-x-1.5";
+  const cols = "grid grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem] items-center gap-x-1.5";
   return (
     <div
       role="dialog"
@@ -1338,6 +1345,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
           <span className="text-center">{t.risk}</span>
           <span className="text-right">{t.yield}</span>
           <span />
+          <span />
         </div>
         <ul className="grid min-h-0 flex-1 grid-rows-10" data-testid="phone-rows">
           {rows.map((r, i) => (
@@ -1350,7 +1358,8 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
               <span className="text-right text-[13px] tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</span>
               <span className="text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</span>
               <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
-              <span className="text-center">{canEdit && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
+              <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
+              <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
             </li>
           ))}
           {locked > 0 && (
@@ -1512,6 +1521,45 @@ function SwapButton({ onClick, label }: { onClick: () => void; label: string }) 
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="m17 20 4-4-4-4" /><path d="M21 16H7" />
       </svg>
+    </button>
+  );
+}
+
+/** The minus at the end of a row: one tap excludes the issuer, and the list is searched again without it (another bond
+ *  takes its place). Without the plan feature it is a faint link to the plans, same size, so nothing moves. */
+function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { row: ResultRow; allowed: boolean; signedIn: boolean; onExcluded: () => void; big?: boolean }) {
+  const t = useFinderText();
+  const [busy, setBusy] = useState(false);
+  const size = big ? "h-9 w-9" : "h-6 w-6";
+  const icon = (
+    <svg width={big ? 16 : 13} height={big ? 16 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <circle cx="12" cy="12" r="9" /><path d="M8 12h8" />
+    </svg>
+  );
+  if (!allowed) {
+    return (
+      <Link href={signedIn ? "/pricing" : "/signup"} title={t.excludePaid} aria-label={t.excludePaid} data-testid="exclude-locked" className={`inline-flex ${size} items-center justify-center rounded-full text-mute/40 hover:bg-canvas hover:text-mute`}>
+        {icon}
+      </Link>
+    );
+  }
+  const label = `${t.exclude}: ${row.issuer}`;
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        const ok = await excludeRow(row, "issuer");
+        setBusy(false);
+        if (ok) onExcluded();
+      }}
+      title={label}
+      aria-label={label}
+      data-testid="exclude-row"
+      className={`inline-flex ${size} items-center justify-center rounded-full text-mute hover:bg-canvas hover:text-red-600 disabled:opacity-40`}
+    >
+      {icon}
     </button>
   );
 }
