@@ -3,6 +3,7 @@ import { V1_CURVE, type CurveConfig, type CurveRating } from "./curve";
 import { activationProblems, type CurveVersion, type VersionStatus } from "./versions";
 import type { Evaluation } from "./evaluate";
 import { cleanSd, OUTLIER_SD } from "../outliers";
+import { setStepPremiums } from "../stepGap";
 
 // Risk premium model data in schema "app": curve versions, the audit trail of every change, admin decisions on
 // exceptional spreads, and recorded calculation runs (every evaluated bond with the version it used).
@@ -302,6 +303,7 @@ export async function liveRiskConfig(): Promise<Live> {
   const [weight, outlierSd, versions, reviews] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews()]);
   const live: Live = { weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])) };
   modeCache = { at: Date.now(), live };
+  setStepPremiums(live.curve?.premiums);
   return live;
 }
 

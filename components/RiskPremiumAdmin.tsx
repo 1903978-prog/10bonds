@@ -167,6 +167,7 @@ export default function RiskPremiumAdmin() {
                   <h2 className="font-semibold">How it works</h2>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-mute">
                     <li>Required extra yield between two ratings = difference of their premiums (AA- to BBB+: 95 - 50 = 45 bp). A lower-rated bond wins only when its extra yield is strictly greater.</li>
+                    <li>Return &amp; risk slider (all horizons and currencies): the active curve&apos;s steps are the minimum extra return a riskier bond must pay over a safer one not in the list, else the safer one takes its place. Below BB- the steps keep widening (B+ 375, B 450, B- 550, CCC+ 700 ...).</li>
                     <li>Risk-adjusted yield = yield - required premium (a ranking score, not a yield anyone earns).</li>
                     <li>Surplus = spread over the maturity-matched Bund - required premium. The ranking uses the surplus.</li>
                     <li>Surplus at or above the exceptional threshold: the bond waits for your review.</li>
