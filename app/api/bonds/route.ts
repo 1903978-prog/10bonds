@@ -79,9 +79,9 @@ export async function GET(req: Request) {
   const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null, samples: sim.samples.map((s) => s.map((v, k) => Math.round((v / best[k]) * 1000) / 10)) };
   // With "swap": the bonds left out, to swap into the list; with "why_table" also why each one is out.
   const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
-  const alternatives = has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table")) : undefined;
+  const alternatives = has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features), features, excluded: skip !== null, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features, excluded: skip !== null, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

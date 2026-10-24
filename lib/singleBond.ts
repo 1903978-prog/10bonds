@@ -1,6 +1,6 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { RISK_LEVELS, nearHorizon } from "./limits";
-import { bondNotch, bondRisk, ratingSourceLabel, riskBand } from "./ratings";
+import { bondNotch, bondRisk, riskBand } from "./ratings";
 import { issuerKey } from "./ranking";
 import { lossAdjustedYield } from "./expectedLoss";
 import { tierFeatures, type ResultRow } from "./tiers";
@@ -48,7 +48,7 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
 export type CurvePoint = { level: number; label: string; ytm: number | null; adj?: number | null; options: ResultRow[]; more: number; band?: string };
 
 /** Cut each step down to what this tier may see. Visitors see the best bond of each step only, without details. */
-/** `admin`: also add the agency grade each bond's risk score comes from (admin only, never for customers). */
+/** `admin`: also add each bond's S&P grade (admin only, never for customers). */
 /** `details`: ISIN, name, coupon and the other facts (plans with the "isin" feature, lib/features.ts). */
 export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, admin = false, details = tierFeatures(tier).includes("isin")): CurvePoint[] {
   return curve.map(({ level, label, bonds }) => {
@@ -62,7 +62,7 @@ export function shapeCurve(curve: ReturnType<typeof curveByLevel>, tier: Tier, a
       if (!details && !admin) return free;
       const paid: ResultRow = { ...free, name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity,
         currency: b.currency, couponType: b.couponType ?? null, seniority: b.seniority ?? null, issueDate: b.issueDate ?? null, callable: b.callable ?? null };
-      return admin ? { ...paid, sp: ratingSourceLabel(b), low52w: b.low52w ?? null, high52w: b.high52w ?? null } : paid;
+      return admin ? { ...paid, sp: b.ratingSp?.trim() || null, low52w: b.low52w ?? null, high52w: b.high52w ?? null } : paid;
     });
     return { level, label, ytm, adj, options, more: bonds.length - visible.length, ...(admin ? { band: riskBand(level) } : {}) };
   });

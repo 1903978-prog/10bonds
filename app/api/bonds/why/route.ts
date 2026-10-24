@@ -50,5 +50,10 @@ export async function GET(req: Request) {
   const rows = picked.risky
     ? explainRiskAdjusted(bonds, outliers, sc, picked.risky.ranking, picked.risky.ctx)
     : explainCurrent(bonds, outliers, sc, picked.results, picked.band);
+  if (user?.isAdmin) {
+    // The admin also sees each bond's S&P grade next to the risk score (never sent to customers).
+    const sp = new Map(data.bonds.map((b) => [b.isin, b.ratingSp?.trim() || null]));
+    for (const r of rows) r.sp = sp.get(r.isin) ?? null;
+  }
   return NextResponse.json({ method: picked.engine.method, band: picked.band, rows }, { headers: { "Cache-Control": "no-store" } });
 }

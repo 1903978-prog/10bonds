@@ -58,7 +58,7 @@ export default function PortfolioCheck({ a }: { a: PortfolioAnalysis }) {
                 <td className="py-2 pr-3 text-right tabular-nums">{eur(p.value)}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{pct(p.ytm)}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{yrs(p.duration)}</td>
-                <td className="py-2 text-right"><RiskBadge risk={p.risk} /></td>
+                <td className="py-2 text-right"><RiskBadge risk={p.risk} sp={p.sp} /></td>
               </tr>
             ))}
             {a.notFound.map((isin) => (

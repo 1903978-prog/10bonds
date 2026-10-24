@@ -225,7 +225,7 @@ function BondBox(props: {
       </div>
       <dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
         {row("ISIN", paid ? bond.isin : lock)}
-        {row(t.risk, signedIn ? <>{bond.sp !== undefined && <span className="mr-1.5 text-mute">{bond.sp ?? "–"}</span>}<RiskBadge risk={bond.risk} title={t.riskNote} /></> : lock)}
+        {row(t.risk, signedIn ? <RiskBadge risk={bond.risk} title={t.riskNote} sp={bond.sp} /> : lock)}
         {row(t.duration, signedIn ? `${bond.duration?.toFixed(1)} ${t.yrs}` : lock)}
         {row(t.coupon, paid ? (bond.coupon === null || bond.coupon === undefined ? "—" : `${bond.coupon}%`) : lock)}
         {row(f.couponType, paid ? couponTypeLabel(lang, bond.couponType) : lock)}

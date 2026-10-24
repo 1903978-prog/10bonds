@@ -51,6 +51,7 @@ export type BondView = {
   name: string;
   issuer: string;
   risk: number | null; // 10BONDS risk score 1..10
+  sp?: string | null; // S&P grade: added for the admin only (app/api/pro/replace)
   ytm: number;
   duration: number;
   maturity: string | null;

@@ -6,6 +6,7 @@ import { downloadXlsx } from "@/lib/xlsx";
 import { browserInflate, readXlsxRows } from "@/lib/xlsxRead";
 import type { PortfolioAnalysis } from "@/lib/portfolioAnalysis";
 import PortfolioCheck from "./PortfolioCheck";
+import { SpSlot } from "./RiskBadge";
 
 type Response = EngineResult & { analysis?: PortfolioAnalysis; skipped: { line: number; text: string; why: string }[]; source: "live" | "sample"; asOf: string | null };
 
@@ -270,13 +271,13 @@ function LineCard({ line }: { line: Line }) {
   );
 }
 
-function BondRow({ b, amount }: { b: { name: string; issuer: string; isin: string; risk: number | null; ytm: number; duration: number; maturity: string | null }; amount?: number }) {
+function BondRow({ b, amount }: { b: { name: string; issuer: string; isin: string; risk: number | null; sp?: string | null; ytm: number; duration: number; maturity: string | null }; amount?: number }) {
   return (
     <div className="mt-1">
       <p className="text-[15px] font-medium">{b.issuer}</p>
       <p className="text-xs text-mute">{b.name} · <span className="font-mono">{b.isin}</span></p>
       <p className="mt-1 text-sm">
-        {pct(b.ytm)} YTM · {yrs(b.duration)} · risk {b.risk ?? "—"}{b.maturity ? ` · ${b.maturity.slice(0, 4)}` : ""}{amount !== undefined ? ` · ${eur(amount)}` : ""}
+        {pct(b.ytm)} YTM · {yrs(b.duration)} · risk {b.risk ?? "—"}{b.sp !== undefined && <> <SpSlot sp={b.sp} /></>}{b.maturity ? ` · ${b.maturity.slice(0, 4)}` : ""}{amount !== undefined ? ` · ${eur(amount)}` : ""}
       </p>
     </div>
   );
