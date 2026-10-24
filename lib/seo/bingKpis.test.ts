@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bingKpisFrom } from "./bing";
+import { bingKpisFrom, mergeKpis } from "./bing";
 
 const NOW = Date.parse("2026-10-19T12:00:00Z");
 const d = (iso: string) => `/Date(${Date.parse(`${iso}T00:00:00Z`)})/`;
@@ -25,5 +25,13 @@ describe("bingKpisFrom", () => {
   it("gives no comparison or position without enough data", () => {
     const k = bingKpisFrom([{ Date: d("2026-10-10"), Clicks: 0, Impressions: 0 }], [], [], 28, NOW);
     expect(k).toMatchObject({ clicks: 0, ctr: null, position: null, prevClicks: null, indexed: null });
+  });
+});
+
+describe("mergeKpis", () => {
+  it("adds sites together and weights the position by impressions", () => {
+    const a = { days: 28, clicks: 2, impressions: 100, ctr: 0.02, position: 10, prevClicks: null, prevImpressions: null, indexed: 50 };
+    const b = { days: 28, clicks: 0, impressions: 0, ctr: null, position: null, prevClicks: 1, prevImpressions: 10, indexed: null };
+    expect(mergeKpis([a, b])).toMatchObject({ clicks: 2, impressions: 100, ctr: 0.02, position: 10, prevClicks: 1, prevImpressions: 10, indexed: 50 });
   });
 });

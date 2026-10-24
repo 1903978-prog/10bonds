@@ -42,7 +42,7 @@ function Row({ name, engine, indexedLabel, indexedHint, setup, extra }: { name: 
   const k = engine.data;
   return (
     <div>
-      <p className="mb-1 text-xs text-mute">{name} · {k ? `last ${k.days} days` : engine.state === "error" ? `error: ${engine.message}` : "not connected"}</p>
+      <p className="mb-1 text-xs text-mute">{name} · {k ? `${engine.message} · last ${k.days} days` : engine.state === "error" ? `error: ${engine.message}` : "not connected"}</p>
       {/* The boxes are always there (a dash until the source is connected), so nothing moves when data arrives. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Box label="Clicks" value={k ? num(k.clicks) : "—"} change={k ? delta(k.clicks, k.prevClicks) : null} />
