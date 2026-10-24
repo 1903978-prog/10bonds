@@ -184,6 +184,8 @@ export type User = {
   isAdmin: boolean;
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
   adminState?: "ok" | "setup" | "needed";
+  /** The admin chose "Admin no": the site treats them as an ordinary signed-in customer until they switch back. */
+  asUser?: boolean;
   twoFactorOn: boolean;
   /** Opted in to the newsletter (and has not unsubscribed since). */
   newsletter: boolean;
