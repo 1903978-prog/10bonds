@@ -267,6 +267,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     return () => ctrl.abort();
   }, [chartOn, chartable, showAll, isAdmin, risk, currency, size]);
   const summary = list ? listSummary(list) : data?.summary;
+  // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
+  const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show);
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
   const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
@@ -350,6 +352,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                   30-position table{positions ? "" : " (preparing…)"}
                 </button>
               )}
+              <ResultBoxes
+                frac={reveal}
+                paths={data?.monteCarlo?.paths || MC_PATHS}
+                lang={lang}
+                ret={!paid && data ? null : reveal === 1 ? pct(summary?.avgYtm) : "—"}
+                loss={!paid && data ? null : reveal === 1 && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
+                lock={lockTo}
+              />
             </div>
             <MoreFilters label={t.moreFilters} summary={`${currency} · ${size === "1k" ? t.small : t.allSizes}`}>
               <div className="mt-3 grid grid-cols-2 gap-3">
@@ -751,9 +761,9 @@ function Toggle({ label, value, options, onChange, testId, tip, disabled = [], d
   );
 }
 
-function Stat({ value, label, lock }: { value: ReactNode | null; label: string; lock?: { href: string; label: string } }) {
+function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null; label: string; lock?: { href: string; label: string }; h?: string }) {
   return (
-    <div className="flex h-[60px] flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center">
+    <div className={`flex ${h} flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center`}>
       {value === null ? (
         // Locked: a grey lock and a dash; the one sign-up link sits under the row.
         <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute/60" aria-label={lock?.label}>
@@ -762,9 +772,77 @@ function Stat({ value, label, lock }: { value: ReactNode | null; label: string; 
       ) : (
         <div className="text-xl font-semibold leading-tight tabular-nums tracking-tight">{value}</div>
       )}
-      <div className="text-[11px] text-mute">{label}</div>
+      <div className="text-[11px] leading-tight text-mute">{label}</div>
     </div>
   );
+}
+
+/**
+ * Under the slider (the owner, 24/10/2026): the list's return and expected loss, shown once the analysis is done, and the
+ * Monte Carlo counter running up to the real number of simulated paths. Fixed sizes, "—" until the figures are ready.
+ */
+function ResultBoxes({ frac, paths, lang, ret, loss, lock }: { frac: number; paths: number; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string } }) {
+  const t = useFinderText();
+  const fmt = new Intl.NumberFormat(lang);
+  return (
+    <div className="mt-3" data-testid="result-boxes">
+      <div className="grid grid-cols-2 gap-2">
+        <Stat value={ret} label={t.retYear} lock={lock} h="h-[64px]" />
+        <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[64px]" />
+      </div>
+      <div className="mt-1.5 flex h-4 items-center gap-2 text-[11px] text-mute" data-testid="mc-counter">
+        <span className="shrink-0">{t.scanSimsLabel}</span>
+        <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-canvas">
+          <div className="h-full rounded-full bg-accent" style={{ width: `${frac * 100}%` }} />
+        </div>
+        <span className="w-[64px] shrink-0 text-right tabular-nums">{fmt.format(Math.round(frac * paths))}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * How far the analysis under the slider has run (0 to 1). It follows the search show when one runs; otherwise it counts
+ * on its own, 2.5 seconds the first time and 1 second after, so the work behind each new list is visible. Instant for
+ * reduced motion. 0 before the first search and while a new one loads.
+ */
+function useResultReveal(data: Response | null, active: boolean, loading: boolean, show: Show | null): number {
+  const [own, setOwn] = useState<number | null>(null);
+  const [done, setDone] = useState<Response | null>(null);
+  const runs = useRef(0);
+  const showFor = useRef<Response | null>(null);
+  useEffect(() => {
+    if (show) showFor.current = data;
+  }, [show, data]);
+  useEffect(() => {
+    if (!active || !data || show || done === data) return;
+    if (showFor.current === data || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setDone(data);
+      return;
+    }
+    const ms = runs.current++ ? 1000 : 2500;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const f = Math.min(1, (now - start) / ms);
+      if (f < 1) {
+        setOwn(f);
+        raf = requestAnimationFrame(tick);
+      } else {
+        setOwn(null);
+        setDone(data);
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      setOwn(null);
+    };
+  }, [active, data, show, done]);
+  if (!active || !data || loading) return 0;
+  if (show) return show.sim;
+  if (own !== null) return own;
+  return done === data ? 1 : 0;
 }
 
 type Show = { row: number; count: number; sim: number };
