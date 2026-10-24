@@ -282,7 +282,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         {/* Short / mid / long term for everyone; the admin also keeps the full horizon slider, in yellow, under it. */}
         <TermPicker value={termOf(duration)} onChange={changeDuration} />
         {isAdmin && (
-          <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 pb-2 [&>div]:mt-2" data-testid="admin-horizon">
+          <details className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 [&[open]]:pb-2 [&>div]:mt-2" data-testid="admin-horizon">
+          <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: horizon slider</summary>
           <Slider
             tip="horizon"
             label={t.horizon}
@@ -296,7 +297,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             maxLabel={t.years30}
             onChange={(i) => changeDuration(DURATION_STEPS[i])}
           />
-          </div>
+          </details>
         )}
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
         <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
@@ -315,7 +316,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         />
         {/* Admin only: the separate return and risk sliders, in yellow. */}
         {isAdmin && (
-          <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 pb-2 [&>div]:mt-2" data-testid="admin-sliders">
+          <details className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 [&[open]]:pb-2 [&>div]:mt-2" data-testid="admin-sliders">
+          <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: return and rating sliders</summary>
           <Slider
             tip="admin-return"
             label={t.yieldLabel}
@@ -343,11 +345,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             maxLabel={t.lowRiskLabel}
             onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
           />
-          </div>
+          </details>
         )}
         </div>
         <GuideTips lang={lang} only={mode === "portfolio" ? ["currency", "size", "horizon", "return"] : ["currency", "size", "horizon"]} />
-        {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
+        {isAdmin && mode === "portfolio" && (
+          <details className="mt-2" data-testid="admin-tuner-box">
+            <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: tuning</summary>
+            <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />
+          </details>
+        )}
         {/* Shows the list for the choices above (in place of the frontier chart) and brings it into view on phones.
             In 1-bond mode it stays in place, hidden, so nothing moves. */}
         <div className={`mt-auto pt-4 ${mode === "portfolio" ? "" : "invisible max-lg:hidden"}`} aria-hidden={mode !== "portfolio"}>
@@ -477,7 +484,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>
           <MonteCarloNote data={data} lang={lang} edited={list !== null} />
-          {isAdmin && data && <AdminLossCalc rows={(list ?? data.rows).slice(0, 10)} />}
+          {isAdmin && data && (
+            <details className="mt-2" data-testid="admin-calc-box">
+              <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: calculation per bond</summary>
+              <AdminLossCalc rows={(list ?? data.rows).slice(0, 10)} />
+            </details>
+          )}
         </div>
       </section>
       )}
