@@ -6,6 +6,8 @@ import { currentUser } from "@/lib/currentUser";
 import { featuresFor } from "@/lib/planFeatures";
 import { LIMITS } from "@/lib/limits";
 import { lossCurve, type CurvePoint } from "@/lib/lossCurve";
+import { frontierFor } from "@/lib/frontierCache";
+import { efficientPoints, pickEven } from "@/lib/frontierPoints";
 
 export const dynamic = "force-dynamic";
 
@@ -44,9 +46,14 @@ export async function GET(req: Request) {
     }
     return hit;
   };
-  // Admin only: one curve per horizon from 2 to 10 years, for comparing them.
+  // Admin only: the exact efficient frontier (lib/exactFrontier.ts, as the slider) per horizon from 2 to 10 years, for
+  // comparing them. Fast (well under a second each) and kept in memory; 60 evenly spread points per curve.
   if (url.searchParams.get("all") === "1" && user?.isAdmin) {
-    const curves = Array.from({ length: 9 }, (_, i) => ({ duration: i + 2, ...curveFor(i + 2) }));
+    const curves = Array.from({ length: 9 }, (_, i) => {
+      const pts = pickEven(efficientPoints(frontierFor(data, filter, i + 2).points), 60);
+      const points = pts.map((p) => ({ ytm: Math.round(p.ytm * 100) / 100, loss: Math.round(p.el * 1000) / 1000 }));
+      return { duration: i + 2, points, max: points.length ? points[points.length - 1].ytm : LIMITS.ytm.min };
+    }).filter((c) => c.points.length > 1);
     return NextResponse.json({ curves, risk }, { headers: { "Cache-Control": "private, no-store" } });
   }
   return NextResponse.json({ ...curveFor(duration), duration, risk }, { headers: { "Cache-Control": "private, no-store" } });

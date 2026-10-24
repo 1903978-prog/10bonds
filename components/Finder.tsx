@@ -161,7 +161,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const firstOpen = positions?.find((p) => !p.unavailable)?.position ?? 1;
   // As many positions as distinct frontier lists (30 until they are ready); the search then uses the frontier's guard.
   const mixMax = positions?.length || SLIDER_POSITIONS;
-  const guard = simple && !!positions?.length;
+  // Advanced (admin): a frontier dot picked on the chart sets the sliders to its query, and then searches like it too.
+  const advAt = simple ? 0 : positions?.find((p) => p.query && p.query.ytm === ytm && p.query.risk === risk)?.position ?? 0;
+  const guard = !!positions?.length && (simple || advAt > 0);
   const applyMix = (pos: number) => {
     const p = positions?.[Math.min(pos, positions.length) - 1];
     if (p?.query) {
@@ -181,7 +183,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     applyMix(to);
   };
   useEffect(() => {
-    if (!simple || !TERMS.some((x) => x.duration === duration)) return;
+    // Loaded in Advanced too (admin), for the frontier dots on its chart.
+    if (!TERMS.some((x) => x.duration === duration)) { setPositions(null); return; }
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     setPositions(null);
@@ -195,7 +198,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         .catch(() => {});
     load(0);
     return () => { stop = true; clearTimeout(timer); };
-  }, [simple, duration, currency, size]);
+  }, [duration, currency, size]);
   // In Simple search the position decides risk and return, so they follow the term, the filters and the data.
   useEffect(() => {
     if (!simple) return;
@@ -595,6 +598,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                   positions?.some((p) => p.ytm != null) && (
                     <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
                   )
+                ) : positions?.some((p) => p.ytm != null) ? (
+                  // Advanced (admin): the same frontier dots; a click sets the sliders to that position's list.
+                  <SliderCurveChart positions={positions} current={advAt} onPick={(pos) => { const q = positions[pos - 1]?.query; if (q) { setTouched(true); setRisk(q.risk); setYtm(q.ytm); } }} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
                 ) : (
                   curve && <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
                 )}
