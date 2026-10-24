@@ -33,6 +33,11 @@ async function db() {
   return sql;
 }
 
+/** The weekly e-mail table, ready (also used by the schema check). */
+export async function weeklyTablesReady() {
+  await db();
+}
+
 /** This week's top 10 from today's bonds; null while only sample data is loaded. */
 export async function weeklyPicks(allowSample = false): Promise<WeeklyPicks | null> {
   const data = await loadBonds();
