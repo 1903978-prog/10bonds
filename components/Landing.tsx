@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
@@ -12,12 +12,9 @@ const NAVY = "#112D3B";
 const GREEN = "#127052";
 const MUTE = "#52666F";
 
-// The comparison is an illustration (the owner's spec, 24/10/2026): a provisional bond ETF benchmark (29 Sep 2026, no provider
-// named in public) against an illustrative AI portfolio. Not measured, not a live quote, not equal risk or duration. Labelled on screen.
-const BENCH = 4.46;
-const BENCH_DURATION = 3.77;
-const OPTIMIZED = 4.8;
-const DURATION = 5;
+// The comparison (the owner, 24/10/2026): the admin's provisional bond ETF benchmark (no provider named in public) against
+// one live 10bonds slider list, both from /api/benchmark. Not equal risk or duration; labelled illustrative on screen.
+type Bench = { ret: number; risk: number; duration: number; portfolio: { ytm: number; avgRisk: number; duration: number | null } | null };
 
 /** First-visit landing page, kept minimal (the owner, 24/10/2026): the headline, an illustrative 2-portfolio comparison, the free test plus sign up / sign in. */
 export default function Landing({ lang, heading = true, onClose }: { lang: FinderLang; heading?: boolean; onClose: () => void }) {
@@ -26,6 +23,20 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   const num = (n: number, d = 2) => n.toLocaleString(LANDING_NUM[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
 
   useEffect(() => trackOnce("landing_view", { variant: "a" }), []);
+  const [bench, setBench] = useState<Bench | null>(null);
+  useEffect(() => {
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // The live list can take a moment to be worked out after a deploy: ask again until it is there.
+    const load = (tries: number) =>
+      fetch("/api/benchmark").then((r) => (r.ok ? r.json() : null)).then((b: Bench | null) => {
+        if (stop || !b) return;
+        setBench(b);
+        if (!b.portfolio && tries < 10) timer = setTimeout(() => load(tries + 1), 3000);
+      }).catch(() => {});
+    load(0);
+    return () => { stop = true; clearTimeout(timer); };
+  }, []);
   // Escape skips to the finder, as the old intro did.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -46,7 +57,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <Comparison t={t} num={num} />
+          <Comparison t={t} num={num} bench={bench} />
           <p className="mt-1.5 text-[9.5px] leading-[1.3] sm:mt-2 sm:text-[10px]" style={{ color: MUTE }} data-testid="landing-footnote">{t.footnote}</p>
         </div>
         {/* The free test is the main way in; sign up and sign in sit next to it. One row on every screen. */}
@@ -66,13 +77,16 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 
 type Num = (n: number, d?: number) => string;
 
-function Comparison({ t, num }: { t: LandingText; num: Num }) {
-  const rows = (dark: boolean, duration: number, risk: [string, string]) => (
+function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench | null }) {
+  const p = bench?.portfolio ?? null;
+  const dp = (d: number) => (Number.isInteger(Math.round(d * 100) / 10) ? 1 : 2);
+  const yrs = (d: number | null | undefined) => (d == null ? ["–", "–"] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
+  const rows = (dark: boolean, duration: number | null | undefined, risk: string | null, word: string) => (
     <dl className={`mt-3 space-y-1.5 border-t pt-3 text-[11.5px] min-[380px]:text-[12px] lg:mt-3 lg:text-[12.5px] ${dark ? "border-white/15 text-white/70" : "border-[#e3ebe7]"}`} style={dark ? undefined : { color: MUTE }}>
       {/* Phones get the short words, so nothing is cut at 320 px. */}
       {[
-        [t.duration, t.duration, t.years(num(duration, duration % 1 ? 2 : 1)), `${num(duration, duration % 1 ? 2 : 1)}y`],
-        [t.creditRisk, t.creditRiskShort, risk[0], risk[1]],
+        [t.duration, t.duration, ...yrs(duration)],
+        [t.creditRisk, t.creditRiskShort, risk === null ? "–" : `${risk} ${word}`, risk ?? "–"],
       ].map(([k, ks, v, vs]) => (
         <div key={k} className="flex justify-between gap-2">
           <dt className="min-w-0 truncate"><span className="sm:hidden">{ks}</span><span className="hidden sm:inline">{k}</span></dt>
@@ -81,9 +95,9 @@ function Comparison({ t, num }: { t: LandingText; num: Num }) {
       ))}
     </dl>
   );
-  const big = (v: number, dark: boolean) => (
+  const big = (v: number | null | undefined, dark: boolean) => (
     <p className={`mt-3 text-[clamp(28px,9vw,40px)] font-bold leading-none tracking-tight lg:mt-4 lg:text-[40px] ${dark ? "text-white" : ""}`}>
-      {num(v)}<span className="text-[0.5em] font-semibold">%</span>
+      {v == null ? "–" : num(v)}<span className="text-[0.5em] font-semibold">%</span>
     </p>
   );
   return (
@@ -95,19 +109,19 @@ function Comparison({ t, num }: { t: LandingText; num: Num }) {
       <div className="mt-4 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
           <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
-          {big(BENCH, false)}
+          {big(bench?.ret, false)}
           <p className="mt-1.5 text-[12px]" style={{ color: MUTE }}>{t.grossYtm}</p>
-          {rows(false, BENCH_DURATION, [t.notMatched, t.notMatchedShort])}
+          {rows(false, bench?.duration, bench ? `≈ ${num(bench.risk, 0)}` : null, t.notMatched)}
         </div>
         <div className="rounded-[14px] p-2.5 min-[380px]:p-3 shadow-[0_8px_24px_rgba(17,45,59,0.25)] lg:p-4" style={{ background: NAVY }}>
           <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8fe0b8]"><span className="sm:hidden">{t.aiShort}</span><span className="hidden sm:inline">{t.ai}</span></p>
-          {big(OPTIMIZED, true)}
+          {big(p?.ytm, true)}
           <p className="mt-1.5 text-[12px] text-white/70">{t.illGrossYtm}</p>
-          {rows(true, DURATION, [t.modelEstimated, t.modelEstimatedShort])}
+          {rows(true, p?.duration, p ? num(p.avgRisk, 1) : null, t.modelEstimated)}
         </div>
       </div>
       <div className="mt-3 flex items-center gap-4 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3">
-        <p className="shrink-0 text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: GREEN }}>+{num(OPTIMIZED - BENCH)}<span className="text-[0.7em]"> pp</span></p>
+        <p className="shrink-0 text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : ""}${num(p.ytm - bench.ret)}` : "–"}<span className="text-[0.7em]"> pp</span></p>
         <div className="min-w-0">
           <p className="text-[13px] font-semibold leading-snug"><span className="sm:hidden">{t.diffTitleShort}</span><span className="hidden sm:inline">{t.diffTitle}</span></p>
           <p className="text-[12px] leading-snug" style={{ color: MUTE }}>{t.diffSub}</p>
