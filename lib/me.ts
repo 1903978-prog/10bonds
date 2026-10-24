@@ -10,6 +10,7 @@ export type Me = {
   confirmBlocked?: boolean;
   isAdmin: boolean;
   adminState?: "ok" | "setup" | "needed" | null;
+  asUser?: boolean;
   confirmationOn: boolean;
 } | null;
 
