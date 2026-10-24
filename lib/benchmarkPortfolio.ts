@@ -10,7 +10,8 @@ export type BenchmarkPortfolio = { ytm: number; avgRisk: number; duration: numbe
 export async function benchmarkPortfolio(position: number): Promise<BenchmarkPortfolio | null> {
   const { positions } = await sliderFor(DEFAULT_FILTER, TERMS[1].duration);
   if (!positions) return null;
-  let p = positions[position - 1];
+  // Fewer positions when the frontier has fewer distinct lists: the nearest one.
+  let p = positions[Math.min(position, positions.length) - 1];
   if (p?.sameAs) p = positions[p.sameAs - 1];
   if (!p || p.unavailable || p.ytm == null || p.avgRisk == null) return null;
   const src = await loadBondsFor(DEFAULT_FILTER);

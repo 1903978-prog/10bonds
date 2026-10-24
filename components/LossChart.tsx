@@ -98,7 +98,17 @@ export default function LossChart({ points, max, current, loss, xLabel, yLabel, 
         <g pointerEvents="none">
           <line x1={X(h.ytm)} x2={X(h.ytm)} y1={T} y2={H - B} stroke="#86868b" strokeDasharray="2 3" />
           <circle cx={X(h.ytm)} cy={Y(h.loss)} r={4} fill="#0066cc" />
-          <text x={L + 8} y={H - B - 10} fontSize={F} className="fill-[#1d1d1f]">{hoverText.replace("{y}", h.ytm.toFixed(2)).replace("{l}", h.loss.toFixed(2)).replace("{s}", hs.toFixed(2))}</text>
+          {/* Top right, on its own dark box, so it never covers the curves (they start low on the left). */}
+          {(() => {
+            const tip = hoverText.replace("{y}", h.ytm.toFixed(2)).replace("{l}", h.loss.toFixed(2)).replace("{s}", hs.toFixed(2));
+            const w = Math.min(W - L - R - 12, tip.length * F * 0.56 + 16);
+            return (
+              <>
+                <rect x={W - R - w - 4} y={T + 2} width={w} height={F + 12} rx={8} fill="#1d1d1f" fillOpacity={0.88} />
+                <text x={W - R - w + 4} y={T + 2 + F + 2} fontSize={F} className="fill-white">{tip}</text>
+              </>
+            );
+          })()}
         </g>
       )}
     </svg>

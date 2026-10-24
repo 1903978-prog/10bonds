@@ -9,9 +9,9 @@ import { sliderFor } from "@/lib/sliderCache";
 export const dynamic = "force-dynamic";
 
 /**
- * The 30 positions of the "Return & risk" slider for a horizon and bond filter: what each one searches.
+ * The positions of the "Return & risk" slider (up to 30 frontier points) for a horizon and bond filter: what each one searches.
  * Everyone gets the risk limit and target to search; plans with the chart ("loss_chart") also get each position's return
- * and expected loss (the 30 dots of the chart); the admin also gets the other figures and ISINs (the check table).
+ * and expected loss (the dots of the chart); the admin also gets the other figures and ISINs (the check table).
  * 202 while the positions are still being worked out.
  */
 export async function GET(req: Request) {
@@ -31,6 +31,6 @@ export async function GET(req: Request) {
   const chart = !user?.isAdmin && (await featuresFor(user).catch(() => null))?.includes("loss_chart") === true;
   const positions = user?.isAdmin
     ? out.positions
-    : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable, ...(chart ? { ytm: p.ytm, expectedLoss: p.expectedLoss } : {}) }));
+    : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable, worstRisk: p.worstRisk, ...(chart ? { ytm: p.ytm, expectedLoss: p.expectedLoss } : {}) }));
   return NextResponse.json({ positions }, { headers: { "Cache-Control": "private, max-age=300" } });
 }

@@ -30,7 +30,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
-import { SLIDER_POSITIONS, SLIDER_START, ceilingOf, levelOf, type SliderPosition } from "@/lib/sliderPortfolios";
+import { SLIDER_POSITIONS, SLIDER_START, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
@@ -153,16 +153,21 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     followCap(capFor(duration, r));
   };
 
-  // Simple search (everyone): a term and one "Return & risk" slider of 30 positions, 10 risk ceilings × low/medium/high
-  // return, worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
+  // Simple search (everyone): a term and one "Return & risk" slider of up to 30 positions along the efficient frontier,
+  // worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
   const [adv, setAdv] = useState(false);
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
   const [diagOpen, setDiagOpen] = useState(false);
   const firstOpen = positions?.find((p) => !p.unavailable)?.position ?? 1;
+  // As many positions as distinct frontier lists (30 until they are ready); the search then uses the frontier's guard.
+  const mixMax = positions?.length || SLIDER_POSITIONS;
+  // Advanced (admin): a frontier dot picked on the chart sets the sliders to its query, and then searches like it too.
+  const advAt = simple ? 0 : positions?.find((p) => p.query && p.query.ytm === ytm && p.query.risk === risk)?.position ?? 0;
+  const guard = !!positions?.length && (simple || advAt > 0);
   const applyMix = (pos: number) => {
-    const p = positions?.[pos - 1];
+    const p = positions?.[Math.min(pos, positions.length) - 1];
     if (p?.query) {
       setRisk(p.query.risk);
       setYtm(p.query.ytm);
@@ -175,12 +180,33 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   };
   const changeMix = (pos: number) => {
     setTouched(true);
-    const to = Math.max(pos, firstOpen);
+    const to = Math.min(mixMax, Math.max(pos, firstOpen));
     setMix(to);
     applyMix(to);
   };
+  // Previous / next portfolio arrows above the list (the owner, 24/10/2026): one step to the neighbouring slider position
+  // that shows a different list (positions that repeat an earlier list or have none are skipped). Null at the ends.
+  const stepFrom = (dir: -1 | 1): number | null => {
+    if (!positions) {
+      const p = mix + dir;
+      return p >= 1 && p <= SLIDER_POSITIONS ? p : null;
+    }
+    const here = positions[mix - 1]?.sameAs ?? mix;
+    for (let p = mix + dir; p >= firstOpen && p <= SLIDER_POSITIONS; p += dir) {
+      const x = positions[p - 1];
+      if (x && !x.unavailable && x.sameAs == null && p !== here) return p;
+    }
+    return null;
+  };
+  const arrows = simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix} /> : null;
+  // On the iPhone results page the arrows sit either side of the title, so the page gains no height.
+  const phoneTitle = (title: string) => {
+    const span = <span className="truncate text-[16px] font-semibold">{title}</span>;
+    return simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix}>{span}</PfArrows> : span;
+  };
   useEffect(() => {
-    if (!simple || !TERMS.some((x) => x.duration === duration)) return;
+    // Loaded in Advanced too (admin), for the frontier dots on its chart.
+    if (!TERMS.some((x) => x.duration === duration)) { setPositions(null); return; }
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     setPositions(null);
@@ -194,7 +220,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         .catch(() => {});
     load(0);
     return () => { stop = true; clearTimeout(timer); };
-  }, [simple, duration, currency, size]);
+  }, [duration, currency, size]);
   // In Simple search the position decides risk and return, so they follow the term, the filters and the data.
   useEffect(() => {
     if (!simple) return;
@@ -202,8 +228,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setDuration(TERMS.find((x) => x.key === termOf(duration))?.duration ?? TERMS[1].duration);
       return;
     }
-    if (positions || caps) applyMix(Math.max(mix, positions ? firstOpen : 1));
-    if (positions && mix < firstOpen) setMix(firstOpen);
+    // Ready positions: the middle one until the visitor moves the slider, else the same one (within the 1..k there are).
+    const at = positions?.length
+      ? touched ? Math.min(positions.length, Math.max(mix, firstOpen)) : Math.max(firstOpen, Math.ceil(positions.length / 2))
+      : Math.max(mix, 1);
+    if (positions || caps) applyMix(at);
+    if (positions?.length && at !== mix) setMix(at);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simple, caps, maxRisk, duration, positions]);
 
@@ -258,6 +288,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setLoading(true);
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
+        if (guard) qs.set("guard", "1");
         if (preview.current) qs.set("preview", preview.current);
         if (isAdmin && tuner.weight !== null) {
           qs.set("rw", String(tuner.weight));
@@ -298,7 +329,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun]);
+  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -414,7 +445,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 value={mix}
                 display={null}
                 min={1}
-                max={SLIDER_POSITIONS}
+                max={mixMax}
                 step={1}
                 minLabel={t.lowReturn}
                 maxLabel={t.highReturn}
@@ -424,10 +455,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
                   <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                    30-position table{positions ? "" : " (preparing…)"}
+                    {positions ? `${positions.length}-position table` : "Position table (preparing…)"}
                   </button>
                   <span data-testid="mix-admin-tag" className="flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
-                    #{mix} · <RiskBadge risk={ceilingOf(mix)} /> · {["low", "medium", "high"][levelOf(mix) - 1]}
+                    #{mix}/{mixMax} · worst <RiskBadge risk={positions?.[mix - 1]?.worstRisk ?? risk} /> · target {ytm.toFixed(2)}%
                   </span>
                 </div>
               )}
@@ -587,17 +618,21 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {showAll && isAdmin ? (
-                  allCurves && <AllCurvesChart curves={allCurves} xLabel={t.chartX} yLabel={t.chartY} yearsLabel="yrs" />
+                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
-                    <SliderCurveChart positions={positions} current={mix} onPick={changeMix} xLabel={t.chartX} yLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
+                    <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
                   )
+                ) : positions?.some((p) => p.ytm != null) ? (
+                  // Advanced (admin): the same frontier dots; a click sets the sliders to that position's list.
+                  <SliderCurveChart positions={positions} current={advAt} onPick={(pos) => { const q = positions[pos - 1]?.query; if (q) { setTouched(true); setRisk(q.risk); setYtm(q.ytm); } }} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
                 ) : (
                   curve && <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
                 )}
               </div>
             </div>
             <div className={`flex min-w-0 flex-col transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+              <div className="mb-1 flex h-7 items-center">{arrows}</div>
               <div className="grid grid-cols-3 gap-2">
                 <Stat value={pct(summary?.avgYtm ?? ytm)} label={t.chartX} />
                 <Stat value={summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : curve ? pct(nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
@@ -651,7 +686,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
         <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
           {/* Fixed-height row above the list: the chart button is always here, drawn only when a chart can be shown. */}
-          <div className="mb-1 flex h-7 justify-end">
+          <div className="mb-1 flex h-7 items-center justify-between">
+            <div>{arrows}</div>
             {chartable && (
               <div className="flex justify-end gap-2">
                 {chartOn && isAdmin && (
@@ -712,6 +748,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
             currency={currency}
+            title={phoneTitle}
             onClose={() => setSheet(false)}
             data={data}
             list={list}
@@ -844,34 +881,32 @@ function MoreFilters({ label, summary, children }: { label: string; summary: str
   );
 }
 
-/** Admin only: the 30 slider positions with their targets, achieved figures and bonds (yellow). */
+/** Admin only: the slider positions (frontier points) with their targets, achieved figures and bonds (yellow). */
 function SliderCheck({ positions, onClose }: { positions: SliderPosition[]; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
       <div className="max-h-[90vh] w-full max-w-[1100px] overflow-auto rounded-2xl border border-amber-300 bg-amber-50 p-4 text-[11px] text-amber-900" onClick={(e) => e.stopPropagation()} data-testid="slider-check">
         <div className="mb-2 flex items-center justify-between">
-          <div className="text-[13px] font-semibold">30 slider positions (same ranking as every search)</div>
+          <div className="text-[13px] font-semibold">{positions.length} slider positions along the frontier (same ranking as every search, max 2 bonds at B+ or below)</div>
           <button type="button" onClick={onClose} className="rounded-full border border-amber-300 px-2">Close</button>
         </div>
         <table className="w-full tabular-nums">
           <thead>
             <tr className="text-left">
-              {["Position", "Risk ceiling", "Return level", "Target", "Actual", "Avg risk", "Worst risk", "Expected loss", "Same as", "ISINs"].map((h) => <th key={h} className="pr-2">{h}</th>)}
+              {["Position", "Target", "Actual", "Gap", "Avg risk", "Worst risk", "Expected loss", "ISINs"].map((h) => <th key={h} className="pr-2">{h}</th>)}
             </tr>
           </thead>
           <tbody>
-            {positions.map((p) => (
-              <tr key={p.position} className={`border-t border-amber-200 align-top ${p.sameAs ? "text-amber-900/60" : ""}`}>
+            {positions.map((p, i) => (
+              <tr key={p.position} className="border-t border-amber-200 align-top">
                 <td className="pr-2">{p.position}</td>
-                <td className="pr-2">{p.ceiling}</td>
-                <td className="pr-2">{["low", "medium", "high"][p.level - 1]}</td>
                 <td className="pr-2">{p.target === null ? "–" : `${p.target.toFixed(2)}%`}</td>
                 <td className="pr-2">{p.ytm === null ? "–" : `${p.ytm.toFixed(2)}%`}</td>
+                <td className="pr-2">{i && p.ytm !== null && positions[i - 1].ytm !== null ? `+${(p.ytm - positions[i - 1].ytm!).toFixed(2)}` : "–"}</td>
                 <td className="pr-2">{p.avgRisk ?? "–"}</td>
                 <td className="pr-2">{p.worstRisk ?? "–"}</td>
                 <td className="pr-2">{p.expectedLoss === null ? "–" : `${p.expectedLoss.toFixed(2)}%`}</td>
-                <td className="pr-2">{p.unavailable ? "unavailable" : p.sameAs ? `#${p.sameAs}` : ""}</td>
-                <td className="break-all font-mono text-[10px]">{p.sameAs ? "" : p.isins.join(" ")}</td>
+                <td className="break-all font-mono text-[10px]">{p.isins.join(" ")}</td>
               </tr>
             ))}
           </tbody>
@@ -927,6 +962,26 @@ function Toggle({ label, value, options, onChange, testId, tip, disabled = [], d
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Previous / next portfolio: two small grey round arrows, always drawn (greyed at the ends) so nothing moves. */
+function PfArrows({ prev, next, onStep, children }: { prev: number | null; next: number | null; onStep: (pos: number) => void; children?: ReactNode }) {
+  const t = useFinderText();
+  const btn = "flex h-7 w-7 items-center justify-center rounded-full border border-line/70 text-mute transition-colors hover:border-mute/40 hover:text-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-line/70 disabled:hover:text-mute";
+  const arrow = (d: string) => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+  );
+  return (
+    <div className="flex min-w-0 items-center gap-1.5" data-testid="pf-arrows">
+      <button type="button" className={btn} aria-label={t.prevPf} title={t.prevPf} disabled={prev === null} onClick={() => prev !== null && onStep(prev)} data-testid="pf-prev">
+        {arrow("M10 3 5 8l5 5")}
+      </button>
+      {children}
+      <button type="button" className={btn} aria-label={t.nextPf} title={t.nextPf} disabled={next === null} onClick={() => next !== null && onStep(next)} data-testid="pf-next">
+        {arrow("M6 3l5 5-5 5")}
+      </button>
     </div>
   );
 }
@@ -1435,7 +1490,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency, etfBox }: { etfBox: ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency, etfBox }: { title: (text: string) => ReactNode; etfBox: ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
@@ -1476,7 +1531,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
           <svg width="11" height="18" viewBox="0 0 11 18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 2 2 9l7 7" /></svg>
           {t.back}
         </button>
-        <span className="truncate text-[16px] font-semibold">{t.sheetTitle}</span>
+        {title(t.sheetTitle)}
         <span className="flex w-20 justify-end">
           {features.has("excel") && rows.length > 0 && (
             <button type="button" onClick={() => downloadTop10(rows, t)} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
