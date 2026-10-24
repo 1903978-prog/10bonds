@@ -30,7 +30,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
-import { SLIDER_POSITIONS, SLIDER_START, ceilingOf, levelOf, moodOf, type SliderPosition } from "@/lib/sliderPortfolios";
+import { SLIDER_POSITIONS, SLIDER_START, moodOf, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
@@ -149,16 +149,19 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     followCap(capFor(duration, r));
   };
 
-  // Simple search (everyone): a term and one "Return & risk" slider of 30 positions, 10 risk ceilings × low/medium/high
-  // return, worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
+  // Simple search (everyone): a term and one "Return & risk" slider of up to 30 positions along the efficient frontier,
+  // worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
   const [adv, setAdv] = useState(false);
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
   const [diagOpen, setDiagOpen] = useState(false);
   const firstOpen = positions?.find((p) => !p.unavailable)?.position ?? 1;
+  // As many positions as distinct frontier lists (30 until they are ready); the search then uses the frontier's guard.
+  const mixMax = positions?.length || SLIDER_POSITIONS;
+  const guard = simple && !!positions?.length;
   const applyMix = (pos: number) => {
-    const p = positions?.[pos - 1];
+    const p = positions?.[Math.min(pos, positions.length) - 1];
     if (p?.query) {
       setRisk(p.query.risk);
       setYtm(p.query.ytm);
@@ -171,7 +174,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   };
   const changeMix = (pos: number) => {
     setTouched(true);
-    const to = Math.max(pos, firstOpen);
+    const to = Math.min(mixMax, Math.max(pos, firstOpen));
     setMix(to);
     applyMix(to);
   };
@@ -200,6 +203,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     }
     if (positions || caps) applyMix(Math.max(mix, positions ? firstOpen : 1));
     if (positions && mix < firstOpen) setMix(firstOpen);
+    if (positions?.length && mix > positions.length) setMix(positions.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simple, caps, maxRisk, duration, positions]);
 
@@ -254,6 +258,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setLoading(true);
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
+        if (guard) qs.set("guard", "1");
         if (preview.current) qs.set("preview", preview.current);
         if (isAdmin && tuner.weight !== null) {
           qs.set("rw", String(tuner.weight));
@@ -294,7 +299,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };
-  }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt]);
+  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -408,9 +413,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 label={t.mixLabel}
                 hint={t.mixLabel}
                 value={mix}
-                display={<span className="text-[14px] font-medium text-mute" data-testid="mix-mood">{t.mood[moodOf(mix)]}</span>}
+                display={<span className="text-[14px] font-medium text-mute" data-testid="mix-mood">{t.mood[moodOf(positions?.[mix - 1], mix, mixMax)]}</span>}
                 min={1}
-                max={SLIDER_POSITIONS}
+                max={mixMax}
                 step={1}
                 minLabel={t.lowReturn}
                 maxLabel={t.highReturn}
@@ -420,10 +425,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
                   <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                    30-position table{positions ? "" : " (preparing…)"}
+                    {positions ? `${positions.length}-position table` : "Position table (preparing…)"}
                   </button>
                   <span data-testid="mix-admin-tag" className="flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
-                    #{mix} · <RiskBadge risk={ceilingOf(mix)} /> · {["low", "medium", "high"][levelOf(mix) - 1]}
+                    #{mix}/{mixMax} · worst <RiskBadge risk={positions?.[mix - 1]?.worstRisk ?? risk} /> · target {ytm.toFixed(2)}%
                   </span>
                 </div>
               )}
@@ -580,10 +585,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {showAll && isAdmin ? (
-                  allCurves && <AllCurvesChart curves={allCurves} xLabel={t.chartX} yLabel={t.chartY} yearsLabel="yrs" />
+                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
-                    <SliderCurveChart positions={positions} current={mix} onPick={changeMix} xLabel={t.chartX} yLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
+                    <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
                   )
                 ) : (
                   curve && <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
@@ -837,34 +842,32 @@ function MoreFilters({ label, summary, children }: { label: string; summary: str
   );
 }
 
-/** Admin only: the 30 slider positions with their targets, achieved figures and bonds (yellow). */
+/** Admin only: the slider positions (frontier points) with their targets, achieved figures and bonds (yellow). */
 function SliderCheck({ positions, onClose }: { positions: SliderPosition[]; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
       <div className="max-h-[90vh] w-full max-w-[1100px] overflow-auto rounded-2xl border border-amber-300 bg-amber-50 p-4 text-[11px] text-amber-900" onClick={(e) => e.stopPropagation()} data-testid="slider-check">
         <div className="mb-2 flex items-center justify-between">
-          <div className="text-[13px] font-semibold">30 slider positions (same ranking as every search)</div>
+          <div className="text-[13px] font-semibold">{positions.length} slider positions along the frontier (same ranking as every search, max 2 bonds at B+ or below)</div>
           <button type="button" onClick={onClose} className="rounded-full border border-amber-300 px-2">Close</button>
         </div>
         <table className="w-full tabular-nums">
           <thead>
             <tr className="text-left">
-              {["Position", "Risk ceiling", "Return level", "Target", "Actual", "Avg risk", "Worst risk", "Expected loss", "Same as", "ISINs"].map((h) => <th key={h} className="pr-2">{h}</th>)}
+              {["Position", "Target", "Actual", "Gap", "Avg risk", "Worst risk", "Expected loss", "ISINs"].map((h) => <th key={h} className="pr-2">{h}</th>)}
             </tr>
           </thead>
           <tbody>
-            {positions.map((p) => (
-              <tr key={p.position} className={`border-t border-amber-200 align-top ${p.sameAs ? "text-amber-900/60" : ""}`}>
+            {positions.map((p, i) => (
+              <tr key={p.position} className="border-t border-amber-200 align-top">
                 <td className="pr-2">{p.position}</td>
-                <td className="pr-2">{p.ceiling}</td>
-                <td className="pr-2">{["low", "medium", "high"][p.level - 1]}</td>
                 <td className="pr-2">{p.target === null ? "–" : `${p.target.toFixed(2)}%`}</td>
                 <td className="pr-2">{p.ytm === null ? "–" : `${p.ytm.toFixed(2)}%`}</td>
+                <td className="pr-2">{i && p.ytm !== null && positions[i - 1].ytm !== null ? `+${(p.ytm - positions[i - 1].ytm!).toFixed(2)}` : "–"}</td>
                 <td className="pr-2">{p.avgRisk ?? "–"}</td>
                 <td className="pr-2">{p.worstRisk ?? "–"}</td>
                 <td className="pr-2">{p.expectedLoss === null ? "–" : `${p.expectedLoss.toFixed(2)}%`}</td>
-                <td className="pr-2">{p.unavailable ? "unavailable" : p.sameAs ? `#${p.sameAs}` : ""}</td>
-                <td className="break-all font-mono text-[10px]">{p.sameAs ? "" : p.isins.join(" ")}</td>
+                <td className="break-all font-mono text-[10px]">{p.isins.join(" ")}</td>
               </tr>
             ))}
           </tbody>
