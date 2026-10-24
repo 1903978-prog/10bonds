@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { RiskBadge, riskColor } from "@/components/RiskBadge";
 import type { LandingText } from "@/lib/landingText";
+import { findCompany } from "@/lib/companiesInFocus";
+
+const LVMH = "FR0013482841";
 
 const NAVY = "#112D3B";
 const GREEN = "#127052";
@@ -12,13 +15,20 @@ const BLUE = "#0066cc";
 const EVERY = 6000; // ms per slide while nobody touches the carousel
 
 /** One card of the landing carousel: same white card as the comparison, filling the carousel's fixed height. */
-export function SlideCard({ title, children }: { title: ReactNode; children: ReactNode }) {
+export function SlideCard({ title, children, href }: { title: ReactNode; children: ReactNode; href?: string }) {
+  const box = "flex h-full flex-col rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5";
+  // With `href` the whole card opens that page (the Risk assessment pages, PR #188).
+  if (href) return <Link href={href} className={`${box} transition hover:border-[#cfe6da]`} data-testid="slide-link">{inner(title, children)}</Link>;
+  return <div className={box}>{inner(title, children)}</div>;
+}
+
+function inner(title: ReactNode, children: ReactNode) {
   return (
-    <div className="flex h-full flex-col rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5">
+    <>
       {/* Right padding keeps the title clear of the dots, which sit in the same corner on every slide. */}
       <h2 className="truncate pr-20 text-[15px] font-semibold tracking-tight lg:text-[14px]">{title}</h2>
       <div className="mt-3 flex min-h-0 flex-1 flex-col">{children}</div>
-    </div>
+    </>
   );
 }
 
@@ -145,7 +155,7 @@ export function CountrySlide({ t }: { t: LandingText }) {
   const c = t.carousel;
   const rows: [string, number][] = [["de", 1], ["nl", 1], ["fr", 3], ["es", 3], ["it", 4], ["ro", 6]];
   return (
-    <SlideCard title={c.country}>
+    <SlideCard title={c.country} href="/risk-assessment">
       <ul className="flex flex-1 flex-col justify-around">
         {rows.map(([k, risk]) => (
           <li key={k} className="flex items-center gap-3 text-[12.5px] lg:text-[13px]">
@@ -165,9 +175,10 @@ export function CountrySlide({ t }: { t: LandingText }) {
 /** One company: LVMH on the 10bonds.com risk scale. */
 export function CompanySlide({ t }: { t: LandingText }) {
   const c = t.carousel;
-  const risk = 3;
+  // Same score as the LVMH page in Risk assessment.
+  const risk = findCompany(LVMH)?.risk ?? 2;
   return (
-    <SlideCard title={c.company}>
+    <SlideCard title={c.company} href={`/risk-assessment/${LVMH}`}>
       <div className="flex flex-1 flex-col justify-center gap-4">
         <div className="flex items-center gap-4">
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[14px] text-[13px] font-bold tracking-[0.12em] text-white" style={{ background: NAVY }}>LVMH</span>
