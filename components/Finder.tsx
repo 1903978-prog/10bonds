@@ -1341,7 +1341,12 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
           />
         )}
       </div>
-      <p className="mt-1.5 h-[25px] shrink-0 overflow-hidden text-[10px] leading-[12.5px] text-mute" data-testid="phone-mc">
+      {data?.source === "sample" ? (
+        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
+      ) : (
+        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.</p>
+      )}
+      <p className="h-[25px] shrink-0 overflow-hidden text-[10px] leading-[12.5px] text-mute" data-testid="phone-mc">
         {mc?.expYield != null && mc.p5 != null && !list ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
       </p>
       <p className="mt-1 shrink-0 text-[9px] leading-tight text-mute/80" data-testid="phone-footer-note">{FOOTER_NOTE[lang]}</p>
