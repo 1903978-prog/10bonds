@@ -48,6 +48,12 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         ],
       },
       {
+        title: "Returns, comparisons and examples",
+        paragraphs: [
+          "Returns shown are gross, before applicable taxes and trading costs, indicative and not guaranteed. Bonds can lose value and issuers can default. The front-page comparison between an AI-selected portfolio and a bond ETF benchmark is illustrative: the benchmark is provisional, is not an average across all ETFs and names no provider; its risk level is estimated. Bond portfolios and ETFs may differ in duration, credit quality, diversification and liquidity, so the return difference is illustrative. The bonds carry no fund management fee; broker costs apply. The risk shown is also a modeled estimate.",
+        ],
+      },
+      {
         title: "No execution",
         paragraphs: ["10BONDS does not hold money, place orders or manage portfolios."],
       },
@@ -89,6 +95,12 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         title: "Il rischio non è un rating",
         paragraphs: [
           "Il rischio da 1 (più basso) a 10 (più alto) è una valutazione interna di 10BONDS, solo informativa. È costruita da 10BONDS a partire da informazioni pubbliche sul credito. Non è un rating di credito e 10BONDS non è un'agenzia di rating. Non suggerisce alcuna strategia. Verifica i rating ufficiali con le agenzie di rating, l'emittente e il tuo consulente finanziario, e non fare affidamento sul rischio di 10BONDS.",
+        ],
+      },
+      {
+        title: "Rendimenti, confronti ed esempi",
+        paragraphs: [
+          "I rendimenti mostrati sono lordi, prima delle imposte e dei costi di negoziazione applicabili, indicativi e non garantiti. Le obbligazioni possono perdere valore e gli emittenti possono fallire. Il confronto in prima pagina tra un portafoglio selezionato dall'IA e un benchmark di ETF obbligazionari è illustrativo: il benchmark è provvisorio, non è una media di tutti gli ETF e non nomina alcun fornitore; il suo livello di rischio è una stima. Portafogli obbligazionari ed ETF possono differire per durata, qualità del credito, diversificazione e liquidità, quindi la differenza di rendimento è illustrativa. Le obbligazioni non hanno commissioni di gestione di un fondo; si applicano i costi del broker. Anche il rischio mostrato è una stima di modello.",
         ],
       },
       {
@@ -136,6 +148,12 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         ],
       },
       {
+        title: "Rendements, comparaisons et exemples",
+        paragraphs: [
+          "Les rendements affichés sont bruts, avant impôts et frais de transaction applicables, indicatifs et non garantis. Une obligation peut perdre de la valeur et un émetteur peut faire défaut. La comparaison de la page d'accueil entre un portefeuille choisi par l'IA et une référence d'ETF obligataires est illustrative : la référence est provisoire, n'est pas une moyenne de tous les ETF et ne nomme aucun fournisseur ; son niveau de risque est estimé. Portefeuilles obligataires et ETF peuvent différer en duration, qualité de crédit, diversification et liquidité ; l'écart de rendement est donc illustratif. Les obligations n'ont pas de frais de gestion de fonds ; les frais du courtier s'appliquent. Le risque affiché est lui aussi une estimation modélisée.",
+        ],
+      },
+      {
         title: "Aucune exécution",
         paragraphs: ["10BONDS ne détient pas d'argent, ne passe pas d'ordres et ne gère pas de portefeuilles."],
       },
@@ -177,6 +195,12 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
         title: "Das Risiko ist kein Rating",
         paragraphs: [
           "Das Risiko von 1 (am geringsten) bis 10 (am höchsten) ist eine interne Einschätzung von 10BONDS, nur zur Information. Sie wird von 10BONDS aus öffentlichen Bonitätsinformationen erstellt. Es ist kein Kreditrating, und 10BONDS ist keine Ratingagentur. Es legt keine Strategie nahe. Prüfen Sie offizielle Ratings bei den Ratingagenturen, beim Emittenten und bei Ihrem Finanzberater und verlassen Sie sich nicht auf das Risiko von 10BONDS.",
+        ],
+      },
+      {
+        title: "Renditen, Vergleiche und Beispiele",
+        paragraphs: [
+          "Angezeigte Renditen sind brutto, vor anfallenden Steuern und Handelskosten, unverbindlich und nicht garantiert. Anleihen können an Wert verlieren und Emittenten ausfallen. Der Vergleich auf der Startseite zwischen einem KI-ausgewählten Portfolio und einem Anleihen-ETF-Benchmark ist illustrativ: Der Benchmark ist vorläufig, kein Durchschnitt aller ETFs und nennt keinen Anbieter; sein Risiko ist geschätzt. Anleihenportfolios und ETFs können sich in Duration, Kreditqualität, Diversifikation und Liquidität unterscheiden, daher ist die Renditedifferenz illustrativ. Die Anleihen haben keine Fondsverwaltungsgebühr; Brokerkosten fallen an. Auch das angezeigte Risiko ist eine Modellschätzung.",
         ],
       },
       {
