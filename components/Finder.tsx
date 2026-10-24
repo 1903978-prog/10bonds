@@ -972,7 +972,7 @@ function EtfBox({ etf, match, onPick, lang, admin, phone = false }: { etf: EtfBe
       <span className="tabular-nums">{t.etfRisk} {etf.risk.toFixed(1)}</span>
     </>
   );
-  const tip = t.etfTip(date, etf.source, etf.riskRange || etf.risk.toFixed(1));
+  const tip = t.etfTip(date, etf.riskRange || etf.risk.toFixed(1));
   const flag = admin && match && !match.beats ? <span className="text-amber-700"> · no list beats the ETF</span> : null;
   if (phone) {
     return (
@@ -996,7 +996,7 @@ function EtfBox({ etf, match, onPick, lang, admin, phone = false }: { etf: EtfBe
         <span className="text-[10px] text-mute">{t.etfVs}</span>
         <button type="button" onClick={onPick} disabled={!onPick} className="flex flex-col items-center rounded-lg hover:bg-black/[0.03]" data-testid="etf-ours">{ours}</button>
       </div>
-      <div className="mt-0.5 truncate text-[10px] leading-tight text-mute">{t.etfSide} {date} · <span className="text-accent">{t.ourSide}</span>{flag}</div>
+      <div className="mt-0.5 truncate text-[10px] leading-tight text-mute">{t.etfSide} · {date}{flag}</div>
     </div>
   );
 }

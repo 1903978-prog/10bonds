@@ -10,8 +10,11 @@ export type EtfBenchmark = {
   on: boolean;
 };
 
-// Figure given by the owner on 24/10/2026 (euro corporate bond UCITS ETFs, BBB to BB, so risk 5 to 7, average about 6).
-export const DEFAULT_ETF: EtfBenchmark = { ret: 4.39, risk: 6, riskRange: "5–7", asOf: "2026-10-24", source: "", on: true };
+// Figure given by the owner on 24/10/2026 (BBB to BB, so risk 5 to 7, average about 6). The source is shown to the admin only.
+export const DEFAULT_ETF: EtfBenchmark = {
+  ret: 4.39, risk: 6, riskRange: "5–7", asOf: "2026-09-14",
+  source: "BlackRock iShares € Corp Bond BBB-BB UCITS ETF (IEBB), weighted-average YTM, observation date 14 Sep 2026", on: true,
+};
 
 const KEY = "etf_benchmark";
 
