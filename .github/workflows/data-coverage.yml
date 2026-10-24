@@ -16,7 +16,7 @@ jobs:
           echo "== total / with yield as of last 24h / newest yield date"; q "select count(*), count(*) filter (where ytm_as_of > now() - interval '24 hours'), max(ytm_as_of) from public_bonds"
           echo "== with duration, by currency"; q "select currency, count(*), count(modified_duration) from public_bonds group by 1 order by 2 desc"
           echo "== min size or lot filled"; q "select currency, count(*), count(*) filter (where coalesce(min_denomination, min_lot) is not null), count(*) filter (where coalesce(min_denomination, min_lot) <= 1000) from public_bonds group by 1 order by 2 desc"
-          for c in min_denomination min_lot minimum_investment denomination; do
+          for c in min_denomination min_lot minimum_investment denomination coupon_type seniority issue_date callable; do
             if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
               echo "== $c filled"; q "select currency, count(*), count($c) from public_bonds group by 1 order by 2 desc"
               echo "== $c values"; q "select $c, count(*) from public_bonds group by 1 order by 2 desc limit 15"

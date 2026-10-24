@@ -7,7 +7,7 @@ import { lifeYears } from "./lifeYears";
 
 /** A bond left out of the top 10 that could take a place in it: Plus swaps it in. */
 export type AltRow = Required<Pick<ResultRow, "issuer" | "ytm" | "name" | "isin" | "duration">> &
-  Pick<ResultRow, "risk" | "sp" | "coupon" | "maturity" | "country" | "minInvestment" | "pd" | "life"> & { adjYtm?: number };
+  Pick<ResultRow, "risk" | "sp" | "couponType" | "seniority" | "coupon" | "maturity" | "country" | "minInvestment" | "pd" | "life"> & { adjYtm?: number };
 
 export const MAX_ALTERNATIVES = 40;
 
@@ -38,7 +38,7 @@ export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], durat
       ytm: b.grossYtm!,
       duration: b.modifiedDuration!,
       risk: bondRisk(b),
-      ...(admin ? { sp: b.ratingSp?.trim() || null } : {}),
+      ...(admin ? { sp: b.ratingSp?.trim() || null, couponType: b.couponType ?? null, seniority: b.seniority ?? null } : {}),
       coupon: b.coupon,
       maturity: b.maturity,
       country: b.country,
