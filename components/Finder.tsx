@@ -201,9 +201,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setDuration(TERMS.find((x) => x.key === termOf(duration))?.duration ?? TERMS[1].duration);
       return;
     }
-    if (positions || caps) applyMix(Math.max(mix, positions ? firstOpen : 1));
-    if (positions && mix < firstOpen) setMix(firstOpen);
-    if (positions?.length && mix > positions.length) setMix(positions.length);
+    // Ready positions: the middle one until the visitor moves the slider, else the same one (within the 1..k there are).
+    const at = positions?.length
+      ? touched ? Math.min(positions.length, Math.max(mix, firstOpen)) : Math.max(firstOpen, Math.ceil(positions.length / 2))
+      : Math.max(mix, 1);
+    if (positions || caps) applyMix(at);
+    if (positions?.length && at !== mix) setMix(at);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simple, caps, maxRisk, duration, positions]);
 
