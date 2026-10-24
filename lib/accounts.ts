@@ -43,6 +43,8 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists newsletter_consent_at timestamptz`;
   await sql`alter table app.users add column if not exists newsletter_consent_source text`;
   await sql`alter table app.users add column if not exists newsletter_unsubscribed_at timestamptz`;
+  // Language of the site the account was confirmed on: the weekly e-mail is written in it.
+  await sql`alter table app.users add column if not exists email_lang text`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
   await sql`alter table app.users add column if not exists stats_bonus_at timestamptz`;
   // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
@@ -292,6 +294,13 @@ export async function setNewsletter(userId: number, on: boolean, source: "profil
     ? await sql`update app.users set newsletter_opt_in = true, newsletter_consent_at = now(), newsletter_consent_source = ${source}, newsletter_unsubscribed_at = null where id = ${userId}`
     : await sql`update app.users set newsletter_opt_in = false, newsletter_unsubscribed_at = now() where id = ${userId}`;
   return r.count === 1;
+}
+
+/** Remembers the site language of an account (en, it, fr, de), for the weekly e-mail. */
+export async function setEmailLang(userId: number, lang: string) {
+  const { sql, ready } = db();
+  await ready;
+  await sql`update app.users set email_lang = ${lang} where id = ${userId}`;
 }
 
 /** Sign in with either the email or the username. */
