@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { rankBonds, averages, ytmCaps, withinRisk, ytmCapsByRisk } from "./ranking";
-import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
+import { shapeForTier } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import type { PublicBond } from "./types";
@@ -70,12 +70,16 @@ describe("rankBonds", () => {
 describe("shapeForTier", () => {
   const ranked = rankBonds(SAMPLE_BONDS, 5, 4).results;
 
-  it("visitors without an account get 3 rows with issuer and yield only", () => {
+  it("visitors get all 10 rows with return, years and risk, never the issuer", () => {
     const p = shapeForTier(ranked, "visitor");
-    expect(p.rows).toHaveLength(VISITOR_VISIBLE);
-    expect(p.lockedCount).toBe(7);
-    expect(p.summary).toBeNull();
-    for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["issuer", "rank", "ytm"]);
+    expect(p.rows).toHaveLength(10);
+    expect(p.lockedCount).toBe(0);
+    expect(p.summary?.avgYtm).not.toBeNull();
+    for (const r of p.rows) {
+      expect(Object.keys(r).sort()).toEqual(["duration", "hidden", "issuer", "rank", "risk", "ytm"]);
+      expect(r.issuer).toBe("");
+    }
+    for (const b of ranked) expect(JSON.stringify(p)).not.toContain(b.issuer ?? b.name);
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
   });
 
