@@ -180,6 +180,26 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     setMix(to);
     applyMix(to);
   };
+  // Previous / next portfolio arrows above the list (the owner, 24/10/2026): one step to the neighbouring slider position
+  // that shows a different list (positions that repeat an earlier list or have none are skipped). Null at the ends.
+  const stepFrom = (dir: -1 | 1): number | null => {
+    if (!positions) {
+      const p = mix + dir;
+      return p >= 1 && p <= SLIDER_POSITIONS ? p : null;
+    }
+    const here = positions[mix - 1]?.sameAs ?? mix;
+    for (let p = mix + dir; p >= firstOpen && p <= SLIDER_POSITIONS; p += dir) {
+      const x = positions[p - 1];
+      if (x && !x.unavailable && x.sameAs == null && p !== here) return p;
+    }
+    return null;
+  };
+  const arrows = simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix} /> : null;
+  // On the iPhone results page the arrows sit either side of the title, so the page gains no height.
+  const phoneTitle = (title: string) => {
+    const span = <span className="truncate text-[16px] font-semibold">{title}</span>;
+    return simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix}>{span}</PfArrows> : span;
+  };
   useEffect(() => {
     if (!simple || !TERMS.some((x) => x.duration === duration)) return;
     let stop = false;
@@ -601,6 +621,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
             </div>
             <div className={`flex min-w-0 flex-col transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+              <div className="mb-1 flex h-7 items-center">{arrows}</div>
               <div className="grid grid-cols-3 gap-2">
                 <Stat value={pct(summary?.avgYtm ?? ytm)} label={t.chartX} />
                 <Stat value={summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : curve ? pct(nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
@@ -654,7 +675,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
         <div className={`relative mt-2 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
           {/* Fixed-height row above the list: the chart button is always here, drawn only when a chart can be shown. */}
-          <div className="mb-1 flex h-7 justify-end">
+          <div className="mb-1 flex h-7 items-center justify-between">
+            <div>{arrows}</div>
             {chartable && (
               <div className="flex justify-end gap-2">
                 {chartOn && isAdmin && (
@@ -715,6 +737,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
             currency={currency}
+            title={phoneTitle}
             onClose={() => setSheet(false)}
             data={data}
             list={list}
@@ -928,6 +951,26 @@ function Toggle({ label, value, options, onChange, testId, tip, disabled = [], d
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Previous / next portfolio: two small grey round arrows, always drawn (greyed at the ends) so nothing moves. */
+function PfArrows({ prev, next, onStep, children }: { prev: number | null; next: number | null; onStep: (pos: number) => void; children?: ReactNode }) {
+  const t = useFinderText();
+  const btn = "flex h-7 w-7 items-center justify-center rounded-full border border-line/70 text-mute transition-colors hover:border-mute/40 hover:text-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-line/70 disabled:hover:text-mute";
+  const arrow = (d: string) => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+  );
+  return (
+    <div className="flex min-w-0 items-center gap-1.5" data-testid="pf-arrows">
+      <button type="button" className={btn} aria-label={t.prevPf} title={t.prevPf} disabled={prev === null} onClick={() => prev !== null && onStep(prev)} data-testid="pf-prev">
+        {arrow("M10 3 5 8l5 5")}
+      </button>
+      {children}
+      <button type="button" className={btn} aria-label={t.nextPf} title={t.nextPf} disabled={next === null} onClick={() => next !== null && onStep(next)} data-testid="pf-next">
+        {arrow("M6 3l5 5-5 5")}
+      </button>
     </div>
   );
 }
@@ -1436,7 +1479,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency, etfBox }: { etfBox: ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency, etfBox }: { title: (text: string) => ReactNode; etfBox: ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
@@ -1477,7 +1520,7 @@ function PhoneResults({ onClose, data, list, setList, features, signedIn, loadin
           <svg width="11" height="18" viewBox="0 0 11 18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 2 2 9l7 7" /></svg>
           {t.back}
         </button>
-        <span className="truncate text-[16px] font-semibold">{t.sheetTitle}</span>
+        {title(t.sheetTitle)}
         <span className="flex w-20 justify-end">
           {features.has("excel") && rows.length > 0 && (
             <button type="button" onClick={() => downloadTop10(rows, t)} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
