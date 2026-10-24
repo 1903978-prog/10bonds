@@ -9,6 +9,7 @@ import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import PlansNavLink from "@/components/PlansNavLink";
+import FocusNavLink from "@/components/FocusNavLink";
 import DropsNavLink from "@/components/DropsNavLink";
 import { currentUser } from "@/lib/currentUser";
 import LangSwitch from "@/components/LangSwitch";
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
               {admin && <DropsNavLink />}
+              <FocusNavLink />
               <KnowledgeNavLink />
               <PlansNavLink />
               {/* Fixed-width slot for the links that load after the page (Retail/Pro switch, Admin, Sign in, profile), so the menu never shifts. */}
