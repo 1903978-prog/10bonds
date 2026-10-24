@@ -26,7 +26,9 @@ import { loadMe } from "@/lib/me";
 import WhyTable from "./WhyTable";
 import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
-import { MIX_START, MIX_STEPS, mixTarget } from "@/lib/mixSteps";
+import { createPortal } from "react-dom";
+import { mixTarget } from "@/lib/mixSteps";
+import { SLIDER_POSITIONS, SLIDER_START, ceilingOf, levelOf, moodOf, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
@@ -130,23 +132,59 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     followCap(capFor(duration, r));
   };
 
-  // One slider for everyone (the owner, 24/10/2026): 30 steps, 10 risk levels × low/medium/high return (lib/mixSteps.ts).
-  const [mix, setMix] = useState(MIX_START);
-  const applyMix = (step: number, d = duration) => {
-    const m = mixTarget(step, (r) => capFor(d, r), riskTopFor(d));
-    setRisk(m.risk);
-    setYtm(m.ytm);
+  // Simple search (everyone): a term and one "Return & risk" slider of 30 positions, 10 risk ceilings × low/medium/high
+  // return, worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
+  const [adv, setAdv] = useState(false);
+  const simple = !isAdmin || !adv;
+  const [mix, setMix] = useState(SLIDER_START);
+  const [positions, setPositions] = useState<SliderPosition[] | null>(null);
+  const [diagOpen, setDiagOpen] = useState(false);
+  const firstOpen = positions?.find((p) => !p.unavailable)?.position ?? 1;
+  const applyMix = (pos: number) => {
+    const p = positions?.[pos - 1];
+    if (p?.query) {
+      setRisk(p.query.risk);
+      setYtm(p.query.ytm);
+    } else if (!positions) {
+      // Until the positions are ready: the quick estimate from the slider maximums.
+      const m = mixTarget(pos - 1, (r) => capFor(duration, r), riskTop);
+      setRisk(m.risk);
+      setYtm(m.ytm);
+    }
   };
-  const changeMix = (step: number) => {
+  const changeMix = (pos: number) => {
     setTouched(true);
-    setMix(step);
-    applyMix(step);
+    const to = Math.max(pos, firstOpen);
+    setMix(to);
+    applyMix(to);
   };
-  // Without the admin's separate sliders the step decides risk and return, so they follow the horizon and the data.
   useEffect(() => {
-    if (!isAdmin && caps) applyMix(mix);
+    if (!simple || !TERMS.some((x) => x.duration === duration)) return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setPositions(null);
+    const load = (tries: number) =>
+      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size })}`)
+        .then(async (r) => {
+          if (stop) return;
+          if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), 3000);
+          else if (r.ok) setPositions((await r.json()).positions);
+        })
+        .catch(() => {});
+    load(0);
+    return () => { stop = true; clearTimeout(timer); };
+  }, [simple, duration, currency, size]);
+  // In Simple search the position decides risk and return, so they follow the term, the filters and the data.
+  useEffect(() => {
+    if (!simple) return;
+    if (!TERMS.some((x) => x.duration === duration)) {
+      setDuration(TERMS.find((x) => x.key === termOf(duration))?.duration ?? TERMS[1].duration);
+      return;
+    }
+    if (positions || caps) applyMix(Math.max(mix, positions ? firstOpen : 1));
+    if (positions && mix < firstOpen) setMix(firstOpen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, caps, maxRisk, duration]);
+  }, [simple, caps, maxRisk, duration, positions]);
 
   useEffect(() => {
     preview.current = new URLSearchParams(window.location.search).get("preview");
@@ -265,24 +303,81 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           ))}
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" tip="currency" />
-          <Toggle
-            label={t.minOrder}
-            value={size}
-            options={[["1k", t.small], ["100k", t.allSizes]]}
-            onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
-            testId="toggle-size"
-            tip="size"
-            disabled={minKnown === false ? ["1k"] : []}
-            disabledTitle={t.minNoData}
-          />
-        </div>
-
-        {/* Short / mid / long term for everyone; the admin also keeps the full horizon slider, in yellow, under it. */}
-        <TermPicker value={termOf(duration)} onChange={changeDuration} />
         {isAdmin && (
-          <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 pb-2 [&>div]:mt-2" data-testid="admin-horizon">
+          <div role="radiogroup" aria-label="Search" data-testid="admin-search-mode" className="mt-3 grid grid-cols-2 rounded-full border border-amber-300 bg-amber-50 p-0.5 text-[12px] font-medium text-amber-900">
+            {([[false, "Simple"], [true, "Advanced"]] as const).map(([v, label]) => (
+              <button key={label} type="button" role="radio" aria-checked={adv === v} onClick={() => setAdv(v)} className={`rounded-full px-2 py-0.5 ${adv === v ? "bg-white shadow-sm" : ""}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {simple ? (
+          <>
+            <TermPicker value={termOf(duration)} onChange={changeDuration} />
+            {/* In 1-bond mode the slider stays in place, hidden, so nothing above or beside it moves. */}
+            <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
+              <Slider
+                tip="return"
+                label={t.mixLabel}
+                hint={t.mixLabel}
+                value={mix}
+                display={
+                  isAdmin ? (
+                    <span className="flex items-center gap-1.5 text-[12px] font-medium text-amber-900">
+                      #{mix} · <RiskBadge risk={ceilingOf(mix)} /> · {["low", "medium", "high"][levelOf(mix) - 1]}
+                    </span>
+                  ) : (
+                    <span className="text-[14px] font-medium text-mute" data-testid="mix-mood">{t.mood[moodOf(mix)]}</span>
+                  )
+                }
+                min={1}
+                max={SLIDER_POSITIONS}
+                step={1}
+                minLabel={t.lowReturn}
+                maxLabel={t.highReturn}
+                onChange={changeMix}
+              />
+              {isAdmin && (
+                <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="mt-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                  30-position table{positions ? "" : " (preparing…)"}
+                </button>
+              )}
+            </div>
+            <MoreFilters label={t.moreFilters} summary={`${currency} · ${size === "1k" ? t.small : t.allSizes}`}>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" tip="currency" />
+                <Toggle
+                  label={t.minOrder}
+                  value={size}
+                  options={[["1k", t.small], ["100k", t.allSizes]]}
+                  onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
+                  testId="toggle-size"
+                  tip="size"
+                  disabled={minKnown === false ? ["1k"] : []}
+                  disabledTitle={t.minNoData}
+                />
+              </div>
+
+            </MoreFilters>
+          </>
+        ) : (
+          // Advanced search (admin only, yellow): the original horizon, return and risk sliders and the filters.
+          <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 pb-2" data-testid="admin-advanced">
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Toggle label={t.currency} value={currency} options={[["EUR", "EUR"], ["USD", "USD"]]} onChange={(v) => { setTouched(true); setCurrency(v as BondFilter["currency"]); }} testId="toggle-currency" tip="currency" />
+            <Toggle
+              label={t.minOrder}
+              value={size}
+              options={[["1k", t.small], ["100k", t.allSizes]]}
+              onChange={(v) => { setTouched(true); sizeTouched.current = true; setSize(v as BondFilter["size"]); }}
+              testId="toggle-size"
+              tip="size"
+              disabled={minKnown === false ? ["1k"] : []}
+              disabledTitle={t.minNoData}
+            />
+          </div>
+
           <Slider
             tip="horizon"
             label={t.horizon}
@@ -296,57 +391,39 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             maxLabel={t.years30}
             onChange={(i) => changeDuration(DURATION_STEPS[i])}
           />
+            <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
+            <Slider
+              tip="return"
+              label={t.yieldLabel}
+              hint={t.yieldHint}
+              value={ytm}
+              display={`${ytm.toFixed(2)}%`}
+              min={LIMITS.ytm.min}
+              max={ytmMax}
+              step={LIMITS.ytm.step}
+              minLabel="1.0%"
+              maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
+              onChange={(v) => { setTouched(true); setYtm(v); }}
+            />
+            {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
+            <Slider
+              tip="risk"
+              label={t.ratingLabel}
+              hint={t.ratingHint}
+              value={riskTop + LIMITS.risk.min - risk}
+              display={<RiskBadge risk={risk} />}
+              min={LIMITS.risk.min}
+              max={riskTop}
+              step={LIMITS.risk.step}
+              minLabel={t.highRiskLabel.replace(/^\d+/, String(riskTop))}
+              maxLabel={t.lowRiskLabel}
+              onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
+            />
+            </div>
           </div>
         )}
-        {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
-        <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
-        <Slider
-          tip="return"
-          label={t.mixLabel}
-          hint={t.yieldHint}
-          value={mix}
-          display={<span className="flex items-center gap-2"><RiskBadge risk={risk} /><span className="w-[60px] text-right">{caps ? `${ytm.toFixed(2)}%` : "–"}</span></span>}
-          min={0}
-          max={MIX_STEPS - 1}
-          step={1}
-          minLabel={t.lowReturn}
-          maxLabel={t.highReturn}
-          onChange={changeMix}
-        />
-        {/* Admin only: the separate return and risk sliders, in yellow. */}
-        {isAdmin && (
-          <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 pb-2 [&>div]:mt-2" data-testid="admin-sliders">
-          <Slider
-            tip="admin-return"
-            label={t.yieldLabel}
-            hint={t.yieldHint}
-            value={ytm}
-            display={`${ytm.toFixed(2)}%`}
-            min={LIMITS.ytm.min}
-            max={ytmMax}
-            step={LIMITS.ytm.step}
-            minLabel="1.0%"
-            maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
-            onChange={(v) => { setTouched(true); setYtm(v); }}
-          />
-          {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
-          <Slider
-            tip="admin-risk"
-            label={t.ratingLabel}
-            hint={t.ratingHint}
-            value={riskTop + LIMITS.risk.min - risk}
-            display={<RiskBadge risk={risk} />}
-            min={LIMITS.risk.min}
-            max={riskTop}
-            step={LIMITS.risk.step}
-            minLabel={t.highRiskLabel.replace(/^\d+/, String(riskTop))}
-            maxLabel={t.lowRiskLabel}
-            onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
-          />
-          </div>
-        )}
-        </div>
-        <GuideTips lang={lang} only={mode === "portfolio" ? ["currency", "size", "horizon", "return"] : ["currency", "size", "horizon"]} />
+        {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
+        <GuideTips lang={lang} only={simple ? (mode === "portfolio" ? ["horizon", "return"] : ["horizon"]) : mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
         {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
         {/* Shows the list for the choices above (in place of the frontier chart) and brings it into view on phones.
             In 1-bond mode it stays in place, hidden, so nothing moves. */}
@@ -550,6 +627,67 @@ function Slider(props: {
       <div className="mt-1 flex justify-between text-[11px] text-mute">
         <span>{props.minLabel}</span>
         <span>{props.maxLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Currency and minimum order, folded under "More filters": a small button opening a panel over the page, so nothing moves. */
+function MoreFilters({ label, summary, children }: { label: string; summary: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+  return (
+    <div ref={box} className="relative mt-3">
+      <button type="button" aria-expanded={open} data-testid="more-filters" onClick={() => setOpen((o) => !o)} className="flex items-center gap-1.5 text-[12px] font-medium text-mute hover:text-ink">
+        {label} <span className="text-mute/70">· {summary}</span> <span aria-hidden>{open ? "▴" : "▾"}</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-2xl border border-line/70 bg-white p-3 shadow-lg [&>div]:mt-0">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Admin only: the 30 slider positions with their targets, achieved figures and bonds (yellow). */
+function SliderCheck({ positions, onClose }: { positions: SliderPosition[]; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+      <div className="max-h-[90vh] w-full max-w-[1100px] overflow-auto rounded-2xl border border-amber-300 bg-amber-50 p-4 text-[11px] text-amber-900" onClick={(e) => e.stopPropagation()} data-testid="slider-check">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-[13px] font-semibold">30 slider positions (same ranking as every search)</div>
+          <button type="button" onClick={onClose} className="rounded-full border border-amber-300 px-2">Close</button>
+        </div>
+        <table className="w-full tabular-nums">
+          <thead>
+            <tr className="text-left">
+              {["Position", "Risk ceiling", "Return level", "Target", "Actual", "Avg risk", "Worst risk", "Expected loss", "Same as", "ISINs"].map((h) => <th key={h} className="pr-2">{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {positions.map((p) => (
+              <tr key={p.position} className={`border-t border-amber-200 align-top ${p.sameAs ? "text-amber-900/60" : ""}`}>
+                <td className="pr-2">{p.position}</td>
+                <td className="pr-2">{p.ceiling}</td>
+                <td className="pr-2">{["low", "medium", "high"][p.level - 1]}</td>
+                <td className="pr-2">{p.target === null ? "–" : `${p.target.toFixed(2)}%`}</td>
+                <td className="pr-2">{p.ytm === null ? "–" : `${p.ytm.toFixed(2)}%`}</td>
+                <td className="pr-2">{p.avgRisk ?? "–"}</td>
+                <td className="pr-2">{p.worstRisk ?? "–"}</td>
+                <td className="pr-2">{p.expectedLoss === null ? "–" : `${p.expectedLoss.toFixed(2)}%`}</td>
+                <td className="pr-2">{p.unavailable ? "unavailable" : p.sameAs ? `#${p.sameAs}` : ""}</td>
+                <td className="break-all font-mono text-[10px]">{p.sameAs ? "" : p.isins.join(" ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
