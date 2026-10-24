@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
@@ -16,7 +17,7 @@ const MANUAL = 3.8;
 const OPTIMIZED = 4.8;
 const DURATION = 5;
 
-/** First-visit landing page, kept minimal (the owner, 24/10/2026): the headline, an illustrative 2-portfolio comparison, one button. */
+/** First-visit landing page, kept minimal (the owner, 24/10/2026): the headline, an illustrative 2-portfolio comparison, the free test plus sign up / sign in. */
 export default function Landing({ lang, heading = true, onClose }: { lang: FinderLang; heading?: boolean; onClose: () => void }) {
   const t = LANDING_TEXT[lang];
   const Title = heading ? "h1" : "h2";
@@ -30,7 +31,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Phones: headline, card, button, one under the other. Desktop: headline and button on the left, card on the right.
+  // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
       <section className="grid items-center gap-5 pt-2 lg:grid-cols-[1.12fr_1fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
@@ -41,11 +42,16 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <Comparison t={t} num={num} />
         </div>
-        <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
-          className="flex w-full items-center justify-between gap-6 rounded-lg px-5 py-3.5 text-[15px] font-semibold text-white shadow-sm transition hover:opacity-90 sm:w-auto sm:justify-self-start lg:col-start-1 lg:row-start-2 lg:self-start"
-          style={{ background: NAVY }}>
-          {t.cta} <span aria-hidden>↗</span>
-        </button>
+        {/* The free test is the main way in; sign up and sign in sit next to it. One row on every screen. */}
+        <div className="flex items-center gap-2 sm:gap-3 lg:col-start-1 lg:row-start-2 lg:self-start">
+          <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
+            className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-4 py-3.5 text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 font-semibold text-white shadow-sm transition hover:opacity-90"
+            style={{ background: NAVY }}>
+            {t.cta} <span aria-hidden className="hidden min-[400px]:inline">↗</span>
+          </button>
+          <Link href="/signup" className="whitespace-nowrap rounded-lg border-[1.5px] px-3 py-3 text-center text-[14px] min-[400px]:text-[15px] sm:px-5 font-semibold transition hover:bg-white" style={{ borderColor: NAVY, color: NAVY }}>{t.signUp}</Link>
+          <Link href="/login" className="whitespace-nowrap rounded-lg px-1 py-3 text-center text-[14px] min-[400px]:text-[15px] font-semibold underline sm:px-3 decoration-[1.5px] underline-offset-4" style={{ color: NAVY }}>{t.signIn}</Link>
+        </div>
       </section>
     </div>
   );
