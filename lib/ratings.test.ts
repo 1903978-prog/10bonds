@@ -45,3 +45,12 @@ describe("10bonds.com rating takes over the risk score", () => {
     expect(ratingSourceLabel(lr(null, "BBB"))).toBe("S&P BBB");
   });
 });
+
+describe("worst of the three agencies (owner, 24/10/2026)", () => {
+  const r = (sp: string | null, m: string | null, f: string | null) => ({ ratingSp: sp, ratingMoodys: m, ratingFitch: f, ratingResolved: null });
+  it("takes the lowest grade", () => {
+    expect(bondRisk(r("BBB", "Baa3", "BBB-"))).toBe(6);
+    expect(bondRisk(r("BBB+", "Ba1", null))).toBe(7);
+    expect(bondRisk(r(null, null, "A"))).toBe(3);
+  });
+});
