@@ -8,6 +8,7 @@ import { LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import { MC_PATHS, MC_RECOVERY } from "@/lib/monteCarlo";
 import { OUTLIER_MIN_PEERS } from "@/lib/outliers";
 import { currentOutlierSd } from "@/lib/bonds";
+import { LANDING_TEXT } from "@/lib/landingText";
 
 export const metadata: Metadata = {
   title: "Selection methodology · 10BONDS",
@@ -29,7 +30,10 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
   return (
     <article lang={lang} className="mx-auto max-w-6xl">
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
-      <p className="mt-1 max-w-3xl text-[13px] leading-snug text-mute">{t.intro}</p>
+      <p className="mt-1 max-w-3xl text-[13px] leading-snug text-mute">
+        {t.intro}{" "}
+        <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="text-accent hover:underline" data-testid="quant-paper">{LANDING_TEXT[lang].paper}</a>
+      </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.25fr_1fr_0.85fr]">
         <section className={card}>
