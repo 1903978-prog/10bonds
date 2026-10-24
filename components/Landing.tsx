@@ -60,7 +60,6 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
             <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
             <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
           </Title>
-          <p className="mt-2 max-w-[34rem] text-[14px] leading-snug sm:mt-4 sm:text-[16px] sm:leading-relaxed lg:text-[17px]" style={{ color: MUTE }}>{t.lead}</p>
           <div className="hidden sm:block">
             <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
               <button type="button" onClick={onClose} className={`${cta} flex items-center justify-between gap-6 py-3.5`} style={{ background: NAVY }} data-testid="intro-skip">
@@ -68,14 +67,6 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
               </button>
               <a href={sel} className="hidden text-[15px] font-semibold underline decoration-[1.5px] underline-offset-4 sm:inline" style={{ color: NAVY }}>{t.how}</a>
             </div>
-            <ul className="mt-5 flex flex-wrap justify-between gap-x-5 gap-y-1 text-[12.5px] sm:justify-start" style={{ color: MUTE }}>
-              {t.checks.map((c, i) => (
-                <li key={c} className="flex items-center gap-1.5">
-                  <span style={{ color: GREEN }} aria-hidden>✓</span>
-                  <span className="sm:hidden">{t.checksShort[i]}</span><span className="hidden sm:inline">{c}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
         <Comparison t={t} num={num} />
@@ -84,11 +75,6 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <button type="button" onClick={onClose} className={`${cta} flex w-full items-center justify-between gap-6 py-3.5`} style={{ background: NAVY }}>
             {t.cta} <span aria-hidden>↗</span>
           </button>
-          <ul className="mt-3 flex flex-wrap justify-between gap-x-5 gap-y-1 text-[12.5px]" style={{ color: MUTE }}>
-            {t.checksShort.map((c) => (
-              <li key={c} className="flex items-center gap-1.5"><span style={{ color: GREEN }} aria-hidden>✓</span>{c}</li>
-            ))}
-          </ul>
         </div>
       </section>
 
