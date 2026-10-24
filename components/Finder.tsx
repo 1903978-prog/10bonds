@@ -30,7 +30,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
-import { SLIDER_POSITIONS, SLIDER_START, ceilingOf, levelOf, moodOf, type SliderPosition } from "@/lib/sliderPortfolios";
+import { SLIDER_POSITIONS, SLIDER_START, ceilingOf, levelOf, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
@@ -408,7 +408,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 label={t.mixLabel}
                 hint={t.mixLabel}
                 value={mix}
-                display={<span className="text-[14px] font-medium text-mute" data-testid="mix-mood">{t.mood[moodOf(mix)]}</span>}
+                display={null}
                 min={1}
                 max={SLIDER_POSITIONS}
                 step={1}
@@ -416,7 +416,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 maxLabel={t.highReturn}
                 onChange={changeMix}
               />
-              {/* Admin only (yellow): the technical slider position and risk ceiling. Customers only see the word above. */}
+              {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
                   <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
