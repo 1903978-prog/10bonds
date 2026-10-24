@@ -43,6 +43,7 @@ const en = {
   limitBody: (limit: number, single: boolean, date: string) => `The free account includes ${limit} ${single ? "single-bond" : "portfolio"} searches a week. Your next one is available on ${date}.`,
   riskWhy: (w: RiskWhy) => `Spread over German government bonds: ${w.spreadBp} bp. Minimum our comparison method requires for this credit risk: ${w.requiredBp} bp. Surplus: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} bp. Risk-adjusted score ${w.adjYtm.toFixed(2)}% (a comparison measure, not a return you earn). Method v${w.version}.`,
   limitCta: "Get unlimited searches with Plus", locale: "en-GB",
+  back: "Back", sheetTitle: "Top 10 bonds",
 };
 export type FinderText = typeof en;
 
@@ -84,6 +85,7 @@ const it: FinderText = {
   limitBody: (limit: number, single: boolean, date: string) => `L'account gratuito include ${limit} ricerche ${single ? "di singole obbligazioni" : "di portafoglio"} a settimana. La prossima sarà disponibile il ${date}.`,
   riskWhy: (w: RiskWhy) => `Spread sui titoli di Stato tedeschi: ${w.spreadBp} pb. Minimo richiesto dal nostro metodo di confronto per questo rischio di credito: ${w.requiredBp} pb. Eccedenza: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} pb. Punteggio corretto per il rischio ${w.adjYtm.toFixed(2)}% (una misura di confronto, non un rendimento che si ottiene). Metodo v${w.version}.`,
   limitCta: "Ricerche illimitate con Plus", locale: "it-IT",
+  back: "Indietro", sheetTitle: "Le 10 obbligazioni",
 };
 
 const fr: FinderText = {
@@ -124,6 +126,7 @@ const fr: FinderText = {
   limitBody: (limit: number, single: boolean, date: string) => `Le compte gratuit comprend ${limit} recherches ${single ? "d'obligation" : "de portefeuille"} par semaine. La prochaine sera disponible le ${date}.`,
   riskWhy: (w: RiskWhy) => `Écart sur les emprunts d'État allemands : ${w.spreadBp} pb. Minimum exigé par notre méthode de comparaison pour ce risque de crédit : ${w.requiredBp} pb. Excédent : ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} pb. Score ajusté du risque ${w.adjYtm.toFixed(2)} % (une mesure de comparaison, pas un rendement obtenu). Méthode v${w.version}.`,
   limitCta: "Recherches illimitées avec Plus", locale: "fr-FR",
+  back: "Retour", sheetTitle: "Les 10 obligations",
 };
 
 const de: FinderText = {
@@ -164,6 +167,7 @@ const de: FinderText = {
   limitBody: (limit: number, single: boolean, date: string) => `Das kostenlose Konto umfasst ${limit} ${single ? "Einzelanleihe" : "Portfolio"}-Suchen pro Woche. Die nächste ist ab ${date} verfügbar.`,
   riskWhy: (w: RiskWhy) => `Aufschlag auf Bundesanleihen: ${w.spreadBp} Bp. Mindestaufschlag unserer Vergleichsmethode für dieses Kreditrisiko: ${w.requiredBp} Bp. Überschuss: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} Bp. Risikobereinigter Wert ${w.adjYtm.toFixed(2)} % (eine Vergleichsgröße, keine erzielbare Rendite). Methode v${w.version}.`,
   limitCta: "Unbegrenzte Suchen mit Plus", locale: "de-DE",
+  back: "Zurück", sheetTitle: "Die 10 Anleihen",
 };
 
 export const FINDER_TEXT: Record<FinderLang, FinderText> = { en, it, fr, de };
