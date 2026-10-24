@@ -1,9 +1,23 @@
-# One slider, 20-30 portfolios: method (proposal)
+# The 30-position "Return & risk" slider
 
-Status 24/10/2026: the slider now has 30 steps, as the owner asked (lib/mixSteps.ts): 10 major steps set the highest
-risk accepted, each with 3 sub-steps for the desired return (low, medium, high). High = the slider maximum at that risk;
-low and medium sit at 1/3 and 2/3 of the way from the maximum at the risk below (1% under risk 1), so the return never
-goes down from one step to the next. Steps 3 and 4 below (Pareto filter) are an optional later refinement.
+Built 24/10/2026 from the owner's spec. Code: lib/sliderPortfolios.ts (positions, pure and tested), lib/sliderCache.ts
+(background build and cache per horizon, currency, minimum order, data copy and ranking setup), /api/bonds/slider.
+
+- Position s = 1..30: risk ceiling R = ceil(s/3) (hard limit, 1 = AAA only), return level k = 1 + (s-1) mod 3.
+- C_R = average yield of the top-return 10-bond list under R (forced non-decreasing in R).
+- R = 1 (or the first feasible ceiling): targets F, F + (C - F)/2, C, with F = yield of the lowest-expected-loss list.
+- R >= 2: targets C_(R-1) + Δ/3, C_(R-1) + 2Δ/3, C_R with Δ = C_R - C_(R-1).
+- Low/medium: existing engine (lowest expected loss reaching the target, PR #98). High: top-return list.
+- Along the slider a list that pays less, or the same with no lower expected loss, or has the same bonds, is not new:
+  the position reuses the previous list (identical figures). Fewer than 10 issuers = unavailable, rules never relaxed.
+- Expected loss = avg default chance to maturity x 60% loss given default (40% recovered), lib/expectedLoss.ts.
+- Customers: term + one slider + "Build my portfolio"; currency/minimum under "More filters". Admin: Simple/Advanced
+  switch (Advanced = the original sliders, yellow) and a 30-position check table.
+
+Not built (no data yet): yield-to-worst for callable bonds, parent/guarantor issuer groups, a default-correlation
+model, an admin editor for the risk mapping (the mapping is fixed in lib/ratings.ts).
+
+## Earlier proposal (kept for reference)
 
 ## The two parameters
 
