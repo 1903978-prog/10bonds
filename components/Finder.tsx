@@ -159,6 +159,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Simple search (everyone): a term and one "Return & risk" slider of up to 30 positions along the efficient frontier,
   // worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
   const [adv, setAdv] = useState(false);
+  // Admin only (yellow): Methodology 1 (what customers get) or the Methodology with spread rules (lib/stepGap.ts).
+  const [spread, setSpread] = useState(false);
+  const method = isAdmin && spread ? "spread" : "m1";
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
@@ -214,7 +217,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     let timer: ReturnType<typeof setTimeout> | undefined;
     setPositions(null);
     const load = (tries: number) =>
-      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size })}`)
+      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "spread" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
           if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
@@ -223,7 +226,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         .catch(() => {});
     load(0);
     return () => { stop = true; clearTimeout(timer); };
-  }, [duration, currency, size]);
+  }, [duration, currency, size, method]);
   // In Simple search the position decides risk and return, so they follow the term, the filters and the data.
   useEffect(() => {
     if (!simple) return;
@@ -288,6 +291,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
+        if (method === "spread") qs.set("m", method);
         if (preview.current) qs.set("preview", preview.current);
         if (isAdmin && tuner.weight !== null) {
           qs.set("rw", String(tuner.weight));
@@ -329,7 +333,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };
-  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun]);
+  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -477,11 +481,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
+                  <button type="button" data-testid="admin-method" title="Methodology 1 = what customers get; Spread rules = minimum extra return per rating step (admin only)" onClick={() => setSpread((v) => !v)} className="w-[5.5rem] shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                    {spread ? "Spread rules" : "Method 1"}
+                  </button>
                   <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
                     {positions ? `${positions.length}-position table` : "Position table (preparing…)"}
                   </button>
-                  <span data-testid="mix-admin-tag" className="flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
-                    #{mix}/{mixMax} · worst <RiskBadge risk={positions?.[mix - 1]?.worstRisk ?? risk} /> · target {ytm.toFixed(2)}%
+                  <span data-testid="mix-admin-tag" title={`${positions?.[mix - 1]?.belowHurdle ?? "–"} bonds pay less than the spread rules ask over a safer bond not in the list`} className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
+                    #{mix}/{mixMax} · worst <RiskBadge risk={positions?.[mix - 1]?.worstRisk ?? risk} /> · target {ytm.toFixed(2)}% · {positions?.[mix - 1]?.belowHurdle ?? "–"} &lt; hurdle
                   </span>
                 </div>
               )}
@@ -933,7 +940,7 @@ function SliderCheck({ positions, onClose }: { positions: SliderPosition[]; onCl
         <table className="w-full tabular-nums">
           <thead>
             <tr className="text-left">
-              {["Position", "Target", "Actual", "Gap", "Avg risk", "Worst risk", "Expected loss", "ISINs"].map((h) => <th key={h} className="pr-2">{h}</th>)}
+              {["Position", "Target", "Actual", "Gap", "Avg risk", "Worst risk", "Expected loss", "< hurdle", "ISINs"].map((h) => <th key={h} className="pr-2">{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -946,6 +953,7 @@ function SliderCheck({ positions, onClose }: { positions: SliderPosition[]; onCl
                 <td className="pr-2">{p.avgRisk ?? "–"}</td>
                 <td className="pr-2">{p.worstRisk ?? "–"}</td>
                 <td className="pr-2">{p.expectedLoss === null ? "–" : `${p.expectedLoss.toFixed(2)}%`}</td>
+                <td className="pr-2">{p.belowHurdle ?? "–"}</td>
                 <td className="break-all font-mono text-[10px]">{p.isins.join(" ")}</td>
               </tr>
             ))}

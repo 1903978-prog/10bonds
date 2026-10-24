@@ -5,6 +5,7 @@ import { lossAdjustedYield, listLifeLoss } from "./expectedLoss";
 import { pdOf } from "./tiers";
 import { issuerKey, portfolioPool, RESULT_COUNT, UNRATED_NOTCH, withinRisk } from "./ranking";
 import { isWeak, MAX_WEAK } from "./frontierGuard";
+import { lifeYears } from "./lifeYears";
 
 // Exact efficient frontier (the owner, 24/10/2026), replacing the swap search for the slider positions:
 // choose 10 bonds at 1/10 each, minimise the summed default chance to maturity (so the expected loss on your money)
@@ -15,12 +16,19 @@ import { isWeak, MAX_WEAK } from "./frontierGuard";
 // exact optimum of that integer programme, not a heuristic.
 // To keep it fast, a bond is dropped first when 10 bonds of 10 other issuers each beat it (at least its return, at most
 // its default chance, not weaker): any list using it can swap it for one of those without getting worse.
+// Methodology with spread rules (admin only for now, the owner 24/10/2026; customers keep Methodology 1, gap NO_STEPS):
+// a minimum extra return per risk step (lib/stepGap.ts). A better-rated bond with less default chance
+// that pays at most the step's minimum less also beats a riskier one, so a bond paying a tiny bit more for more risk is
+// dropped the same way; and every list is then checked bond by bond, swapping such a bond for the best safer one not in it.
 
 export const RETURN_UNIT = 0.01; // % per bond
 const N = RESULT_COUNT;
 const WEAK_SLOTS = MAX_WEAK + 1;
 
-type Cand = { b: PublicBond; issuer: string; ret: number; pd: number; weak: boolean; u: number };
+type Cand = { b: PublicBond; issuer: string; ret: number; pd: number; weak: boolean; u: number; notch: number; years: number };
+/** Extra return (%) a bond of notch `riskier` and `years` to maturity must pay over one of notch `safer`; NO_STEPS = no rule. */
+export type Gap = (safer: number, riskier: number, years: number) => number;
+export const NO_STEPS: Gap = () => 0;
 
 export type FrontierList = { /** summed return in steps */ u: number; ytm: number; el: number; isins: string[]; rows: RankedBond[] };
 export type ExactFrontier = {
@@ -35,22 +43,42 @@ export type ExactFrontier = {
 /** d beats b: no less return, no more default chance, not weaker; exact ties settled by ISIN so two never beat each other. */
 const beats = (d: Cand, b: Cand) =>
   d.ret >= b.ret && d.pd <= b.pd && (b.weak || !d.weak) && (d.ret > b.ret || d.pd < b.pd || d.weak !== b.weak || d.b.isin < b.b.isin);
+/** d is a safer bond (better rating, less default chance) paying at least b's return less the step's minimum. */
+const stepBeats = (d: Cand, b: Cand, gap: Gap) => d.notch < b.notch && d.pd < b.pd - 1e-12 && d.ret >= b.ret - gap(d.notch, b.notch, b.years) - 1e-9;
 
-export function pruneBeaten(cands: Cand[], count = N): Cand[] {
+export function pruneBeaten(cands: Cand[], count = N, gap: Gap = NO_STEPS): Cand[] {
   return cands.filter((b) => {
     const by = new Set<string>();
-    for (const d of cands) if (d.issuer !== b.issuer && !by.has(d.issuer) && beats(d, b)) { by.add(d.issuer); if (by.size >= count) return false; }
+    for (const d of cands) if (d.issuer !== b.issuer && !by.has(d.issuer) && (beats(d, b) || stepBeats(d, b, gap))) { by.add(d.issuer); if (by.size >= count) return false; }
     return true;
   });
 }
 
-/** The exact frontier for one horizon over the bonds given (already filtered: rated only, outliers out, blacklist out). */
-export function exactFrontier(bonds: PublicBond[], duration: number): ExactFrontier {
+function candidates(bonds: PublicBond[], duration: number): Cand[] {
   const { pool } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), duration, N);
-  const all: Cand[] = pool
+  return pool
     .filter((b) => b.grossYtm !== null && b.grossYtm > 0)
-    .map((b) => ({ b, issuer: issuerKey(b), ret: b.grossYtm!, pd: pdOf(b), weak: isWeak(b), u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9) }));
-  const cands = pruneBeaten(all);
+    .map((b) => ({ b, issuer: issuerKey(b), ret: b.grossYtm!, pd: pdOf(b), weak: isWeak(b), u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9), notch: bondNotch(b) ?? UNRATED_NOTCH, years: lifeYears(b) }));
+}
+
+/**
+ * For each list (its ISINs): how many of its bonds pay less than the spread rules ask over a safer bond not in the list
+ * (same pool as the frontier). Shown to the admin for either methodology; always 0 under the spread rules.
+ */
+export function belowHurdle(bonds: PublicBond[], duration: number, lists: string[][], gap: Gap): number[] {
+  const all = candidates(bonds, duration);
+  const by = new Map(all.map((c) => [c.b.isin, c]));
+  return lists.map((isins) => {
+    const picked = isins.map((x) => by.get(x)).filter((c): c is Cand => !!c);
+    const used = new Set(picked.map((c) => c.issuer));
+    return picked.filter((b) => all.some((d) => !used.has(d.issuer) && stepBeats(d, b, gap))).length;
+  });
+}
+
+/** The exact frontier for one horizon over the bonds given (already filtered: rated only, outliers out, blacklist out). */
+export function exactFrontier(bonds: PublicBond[], duration: number, gap: Gap = NO_STEPS): ExactFrontier {
+  const all = candidates(bonds, duration);
+  const cands = pruneBeaten(all, N, gap);
   const groups = new Map<string, Cand[]>();
   for (const c of [...cands].sort((a, b) => a.issuer.localeCompare(b.issuer) || a.b.isin.localeCompare(b.b.isin))) {
     const g = groups.get(c.issuer);
@@ -115,7 +143,26 @@ export function exactFrontier(bonds: PublicBond[], duration: number): ExactFront
     lists.set(r, out);
     return out;
   };
-  function listOf(picked: Cand[], r: number): FrontierList {
+  // A riskier bond paying less than the step's minimum over a safer one not in the list gives its place to the best such
+  // bond (most return, then least default chance), until none is left; each swap lowers the list's default chance.
+  const polish = (picked: Cand[]): Cand[] => {
+    if (gap === NO_STEPS) return picked;
+    const list = [...picked];
+    for (let changed = true; changed; ) {
+      changed = false;
+      const used = new Set(list.map((o) => o.issuer));
+      for (let i = 0; i < list.length; i++) {
+        const b = list[i];
+        let swap: Cand | null = null;
+        for (const d of all) if (!used.has(d.issuer) && stepBeats(d, b, gap) && (!swap || d.ret > swap.ret || (d.ret === swap.ret && d.pd < swap.pd))) swap = d;
+        if (swap) { list[i] = swap; changed = true; break; }
+      }
+    }
+    return list;
+  };
+  function listOf(chosen: Cand[], r: number): FrontierList {
+    const picked = polish(chosen);
+    if (picked !== chosen) r = picked.reduce((s, o) => s + o.u, 0);
     const rows = picked
       .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!), rank: 0 }))
       .sort((a, b) => b.score - a.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin))

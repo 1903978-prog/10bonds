@@ -4,6 +4,9 @@ import { exactFrontier, targetOf } from "./exactFrontier";
 import { isWeak, MAX_WEAK } from "./frontierGuard";
 import { issuerKey, rankBonds } from "./ranking";
 import { pdOf } from "./tiers";
+import { bondNotch } from "./ratings";
+import { stepGap } from "./stepGap";
+import { lifeYears } from "./lifeYears";
 
 const bond = (isin: string, issuer: string, ytm: number, dur: number, rating: string): PublicBond => ({
   isin, name: isin, issuer, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -101,5 +104,35 @@ describe("exact frontier", () => {
     const f = exactFrontier(universe(9, 600, 4), 4);
     expect(f.points.length).toBeGreaterThan(30);
     expect(Date.now() - t0).toBeLessThan(5000);
+  });
+
+  it("never keeps a riskier bond when a safer one not in the list pays almost as much (minimum extra return per step)", () => {
+    const bonds = universe(7, 60, 3);
+    const f = exactFrontier(bonds, 4, stepGap);
+    expect(f.points.length).toBeGreaterThan(10);
+    const info = new Map(bonds.map((b) => [b.isin, { notch: bondNotch(b)!, pd: pdOf(b), issuer: issuerKey(b), years: lifeYears(b) }]));
+    const pool = bonds.filter((d) => Math.abs(d.modifiedDuration! - 4) <= 0.8);
+    let bad = 0;
+    for (const p of f.points) {
+      const used = new Set(p.rows.map(issuerKey));
+      for (const b of p.rows) {
+        const x = info.get(b.isin)!;
+        for (const d of pool) {
+          const y = info.get(d.isin)!;
+          if (!used.has(y.issuer) && y.notch < x.notch && y.pd < x.pd && d.grossYtm! >= b.grossYtm! - stepGap(y.notch, x.notch, x.years) + 1e-9) bad++;
+        }
+      }
+    }
+    expect(bad).toBe(0);
+  }, 30000);
+
+  it("AA at 4.00% beats A at 4.05% (A needs 15 bp more), but not A at 4.20%", () => {
+    const filler = Array.from({ length: 9 }, (_, i) => bond(`F${i}`, `Filler ${i}`, 5, 4, "AAA"));
+    const pick = (aYtm: number) => exactFrontier([...filler, bond("AA1", "Safer", 4, 4, "AA"), bond("A1", "Riskier", aYtm, 4, "A")], 4, stepGap);
+    expect(pick(4.05).points.map((p) => p.isins.includes("A1"))).not.toContain(true);
+    expect(pick(4.2).points.at(-1)!.isins).toContain("A1");
+    expect(stepGap(2, 5, 5)).toBeCloseTo(0.15, 9); // AA -> A at 5 years
+    // Methodology 1 (no spread rules) does take the A bond at 4.05%.
+    expect(exactFrontier([...filler, bond("AA1", "Safer", 4, 4, "AA"), bond("A1", "Riskier", 4.05, 4, "A")], 4).points.at(-1)!.isins).toContain("A1");
   });
 });

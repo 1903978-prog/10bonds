@@ -5,6 +5,7 @@ import { currentUser } from "@/lib/currentUser";
 import { featuresFor } from "@/lib/planFeatures";
 import { TERMS } from "@/lib/limits";
 import { sliderFor } from "@/lib/sliderCache";
+import { parseMethod } from "@/lib/frontierCache";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,16 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const duration = Number(url.searchParams.get("duration"));
   if (!TERMS.some((t) => t.duration === duration)) return NextResponse.json({ error: "Unknown horizon." }, { status: 400 });
+  const user = await currentUser().catch(() => null);
+  // Admin only: m=spread gives the Methodology with spread rules; everyone else Methodology 1.
+  const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
   let out;
   try {
-    out = await sliderFor(parseFilter(url.searchParams), duration);
+    out = await sliderFor(parseFilter(url.searchParams), duration, method);
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
   if (!out.positions) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
-  const user = await currentUser().catch(() => null);
   const chart = !user?.isAdmin && (await featuresFor(user).catch(() => null))?.includes("loss_chart") === true;
   const positions = user?.isAdmin
     ? out.positions

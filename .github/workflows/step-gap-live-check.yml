@@ -1,0 +1,20 @@
+name: Step gap live check
+# Manual (and when the rule or this check changes): the slider frontier on live EUR data without and with the minimum
+# extra return per risk step (lib/stepGap.ts). Read-only; fails if a frontier is not monotonic.
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/step-gap-live-check.yml", "scripts/step-gap-live-check.ts", "lib/stepGap.ts", "lib/exactFrontier.ts"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/step-gap-live-check.ts
