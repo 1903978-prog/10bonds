@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findUserById, markEmailVerified, usedPromoCode } from "@/lib/accounts";
+import { findUserById, markEmailVerified, setEmailLang, usedPromoCode } from "@/lib/accounts";
 import { emailTag, readConfirm } from "@/lib/confirm";
 import { siteUrl } from "@/lib/email";
 import { accessDaysLeft, requestLang, sendWelcome, welcomeLang } from "@/lib/welcomeEmail";
@@ -19,6 +19,7 @@ export async function GET(req: Request) {
     // Welcome e-mail only on the first confirmation; it never holds up the redirect.
     // Free full access is mentioned only to accounts that used a promo code.
     const lang = q.get("lang") ? welcomeLang(q.get("lang")) : requestLang(req);
+    void setEmailLang(user.id, lang).catch(() => {});
     if (first)
       void usedPromoCode(user.id)
         .then((code) => sendWelcome(user.email, user.username ?? user.email, lang, code ? accessDaysLeft(user.premiumUntil) : null))
