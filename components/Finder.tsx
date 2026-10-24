@@ -64,6 +64,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [limit, setLimit] = useState<Quota | null>(null);
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
+  const searchSeq = useRef(0);
+  const appliedSeq = useRef(0);
+  const hasData = useRef(false);
+  hasData.current = data !== null;
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
   // Admin only: the risk premium tuning panel (yellow). Everyone else never sees or sends it.
   const [isAdmin, setIsAdmin] = useState(false);
@@ -172,7 +176,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size })}`)
         .then(async (r) => {
           if (stop) return;
-          if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), 3000);
+          if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
           else if (r.ok) setPositions((await r.json()).positions);
         })
         .catch(() => {});
@@ -199,6 +203,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     // Only the portfolio list is searched here (the 1-bond mode asks for its own data), so it never uses a portfolio search.
     if (mode !== "portfolio") return;
     const ctrl = new AbortController();
+    const seq = ++searchSeq.current;
     const t = setTimeout(async () => {
       setLoading(true);
       try {
@@ -211,6 +216,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         if (isAdmin && tuner.sd !== null) qs.set("os", String(tuner.sd));
         const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
         const body = await res.json();
+        // A slower, older search never replaces a newer answer already on screen.
+        if (seq < appliedSeq.current) return;
+        appliedSeq.current = seq;
         if (res.status === 402 && body.limitReached) {
           setLimit(body.limitReached);
           setError(null);
@@ -226,10 +234,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       } finally {
         setLoading(false);
       }
-    }, 600);
+    }, 250);
     return () => {
       clearTimeout(t);
-      ctrl.abort();
+      // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
+      if (hasData.current) ctrl.abort();
     };
   }, [duration, ytm, risk, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt]);
 
@@ -356,8 +365,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 frac={reveal}
                 paths={data?.monteCarlo?.paths || MC_PATHS}
                 lang={lang}
-                ret={!paid && data ? null : reveal === 1 ? pct(summary?.avgYtm) : "—"}
-                loss={!paid && data ? null : reveal === 1 && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
+                ret={!data ? "—" : paid ? pct(summary?.avgYtm) : null}
+                loss={!data ? "—" : paid && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : paid ? "—" : null}
                 lock={lockTo}
               />
             </div>
@@ -778,8 +787,8 @@ function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null;
 }
 
 /**
- * Under the slider (the owner, 24/10/2026): the list's return and expected loss, shown once the analysis is done, and the
- * Monte Carlo counter running up to the real number of simulated paths. Fixed sizes, "—" until the figures are ready.
+ * Under the slider (the owner, 24/10/2026): the list's return and expected loss, shown as soon as the list arrives, and the
+ * Monte Carlo counter running up to the real number of simulated paths beside them. Fixed sizes, "—" before the first list.
  */
 function ResultBoxes({ frac, paths, lang, ret, loss, lock }: { frac: number; paths: number; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string } }) {
   const t = useFinderText();
@@ -855,8 +864,8 @@ function ScanBox({ data, show, lang, currency }: { data: Response | null; show: 
   const bar = show ? show.count / Math.max(n, 1) : n ? 1 : 0;
   return (
     <div className="col-span-2 flex h-[60px] flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-1.5 text-center sm:col-span-1" data-testid="scan-box">
-      <div className="text-xl font-semibold leading-none tabular-nums tracking-tight">
-        {show ? <><span className="text-[12px] font-normal text-mute">#{show.row + 1} → </span>{fmt.format(show.count)}</> : n ? fmt.format(n) : "—"}
+      <div className="text-[13px] leading-none tabular-nums text-mute">
+        {show ? <><span className="text-[11px]">#{show.row + 1} → </span>{fmt.format(show.count)}</> : n ? fmt.format(n) : "—"}
       </div>
       <div className="my-1.5 h-1 w-full max-w-[140px] overflow-hidden rounded-full bg-canvas">
         <div className="h-full rounded-full bg-accent" style={{ width: `${bar * 100}%` }} />
@@ -929,13 +938,13 @@ function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: Fin
   const vMin = Math.min(...all), vMax = Math.max(...all);
   const yOf = (v: number) => H - 2 - ((v - vMin) / Math.max(vMax - vMin, 0.1)) * (H - 4);
   const steps = samples[0]?.length ?? 0;
-  const left = SLOTS - show.row; // slots still hidden, the space this panel has
+  const left = SLOTS - show.row - 1; // slots still hidden, the space this panel has
   return (
     <div
       aria-hidden="true"
       data-testid="scan-bar"
       className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-canvas text-center top-[var(--m)] sm:top-[var(--d)]"
-      style={{ ["--m" as string]: `${show.row * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + show.row * ROW_H}px` }}
+      style={{ ["--m" as string]: `${(show.row + 1) * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + (show.row + 1) * ROW_H}px` }}
     >
       {sims > 0 && left >= 3 && (
         <div className="w-[280px] max-w-[85%]">
@@ -966,7 +975,7 @@ function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: Fin
       )}
       {sims > 0 && (
         <p className="mt-1 text-[12px] tabular-nums text-mute">
-          {t.scanSimsLabel} <span className="font-medium text-ink">{fmt.format(Math.round(show.sim * sims))}</span> / {fmt.format(sims)}
+          {t.scanSimsLabel} <span>{fmt.format(Math.round(show.sim * sims))}</span> / {fmt.format(sims)}
         </p>
       )}
     </div>
@@ -1029,7 +1038,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
   // While the search show runs, picks from this slot on are kept in place but not shown yet.
-  const hide = (i: number) => (show && !message && i >= show.row ? " invisible" : "");
+  const hide = (i: number) => (show && !message && i > show.row ? " invisible" : "");
   return (
     <div>
       <div className="relative">
