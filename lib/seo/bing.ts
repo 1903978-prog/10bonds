@@ -129,12 +129,47 @@ export function bingKpisFrom(traffic: Day[], queries: QueryRow[], crawl: CrawlRo
   };
 }
 
-/** Bing headline figures for the last `days` days. */
-export async function bingKpis(key: string, site = BING_SITE, days = 28): Promise<SearchKpis> {
+/** Several sites' figures as one: sums, with CTR and position recomputed (position weighted by impressions). */
+export function mergeKpis(list: SearchKpis[], days = 28): SearchKpis {
+  const sum = (f: (k: SearchKpis) => number | null) => {
+    const v = list.map(f).filter((x): x is number => x !== null);
+    return v.length ? v.reduce((a, b) => a + b, 0) : null;
+  };
+  const clicks = sum((k) => k.clicks) ?? 0;
+  const impressions = sum((k) => k.impressions) ?? 0;
+  const ranked = list.filter((k) => k.position !== null && k.impressions > 0);
+  const w = ranked.reduce((a, k) => a + k.impressions, 0);
+  return {
+    days,
+    clicks,
+    impressions,
+    ctr: impressions ? clicks / impressions : null,
+    position: w ? Math.round((ranked.reduce((a, k) => a + (k.position ?? 0) * k.impressions, 0) / w) * 10) / 10 : null,
+    prevClicks: sum((k) => k.prevClicks),
+    prevImpressions: sum((k) => k.prevImpressions),
+    indexed: sum((k) => k.indexed),
+  };
+}
+
+/** Verified 10bonds.com sites in the Bing account (the site lives on 10bonds.com; www only redirects there). */
+export async function bingSites(key: string): Promise<string[]> {
+  type Site = { Url: string; IsVerified: boolean };
+  const all = await callOne<Site[]>("GetUserSites", key, {}).catch(() => null);
+  const mine = (all ?? []).filter((x) => x.IsVerified && /^https?:\/\/(www\.)?10bonds\.com\/?$/.test(x.Url)).map((x) => x.Url);
+  return mine.length ? mine : [BING_SITE];
+}
+
+async function siteKpis(key: string, site: string, days: number): Promise<SearchKpis> {
   const [traffic, queries, crawl] = await Promise.all([
     call<Day>("GetRankAndTrafficStats", key, site),
     call<QueryRow>("GetQueryStats", key, site),
     call<CrawlRow>("GetCrawlStats", key, site).catch(() => []),
   ]);
   return bingKpisFrom(traffic, queries, crawl, days);
+}
+
+/** Bing headline figures for the last `days` days, over every verified 10bonds.com site in the account. */
+export async function bingKpis(key: string, days = 28): Promise<{ sites: string[]; data: SearchKpis }> {
+  const sites = await bingSites(key);
+  return { sites, data: mergeKpis(await Promise.all(sites.map((s) => siteKpis(key, s, days))), days) };
 }
