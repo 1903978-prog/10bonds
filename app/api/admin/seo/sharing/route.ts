@@ -4,7 +4,7 @@ import { serviceAccount } from "@/lib/seo/google";
 import { bad, notFound, seoAdmin, str } from "@/lib/seo/input";
 import { indexNowKey, linkedInRedirect, linkedInStatus, shareAll, shareBondPages, shareLog, xConfigured } from "@/lib/seo/share";
 import { loadAllShown } from "@/lib/bonds";
-import { getSeoSetting, setSeoSetting } from "@/lib/seo/store";
+import { setSeoSetting } from "@/lib/seo/store";
 import { gscProperty } from "@/lib/seo/engines";
 
 // Admin -> SEO -> Sharing: which channels are on, the log of what was sent, and the few settings they need.

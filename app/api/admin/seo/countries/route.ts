@@ -5,7 +5,7 @@ import { notFound, seoAdmin } from "@/lib/seo/input";
 import { LOCALE, LOCALES, type Locale } from "@/lib/seo/locales";
 import { round2 } from "@/lib/seo/rubric";
 import { comparisonPages, indexable } from "@/lib/seo/site";
-import { getSeoSetting, latestAssessments, listGuides, listKeywords } from "@/lib/seo/store";
+import { latestAssessments, listGuides, listKeywords } from "@/lib/seo/store";
 import { gscProperty } from "@/lib/seo/engines";
 
 export const dynamic = "force-dynamic";

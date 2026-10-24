@@ -8,7 +8,7 @@ import { loadPublicData } from "@/lib/brokers/store";
 import { CALCULATORS } from "@/lib/seo/calculators";
 import { comparisonById } from "@/lib/seo/comparisons";
 import { comparisonPages, indexable } from "@/lib/seo/site";
-import { deleteKeyword, getSeoSetting, importKeywordData, listGuides, listKeywords, saveKeyword } from "@/lib/seo/store";
+import { deleteKeyword, importKeywordData, listGuides, listKeywords, saveKeyword } from "@/lib/seo/store";
 import { gscProperty } from "@/lib/seo/engines";
 
 export const dynamic = "force-dynamic";
