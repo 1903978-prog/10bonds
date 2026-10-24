@@ -433,7 +433,7 @@ describe("The owner's French articles", () => {
       expect(faqFromHtml(sanitizeHtml(g.bodyHtml)).length).toBeGreaterThanOrEqual(3);
       expect(sanitizeHtml(g.bodyHtml)).toMatch(/<p>\[\[10bonds:(calculator|bonds:[a-z0-9-]+)\]\]<\/p>/);
     }
-    expect(SEED_GUIDES_OWNER_FR[1].bodyHtml).toContain("Il s'élève à environ <strong>5,16 % par an</strong>.");
+    expect(SEED_GUIDES_OWNER_FR[1].bodyHtml).toContain("Dans notre exemple, ce taux ressort à environ <strong>5,16 % par an</strong>.");
   });
 });
 

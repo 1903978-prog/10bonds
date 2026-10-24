@@ -327,6 +327,27 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       await s`update app.seo_guides set body_html = replace(body_html, ${from}, ${to}), updated_at = now() where strpos(body_html, ${from}) > 0`;
     }
   }
+  // Every published guide gets the rewritten, more human text from the seed files (the owner, 24 Oct 2026), once. The
+  // text it replaces is kept in app.seo_guide_backups, so any guide can be put back from there.
+  const [humanized] = await s`insert into app.settings (key, value) values ('seo_humanized_2026_10_24', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (humanized) {
+    await s`
+      create table if not exists app.seo_guide_backups (
+        id bigserial primary key,
+        guide_id bigint not null references app.seo_guides(id) on delete cascade,
+        at timestamptz not null default now(),
+        note text not null,
+        body_html text not null
+      )`;
+    for (const g of SEED_GUIDES) {
+      const [old] = await s`select id, body_html from app.seo_guides where locale = ${g.locale} and slug = ${g.slug} and status = 'published'`;
+      if (!old || old.body_html === g.bodyHtml) continue;
+      const note = "Rewritten in a more human voice at the owner's request (24 Oct 2026).";
+      await s`insert into app.seo_guide_backups (guide_id, note, body_html) values (${old.id}, ${note}, ${old.body_html})`;
+      await s`update app.seo_guides set body_html = ${g.bodyHtml}, updated_at = now() where id = ${old.id}`;
+      await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${old.id}, ${"system"}, ${"published"}, ${note})`;
+    }
+  }
   for (const k of SEED_KEYWORDS) {
     // New keywords go in whole; for existing ones only empty fields are filled, so admin edits are never overwritten.
     await s`insert into app.seo_keywords (market, keyword, intent, landing_path, kc_section, potential, volume, volume_source, verified_at)
