@@ -93,7 +93,8 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
       minInvestment: b.minInvestment ?? null,
       ...(has.has("isin") ? { name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity, ...(whyOf(b) ? { why: whyOf(b) } : {}) } : {}),
       ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100 } : {}),
-      ...(admin ? { sp: b.ratingSp?.trim() || null } : {}),
+      // Admin only (the owner, 24/10/2026): the bond terms on the details line under each bond (data as held, else "–").
+      ...(admin ? { sp: b.ratingSp?.trim() || null, maturity: b.maturity, couponType: b.couponType ?? null, seniority: b.seniority ?? null } : {}),
       ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
     })),
     lockedCount: 0,
