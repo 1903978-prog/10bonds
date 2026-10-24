@@ -12,6 +12,8 @@ import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import LossChart, { slopeAt } from "@/components/LossChart";
 import AllCurvesChart from "@/components/AllCurvesChart";
+import HeatMapChart from "@/components/HeatMapChart";
+import type { HeatMap, HeatMethod } from "@/lib/heatMapGrid";
 import SliderCurveChart from "@/components/SliderCurveChart";
 import { nearestLoss } from "@/lib/lossCurve";
 import type { CurvePoint } from "@/lib/lossCurve";
@@ -376,6 +378,29 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       .catch(() => {});
     return () => ctrl.abort();
   }, [chartOn, chartable, showAll, isAdmin, risk, currency, size]);
+  // Admin only: the risk heat map (expected loss per target return and horizon), in place of the curves. Asked for as
+  // soon as the admin's page opens, so the server builds it in the background and it shows at once when switched on.
+  const [showHeat, setShowHeat] = useState(false);
+  const [heatMap, setHeatMap] = useState<HeatMap | "unavailable" | null>(null);
+  const [heatMethod, setHeatMethod] = useState<HeatMethod>("m1");
+  useEffect(() => {
+    if (!isAdmin) return;
+    setHeatMap(null);
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ask = () =>
+      fetch(`/api/bonds/heat-map?${new URLSearchParams({ currency, size, method: heatMethod })}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          if (stop || !j) return;
+          if (j.cells) setHeatMap(j);
+          else if (j.unavailable) setHeatMap("unavailable");
+          else if (j.pending) timer = setTimeout(ask, 1500);
+        })
+        .catch(() => {});
+    ask();
+    return () => { stop = true; clearTimeout(timer); };
+  }, [isAdmin, currency, size, heatMethod]);
   const summary = list ? listSummary(list) : data?.summary;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
   const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show);
@@ -609,8 +634,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 {chartable && (
                   <div className="flex justify-end gap-2">
                     {chartOn && isAdmin && (
-                      <button type="button" onClick={() => setShowAll((v) => !v)} data-testid="all-curves-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
-                        {showAll ? "One curve" : "See all curves"}
+                      <button type="button" onClick={() => setShowHeat((v) => !v)} data-testid="heat-map-toggle" className="w-24 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[12px] font-medium text-amber-900">
+                        {showHeat ? "Curves" : "Heat map"}
+                      </button>
+                    )}
+                    {chartOn && isAdmin && (
+                      <button type="button" onClick={() => { setShowHeat(false); setShowAll((v) => !v); }} data-testid="all-curves-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
+                        {showAll && !showHeat ? "One curve" : "See all curves"}
                       </button>
                     )}
                     <button type="button" onClick={() => setChartOn((v) => !v)} data-testid="loss-chart-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
@@ -620,7 +650,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 )}
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
-                {showAll && isAdmin ? (
+                {showHeat && isAdmin ? (
+                  <HeatMapChart map={heatMap} method={heatMethod} onMethod={setHeatMethod} retLabel={t.chartX} yearsLabel="yrs" />
+                ) : showAll && isAdmin ? (
                   allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
