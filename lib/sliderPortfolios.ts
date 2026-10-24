@@ -32,6 +32,8 @@ export type SliderPosition = {
   /** Kept for older readers: positions never repeat a list now. */
   sameAs: number | null;
   unavailable: boolean;
+  /** Admin: bonds in the list paying less than the spread rules ask over a safer bond not in it (lib/stepGap.ts). */
+  belowHurdle?: number;
 };
 
 const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;

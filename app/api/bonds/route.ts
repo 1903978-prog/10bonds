@@ -15,7 +15,7 @@ import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
 import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
-import { frontierFor } from "@/lib/frontierCache";
+import { frontierFor, gapOf, parseMethod } from "@/lib/frontierCache";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
 
@@ -68,9 +68,11 @@ export async function GET(req: Request) {
   const skip = own && has("blacklist") ? excludedBy(await exclusionsOrNone(user!.id)) : null;
   // A slider position (guard=1): the exact frontier's list for this target (lib/exactFrontier.ts), the one on the chart.
   const filter = parseFilter(url.searchParams);
+  // Admin only: m=spread searches the Methodology with spread rules (lib/stepGap.ts); everyone else Methodology 1.
+  const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
   const { results, band, engine } = url.searchParams.get("guard") === "1"
     ? {
-        results: (skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration) : frontierFor(data, filter, duration)).at(ytm)?.rows ?? [],
+        results: (skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method)).at(ytm)?.rows ?? [],
         band: portfolioPool(withinRisk(data.bonds, LIMITS.risk.max), duration).band,
         engine: { method: "current" as const, version: null, weight: 0, liveWeight: 0 },
       }

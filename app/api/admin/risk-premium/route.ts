@@ -6,9 +6,10 @@ import { signatureOf } from "@/lib/bestTable";
 import { LIMITS } from "@/lib/limits";
 import { curveProblems, CURVE_RATINGS, V1_CURVE, type CurveRating } from "@/lib/riskPremium/curve";
 import { draftFrom, type DraftInput } from "@/lib/riskPremium/versions";
+import { cleanMatrix, DEFAULT_SPREAD_MATRIX } from "@/lib/stepGap";
 import { compareScenario, contextFor, DEFAULT_SCENARIO, sensitivity, universeReport } from "@/lib/riskPremium/shadow";
 import {
-  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getWeight, latestReviews, MAX_WEIGHT, listAudit, listRuns, listVersions, recordRun, setOutlierSd, setWeight, updateDraft,
+  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getSpreadMatrix, getWeight, saveSpreadMatrix, latestReviews, MAX_WEIGHT, listAudit, listRuns, listVersions, recordRun, setOutlierSd, setWeight, updateDraft,
 } from "@/lib/riskPremium/store";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
     ytm: num(url.searchParams.get("ytm"), DEFAULT_SCENARIO.ytm, LIMITS.ytm.min, LIMITS.ytm.max),
     risk: Math.round(num(url.searchParams.get("risk"), DEFAULT_SCENARIO.risk, LIMITS.risk.min, LIMITS.risk.max)),
   };
-  const [versions, weight, reviews, audit, data, outliers] = await Promise.all([listVersions(), getWeight(), latestReviews(), listAudit(60), loadBonds(), loadOutliers()]);
+  const [versions, weight, reviews, audit, data, outliers, spreadMatrix] = await Promise.all([listVersions(), getWeight(), latestReviews(), listAudit(60), loadBonds(), loadOutliers(), getSpreadMatrix()]);
   const active = versions.find((v) => v.status === "active") ?? null;
   const reviewMap = new Map(reviews.map((r) => [r.isin, r.decision]));
   const curve = active ?? V1_CURVE;
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
   const draft = versions.find((v) => v.id === draftId && v.status === "draft");
   return NextResponse.json(
     {
-      weight, versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
+      weight, spreadMatrix: spreadMatrix ?? DEFAULT_SPREAD_MATRIX, spreadDefault: !spreadMatrix, versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
       source: data.source, asOf: data.asOf, bund: ctx.bund.points.map((p) => ({ years: Math.round(p.years * 100) / 100, ytm: p.ytm })),
       compare: compareScenario(data.bonds, ctx, sc, outliers),
       draftCompare: draft ? { id: draft.id, version: draft.version, ...compareScenario(data.bonds, contextFor(data.bonds, data.asOf, draft, reviewMap, ctx.bund), sc) } : null,
@@ -123,6 +124,13 @@ export async function POST(req: Request) {
       if (!Number.isFinite(w) || w < 0 || w > MAX_WEIGHT) return bad(`Weight must be between 0 and ${MAX_WEIGHT}`);
       if (w > 0 && !versions.some((v) => v.status === "active")) return bad("Activate a curve version first.");
       await setWeight(w, why, by);
+      return NextResponse.json({ ok: true });
+    }
+    case "spread_matrix": {
+      // Spread rules matrix (Methodology with spread rules, admin only): minimum extra bp per rating step and maturity.
+      const m = b.reset ? DEFAULT_SPREAD_MATRIX : cleanMatrix(b.matrix);
+      if (!m) return bad("Every cell must be a number from 0 to 1000 bp.");
+      await saveSpreadMatrix(m, why, by);
       return NextResponse.json({ ok: true });
     }
     case "outlier_sd": {

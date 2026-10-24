@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import SpreadRulesAdmin from "./SpreadRulesAdmin";
+import type { SpreadMatrix } from "@/lib/stepGap";
 import { CURVE_RATINGS, type CurveRating } from "@/lib/riskPremium/curve";
 import { shortStatus, STATUS_LABEL, type RiskStatus } from "@/lib/riskPremium/status";
 import type { CurveVersion } from "@/lib/riskPremium/versions";
@@ -14,7 +16,7 @@ import { GptRate, GPT_HEAD } from "@/components/GptRate";
 type Summary = { count: number; ytm: number | null; duration: number | null; risk: number | null; surplusBp: number | null };
 type Compare = { scenario: { duration: number; ytm: number; risk: number }; current: { rows: Row[]; summary: Summary }; riskAdjusted: { rows: Row[]; summary: Summary; targetReached: boolean; counts: Record<RiskStatus, number> }; overlap: number; bracket: BracketRow[] };
 type Payload = {
-  weight: number; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
+  weight: number; spreadMatrix: SpreadMatrix; spreadDefault: boolean; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
   reviews: { isin: string; decision: string; note: string; by: string; at: string }[];
   audit: { id: number; at: string; by: string; versionId: number | null; action: string; justification: string | null }[];
   runs: { id: number; at: string; version: string | null; dataAsOf: string | null; bonds: number }[];
@@ -24,7 +26,7 @@ type Payload = {
   sensitivity: { shift: number; scope: string; eligible: number; belowHurdle: number; exceptional: number; top: number; sameAsBase: number }[];
 };
 
-const TABS = ["Curve", "Compare", "Review", "Rejected", "Sensitivity", "History"] as const;
+const TABS = ["Curve", "Spread rules", "Compare", "Review", "Rejected", "Sensitivity", "History"] as const;
 type Tab = (typeof TABS)[number];
 const card = "rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
 const btn = "rounded-full border border-line px-3 py-1 text-xs font-medium hover:bg-canvas disabled:opacity-50";
@@ -102,6 +104,7 @@ export default function RiskPremiumAdmin() {
       )}
 
       <div className="h-[calc(100vh-260px)] min-h-[420px] overflow-auto">
+        {tab === "Spread rules" && <SpreadRulesAdmin matrix={data.spreadMatrix} isDefault={data.spreadDefault} busy={busy} post={post} card={card} btn={btn} btnMain={btnMain} input={input} />}
         {tab === "Curve" && (
           <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
             <section className={card}>
@@ -167,7 +170,6 @@ export default function RiskPremiumAdmin() {
                   <h2 className="font-semibold">How it works</h2>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-mute">
                     <li>Required extra yield between two ratings = difference of their premiums (AA- to BBB+: 95 - 50 = 45 bp). A lower-rated bond wins only when its extra yield is strictly greater.</li>
-                    <li>Return &amp; risk slider (all horizons and currencies): the active curve&apos;s steps are the minimum extra return a riskier bond must pay over a safer one not in the list, else the safer one takes its place. Below BB- the steps keep widening (B+ 375, B 450, B- 550, CCC+ 700 ...).</li>
                     <li>Risk-adjusted yield = yield - required premium (a ranking score, not a yield anyone earns).</li>
                     <li>Surplus = spread over the maturity-matched Bund - required premium. The ranking uses the surplus.</li>
                     <li>Surplus at or above the exceptional threshold: the bond waits for your review.</li>

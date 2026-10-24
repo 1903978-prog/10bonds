@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { PublicBond } from "./types";
-import { exactFrontier, NO_STEPS, targetOf } from "./exactFrontier";
+import { exactFrontier, targetOf } from "./exactFrontier";
 import { isWeak, MAX_WEAK } from "./frontierGuard";
 import { issuerKey, rankBonds } from "./ranking";
 import { pdOf } from "./tiers";
 import { bondNotch } from "./ratings";
 import { stepGap } from "./stepGap";
+import { lifeYears } from "./lifeYears";
 
 const bond = (isin: string, issuer: string, ytm: number, dur: number, rating: string): PublicBond => ({
   isin, name: isin, issuer, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -47,7 +48,7 @@ describe("exact frontier", () => {
   it("matches a full search of every possible list", { timeout: 30000 }, () => {
     for (const seed of [3, 11, 29]) {
       const bonds = universe(seed, 13, 2);
-      const f = exactFrontier(bonds, 4, NO_STEPS);
+      const f = exactFrontier(bonds, 4);
       const lists = bruteLists(bonds);
       expect(f.points.length).toBeGreaterThan(2);
       const lo = f.points[0].ytm, hi = f.points[f.points.length - 1].ytm;
@@ -79,7 +80,7 @@ describe("exact frontier", () => {
 
   it("is never worse than the old swap search for the same target", () => {
     const bonds = universe(5, 80, 3);
-    const f = exactFrontier(bonds, 4, NO_STEPS);
+    const f = exactFrontier(bonds, 4);
     let compared = 0;
     for (let t = 2.5; t <= 5.5; t += 0.1) {
       const old = rankBonds(bonds, 4, t, 10, 10).results;
@@ -107,7 +108,7 @@ describe("exact frontier", () => {
 
   it("never keeps a riskier bond when a safer one not in the list pays almost as much (minimum extra return per step)", () => {
     const bonds = universe(7, 60, 3);
-    const f = exactFrontier(bonds, 4);
+    const f = exactFrontier(bonds, 4, stepGap);
     expect(f.points.length).toBeGreaterThan(10);
     const notch = (b: PublicBond) => bondNotch(b)!;
     for (const p of f.points) {
@@ -115,15 +116,17 @@ describe("exact frontier", () => {
       for (const b of p.rows)
         for (const d of bonds)
           if (!used.has(issuerKey(d)) && notch(d) < notch(b) && pdOf(d) < pdOf(b) && Math.abs(d.modifiedDuration! - 4) <= 0.8)
-            expect(d.grossYtm!).toBeLessThan(b.grossYtm! - stepGap(notch(d), notch(b)) + 1e-9);
+            expect(d.grossYtm!).toBeLessThan(b.grossYtm! - stepGap(notch(d), notch(b), lifeYears(b)) + 1e-9);
     }
   });
 
   it("AA at 4.00% beats A at 4.05% (A needs 15 bp more), but not A at 4.20%", () => {
     const filler = Array.from({ length: 9 }, (_, i) => bond(`F${i}`, `Filler ${i}`, 5, 4, "AAA"));
-    const pick = (aYtm: number) => exactFrontier([...filler, bond("AA1", "Safer", 4, 4, "AA"), bond("A1", "Riskier", aYtm, 4, "A")], 4);
+    const pick = (aYtm: number) => exactFrontier([...filler, bond("AA1", "Safer", 4, 4, "AA"), bond("A1", "Riskier", aYtm, 4, "A")], 4, stepGap);
     expect(pick(4.05).points.map((p) => p.isins.includes("A1"))).not.toContain(true);
     expect(pick(4.2).points.at(-1)!.isins).toContain("A1");
-    expect(stepGap(2, 5)).toBeCloseTo(0.15, 9); // AA -> A on curve 1.0
+    expect(stepGap(2, 5, 5)).toBeCloseTo(0.15, 9); // AA -> A at 5 years
+    // Methodology 1 (no spread rules) does take the A bond at 4.05%.
+    expect(exactFrontier([...filler, bond("AA1", "Safer", 4, 4, "AA"), bond("A1", "Riskier", 4.05, 4, "A")], 4).points.at(-1)!.isins).toContain("A1");
   });
 });

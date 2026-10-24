@@ -3,7 +3,7 @@ import { V1_CURVE, type CurveConfig, type CurveRating } from "./curve";
 import { activationProblems, type CurveVersion, type VersionStatus } from "./versions";
 import type { Evaluation } from "./evaluate";
 import { cleanSd, OUTLIER_SD } from "../outliers";
-import { setStepPremiums } from "../stepGap";
+import { cleanMatrix, setSpreadMatrix, type SpreadMatrix } from "../stepGap";
 
 // Risk premium model data in schema "app": curve versions, the audit trail of every change, admin decisions on
 // exceptional spreads, and recorded calculation runs (every evaluated bond with the version it used).
@@ -244,6 +244,24 @@ export async function setOutlierSd(sd: number, justification: string, by: string
   modeCache = null;
 }
 
+// Spread rules matrix (lib/stepGap.ts, Methodology with spread rules, admin only): minimum extra bp per rating step and
+// maturity, in app.settings as JSON. Null = the defaults.
+const SPREAD_KEY = "spread_matrix";
+
+export async function getSpreadMatrix(): Promise<SpreadMatrix | null> {
+  const s = await db();
+  const [r] = await s<{ value: string }[]>`select value from app.settings where key = ${SPREAD_KEY}`;
+  try { return r ? cleanMatrix(JSON.parse(r.value)) : null; } catch { return null; }
+}
+
+export async function saveSpreadMatrix(m: SpreadMatrix, justification: string, by: string) {
+  const s = await db();
+  const v = JSON.stringify(m);
+  await s`insert into app.settings (key, value) values (${SPREAD_KEY}, ${v}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+  await audit(s, by, "spread_matrix", null, justification, { matrix: m });
+  modeCache = null;
+}
+
 export type Review = { isin: string; decision: "approved" | "rejected"; note: string; by: string; at: string; versionId: number | null };
 
 export async function addReview(isin: string, decision: "approved" | "rejected", note: string, versionId: number | null, by: string) {
@@ -293,17 +311,17 @@ export async function listRuns(limit = 10) {
 }
 
 // What the public ranking needs, cached for a minute so a slider move does not hit the database each time.
-type Live = { weight: number; outlierSd: number; curve: CurveVersion | null; reviews: Map<string, "approved" | "rejected"> };
+type Live = { weight: number; outlierSd: number; curve: CurveVersion | null; reviews: Map<string, "approved" | "rejected">; spreadMatrix: SpreadMatrix | null };
 let modeCache: { at: number; live: Live } | null = null;
 
 /** Mode, active curve and review decisions for the public ranking. Without an accounts database: shadow, no curve. */
 export async function liveRiskConfig(): Promise<Live> {
-  if (!accountsConfigured()) return { weight: 0, outlierSd: OUTLIER_SD.default, curve: null, reviews: new Map() };
+  if (!accountsConfigured()) return { weight: 0, outlierSd: OUTLIER_SD.default, curve: null, reviews: new Map(), spreadMatrix: null };
   if (modeCache && Date.now() - modeCache.at < 60_000) return modeCache.live;
-  const [weight, outlierSd, versions, reviews] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews()]);
-  const live: Live = { weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])) };
+  const [weight, outlierSd, versions, reviews, spreadMatrix] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews(), getSpreadMatrix()]);
+  const live: Live = { weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])), spreadMatrix };
   modeCache = { at: Date.now(), live };
-  setStepPremiums(live.curve?.premiums);
+  setSpreadMatrix(live.spreadMatrix);
   return live;
 }
 
