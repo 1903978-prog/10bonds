@@ -31,6 +31,7 @@ import { mixTarget } from "@/lib/mixSteps";
 import { SLIDER_POSITIONS, SLIDER_START, ceilingOf, levelOf, moodOf, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
+import { FOOTER_NOTE } from "@/lib/footerNote";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -84,6 +85,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (the owner, 19/10/2026).
   const [touched, setTouched] = useState(false);
+  // iPhone (the owner, 24/10/2026): "Build my portfolio" opens the results as their own full-screen page, no scrolling.
+  const [sheet, setSheet] = useState(false);
   // The owner watches the show 3x faster.
   const show = useScanShow(data, touched, isAdmin ? 1000 / 3 : 1000);
 
@@ -468,7 +471,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             tabIndex={mode === "portfolio" ? 0 : -1}
             onClick={() => {
               setTouched(true);
-              if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              if (window.matchMedia("(max-width: 639px)").matches) setSheet(true);
+              else if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
             className="w-full rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
           >
@@ -488,7 +492,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle}</p>
         </section>
       ) : (
-      <section ref={resultsBox} className="relative flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-5">
+      // On phones this box gives way to the full-screen results page (PhoneResults), so the slider page never scrolls down to it.
+      <section ref={resultsBox} className="relative hidden flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:flex sm:p-5">
         {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
         {!touched && (
           <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
@@ -592,6 +597,31 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {isAdmin && data && <AdminLossCalc rows={(list ?? data.rows).slice(0, 10)} />}
         </div>
       </section>
+      )}
+      {sheet && mode === "portfolio" && createPortal(
+        <FinderLangContext.Provider value={lang}>
+          <PhoneResults
+            onClose={() => setSheet(false)}
+            data={data}
+            list={list}
+            setList={setList}
+            features={features}
+            signedIn={signedIn}
+            loading={loading}
+            lang={lang}
+            ret={!data ? "—" : paid ? pct(summary?.avgYtm) : null}
+            loss={!data ? "—" : paid && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : paid ? "—" : null}
+            lock={lockTo}
+            onExcluded={() => setExcludedAt(Date.now())}
+            message={
+              limit ? <LimitReached quota={limit} />
+              : error ? <p className="text-sm text-mute">{error}</p>
+              : data && data.rows.length === 0 ? <p className="text-sm text-mute">{t.none}</p>
+              : null
+            }
+          />
+        </FinderLangContext.Provider>,
+        document.body,
       )}
     </div>
     </FinderLangContext.Provider>
@@ -1166,13 +1196,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           <button
             type="button"
             data-testid="excel-download"
-            onClick={() =>
-              downloadXlsx(
-                [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, minForExcel(r.minInvestment)])],
-                "10bonds-top10.xlsx",
-                "Top 10",
-              )
-            }
+            onClick={() => downloadTop10(rows, t)}
             className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
           >
             ⬇ {t.excel}
@@ -1191,6 +1215,141 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
         ) : null}
         {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={features.has("add_left_out") && !show && !message ? addFromWhy : undefined} />}
       </div>
+    </div>
+  );
+}
+
+function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
+  downloadXlsx(
+    [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, minForExcel(r.minInvestment)])],
+    "10bonds-top10.xlsx",
+    "Top 10",
+  );
+}
+
+/**
+ * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Build my portfolio".
+ * Top to bottom: return and expected loss, the 10 bonds with a few large columns, and one small grey Monte Carlo line
+ * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
+ * and shows the list on screen at once (no staged show). "Back" returns to the slider.
+ */
+function PhoneResults({ onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded }: { onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+  const t = useFinderText();
+  // The page under it stays still while this one is open.
+  useEffect(() => {
+    const el = document.documentElement;
+    const before = el.style.overflow;
+    el.style.overflow = "hidden";
+    return () => { el.style.overflow = before; };
+  }, []);
+  const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
+  const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
+  const paid = features.has("isin");
+  const canSwap = features.has("swap");
+  const canExclude = features.has("blacklist");
+  const canEdit = (canSwap || canExclude) && !message && rows.length > 0;
+  const [panel, setPanel] = useState<number | null>(null);
+  useEffect(() => setPanel(null), [data]);
+  const swapIn = (slot: number, b: ResultRow) => {
+    setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
+    setPanel(null);
+  };
+  const mc = data?.monteCarlo;
+  const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
+  const cols = "grid grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem] items-center gap-x-1.5";
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.sheetTitle}
+      data-testid="phone-results"
+      className="fixed inset-0 z-50 flex h-[100dvh] flex-col overflow-hidden overscroll-none bg-white px-4 pb-[max(env(safe-area-inset-bottom),10px)] pt-[max(env(safe-area-inset-top),6px)]"
+    >
+      <div className="flex h-11 shrink-0 items-center justify-between">
+        <button type="button" onClick={onClose} data-testid="phone-results-back" className="-ml-1 flex h-9 w-20 items-center gap-0.5 text-[16px] text-accent">
+          <svg width="11" height="18" viewBox="0 0 11 18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 2 2 9l7 7" /></svg>
+          {t.back}
+        </button>
+        <span className="truncate text-[16px] font-semibold">{t.sheetTitle}</span>
+        <span className="flex w-20 justify-end">
+          {features.has("excel") && rows.length > 0 && (
+            <button type="button" onClick={() => downloadTop10(rows, t)} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
+          )}
+        </span>
+      </div>
+      <div className="grid shrink-0 grid-cols-2 gap-2">
+        <Stat value={ret} label={t.retYear} lock={lock} h="h-[62px]" />
+        <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[62px]" />
+      </div>
+      <div className="flex h-5 shrink-0 items-center">
+        {data && ret === null && (
+          <Link href={lock.href} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent" data-testid="phone-unlock"><Lock /> {lock.label}</Link>
+        )}
+      </div>
+      <div className={`relative flex min-h-0 flex-1 flex-col transition-opacity ${loading ? "opacity-60" : ""}`}>
+        <div className={`${cols} h-6 shrink-0 border-b border-line text-[11px] text-mute`}>
+          <span>#</span>
+          <span>{t.issuer}</span>
+          <span className="text-right">{t.yrs}</span>
+          <span className="text-center">{t.risk}</span>
+          <span className="text-right">{t.yield}</span>
+          <span />
+        </div>
+        <ul className="grid min-h-0 flex-1 grid-rows-10" data-testid="phone-rows">
+          {rows.map((r, i) => (
+            <li key={r.rank} className={`${cols} min-h-0 border-b border-line/60`}>
+              <span className="text-[12px] tabular-nums text-mute">{r.rank}</span>
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-medium leading-tight">{r.issuer}</div>
+                <div className="truncate text-[11px] leading-tight text-mute">{paid ? r.isin : signedIn ? t.isinPlus : t.detailsFree}</div>
+              </div>
+              <span className="text-right text-[13px] tabular-nums">{signedIn ? r.duration?.toFixed(1) : <Dim />}</span>
+              <span className="text-center">{signedIn ? <RiskBadge risk={r.risk} title={t.riskNote} /> : <Dim />}</span>
+              <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
+              <span className="text-center">{canEdit && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
+            </li>
+          ))}
+          {locked > 0 && (
+            <li className="relative min-h-0" style={{ gridRow: `span ${locked}` }}>
+              <div aria-hidden className="grid h-full select-none blur-[5px]" style={{ gridTemplateRows: `repeat(${locked}, minmax(0, 1fr))` }}>
+                {Array.from({ length: locked }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 border-b border-line/60">
+                    <span className="h-3 w-4 rounded bg-line" />
+                    <span className="h-3 flex-1 rounded bg-line" />
+                    <span className="h-3 w-12 rounded bg-line" />
+                  </div>
+                ))}
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+                <p className="text-[17px] font-semibold">{t.more(locked)}</p>
+                <p className="-mt-1 text-sm text-mute">{t.noCard}</p>
+                <Link href="/signup" className="rounded-full bg-accent px-6 py-3 text-[15px] font-medium text-white shadow-sm">{t.seeAll}</Link>
+              </div>
+            </li>
+          )}
+        </ul>
+        {message && (
+          <div className="absolute inset-x-0 bottom-0 top-6 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center">{message}</div>
+        )}
+        {panel !== null && data && canEdit && rows[panel] && (
+          <SwapPanel
+            row={rows[panel]}
+            options={canSwap ? swapOptions(rows[panel], available(data, rows)) : null}
+            onPick={(b) => swapIn(panel, b)}
+            onExclude={canExclude ? async (kind) => { if (await excludeRow(rows[panel], kind)) { setPanel(null); onExcluded(); } } : undefined}
+            onClose={() => setPanel(null)}
+          />
+        )}
+      </div>
+      {data?.source === "sample" ? (
+        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
+      ) : (
+        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.</p>
+      )}
+      <p className="h-[25px] shrink-0 overflow-hidden text-[10px] leading-[12.5px] text-mute" data-testid="phone-mc">
+        {mc?.expYield != null && mc.p5 != null && !list ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
+      </p>
+      <p className="mt-1 shrink-0 text-[9px] leading-tight text-mute/80" data-testid="phone-footer-note">{FOOTER_NOTE[lang]}</p>
     </div>
   );
 }
