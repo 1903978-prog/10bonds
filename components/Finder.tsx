@@ -394,15 +394,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 label={t.mixLabel}
                 hint={t.mixLabel}
                 value={mix}
-                display={
-                  isAdmin ? (
-                    <span className="flex items-center gap-1.5 text-[12px] font-medium text-amber-900">
-                      #{mix} · <RiskBadge risk={ceilingOf(mix)} /> · {["low", "medium", "high"][levelOf(mix) - 1]}
-                    </span>
-                  ) : (
-                    <span className="text-[14px] font-medium text-mute" data-testid="mix-mood">{t.mood[moodOf(mix)]}</span>
-                  )
-                }
+                display={<span className="text-[14px] font-medium text-mute" data-testid="mix-mood">{t.mood[moodOf(mix)]}</span>}
                 min={1}
                 max={SLIDER_POSITIONS}
                 step={1}
@@ -410,10 +402,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 maxLabel={t.highReturn}
                 onChange={changeMix}
               />
+              {/* Admin only (yellow): the technical slider position and risk ceiling. Customers only see the word above. */}
               {isAdmin && (
-                <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="mt-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                  30-position table{positions ? "" : " (preparing…)"}
-                </button>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <button type="button" data-testid="slider-check-open" onClick={() => setDiagOpen(true)} className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                    30-position table{positions ? "" : " (preparing…)"}
+                  </button>
+                  <span data-testid="mix-admin-tag" className="flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
+                    #{mix} · <RiskBadge risk={ceilingOf(mix)} /> · {["low", "medium", "high"][levelOf(mix) - 1]}
+                  </span>
+                </div>
               )}
               <ResultBoxes
                 frac={reveal}
