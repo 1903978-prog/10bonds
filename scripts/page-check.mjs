@@ -66,7 +66,7 @@ for (const [w, h] of WIDTHS) {
   await p.locator('[data-testid="cookie-settings"]').click().catch(() => {});
   await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
   await p.locator('[data-testid="intro-skip"]').click();
-  ok((await p.locator('input[type="range"]').count()) >= 2, "home: the intro's button opens the finder");
+  ok(await p.locator('[data-testid="term-picker"]').isVisible(), "home: the intro's button opens the finder");
   await ctx.close();
 }
 
@@ -81,7 +81,10 @@ for (const [w, h] of WIDTHS) {
   await p.locator('[data-testid="cookie-necessary"]').waitFor();
   await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
   const sliders = p.locator('input[type="range"]');
-  ok((await sliders.count()) >= 2, `${w}px home: sliders present`);
+  // Everyone: the short/mid/long term choice, one return slider and the Find portfolio button (admin also gets the yellow sliders).
+  ok((await sliders.count()) >= 1, `${w}px home: return slider present`);
+  ok(await p.locator('[data-testid="term-picker"]').isVisible(), `${w}px home: term choice present`);
+  ok(await p.locator('[data-testid="find-portfolio"]').isVisible(), `${w}px home: Find portfolio button present`);
   // The date line, or the sample-data note that takes its place once sample data has loaded (CI runs on sample data).
   ok(await p.locator('[data-testid="yields-date"], [data-testid="yields-sample"]').first().isVisible(), `${w}px home: yields date shown`);
   const before = await p.locator("main").innerText();

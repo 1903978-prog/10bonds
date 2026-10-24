@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
-import { DURATION_STEPS, LIMITS, isOpenEnded } from "@/lib/limits";
+import { DURATION_STEPS, LIMITS, TERMS, isOpenEnded, termOf } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
@@ -26,6 +26,7 @@ import { loadMe } from "@/lib/me";
 import WhyTable from "./WhyTable";
 import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
+import { MIX_START, MIX_STEPS, mixTarget } from "@/lib/mixSteps";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 
 type Response = ResultsPayload & {
@@ -50,7 +51,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const t = FINDER_TEXT[lang];
   const errText = t.error;
   const Title = heading ? "h1" : "h2";
-  const [duration, setDuration] = useState<number>(LIMITS.duration.initial);
+  // Everyone starts on "Mid term" (3-5 years).
+  const [duration, setDuration] = useState<number>(TERMS[1].duration);
   const [ytm, setYtm] = useState<number>(LIMITS.ytm.initial);
   const [data, setData] = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +129,24 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     setRisk(r);
     followCap(capFor(duration, r));
   };
+
+  // One slider for everyone (the owner, 24/10/2026): 30 steps, 10 risk levels × low/medium/high return (lib/mixSteps.ts).
+  const [mix, setMix] = useState(MIX_START);
+  const applyMix = (step: number, d = duration) => {
+    const m = mixTarget(step, (r) => capFor(d, r), riskTopFor(d));
+    setRisk(m.risk);
+    setYtm(m.ytm);
+  };
+  const changeMix = (step: number) => {
+    setTouched(true);
+    setMix(step);
+    applyMix(step);
+  };
+  // Without the admin's separate sliders the step decides risk and return, so they follow the horizon and the data.
+  useEffect(() => {
+    if (!isAdmin && caps) applyMix(mix);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, caps, maxRisk, duration]);
 
   useEffect(() => {
     preview.current = new URLSearchParams(window.location.search).get("preview");
@@ -259,51 +279,91 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           />
         </div>
 
-        <Slider
-          tip="horizon"
-          label={t.horizon}
-          hint={t.horizonHint}
-          value={DURATION_STEPS.indexOf(duration)}
-          display={isOpenEnded(duration) ? t.years30 : `${duration} ${t.years}`}
-          min={0}
-          max={DURATION_STEPS.length - 1}
-          step={1}
-          minLabel={t.year1}
-          maxLabel={t.years30}
-          onChange={(i) => changeDuration(DURATION_STEPS[i])}
-        />
+        {/* Short / mid / long term for everyone; the admin also keeps the full horizon slider, in yellow, under it. */}
+        <TermPicker value={termOf(duration)} onChange={changeDuration} />
+        {isAdmin && (
+          <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 pb-2 [&>div]:mt-2" data-testid="admin-horizon">
+          <Slider
+            tip="horizon"
+            label={t.horizon}
+            hint={t.horizonHint}
+            value={DURATION_STEPS.indexOf(duration)}
+            display={isOpenEnded(duration) ? t.years30 : `${duration} ${t.years}`}
+            min={0}
+            max={DURATION_STEPS.length - 1}
+            step={1}
+            minLabel={t.year1}
+            maxLabel={t.years30}
+            onChange={(i) => changeDuration(DURATION_STEPS[i])}
+          />
+          </div>
+        )}
         {/* In 1-bond mode these two stay in place, hidden, so nothing above or beside them moves. */}
         <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
         <Slider
           tip="return"
-          label={t.yieldLabel}
+          label={t.mixLabel}
           hint={t.yieldHint}
-          value={ytm}
-          display={`${ytm.toFixed(2)}%`}
-          min={LIMITS.ytm.min}
-          max={ytmMax}
-          step={LIMITS.ytm.step}
-          minLabel="1.0%"
-          maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
-          onChange={(v) => { setTouched(true); setYtm(v); }}
+          value={mix}
+          display={<span className="flex items-center gap-2"><RiskBadge risk={risk} /><span className="w-[60px] text-right">{caps ? `${ytm.toFixed(2)}%` : "–"}</span></span>}
+          min={0}
+          max={MIX_STEPS - 1}
+          step={1}
+          minLabel={t.lowReturn}
+          maxLabel={t.highReturn}
+          onChange={changeMix}
         />
-        {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
-        <Slider
-          tip="risk"
-          label={t.ratingLabel}
-          hint={t.ratingHint}
-          value={riskTop + LIMITS.risk.min - risk}
-          display={<RiskBadge risk={risk} />}
-          min={LIMITS.risk.min}
-          max={riskTop}
-          step={LIMITS.risk.step}
-          minLabel={t.highRiskLabel.replace(/^\d+/, String(riskTop))}
-          maxLabel={t.lowRiskLabel}
-          onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
-        />
+        {/* Admin only: the separate return and risk sliders, in yellow. */}
+        {isAdmin && (
+          <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 pb-2 [&>div]:mt-2" data-testid="admin-sliders">
+          <Slider
+            tip="admin-return"
+            label={t.yieldLabel}
+            hint={t.yieldHint}
+            value={ytm}
+            display={`${ytm.toFixed(2)}%`}
+            min={LIMITS.ytm.min}
+            max={ytmMax}
+            step={LIMITS.ytm.step}
+            minLabel="1.0%"
+            maxLabel={`${ytmMax.toFixed(2)}% ${t.maxNote}`}
+            onChange={(v) => { setTouched(true); setYtm(v); }}
+          />
+          {/* Risk 1 (lowest) always on the right: the slider position is riskTop + 1 - risk. */}
+          <Slider
+            tip="admin-risk"
+            label={t.ratingLabel}
+            hint={t.ratingHint}
+            value={riskTop + LIMITS.risk.min - risk}
+            display={<RiskBadge risk={risk} />}
+            min={LIMITS.risk.min}
+            max={riskTop}
+            step={LIMITS.risk.step}
+            minLabel={t.highRiskLabel.replace(/^\d+/, String(riskTop))}
+            maxLabel={t.lowRiskLabel}
+            onChange={(pos) => changeRisk(riskTop + LIMITS.risk.min - pos)}
+          />
+          </div>
+        )}
         </div>
-        <GuideTips lang={lang} only={mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
+        <GuideTips lang={lang} only={mode === "portfolio" ? ["currency", "size", "horizon", "return"] : ["currency", "size", "horizon"]} />
         {isAdmin && mode === "portfolio" && <AdminTuner state={tuner} onChange={setTuner} engine={data?.engine} outliers={data?.outliers} onSaved={() => setTunerSaved((n) => n + 1)} />}
+        {/* Shows the list for the choices above (in place of the frontier chart) and brings it into view on phones.
+            In 1-bond mode it stays in place, hidden, so nothing moves. */}
+        <div className={`mt-auto pt-4 ${mode === "portfolio" ? "" : "invisible max-lg:hidden"}`} aria-hidden={mode !== "portfolio"}>
+          <button
+            type="button"
+            data-testid="find-portfolio"
+            tabIndex={mode === "portfolio" ? 0 : -1}
+            onClick={() => {
+              setTouched(true);
+              if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="w-full rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
+          >
+            {t.findPortfolio}
+          </button>
+        </div>
 
       </section>
 
@@ -490,6 +550,32 @@ function Slider(props: {
       <div className="mt-1 flex justify-between text-[11px] text-mute">
         <span>{props.minLabel}</span>
         <span>{props.maxLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Investment horizon as three choices: short, mid and long term, each with its years under it. */
+function TermPicker({ value, onChange }: { value: string | null; onChange: (duration: number) => void }) {
+  const t = useFinderText();
+  const names = { short: t.termShort, mid: t.termMid, long: t.termLong };
+  return (
+    <div className="mt-3 sm:mt-4" data-tip="horizon">
+      <div className="text-[14px] font-semibold">{t.horizon}</div>
+      <div role="radiogroup" aria-label={t.horizon} data-testid="term-picker" className="mt-2 grid grid-cols-3 rounded-2xl bg-canvas p-1">
+        {TERMS.map((x) => (
+          <button
+            key={x.key}
+            type="button"
+            role="radio"
+            aria-checked={value === x.key}
+            onClick={() => onChange(x.duration)}
+            className={`rounded-xl px-1 py-1.5 text-center leading-tight transition ${value === x.key ? "bg-white shadow-sm" : "text-mute"}`}
+          >
+            <span className="block truncate text-[13px] font-semibold">{names[x.key]}</span>
+            <span className="block truncate text-[11px] text-mute">{t.termYears(x.from, x.to)}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

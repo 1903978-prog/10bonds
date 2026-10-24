@@ -7,6 +7,17 @@ export const LIMITS = {
 // Horizon slider stops (the owner, 20/10/2026): every year up to 15, then 20, 25 and "30+" (30 years and longer).
 export const DURATION_STEPS: readonly number[] = [...Array.from({ length: 15 }, (_, i) => i + 1), 20, 25, 30];
 
+// Simple horizon choice for everyone (the owner, 24/10/2026): short 1-2, mid 3-5, long 6-15 years. Each searches one
+// slider stop (±20% around it, like the slider); the admin also keeps the full slider.
+export const TERMS = [
+  { key: "short", from: 1, to: 2, duration: 2 },
+  { key: "mid", from: 3, to: 5, duration: 4 },
+  { key: "long", from: 6, to: 15, duration: 10 },
+] as const;
+export type TermKey = (typeof TERMS)[number]["key"];
+/** The term whose range holds `d`, or null (only the admin's slider can reach 20 years and over). */
+export const termOf = (d: number): TermKey | null => TERMS.find((x) => d >= x.from && d <= x.to)?.key ?? null;
+
 /** The slider stop nearest to `d`. */
 export function snapDuration(d: number): number {
   return DURATION_STEPS.reduce((best, s) => (Math.abs(s - d) < Math.abs(best - d) ? s : best), DURATION_STEPS[0]);
