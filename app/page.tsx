@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Finder from "@/components/Finder";
 import { JsonLd } from "@/components/seo/Seo";
 import { ORGANIZATION } from "@/lib/seo/org";
+import { SITE_URL } from "@/lib/seo/crawl";
 import { getSeoSetting } from "@/lib/seo/store";
 import { accountsConfigured } from "@/lib/accounts";
 import { redirect } from "next/navigation";
@@ -16,7 +17,7 @@ import { landingFirst } from "@/lib/intro";
 export async function generateMetadata(): Promise<Metadata> {
   const google = accountsConfigured() ? await getSeoSetting("google_verification").catch(() => null) : null;
   return {
-    alternates: { canonical: "/", languages: { "it-IT": "/it", "fr-FR": "/fr", "de-DE": "/de", "x-default": "/" } },
+    alternates: { canonical: "/", languages: { en: "/", "it-IT": "/it", "fr-FR": "/fr", "de-DE": "/de", "x-default": "/" } },
     ...(google ? { verification: { google } } : {}),
   };
 }
@@ -29,6 +30,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ i
   return (
     <>
       <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "WebSite", name: "10BONDS", url: SITE_URL, inLanguage: "en", publisher: ORGANIZATION }} />
       <IntroGate show={intro}>
         <Finder />
       </IntroGate>

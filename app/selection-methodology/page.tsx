@@ -9,7 +9,12 @@ import { MC_PATHS, MC_RECOVERY } from "@/lib/monteCarlo";
 import { OUTLIER_MIN_PEERS } from "@/lib/outliers";
 import { currentOutlierSd } from "@/lib/bonds";
 
-export const metadata: Metadata = { title: "Selection methodology · 10BONDS", alternates: { canonical: "/selection-methodology" } };
+export const metadata: Metadata = {
+  title: "Selection methodology · 10BONDS",
+  description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest chance of a loss, and how the list is built.",
+  alternates: { canonical: "/selection-methodology" },
+  openGraph: { title: "Selection methodology · 10BONDS", description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest chance of a loss, and how the list is built.", url: "/selection-methodology" },
+};
 export const dynamic = "force-dynamic";
 
 export default async function SelectionMethodology({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {

@@ -52,7 +52,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: { absolute: g.seoTitle },
     description: g.metaDescription,
-    keywords: [g.primaryKeyword],
     alternates: withEnglish(enPath(g.slug), enPath(g.slug), await languageVersions(g.group)),
     openGraph: { type: "article", locale: "en_GB", title: g.seoTitle, description: g.metaDescription },
   };

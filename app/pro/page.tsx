@@ -7,7 +7,7 @@ import { PlanButton } from "@/components/PlanButton";
 import { euro, priceCents } from "@/lib/plans";
 import { proAccess } from "@/lib/pro";
 
-export const metadata: Metadata = { title: "For wealth managers · 10BONDS", description: "Bond Replacement Engine for professional wealth managers." };
+export const metadata: Metadata = { title: "For wealth managers · 10BONDS", description: "Bond Replacement Engine for professional wealth managers.", alternates: { canonical: "/pro" } };
 export const dynamic = "force-dynamic";
 
 export default async function Pro() {

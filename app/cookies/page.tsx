@@ -3,7 +3,12 @@ import Link from "next/link";
 import { UsageStatsSetting } from "@/components/UsageStats";
 import { COMPANY } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Cookie policy · 10BONDS", alternates: { canonical: "/cookies" } };
+export const metadata: Metadata = {
+  title: "Cookie policy · 10BONDS",
+  description: "Which cookies 10BONDS uses, what each one is for, and how to change your cookie settings at any time.",
+  alternates: { canonical: "/cookies" },
+  openGraph: { title: "Cookie policy · 10BONDS", description: "Which cookies 10BONDS uses, what each one is for, and how to change your cookie settings at any time.", url: "/cookies" },
+};
 
 const td = "border-t border-line px-3 py-2 align-top";
 const ROWS: [string, string, string, string, string][] = [
