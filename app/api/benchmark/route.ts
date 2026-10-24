@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
 import { getEtf, parseEtf, setEtf } from "@/lib/etfBenchmark";
+import { benchmarkPortfolio } from "@/lib/benchmarkPortfolio";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   // Source and methodology stay with the admin.
   const { source: _s, methodology: _m, ...pub } = await getEtf();
-  return NextResponse.json(pub, { headers: { "Cache-Control": "public, max-age=300" } });
+  // The home page card's 10bonds side, live; null while the slider lists are still being worked out.
+  const portfolio = await benchmarkPortfolio(pub.position).catch(() => null);
+  const portfolioCache = portfolio ? "public, max-age=300" : "no-store";
+  return NextResponse.json({ ...pub, portfolio }, { headers: { "Cache-Control": portfolioCache } });
 }
 
 export async function POST(req: Request) {

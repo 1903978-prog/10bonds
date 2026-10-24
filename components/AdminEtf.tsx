@@ -28,6 +28,8 @@ export default function AdminEtf({ initial }: { initial: EtfBenchmark }) {
     <div className="mt-6 space-y-4">
       {field("ret", "Benchmark value: gross YTM, %", "e.g. 4.46")}
       {field("risk", "Average risk (10BONDS scale 1–10)", "BBB to BB is about 5 to 7, average about 6")}
+      {field("duration", "Benchmark duration, years", "e.g. 3.77 (home page card)")}
+      {field("position", "10bonds list on the home page card: slider position (medium term)", "1 to 30, e.g. 17")}
       {field("riskRange", "Risk band shown in the tip", "e.g. 5–7")}
       {field("asOf", "Observation date (YYYY-MM-DD)", "Shown to customers")}
       {field("source", "Source (admin only)", "Provider and page; never shown to customers")}

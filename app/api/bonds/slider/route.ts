@@ -5,8 +5,6 @@ import { currentUser } from "@/lib/currentUser";
 import { featuresFor } from "@/lib/planFeatures";
 import { TERMS } from "@/lib/limits";
 import { sliderFor } from "@/lib/sliderCache";
-import { getEtf } from "@/lib/etfBenchmark";
-import { etfPick } from "@/lib/etfPick";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +32,5 @@ export async function GET(req: Request) {
   const positions = user?.isAdmin
     ? out.positions
     : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable, ...(chart ? { ytm: p.ytm, expectedLoss: p.expectedLoss } : {}) }));
-  // The ETF comparison's 10bonds side: only that list's return and average risk, for everyone.
-  const etf = await getEtf();
-  return NextResponse.json({ positions, etf: etf.on ? etfPick(out.positions, etf.ret) : null }, { headers: { "Cache-Control": "private, max-age=300" } });
+  return NextResponse.json({ positions }, { headers: { "Cache-Control": "private, max-age=300" } });
 }
