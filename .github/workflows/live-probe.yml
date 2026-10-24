@@ -1,0 +1,20 @@
+name: Live probe (temporary)
+on:
+  push:
+    branches: [claude/project-thread-9rji41]
+    paths: [".github/workflows/live-probe.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - run: |
+          H=https://10bonds.com
+          for i in 1 2 3; do
+          for u in "/api/health" "/api/bonds/caps?currency=EUR&size=100k" "/api/bonds/slider?duration=4&currency=EUR&size=100k" "/api/bonds?duration=4&ytm=3&risk=5&currency=EUR&size=100k" "/api/bonds?duration=4&ytm=3.5&risk=6&currency=EUR&size=100k"; do
+            curl -s -o /tmp/b -w "%{http_code} %{time_total}s $u  " --max-time 60 "$H$u"; head -c 200 /tmp/b; echo
+          done
+          sleep 5
+          done
+          echo "--- 6 parallel searches"
+          for r in 3 4 5 6 7 8; do (curl -s -o /tmp/p$r -w "par $r %{http_code} %{time_total}s\n" --max-time 60 "$H/api/bonds?duration=4&ytm=3.$r&risk=$r&currency=EUR&size=100k"; head -c 150 /tmp/p$r; echo) & done; wait
