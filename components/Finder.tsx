@@ -214,8 +214,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           qs.set("rp", tuner.shifts.join(","));
         }
         if (isAdmin && tuner.sd !== null) qs.set("os", String(tuner.sd));
-        const res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
-        const body = await res.json();
+        // A busy or waking server can answer with an error page instead of the list: try again a few times before saying so.
+        let res: globalThis.Response | null = null;
+        let body = null;
+        for (let i = 0; i < 4; i++) {
+          if (i) await new Promise((done) => setTimeout(done, 1500));
+          res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
+          body = await res.json().catch(() => null);
+          if (body && res.status < 500) break;
+        }
+        if (!res || !body) throw new Error(errText);
         // A slower, older search never replaces a newer answer already on screen.
         if (seq < appliedSeq.current) return;
         appliedSeq.current = seq;
