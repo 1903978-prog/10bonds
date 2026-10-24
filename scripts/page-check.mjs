@@ -73,9 +73,8 @@ for (const [w, h] of WIDTHS) {
 // Home page behaviour (intro already seen): results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
 for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
-  await ctx.addCookies([{ name: "tb_intro", value: "1", url: BASE }]);
   const p = await ctx.newPage();
-  await p.goto(BASE + "/", { waitUntil: "networkidle" });
+  await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
   await p.locator('[data-testid="cookie-settings"]').click(); // the switches open in Settings
   await p.locator('[data-testid="cookie-necessary"]').waitFor();
