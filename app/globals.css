@@ -7,6 +7,13 @@ html { -webkit-font-smoothing: antialiased; }
 html { --z: 1; }
 @media (min-width: 768px) { html { --z: 0.85; zoom: var(--z); } }
 @media (min-width: 768px) and (max-height: 820px) { html { --z: 0.8; } }
+/* Short windows (browser zoom, taskbars, small laptops): a little smaller again, so nothing ever needs a vertical scroll. */
+@media (min-width: 768px) and (max-height: 745px) { html { --z: 0.77; } }
+@media (min-width: 768px) and (max-height: 715px) { html { --z: 0.74; } }
+@media (min-width: 768px) and (max-height: 690px) { html { --z: 0.71; } }
+@media (min-width: 768px) and (max-height: 660px) { html { --z: 0.68; } }
+@media (min-width: 768px) and (max-height: 630px) { html { --z: 0.65; } }
+@media (min-width: 768px) and (max-height: 600px) { html { --z: 0.62; } }
 /* Big screens (1920 px and up with a tall window): normal size, and a little larger on 2560 px screens, so the page fills the screen. */
 @media (min-width: 1800px) and (min-height: 940px) { html { --z: 1; } }
 @media (min-width: 2400px) and (min-height: 1250px) { html { --z: 1.25; } }
