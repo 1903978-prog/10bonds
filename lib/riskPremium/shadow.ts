@@ -5,8 +5,9 @@ import type { Outlier } from "../outliers";
 import { bondRisk } from "../ratings";
 import { CURVE_RATINGS, shiftedCurve, type CurveConfig } from "./curve";
 import { bundCurve, yearsToMaturity, type BundCurve } from "./benchmark";
+import { riskParams } from "./params";
 import { evaluateBond, type EvalContext, type Evaluation, type RiskStatus } from "./evaluate";
-import { MAX_ABOVE_TARGET, rankRiskAdjusted, type RiskRanking } from "./rank";
+import { maxAboveTarget, rankRiskAdjusted, type RiskRanking } from "./rank";
 
 // Shadow mode: the risk-adjusted ranking computed next to the current one, for the admin comparison and the
 // validation report. Nothing here changes what customers see.
@@ -49,7 +50,7 @@ export function bracketExplain(bonds: PublicBond[], outliers: Outlier[], ctx: Ev
   const top = new Map(next.results.map((r) => [r.isin, r]));
   const topIssuers = new Map(next.results.map((r) => [issuerKey(r), r]));
   const evals = new Map(next.evaluations.map((e) => [e.isin, e]));
-  const cands = next.evaluations.filter((e) => e.status === "eligible" && e.ytm! <= sc.ytm + MAX_ABOVE_TARGET + 1e-9);
+  const cands = next.evaluations.filter((e) => e.status === "eligible" && e.ytm! <= sc.ytm + maxAboveTarget() + 1e-9);
   const riskOf = (e: Evaluation) => e.notch!;
   const out: BracketRow[] = [];
 
@@ -66,7 +67,7 @@ export function bracketExplain(bonds: PublicBond[], outliers: Outlier[], ctx: Ev
     else if (!nearHorizon(b.modifiedDuration!, sc.duration, next.band + 1e-9)) why = `Duration ${b.modifiedDuration!.toFixed(1)}y outside the search window (${sc.duration} ± ${next.band}y)`;
     else if (e.status === "below_hurdle") why = "Extra yield over the Bund is not above what its risk requires";
     else if (e.status !== "eligible") why = e.reason ?? STATUS_TEXT[e.status];
-    else if (e.ytm! > sc.ytm + MAX_ABOVE_TARGET + 1e-9) why = `Yield more than ${MAX_ABOVE_TARGET} points above the ${sc.ytm}% target`;
+    else if (e.ytm! > sc.ytm + maxAboveTarget() + 1e-9) why = `Yield more than ${maxAboveTarget()} points above the ${sc.ytm}% target`;
     else if (topIssuers.has(issuerKey(b))) why = `Issuer already in the list with a better bond (${topIssuers.get(issuerKey(b))!.name})`;
     else {
       // Outliers were removed before this point (lib/bonds.ts), so an outlier can never dominate another bond.
@@ -141,12 +142,12 @@ export function universeReport(bonds: PublicBond[], ctx: EvalContext) {
 
 const BBB_BAND = ["BBB+", "BBB", "BBB-"] as const;
 
-/** How the default scenario and the universe counts move when the curve moves by ±10, ±25, ±50 bp. */
+/** How the default scenario and the universe counts move when the curve moves by the shifts set in the admin (default ±10, ±25, ±50 bp). */
 export function sensitivity(bonds: PublicBond[], ctx: EvalContext, sc: Scenario = DEFAULT_SCENARIO) {
   const base = rankRiskAdjusted(bonds, sc.duration, sc.ytm, ctx, undefined, sc.risk).results.map((r) => r.isin);
   const out: { shift: number; scope: "all" | "BBB"; eligible: number; belowHurdle: number; exceptional: number; top: number; sameAsBase: number }[] = [];
   for (const scope of ["all", "BBB"] as const) {
-    for (const shift of [-50, -25, -10, 10, 25, 50]) {
+    for (const shift of riskParams().sensitivityShifts) {
       const curve = shiftedCurve(ctx.curve, shift, scope === "all" ? CURVE_RATINGS : BBB_BAND);
       const c = { ...ctx, curve };
       const u = universeReport(bonds, c);

@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import SpreadRulesAdmin from "./SpreadRulesAdmin";
+import RiskSettingsAdmin from "./RiskSettingsAdmin";
+import type { RiskParams } from "@/lib/riskPremium/params";
 import type { SpreadMatrix } from "@/lib/stepGap";
 import { CURVE_RATINGS, type CurveRating } from "@/lib/riskPremium/curve";
 import { shortStatus, STATUS_LABEL, type RiskStatus } from "@/lib/riskPremium/status";
@@ -16,7 +18,7 @@ import { GptRate, GPT_HEAD } from "@/components/GptRate";
 type Summary = { count: number; ytm: number | null; duration: number | null; risk: number | null; surplusBp: number | null };
 type Compare = { scenario: { duration: number; ytm: number; risk: number }; current: { rows: Row[]; summary: Summary }; riskAdjusted: { rows: Row[]; summary: Summary; targetReached: boolean; counts: Record<RiskStatus, number> }; overlap: number; bracket: BracketRow[] };
 type Payload = {
-  weight: number; spreadMatrix: SpreadMatrix; spreadDefault: boolean; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
+  weight: number; params: RiskParams; outlierSd: number; spreadMatrix: SpreadMatrix; spreadDefault: boolean; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
   reviews: { isin: string; decision: string; note: string; by: string; at: string }[];
   audit: { id: number; at: string; by: string; versionId: number | null; action: string; justification: string | null }[];
   runs: { id: number; at: string; version: string | null; dataAsOf: string | null; bonds: number }[];
@@ -26,7 +28,7 @@ type Payload = {
   sensitivity: { shift: number; scope: string; eligible: number; belowHurdle: number; exceptional: number; top: number; sameAsBase: number }[];
 };
 
-const TABS = ["Curve", "Spread rules", "Compare", "Review", "Rejected", "Sensitivity", "History"] as const;
+const TABS = ["Curve", "Spread rules", "Settings", "Compare", "Review", "Rejected", "Sensitivity", "History"] as const;
 type Tab = (typeof TABS)[number];
 const card = "rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
 const btn = "rounded-full border border-line px-3 py-1 text-xs font-medium hover:bg-canvas disabled:opacity-50";
@@ -56,8 +58,14 @@ export default function RiskPremiumAdmin() {
     const justification = window.prompt(ask);
     if (!justification) return false;
     setBusy(true); setMsg(null); setProblems([]);
-    const r = await fetch("/api/admin/risk-premium", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, justification }) });
-    const b = await r.json().catch(() => ({}));
+    const send = (extra: Record<string, unknown>) => fetch("/api/admin/risk-premium", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, ...extra, justification }) });
+    let r = await send({});
+    let b = await r.json().catch(() => ({}));
+    // Warnings (e.g. a premium not higher than the rating above) can be overridden on purpose.
+    if (!r.ok && b.canOverride && window.confirm(`${(b.problems ?? []).join("\n")}\n\nSave anyway?`)) {
+      r = await send({ override: true });
+      b = await r.json().catch(() => ({}));
+    }
     setBusy(false);
     if (!r.ok) { setMsg(b.error ?? "Something went wrong."); setProblems(b.problems ?? []); return false; }
     setMsg(ok);
@@ -105,6 +113,7 @@ export default function RiskPremiumAdmin() {
 
       <div className="h-[calc(100vh-260px)] min-h-[420px] overflow-auto">
         {tab === "Spread rules" && <SpreadRulesAdmin matrix={data.spreadMatrix} isDefault={data.spreadDefault} busy={busy} post={post} card={card} btn={btn} btnMain={btnMain} input={input} />}
+        {tab === "Settings" && <RiskSettingsAdmin key={JSON.stringify([data.params, data.weight, data.outlierSd])} params={data.params} weight={data.weight} outlierSd={data.outlierSd} busy={busy} post={post} card={card} btn={btn} btnMain={btnMain} input={input} />}
         {tab === "Curve" && (
           <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
             <section className={card}>
@@ -116,7 +125,7 @@ export default function RiskPremiumAdmin() {
                   {CURVE_RATINGS.map((r, i) => (
                     <tr key={r} className="border-t border-line/60">
                       <td className="py-px">{r}</td>
-                      <td className="text-right">{active?.premiums[r] ?? "–"}</td>
+                      <td className="text-right">{edit && edit.id === null ? <input className={`${input} w-16 text-right`} inputMode="numeric" value={edit.premiums[r]} onChange={(e) => setEdit({ ...edit, premiums: { ...edit.premiums, [r]: e.target.value } })} /> : active?.premiums[r] ?? "–"}</td>
                       <td className="text-right text-mute">{i && active ? `+${active.premiums[r] - active.premiums[CURVE_RATINGS[i - 1]]}` : "—"}</td>
                       {drafts.map((d) => <td key={d.id} className={`text-right ${active && d.premiums[r] !== active.premiums[r] ? "font-semibold text-accent" : ""}`}>{d.premiums[r]}</td>)}
                     </tr>
@@ -124,7 +133,7 @@ export default function RiskPremiumAdmin() {
                 </tbody>
               </table>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button className={btn} disabled={busy} onClick={() => startEdit(active, null, nextVersion(data.versions))}>New draft from active</button>
+                <button className={btnMain} disabled={busy} onClick={() => startEdit(active, null, nextVersion(data.versions))}>Edit curve</button>
                 <button className={btn} disabled={busy} onClick={() => post({ action: "restore_defaults", version: nextVersion(data.versions) }, "Draft with the Version 1.0 defaults created.")}>Restore Version 1.0 defaults (as draft)</button>
                 {active && <button className={btn} disabled={busy || data.weight > 0} onClick={() => post({ action: "deactivate" }, "Active curve archived.")}>Deactivate active</button>}
               </div>
@@ -145,10 +154,11 @@ export default function RiskPremiumAdmin() {
             <section className={card}>
               {edit ? (
                 <>
-                  <h2 className="font-semibold">{edit.id ? `Edit draft v${edit.version}` : "New draft"}</h2>
+                  <h2 className="font-semibold">{edit.id ? `Edit draft v${edit.version}` : "Edit the curve"}</h2>
+                  {!edit.id && <p className="text-xs text-mute">Type the new premiums straight into the table on the left. Saving makes a new version ({edit.version}); the old one stays in History.</p>}
                   <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 text-sm">
-                    <label>Version</label><input className={input} value={edit.version} onChange={(e) => setEdit({ ...edit, version: e.target.value })} />
-                    {CURVE_RATINGS.map((r: CurveRating) => (
+                    {edit.id && <><label>Version</label><input className={input} value={edit.version} onChange={(e) => setEdit({ ...edit, version: e.target.value })} /></>}
+                    {edit.id && CURVE_RATINGS.map((r: CurveRating) => (
                       <FragmentRow key={r} label={`${r} (bp)`}><input className={input} inputMode="numeric" value={edit.premiums[r]} onChange={(e) => setEdit({ ...edit, premiums: { ...edit.premiums, [r]: e.target.value } })} /></FragmentRow>
                     ))}
                     <label>Maturity from / to (y)</label>
@@ -157,11 +167,15 @@ export default function RiskPremiumAdmin() {
                     <select className={input} value={edit.floor} onChange={(e) => setEdit({ ...edit, floor: e.target.value })}>{CURVE_RATINGS.map((r) => <option key={r}>{r}</option>)}</select>
                     <label>Exceptional surplus (bp)</label><input className={input} value={edit.exceptionalBp} onChange={(e) => setEdit({ ...edit, exceptionalBp: e.target.value })} />
                   </div>
-                  <div className="mt-3 flex gap-2">
-                    <button className={btnMain} disabled={busy} onClick={async () => {
-                      const body = { ...edit, action: edit.id ? "update_draft" : "draft", fromId: active?.id };
-                      if (await post(body, "Draft saved. It changes nothing until you activate it.")) setEdit(null);
-                    }}>Save draft</button>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {!edit.id && <button className={btnMain} disabled={busy} onClick={async () => {
+                      if (await post({ ...edit, action: "save_curve", activate: true }, `New version saved and active.`)) setEdit(null);
+                    }}>Save and activate</button>}
+                    <button className={edit.id ? btnMain : btn} disabled={busy} onClick={async () => {
+                      const body = edit.id ? { ...edit, action: "update_draft" } : { ...edit, action: "save_curve" };
+                      if (await post(body, "Saved as a draft. It changes nothing until you activate it.")) setEdit(null);
+                    }}>{edit.id ? "Save draft" : "Save as draft"}</button>
+                    {!edit.id && <button className={btn} disabled={busy} onClick={() => post({ action: "restore_defaults", version: nextVersion(data.versions) }, "Draft with the Version 1.0 defaults created.")}>Restore defaults</button>}
                     <button className={btn} onClick={() => setEdit(null)}>Cancel</button>
                   </div>
                 </>
