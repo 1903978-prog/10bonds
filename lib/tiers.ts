@@ -1,7 +1,8 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { averages, RESULT_COUNT, UNRATED_NOTCH } from "./ranking";
 import { averageRisk, bondNotch, bondRisk } from "./ratings";
-import { bondLossChance, listLifeLoss, lossAdjustedYield } from "./expectedLoss";
+import { bondLossChance, listLifeLoss, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
+import { lgdOf, rankOf, RANK_LABEL, type Rank } from "./seniority";
 import { lifeYears } from "./lifeYears";
 import { defaultMatrix, featuresOf, type FeatureKey } from "./features";
 
@@ -40,6 +41,9 @@ export type ResultRow = {
   pd?: number;
   // With "portfolio_sim": years left until it matures (the horizon of pd), for the admin's calculation box.
   life?: number;
+  // With "portfolio_sim": the bond's debt rank and the loss given default used (lib/seniority.ts), for the admin's calculation box.
+  debtRank?: Rank;
+  lgd?: number;
 };
 
 /** Why a bond ranks where it does under the risk premium model. bp = basis points; adjYtm is a score, not a yield. */
@@ -62,6 +66,9 @@ export type ResultsPayload = {
 /** Chance in % the bond defaults before it matures, rounded to 0.001. */
 export const pdOf = (b: PublicBond) => Math.round(bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, lifeYears(b)) * 1000) / 1000;
 
+/** The chance in % scaled so that chance x the flat 60% equals chance x this bond's loss given default: what the optimisers minimise. */
+export const lossPdOf = (b: PublicBond) => (pdOf(b) * lgdOf(b)) / LOSS_GIVEN_DEFAULT;
+
 /** Default features of a tier (tests and sample previews); live searches pass the admin's table (lib/planFeatures.ts). */
 export const tierFeatures = (tier: Tier): FeatureKey[] => (tier === "visitor" ? [] : featuresOf(defaultMatrix(), tier));
 
@@ -79,7 +86,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
       tier,
       rows: top.map((b) => ({ rank: b.rank, issuer: "", hidden: true, ytm: b.grossYtm!, duration: b.modifiedDuration!, risk: bondRisk(b) })),
       lockedCount: 0,
-      summary: top.length ? { count: top.length, avgYtm: averages(top).ytm, avgDuration: averages(top).duration, avgRisk: averageRisk(top.map(bondRisk)), lifeLoss: listLifeLoss(top.map(pdOf)) } : null,
+      summary: top.length ? { count: top.length, avgYtm: averages(top).ytm, avgDuration: averages(top).duration, avgRisk: averageRisk(top.map(bondRisk)), lifeLoss: listLifeLoss(top.map(pdOf), top.map(lgdOf)) } : null,
     };
   }
   const has = new Set(features);
@@ -95,10 +102,10 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
       country: b.country,
       minInvestment: b.minInvestment ?? null,
       ...(has.has("isin") ? { name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity, ...(whyOf(b) ? { why: whyOf(b) } : {}) } : {}),
-      ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100 } : {}),
+      ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100, debtRank: rankOf(b), lgd: lgdOf(b) } : {}),
       // Admin only (the owner, 24/10/2026): the bond terms on the details line under each bond (data as held, else "–").
       ...(admin ? { sp: b.ratingSp?.trim() || null, maturity: b.maturity, couponType: b.couponType ?? null, seniority: b.seniority ?? null } : {}),
-      ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) * 100) / 100 } : {}),
+      ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!, lgdOf(b)) * 100) / 100 } : {}),
     })),
     lockedCount: 0,
     summary: has.has("portfolio_sim")
@@ -107,7 +114,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
           avgYtm: avg.ytm,
           avgDuration: avg.duration,
           avgRisk: averageRisk(ranked.map(bondRisk)),
-          lifeLoss: ranked.length ? listLifeLoss(ranked.map(pdOf)) : null,
+          lifeLoss: ranked.length ? listLifeLoss(ranked.map(pdOf), ranked.map(lgdOf)) : null,
         }
       : null,
   };

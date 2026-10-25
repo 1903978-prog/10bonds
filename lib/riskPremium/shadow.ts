@@ -55,7 +55,7 @@ export function bracketExplain(bonds: PublicBond[], outliers: Outlier[], ctx: Ev
   const out: BracketRow[] = [];
 
   for (const o of outliers.filter((o) => inBracket(o.bond))) {
-    const why = o.reason === "name" ? "Outlier: name says subordinated, hybrid or perpetual" : outlierWhy(o);
+    const why = outlierWhy(o);
     out.push({ ...toRow(0, o.bond, evaluateBond(o.bond, ctx)), inTop: false, why });
   }
   for (const b of bonds.filter(inBracket)) {
@@ -84,6 +84,7 @@ export function bracketExplain(bonds: PublicBond[], outliers: Outlier[], ctx: Ev
 
 /** Why an outlier is left out, in words. */
 export function outlierWhy(o: Outlier): string {
+  if (o.reason === "rank") return `Left out: rank is ${o.bond.seniority} (subordinated, hybrid or perpetual)`;
   if (o.reason === "name") return "Outlier: name says subordinated, hybrid or perpetual";
   const z = o.peerSd ? (o.bond.grossYtm! - o.peerMean!) / o.peerSd : Infinity;
   return `Outlier: yield ${o.bond.grossYtm!.toFixed(2)}% is ${Number.isFinite(z) ? z.toFixed(1) : "far more than"} std dev above the ${o.peerMean!.toFixed(2)}% average of similar bonds (hidden risk, e.g. subordinated)`;

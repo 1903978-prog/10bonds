@@ -2,6 +2,7 @@ import type { PublicBond } from "./types";
 import { capOf, rankBonds } from "./ranking";
 import { listLifeLoss } from "./expectedLoss";
 import { pdOf } from "./tiers";
+import { lgdOf } from "./seniority";
 import { LIMITS } from "./limits";
 
 /** One point of the curve: a target average yield and the expected loss on your money of the list it picks (%). */
@@ -22,7 +23,7 @@ export function lossCurve(bonds: PublicBond[], duration: number, risk: number): 
   for (let i = 0; i <= steps; i++) {
     const ytm = i === steps ? max : Math.round((LIMITS.ytm.min + i * CURVE_STEP) * 100) / 100;
     const { results } = rankBonds(bonds, duration, ytm, 10, risk);
-    const loss = results.length ? listLifeLoss(results.map(pdOf)) : 0;
+    const loss = results.length ? listLifeLoss(results.map(pdOf), results.map(lgdOf)) : 0;
     points.push({ ytm, loss: Math.round(loss * 1000) / 1000 });
   }
   return { points, max };

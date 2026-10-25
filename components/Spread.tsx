@@ -17,13 +17,13 @@ export function Spread({ ytm, years }: { ytm?: number | null; years?: number | n
 }
 
 export const RISKPAY_HEAD = "Risk Pay";
-export const RISKPAY_NOTE = "Risk Pay metric = spread over the Bund ÷ expected default loss (annual default chance × 60% loss); Net = spread − expected loss";
+export const RISKPAY_NOTE = "Risk Pay metric = spread over the Bund ÷ expected default loss (annual default chance × loss given default by debt rank); Net = spread − expected loss";
 
 /** Admin only: Risk Pay metric (spread ÷ expected loss, e.g. 9.2×), net bp on hover; "–" without a Bund point or a default chance. Fixed width. */
-export function RiskPayCell({ ytm, years, pd, life }: { ytm?: number | null; years?: number | null; pd?: number | null; life?: number | null }) {
+export function RiskPayCell({ ytm, years, pd, life, lgd }: { ytm?: number | null; years?: number | null; pd?: number | null; life?: number | null; lgd?: number | null }) {
   const bund = useBund();
   const sp = spreadBp(bund.points, ytm, years);
-  const rp = riskPay(sp, pd, life);
+  const rp = riskPay(sp, pd, life, lgd ?? undefined);
   const title = rp ? `${RISKPAY_NOTE} · spread ${sp} bp, expected loss ${rp.lossBp.toFixed(1)} bp, net ${rp.net >= 0 ? "+" : ""}${Math.round(rp.net)} bp` : undefined;
   return <span title={title} className={`inline-block min-w-[2.75rem] rounded px-1 text-center text-[11px] font-semibold tabular-nums ${rp?.ratio != null ? "bg-amber-100 text-amber-900" : "text-mute"}`} data-testid="risk-pay">{rp?.ratio != null ? `${rp.ratio.toFixed(1)}×` : "–"}</span>;
 }

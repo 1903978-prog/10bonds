@@ -1,3 +1,5 @@
+import { NOTCH_DOWN_BY_RANK, rankOf } from "./seniority";
+
 // Rating scale, best first. A notch is the position on this scale (AAA = 0).
 const SP_SCALE = [
   "AAA", "AA+", "AA", "AA-", "A+", "A", "A-", "BBB+", "BBB", "BBB-",
@@ -24,7 +26,7 @@ export function spGradeOf(notch: number | null): string | null {
   return notch === null ? null : SP_SCALE[notch] ?? null;
 }
 
-type RatedBond = { ratingResolved: string | null; ratingSp: string | null; ratingMoodys: string | null; ratingFitch: string | null; lrScore?: number | null };
+type RatedBond = { ratingResolved: string | null; ratingSp: string | null; ratingMoodys: string | null; ratingFitch: string | null; lrScore?: number | null; seniority?: string | null };
 
 /** Risk score 1..10 from a 10bonds.com rating (0..100, higher = safer): 90+ is 1, 80-89 is 2, ... below 10 is 10. */
 export function riskOfLr(lr: number | null | undefined): number | null {
@@ -44,8 +46,13 @@ export function bondNotch(b: RatedBond): number | null {
   const lr = riskOfLr(b.lrScore);
   if (lr !== null) return NOTCH_OF_LR_RISK[lr - 1];
   const notches = [b.ratingSp, b.ratingMoodys, b.ratingFitch].map(notchOf).filter((n): n is number => n !== null);
-  return notches.length ? Math.max(...notches) : null;
+  if (!notches.length) return null;
+  // Agency grades are issuer ratings: a bond ranking below senior preferred sits that many notches lower (lib/seniority.ts).
+  const worst = Math.max(...notches);
+  return worst > MAX_NOTCH ? worst : Math.min(MAX_NOTCH, worst + NOTCH_DOWN_BY_RANK[rankOf(b)]);
 }
+
+const MAX_NOTCH = 20; // C: a notch-down never turns a rated bond into D (D stays D: no risk score)
 
 /** True only for a bond with a real rating (10bonds.com, S&P, Moody's or Fitch, not NR or D): the only bonds ever shown. */
 export function hasRealRating(b: RatedBond): boolean {

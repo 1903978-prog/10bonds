@@ -1,6 +1,6 @@
 import type { PublicBond } from "./types";
 import { bondNotch, bondRisk } from "./ratings";
-import { pdOf } from "./tiers";
+import { lossPdOf } from "./tiers";
 import { issuerGroupOf } from "./issuerGroups";
 import { sectorOf, SECTOR_TAXONOMY_VERSION, UNCLASSIFIED } from "./sectors";
 
@@ -84,7 +84,7 @@ export const isWeakNotch = (b: PublicBond) => (bondNotch(b) ?? 99) >= B_PLUS_NOT
 export const classOf = (b: PublicBond) => bondRisk(b) ?? 10;
 
 export type CoherenceFacts = { cls: number; weak: boolean; pd: number; group: string | null; sector: string };
-export const factsOf = (b: PublicBond): CoherenceFacts => ({ cls: classOf(b), weak: isWeakNotch(b), pd: pdOf(b), group: issuerGroupOf(b), sector: sectorOf(b) });
+export const factsOf = (b: PublicBond): CoherenceFacts => ({ cls: classOf(b), weak: isWeakNotch(b), pd: lossPdOf(b), group: issuerGroupOf(b), sector: sectorOf(b) });
 
 export type Check = { rule: "count" | "window" | "core" | "worst" | "weak" | "loss" | "issuer" | "sector" | "ceiling"; ok: boolean; detail: string };
 

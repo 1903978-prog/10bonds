@@ -6,6 +6,7 @@ import { parseFilter } from "@/lib/bondFilter";
 import { shapeForTier, tierFeatures } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
 import { simulateCached } from "@/lib/monteCarlo";
+import { lgdOf } from "@/lib/seniority";
 import { bondRisk } from "@/lib/ratings";
 import type { RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
@@ -107,7 +108,7 @@ export async function GET(req: Request) {
     ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
     : undefined;
   // A real Monte Carlo run of defaults on this top 10 over the chosen horizon. Its averages come with "portfolio_sim".
-  const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b) })), duration);
+  const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b) })), duration);
   // Every bond searched numbered 1..N in alphabetical order (issuer, then name, then ISIN); the show on the page counts up to each pick's number.
   const abc = [...data.bonds].sort((a, b) => (a.issuer ?? a.name).localeCompare(b.issuer ?? b.name, "en") || a.name.localeCompare(b.name, "en") || a.isin.localeCompare(b.isin));
   const place = new Map(abc.map((b, i) => [b.isin, i + 1]));

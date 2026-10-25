@@ -76,8 +76,6 @@ const en = {
     act: {
       compare: ["Compare the Model portfolio with a bond ETF", "Model portfolio vs bond ETF"],
       frontier: ["Efficient frontier: return and expected loss of model-selected bond sets", "Efficient frontier"],
-      heat: ["Lowest expected loss for a given return and maturity", "Lowest expected loss by maturity"],
-      curves: ["Compare horizons from 2 to 10 years", "Compare 2-10 year horizons"],
       curve: ["Model-selected bond for each risk level", "Selected bond per risk level"],
       list: ["See the top 10 bonds", "See the top 10 bonds"],
       country: ["Check country risk", "Check country risk"],
@@ -85,7 +83,7 @@ const en = {
     },
     yrs: "yrs",
     countryAlt: "Brazil country risk page", companyAlt: "ACMA 2031 bond: risk rating, key data and credit assessment",
-    heatKey: "Return per year (up) · years (across) · colour = expected loss · framed = lowest expected loss for that return", heatKeyShort: "Colour = expected loss · framed = lowest loss",
+
     locale: "en-GB", label: "What 10bonds shows", slide: "Slide", prev: "Previous", next: "Next",
     frontierShort: "Efficient frontier", frontier: "Efficient frontier: return and expected loss", lossAxis: "Expected loss on the money invested",
     curveShort: "One bond, every risk level", curve: "One bond: highest return for each risk level", curveX: "Higher risk → lower risk", curveCta: "Free with sign-up →",
@@ -164,8 +162,6 @@ const it: LandingText = {
     act: {
       compare: ["Confronta il portafoglio del modello con un ETF", "Portafoglio del modello vs ETF"],
       frontier: ["Frontiera efficiente: rendimento e perdita attesa dei gruppi di obbligazioni selezionati dal modello", "Frontiera efficiente"],
-      heat: ["Perdita attesa più bassa per un dato rendimento e scadenza", "Perdita attesa più bassa per scadenza"],
-      curves: ["Confronta gli orizzonti da 2 a 10 anni", "Confronta orizzonti 2-10 anni"],
       curve: ["Obbligazione selezionata dal modello per ogni livello di rischio", "Selezionata per livello di rischio"],
       list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
@@ -173,7 +169,7 @@ const it: LandingText = {
     },
     yrs: "anni",
     countryAlt: "Pagina del rischio paese: Brasile", companyAlt: "Obbligazione ACMA 2031: rating di rischio, dati chiave e valutazione del credito",
-    heatKey: "Rendimento annuo (su) · anni (in orizzontale) · colore = perdita attesa · riquadro = perdita attesa più bassa per quel rendimento", heatKeyShort: "Colore = perdita attesa · riquadro = perdita più bassa",
+
     locale: "it-IT", label: "Cosa mostra 10bonds", slide: "Immagine", prev: "Precedente", next: "Successiva",
     frontierShort: "Frontiera efficiente", frontier: "Frontiera efficiente: rendimento e perdita attesa", lossAxis: "Perdita attesa sul capitale investito",
     curveShort: "Un'obbligazione, ogni rischio", curve: "Un'obbligazione: rendimento più alto per livello di rischio", curveX: "Rischio più alto → più basso", curveCta: "Gratis con la registrazione →",
@@ -251,8 +247,6 @@ const fr: LandingText = {
     act: {
       compare: ["Comparer le portefeuille du modèle à un ETF obligataire", "Portefeuille du modèle vs ETF"],
       frontier: ["Frontière efficiente : rendement et perte attendue des ensembles d'obligations sélectionnés par le modèle", "Frontière efficiente"],
-      heat: ["Perte attendue la plus faible pour un rendement et une échéance donnés", "Perte attendue la plus faible par échéance"],
-      curves: ["Comparer les horizons de 2 à 10 ans", "Comparer 2 à 10 ans"],
       curve: ["Obligation sélectionnée par le modèle pour chaque niveau de risque", "Sélectionnée par niveau de risque"],
       list: ["Voir les 10 obligations top", "Voir les 10 top"],
       country: ["Vérifier le risque pays", "Vérifier le risque pays"],
@@ -260,7 +254,7 @@ const fr: LandingText = {
     },
     yrs: "ans",
     countryAlt: "Page du risque pays : Brésil", companyAlt: "Obligation ACMA 2031 : notation de risque, données clés et évaluation du crédit",
-    heatKey: "Rendement annuel (vertical) · années (horizontal) · couleur = perte attendue · encadré = perte attendue la plus faible pour ce rendement", heatKeyShort: "Couleur = perte attendue · encadré = perte la plus faible",
+
     locale: "fr-FR", label: "Ce que montre 10bonds", slide: "Image", prev: "Précédente", next: "Suivante",
     frontierShort: "Frontière efficiente", frontier: "Frontière efficiente : rendement et perte attendue", lossAxis: "Perte attendue sur le capital investi",
     curveShort: "Une obligation, chaque risque", curve: "Une obligation : rendement le plus élevé par niveau de risque", curveX: "Risque plus élevé → plus faible", curveCta: "Gratuit avec inscription →",
@@ -338,8 +332,6 @@ const de: LandingText = {
     act: {
       compare: ["Modell-Portfolio mit einem Anleihe-ETF vergleichen", "Modell-Portfolio vs ETF"],
       frontier: ["Effizienzlinie: Rendite und erwarteter Verlust der vom Modell ausgewählten Anleihegruppen", "Effizienzlinie"],
-      heat: ["Niedrigster erwarteter Verlust für eine Rendite und Laufzeit", "Niedrigster erwarteter Verlust je Laufzeit"],
-      curves: ["Laufzeiten von 2 bis 10 Jahren vergleichen", "2-10 Jahre vergleichen"],
       curve: ["Vom Modell ausgewählte Anleihe je Risikostufe", "Ausgewählt je Risikostufe"],
       list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
       country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
@@ -347,7 +339,7 @@ const de: LandingText = {
     },
     yrs: "J.",
     countryAlt: "Länderrisiko-Seite: Brasilien", companyAlt: "Anleihe ACMA 2031: Risikorating, Kennzahlen und Kreditbewertung",
-    heatKey: "Rendite p. a. (senkrecht) · Jahre (waagrecht) · Farbe = erwarteter Verlust · Rahmen = niedrigster erwarteter Verlust für diese Rendite", heatKeyShort: "Farbe = erwarteter Verlust · Rahmen = niedrigster Verlust",
+
     locale: "de-DE", label: "Was 10bonds zeigt", slide: "Bild", prev: "Zurück", next: "Weiter",
     frontierShort: "Effizienzlinie", frontier: "Effizienzlinie: Rendite und erwarteter Verlust", lossAxis: "Erwarteter Verlust auf das investierte Kapital",
     curveShort: "Eine Anleihe, jedes Risiko", curve: "Eine Anleihe: höchste Rendite je Risikostufe", curveX: "Höheres Risiko → niedrigeres", curveCta: "Gratis mit Anmeldung →",

@@ -2,7 +2,7 @@ import { DEFAULT_RATES, DEFAULT_YEARS } from "./seo/defaultRates";
 
 // Yield after expected losses ("loss-adjusted yield"), the score both finder modes rank by:
 // yield minus the yearly default rate for the bond's rating over its horizon times the share lost in a default.
-// Default rates: 10BONDS combined long-run cumulative averages per notch (lib/seo/defaultRates.ts). Loss given default: 60%.
+// Default rates: 10BONDS combined long-run cumulative averages per notch (lib/seo/defaultRates.ts). Loss given default by debt rank: 60% senior preferred, 75% senior non-preferred, 90% subordinated (lib/seniority.ts).
 export const LOSS_GIVEN_DEFAULT = 0.6;
 
 /** The DEFAULT_RATES row for a notch (AAA = 0 .. B- = 15, CCC+ = 16, CCC and below = 17). */
@@ -22,14 +22,14 @@ export function cumulativeDefault(notch: number, years: number): number {
 }
 
 /** Expected loss in percentage points per year for a notch over a horizon. */
-export function expectedLoss(notch: number, years: number): number {
+export function expectedLoss(notch: number, years: number, lgd = LOSS_GIVEN_DEFAULT): number {
   const t = Math.max(1, years);
-  return (cumulativeDefault(notch, t) / t) * LOSS_GIVEN_DEFAULT;
+  return (cumulativeDefault(notch, t) / t) * lgd;
 }
 
 /** Yield after expected losses, in %. */
-export function lossAdjustedYield(ytm: number, notch: number, years: number): number {
-  return ytm - expectedLoss(notch, years);
+export function lossAdjustedYield(ytm: number, notch: number, years: number, lgd = LOSS_GIVEN_DEFAULT): number {
+  return ytm - expectedLoss(notch, years, lgd);
 }
 
 /**
@@ -45,10 +45,10 @@ export function listLossChance(chances: number[]): number {
 /**
  * Expected loss over the list's life as % of the money invested (Livio 20/10: the chance of a loss alone looked too
  * high, since it counts any default among 10 bonds): the equal-weight average of each bond's default chance to
- * maturity times the 60% loss in a default.
+ * maturity times its loss in a default (`lgds`, by debt rank, lib/seniority.ts; 60% when not given).
  */
-export function listLifeLoss(chances: number[]): number {
-  return chances.length ? (chances.reduce((s, c) => s + c, 0) / chances.length) * LOSS_GIVEN_DEFAULT : 0;
+export function listLifeLoss(chances: number[], lgds?: number[]): number {
+  return chances.length ? chances.reduce((s, c, i) => s + c * (lgds?.[i] ?? LOSS_GIVEN_DEFAULT), 0) / chances.length : 0;
 }
 
 /** One bond's chance of defaulting before it matures, in %. */
