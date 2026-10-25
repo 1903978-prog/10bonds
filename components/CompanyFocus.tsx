@@ -5,7 +5,7 @@ import { COMPANIES_IN_FOCUS, type FocusCompany } from "@/lib/companiesInFocus";
 const td = "px-3 py-[3px] align-top";
 
 /** Risk assessment, companies: same layout as the country pages, with the corporate dimensions. */
-export default function CompanyFocus({ c, paid, admin = false }: { c: FocusCompany; paid: boolean; admin?: boolean }) {
+export default function CompanyFocus({ c, paid, admin = false, verdicts = false }: { c: FocusCompany; paid: boolean; admin?: boolean; verdicts?: boolean }) {
   const nav = COMPANIES_IN_FOCUS.map((x) => ({ key: x.isin, href: `/risk-assessment/${x.isin}`, label: x.name, current: x.isin === c.isin, locked: !x.free, free: x.free }));
   return (
     <FocusShell kind="companies" testId="company-focus" nav={nav} paid={paid} open={paid || c.free === true}
@@ -15,8 +15,8 @@ export default function CompanyFocus({ c, paid, admin = false }: { c: FocusCompa
         text: paid || c.free ? c.summary : `Main risks: ${c.risksShort}.`,
       }}
       lockedTitle={`The full ${c.name} scoring is on paid plans`}
-      lockedText="Key financials, credit scorecard, terms and our view for every company in focus.">
-      <Body c={c} admin={admin} />
+      lockedText="Key financials, credit scorecard, terms and model-based assessment for every company in focus.">
+      <Body c={c} admin={admin} verdicts={verdicts} />
     </FocusShell>
   );
 }
@@ -34,7 +34,7 @@ function Table({ rows, cols }: { rows: (string | number)[][]; cols?: string[] })
   );
 }
 
-function Body({ c, admin }: { c: FocusCompany; admin: boolean }) {
+function Body({ c, admin, verdicts }: { c: FocusCompany; admin: boolean; verdicts: boolean }) {
   const [fh, ...fin] = c.financials;
   return (
     <div className="mt-2 grid gap-3 md:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr_1.3fr]">
@@ -53,7 +53,7 @@ function Body({ c, admin }: { c: FocusCompany; admin: boolean }) {
       </div>
       <div className="space-y-3">
       <section className={card}>
-        <h2 className={head}>Credit scorecard</h2>
+        <h2 className={head}>Model-based credit scorecard</h2>
         <ul className="divide-y divide-line/60 text-[11.5px] leading-snug">
           {c.scorecard.map(([k, note, s]) => (
             <li key={k} className="flex items-center gap-2 px-3 py-[3px]">
@@ -77,10 +77,12 @@ function Body({ c, admin }: { c: FocusCompany; admin: boolean }) {
             {c.risks.map(([k, v]) => <li key={k}><span className="font-medium">{k}.</span> <span className="text-mute">{v}</span></li>)}
           </ul>
         </section>
-        <section className={card}>
-          <h2 className={head}>Our view · {c.view}</h2>
-          <p className="px-3 pb-2 text-[11.5px] leading-snug">{c.recommendation}</p>
-        </section>
+        {verdicts && (
+          <section className={card}>
+            <h2 className={head}>Our view · {c.view}</h2>
+            <p className="px-3 pb-2 text-[11.5px] leading-snug">{c.recommendation}</p>
+          </section>
+        )}
       </div>
       <div className="space-y-3">
         <section className={card}>

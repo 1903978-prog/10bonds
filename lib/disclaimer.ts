@@ -212,3 +212,25 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
     terms: "Nutzungsbedingungen und Risikohinweise",
   },
 };
+
+/** "About our credit assessments": the owner's wording, published word for word (25/10/2026). English on every language version. */
+export const ASSESSMENTS_ABOUT = {
+  title: "About our credit assessments",
+  paragraphs: [
+    "10bonds publishes independent, model-based assessments of bond issuers and securities using publicly available information and other appropriately licensed data.",
+    "Our proprietary scores are quantitative analytical outputs based on predefined methodologies. They are not issued by or endorsed by the companies assessed and should not be interpreted as official credit ratings issued by a registered credit rating agency.",
+    "Scores reflect the information, assumptions and methodology applicable on the stated assessment date. They may change as new information becomes available and do not guarantee repayment or predict default with certainty.",
+    "Investment-related commentary is general in nature and does not take account of any individual investor's financial circumstances or suitability requirements.",
+    "We welcome documented requests to correct factual inaccuracies.",
+  ],
+  limitsTitle: "Methodology and limits of the scores",
+  limits: [
+    "Each score is produced by a fixed method, so the same inputs give the same result, and it carries the date and model version it was produced with. The full method, including every weight and scoring rule, is in the Countries and Companies methodology documents (Methodology link in the footer menu).",
+    "Weights, scoring ranges and penalties are our own design choices. They have not been statistically calibrated or independently validated against later defaults, so a score is not a calibrated probability of default.",
+    "Inputs can be missing, late or wrong. Where an input is missing, the figure is shown as Not verified and nothing is estimated to fill the gap. Company results and market data are only as current as their stated date.",
+    "Models simplify the real world. Events outside the inputs, such as a sudden change in law, a fraud or a market shock, are not captured, and the score can be materially wrong.",
+    "A score ranks bonds against each other on the stated date. It is not a recommendation to buy, hold or sell, and it takes no account of your circumstances.",
+  ],
+  correctionTitle: "Corrections",
+  correction: "Every report page has a Request a correction form. Please send the name of the issuer, what is wrong and a document or link that shows it. We review each request and record the outcome.",
+} as const;
