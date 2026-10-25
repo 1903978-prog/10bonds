@@ -11,8 +11,8 @@ const NOW = Date.parse("2026-10-25T00:00:00Z");
 
 describe("buildReport", () => {
   it("returns null with no bond and no research", () => expect(buildReport("XS0000000001", null, null)).toBeNull());
-  it("LVMH: curated research with a dated price", () => {
-    const r = buildReport("FR0013482841", null, findCompany("FR0013482841")!, NOW)!;
+  it("ACMA: curated research with a dated price", () => {
+    const r = buildReport("DE000ACMA031", null, findCompany("DE000ACMA031")!, NOW)!;
     expect(r.free).toBe(true);
     expect(r.kpis.score.text).toBe("86/100");
     expect(r.conclusion.outlook).toBe(-2);
