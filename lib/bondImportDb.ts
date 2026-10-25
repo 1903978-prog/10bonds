@@ -219,3 +219,17 @@ export async function importOverview(): Promise<{ batches: { id: string; file_na
 }
 
 export { KNOWN_FIELDS };
+
+/** The current imported row (newest batch wins) for each of these ISINs; empty when nothing was imported or the database is not reachable. */
+export async function importedFor(isins: string[]): Promise<Record<string, ImportedRow & { ir: string | null; br: string | null; risk_pay: string | null; duration: number | null }>> {
+  if (!isins.length) return {};
+  try {
+    const s = await sql();
+    const rows = await s<(ImportedRow & { ir: string | null; br: string | null; risk_pay: string | null; duration: number | null })[]>`
+      select distinct on (r.isin) r.batch_id::text, b.file_name, b.imported_at::text, r.isin, r.issuer, r.coupon, r.maturity::text, r.agency_rating, r.risk_grade, r.ytm, r.price, r.seniority, r.recommendation, r.verdict, r.ir, r.br, r.risk_pay, r.duration
+      from app.bond_import_rows r join app.bond_import_batches b on b.id = r.batch_id where r.isin in ${s(isins)} order by r.isin, r.batch_id desc`;
+    return Object.fromEntries(rows.map((r) => [r.isin, r]));
+  } catch {
+    return {};
+  }
+}

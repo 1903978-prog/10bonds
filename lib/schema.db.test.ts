@@ -24,6 +24,7 @@ async function buildAll() {
   const { ytmHistoryReady } = await import("./ytmHistory");
   const { weeklyTablesReady } = await import("./weeklySend");
   const { bondImportTablesReady } = await import("./bondImportDb");
+  const { shortlistTablesReady } = await import("./shortlistDb");
   const sql = await accountsSql();
   await seoSql();
   await brokerTablesReady();
@@ -32,6 +33,7 @@ async function buildAll() {
   await ytmHistoryReady();
   await weeklyTablesReady();
   await bondImportTablesReady();
+  await shortlistTablesReady();
   return sql;
 }
 

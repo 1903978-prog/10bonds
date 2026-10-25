@@ -88,7 +88,24 @@ async function reload() {
   const modelled = rows.filter((r) => r.structure_modelled !== false);
   // Imported seniority (admin switch, lib/bondImportDb.ts) only fills bonds whose copy has none; the copy's own value always wins.
   const importedSeniority = await import("./bondImportDb").then((m) => m.importedSeniorityMap()).catch(() => new Map<string, string>());
-  const mapped: (PublicBond & { flaggedDormant: unknown })[] = modelled.map((r) => ({
+  const mapped = modelled.map((r) => rowToBond(r, importedSeniority));
+  // Bonds with a minimum above 200,000 EUR / USD stay in the database but are dormant: never shown or used (the owner, 21/10/2026).
+  const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);
+  // Unrated bonds never appear on the site (the owner, 18/10/2026).
+  // A price that fails the sanity checks (lib/priceIntegrity.ts) keeps the bond out of every ranking; the admin sees the list.
+  const meta = new Map<string, PriceMeta>(modelled.map((r) => [r.isin, priceMetaOf(r)]));
+  const screened = screenPrices(dropStale(bonds), meta, newestQuote(bonds));
+  const current = screened.ok;
+  const rated = current.filter(hasRealRating);
+  // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
+  const [{ total }] = await client`select count(*)::int total from public_bonds`;
+  cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), priceFlagged: screened.flagged, bySd: new Map() };
+}
+
+/** One `public_bonds` row as the site's bond (flaggedDormant = the copy's own dormant flag, applied by the caller). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a raw database row
+function rowToBond(r: Record<string, any>, importedSeniority: Map<string, string>): PublicBond & { flaggedDormant: unknown } {
+  return {
     flaggedDormant: r.dormant,
     isin: r.isin,
     name: r.name,
@@ -113,18 +130,19 @@ async function reload() {
     seniority: typeof r.seniority === "string" && r.seniority.trim() ? r.seniority.trim() : (importedSeniority.get(r.isin) ?? null),
     issueDate: isoDay(r.issue_date),
     callable: typeof r.callable === "boolean" ? r.callable : null,
-  }));
-  // Bonds with a minimum above 200,000 EUR / USD stay in the database but are dormant: never shown or used (the owner, 21/10/2026).
-  const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);
-  // Unrated bonds never appear on the site (the owner, 18/10/2026).
-  // A price that fails the sanity checks (lib/priceIntegrity.ts) keeps the bond out of every ranking; the admin sees the list.
-  const meta = new Map<string, PriceMeta>(modelled.map((r) => [r.isin, priceMetaOf(r)]));
-  const screened = screenPrices(dropStale(bonds), meta, newestQuote(bonds));
-  const current = screened.ok;
-  const rated = current.filter(hasRealRating);
-  // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
-  const [{ total }] = await client`select count(*)::int total from public_bonds`;
-  cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), priceFlagged: screened.flagged, bySd: new Map() };
+  };
+}
+
+/** Admin only: the bonds of the WHOLE copy with these ISINs, exactly as the site would hold them, with why the site would hide each (null = shown). Bonds not in the copy are simply absent. */
+export async function loadBondsByIsin(isins: string[]): Promise<{ bond: PublicBond; why: string | null }[]> {
+  const client = db();
+  if (!client || !isins.length) return [];
+  const rows = await client`select * from public_bonds where upper(trim(isin)) in ${client(isins)}`;
+  const importedSeniority = await import("./bondImportDb").then((m) => m.importedSeniorityMap()).catch(() => new Map<string, string>());
+  return rows.map((r) => {
+    const { flaggedDormant: _, ...bond } = rowToBond(r, importedSeniority);
+    return { bond, why: whyHidden(r) };
+  });
 }
 
 /** Optional price facts the copy may carry (docs/handover/price-integrity.md). */

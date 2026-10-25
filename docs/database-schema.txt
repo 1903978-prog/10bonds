@@ -372,6 +372,13 @@ table app.settings
   value text not null
   updated_at timestamp with time zone not null default now()
 
+table app.shortlists
+  id bigint not null default nextval(...)
+  name text not null
+  isins ARRAY not null
+  created_at timestamp with time zone not null default now()
+  updated_at timestamp with time zone not null default now()
+
 table app.trial_codes
   code text not null
   days integer not null default 30
@@ -508,6 +515,8 @@ constraints
   app.seo_shares seo_shares_guide_id_fkey: FOREIGN KEY (guide_id) REFERENCES app.seo_guides(id) ON DELETE SET NULL
   app.seo_shares seo_shares_pkey: PRIMARY KEY (id)
   app.settings settings_pkey: PRIMARY KEY (key)
+  app.shortlists shortlists_name_key: UNIQUE (name)
+  app.shortlists shortlists_pkey: PRIMARY KEY (id)
   app.trial_codes trial_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.trial_codes trial_codes_pkey: PRIMARY KEY (code)
   app.trial_codes trial_codes_redeemed_by_fkey: FOREIGN KEY (redeemed_by) REFERENCES app.users(id) ON DELETE SET NULL
@@ -569,6 +578,8 @@ indexes
   CREATE UNIQUE INDEX seo_people_pkey ON app.seo_people USING btree (id)
   CREATE UNIQUE INDEX seo_shares_pkey ON app.seo_shares USING btree (id)
   CREATE UNIQUE INDEX settings_pkey ON app.settings USING btree (key)
+  CREATE UNIQUE INDEX shortlists_name_key ON app.shortlists USING btree (name)
+  CREATE UNIQUE INDEX shortlists_pkey ON app.shortlists USING btree (id)
   CREATE UNIQUE INDEX trial_codes_pkey ON app.trial_codes USING btree (code)
   CREATE INDEX users_stripe_customer_idx ON app.users USING btree (stripe_customer_id) WHERE (stripe_customer_id IS NOT NULL)
   CREATE UNIQUE INDEX users_email_key ON app.users USING btree (email)

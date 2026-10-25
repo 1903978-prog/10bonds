@@ -52,6 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
               {admin && <DropsNavLink />}
+              {admin && <Link href="/admin/shortlist" data-testid="nav-shortlist" className="rounded-full bg-yellow-200 px-2 py-0.5">Shortlist</Link>}
               {admin && <Link href="/admin/features" data-testid="nav-features" className="hidden rounded-full bg-yellow-200 px-2 py-0.5 sm:inline-block">Plan features</Link>}
               {admin && <Link href="/risk-assessment" data-testid="nav-focus" className="hidden rounded-full bg-yellow-200 px-2 py-0.5 sm:inline-block">Risk assessment</Link>}
               <KnowledgeNavLink />
