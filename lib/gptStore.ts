@@ -37,3 +37,9 @@ export function useGptRatings(on = true): Record<string, StoredGpt> {
   useEffect(() => { if (on) load(); }, [on]);
   return useSyncExternalStore(subscribe, () => (on ? map : EMPTY), () => EMPTY);
 }
+
+/** Reloads the saved ratings from the database (after the provisional values were loaded). */
+export function reloadGptRatings() {
+  pending = null;
+  load();
+}
