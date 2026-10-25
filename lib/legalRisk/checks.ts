@@ -34,6 +34,7 @@ export const BANNED_CLAIMS: { re: RegExp; why: string }[] = [
   { re: /\bbest bonds\b/i, why: "'best' reads as a recommendation" },
   { re: /\bbeats? the market\b|\boutperform(s|ed)? the market\b/i, why: "performance superiority claim" },
   { re: /\bsafe investment\b|\bcannot lose\b|\bcan't lose\b/i, why: "implies safety of capital" },
+  { re: /\bPareto-efficient\b|\bAI[- ](optimi[sz]ed|selected|portfolio)\b/i, why: "technique claim not supported by the method (use plain wording)" },
   { re: /\bwe recommend\b|\byou should (buy|sell|invest)\b/i, why: "personal recommendation wording" },
   { re: /\b\d+(\.\d+)?\s?% (chance|probability) of (default|loss)\b/i, why: "stand-alone default/loss probability claim" },
 ];
