@@ -1,5 +1,6 @@
 import { accountsSql } from "./accounts";
 import type { GptRating } from "./gptRatings";
+import type { Detail } from "./provisionalScenarios";
 
 // Admin only (the owner, 24/10/2026): GPT's ratings pasted back on the finder, one row per ISIN (the newest paste wins).
 // Never shown to customers.
@@ -20,6 +21,7 @@ async function sql() {
     await s`alter table app.gpt_ratings add column if not exists issuer_rating text`;
     await s`alter table app.gpt_ratings alter column rating drop not null`;
     await s`alter table app.gpt_ratings add column if not exists risk_pay text`;
+    await s`alter table app.gpt_ratings add column if not exists detail text`;
   })().catch((e) => {
     ready = null;
     throw e;
@@ -28,10 +30,14 @@ async function sql() {
   return s;
 }
 
+function parseDetail(v: string | null): Detail | null {
+  try { return v ? (JSON.parse(v) as Detail) : null; } catch { return null; }
+}
+
 export async function loadGptRatings(): Promise<Record<string, SavedGptRating>> {
   const s = await sql();
-  const rows = await s<{ isin: string; rating: string | null; issuer_rating: string | null; risk_pay: string | null; basis: string | null; pasted_at: Date }[]>`select isin, rating, issuer_rating, risk_pay, basis, pasted_at from app.gpt_ratings`;
-  return Object.fromEntries(rows.map((r) => [r.isin, { rating: r.rating, issuerRating: r.issuer_rating, riskPay: r.risk_pay, basis: r.basis, at: new Date(r.pasted_at).toISOString() }]));
+  const rows = await s<{ isin: string; rating: string | null; issuer_rating: string | null; risk_pay: string | null; detail: string | null; basis: string | null; pasted_at: Date }[]>`select isin, rating, issuer_rating, risk_pay, detail, basis, pasted_at from app.gpt_ratings`;
+  return Object.fromEntries(rows.map((r) => [r.isin, { rating: r.rating, issuerRating: r.issuer_rating, riskPay: r.risk_pay, detail: parseDetail(r.detail), basis: r.basis, at: new Date(r.pasted_at).toISOString() }]));
 }
 
 const grade = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 12) : "");
@@ -47,17 +53,17 @@ export async function saveGptRatings(raw: unknown): Promise<number> {
   const s = await sql();
   await s`
     insert into app.gpt_ratings ${s(rows, "isin", "rating", "issuer_rating", "basis")}
-    on conflict (isin) do update set rating = excluded.rating, issuer_rating = excluded.issuer_rating, risk_pay = null, basis = excluded.basis, pasted_at = now()`;
+    on conflict (isin) do update set rating = excluded.rating, issuer_rating = excluded.issuer_rating, risk_pay = null, detail = null, basis = excluded.basis, pasted_at = now()`;
   return rows.length;
 }
 
 /** Provisional scenario values (ranges as text, stored Risk Pay): one row per ISIN, replacing that ISIN's earlier row. */
-export async function saveScenarioRatings(rows: { isin: string; rating: string; issuerRating: string; riskPay: string; basis: string }[]): Promise<number> {
-  const clean = rows.filter((r) => ISIN.test(r.isin)).map((r) => ({ isin: r.isin, rating: r.rating.slice(0, 40), issuer_rating: r.issuerRating.slice(0, 40), risk_pay: r.riskPay.slice(0, 40), basis: r.basis.slice(0, 600) }));
+export async function saveScenarioRatings(rows: { isin: string; rating: string; issuerRating: string; riskPay: string; basis: string; detail: string | null }[]): Promise<number> {
+  const clean = rows.filter((r) => ISIN.test(r.isin)).map((r) => ({ isin: r.isin, rating: r.rating.slice(0, 40), issuer_rating: r.issuerRating.slice(0, 40), risk_pay: r.riskPay.slice(0, 40), basis: r.basis.slice(0, 600), detail: r.detail ? r.detail.slice(0, 1500) : null }));
   if (!clean.length) return 0;
   const s = await sql();
   await s`
-    insert into app.gpt_ratings ${s(clean, "isin", "rating", "issuer_rating", "risk_pay", "basis")}
-    on conflict (isin) do update set rating = excluded.rating, issuer_rating = excluded.issuer_rating, risk_pay = excluded.risk_pay, basis = excluded.basis, pasted_at = now()`;
+    insert into app.gpt_ratings ${s(clean, "isin", "rating", "issuer_rating", "risk_pay", "detail", "basis")}
+    on conflict (isin) do update set rating = excluded.rating, issuer_rating = excluded.issuer_rating, risk_pay = excluded.risk_pay, detail = excluded.detail, basis = excluded.basis, pasted_at = now()`;
   return clean.length;
 }

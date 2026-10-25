@@ -4,7 +4,7 @@ import { spreadBp } from "@/lib/bundSpread";
 import { riskPay } from "@/lib/riskPay";
 import { useBund } from "@/lib/bundStore";
 import { useGptRatings } from "@/lib/gptStore";
-import { SCENARIO_CAVEAT, SCENARIO_SOURCE } from "@/lib/provisionalScenarios";
+import { SCENARIO_CAVEAT, SCENARIO_SOURCE } from "@/lib/scenarioText";
 
 /** Admin only: the "Spread" column header (return minus the German Bund of the same duration, in bp). */
 export const SPREAD_HEAD = "Spread";
