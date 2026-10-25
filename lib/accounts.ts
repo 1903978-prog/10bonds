@@ -150,6 +150,29 @@ async function setup(sql: ReturnType<typeof postgres>) {
       finished_at timestamptz,
       note text
     )`;
+  // Evidence for every published assessment (what was shown, from what, with which model version) and the issuers'
+  // requests to correct a factual error. Written by lib/assessments.ts, read on /admin/assessments.
+  await sql`
+    create table if not exists app.assessment_evidence (
+      id bigserial primary key,
+      isin text not null,
+      model_version text not null,
+      as_of text not null,
+      source text not null,
+      calculation jsonb not null,
+      published_at timestamptz not null default now(),
+      unique (isin, model_version, as_of)
+    )`;
+  await sql`
+    create table if not exists app.correction_requests (
+      id bigserial primary key,
+      isin text,
+      name text not null,
+      email text not null,
+      message text not null,
+      requested_at timestamptz not null default now(),
+      status text not null default 'open' check (status in ('open','done','rejected'))
+    )`;
   // The main app's export login must be able to read and update this one table (nothing else in schema app).
   await sql`grant usage on schema app to public`.catch(() => {});
   await sql`grant select, update on app.refresh_requests to public`.catch(() => {});
