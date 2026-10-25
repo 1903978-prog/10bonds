@@ -54,7 +54,7 @@ export const COMPANIES_IN_FOCUS: FocusCompany[] = [
     maturity: "11 Feb 2031",
     risksShort: "China demand, luxury slowdown, tariffs, earnings valuation",
     summary:
-      "High credit quality and repayment in EUR in just over four years. The weak point is the very low 0.375% coupon, but buying below par gives a large redemption gain if the issuer repays at 100.",
+      "Low risk score under our model, with repayment in EUR in just over four years. The coupon is very low at 0.375%, so most of the return comes from redemption at 100 when the bond is bought below par.",
     terms: [
       ["WKN", "A28TL4"],
       ["Issue date", "11 Feb 2020"],
@@ -81,22 +81,22 @@ export const COMPANIES_IN_FOCUS: FocusCompany[] = [
       ["Equity", "€66.88bn", "€69.69bn", "+4%"],
     ],
     financialsNote:
-      "Lower debt and strong free cash flow reassure bondholders. 9M 2026 revenue €57.15bn (+2% organic), but Fashion & Leather Goods fell 5% organically in Q3 on softer China.",
+      "Net debt is lower and free cash flow is steady. 9M 2026 revenue €57.15bn (+2% organic), but Fashion & Leather Goods fell 5% organically in Q3 on softer China.",
     scorecard: [
-      ["Liquidity and refinancing", "Strong cash generation, low net debt", 93],
-      ["Debt-service capacity", "Strong recurring profitability", 94],
-      ["Balance-sheet solvency", "Strong equity, modest leverage", 94],
+      ["Liquidity and refinancing", "High cash generation, low net debt", 93],
+      ["Debt-service capacity", "High recurring profitability", 94],
+      ["Balance-sheet solvency", "Large equity, modest leverage", 94],
       ["Earnings resilience", "Luxury cycle, China exposure", 78],
       ["Legal / regulatory", "Tariffs, trade-policy uncertainty", 83],
       ["Geopolitical / external", "China demand, trade disruption", 76],
     ],
-    scorecardNote: "Provisional internal scores, not default probabilities. Three-year review and prospectus check outstanding.",
+    scorecardNote: "Provisional model scores, not calibrated default probabilities. Three-year review and prospectus check outstanding.",
     capital: [
       ["Covered / secured", "Very low", "–"],
       ["Senior unsecured", "Low", "This bond"],
       ["Senior non-preferred", "Moderate", "–"],
-      ["Tier 2 subordinated", "High", "Avoid"],
-      ["AT1 / CoCo", "Very high", "Avoid"],
+      ["Tier 2 subordinated", "High", "Different instrument"],
+      ["AT1 / CoCo", "Very high", "Different instrument"],
       ["Equity", "Highest", "Not a bond"],
     ],
     tax:

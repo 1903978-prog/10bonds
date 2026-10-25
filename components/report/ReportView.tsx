@@ -6,6 +6,8 @@ import ReportActions from "./ReportActions";
 import ReportNav, { type NavItem } from "./ReportNav";
 import { ReportAuthButton, ReportAuthDialog } from "./ReportAuth";
 import { Metric } from "./FinancialChart";
+import { MODEL_VERSION } from "@/lib/assessmentModel";
+import ReportCorrection from "./ReportCorrection";
 import Tip from "./Tip";
 
 const STATUS: Record<Fig["status"], string> = { verified: "Verified", provisional: "Provisional", not_verified: "Not verified" };
@@ -18,7 +20,7 @@ const card = "report-card rounded-3xl border border-line bg-white p-6 sm:p-8";
 
 const ALL_SECTIONS: NavItem[] = [
   { id: "overview", n: "01", label: "Overview" },
-  { id: "thesis", n: "02", label: "Thesis" },
+  { id: "thesis", n: "02", label: "Summary" },
   { id: "credit", n: "03", label: "Credit" },
   { id: "financials", n: "04", label: "Financials" },
   { id: "protection", n: "05", label: "Protection" },
@@ -126,7 +128,9 @@ function barColor(score: number) {
 }
 
 /** The report: one scrolling page, eight numbered sections. `open` = this reader may see the research (paid plan, or the free example). */
-export default function ReportView({ r, open, admin = false, signedIn = false }: { r: Report; open: boolean; admin?: boolean; signedIn?: boolean }) {
+export default function ReportView({ r, open, admin = false, signedIn = false, verdicts = false }: { r: Report; open: boolean; admin?: boolean; signedIn?: boolean; verdicts?: boolean }) {
+  // BUY / WATCH / AVOID and "Our view" stay hidden from customers until the compliance review is done (admin switch).
+  const showView = admin || verdicts;
   const title = r.maturityYear && !r.name.includes(r.maturityYear) ? `${r.name} ${r.maturityYear}` : r.name;
   const c = r.conclusion;
   const v = verdict(c.view);
@@ -145,12 +149,12 @@ export default function ReportView({ r, open, admin = false, signedIn = false }:
           <section id="overview" aria-label="Overview" className={`report-section bg-white px-5 pb-8 pt-[30px] md:px-6 wide:px-10 ${open ? "" : "rounded-[28px]"}`}>
             <div className="hidden print:block"><Logo className="mb-4 h-7 w-auto" /></div>
             <nav aria-label="Breadcrumb" className="text-[14px] text-mute print:hidden"><Link href="/risk-assessment" className="hover:text-ink">Companies in focus</Link> › Bond report</nav>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            {showView && <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className={`inline-flex h-8 items-center gap-2 rounded-full px-4 text-[14px] ${TONE[v.tone]}`} data-testid="verdict">
                 <span className="font-semibold tracking-wide">{v.word}</span>
                 {v.tone !== "none" && c.view.text.toLowerCase() !== v.word.toLowerCase() && <span className="font-normal opacity-90" data-testid="verdict-view">· {c.view.text}</span>}
               </span>
-            </div>
+            </div>}
             <h1 className="mt-3 break-words text-[clamp(32px,8vw,36px)] font-semibold leading-[1.05] tracking-tight md:text-[clamp(40px,5vw,44px)] wide:text-[clamp(36px,3vw,48px)]" data-testid="report-title">{title}</h1>
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] text-mute" data-testid="report-identity">
               <span className="font-medium text-ink">{r.isin}</span>
@@ -163,7 +167,7 @@ export default function ReportView({ r, open, admin = false, signedIn = false }:
             {open && c.summary && <p className="mt-4 max-w-[800px] text-[18px] leading-[28px]">{c.summary}</p>}
 
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 wide:grid-cols-4">
-              <Kpi title="Investment score" f={open ? r.kpis.score : { text: "Plans", status: "not_verified" }} tip="Our own 0–100 rating of how safely the issuer can pay coupons and repay. It is a ranking aid, not a probability of default." />
+              <Kpi title="10bonds.com score" f={open ? r.kpis.score : { text: "Plans", status: "not_verified" }} tip="A 0–100 score produced by our model from public information, on the date shown. Higher means a stronger position under the model. It is not a credit rating and not a probability of default." />
               <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} tip="Yearly return if you hold to maturity, before costs. Not a promise." right />
               <Kpi title="Maturity" f={r.kpis.maturity} note={r.kpis.maturityNote} />
               <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-3xl border border-line bg-white p-6" data-testid="kpi-10bonds-risk">
@@ -178,7 +182,7 @@ export default function ReportView({ r, open, admin = false, signedIn = false }:
 
             <div className="mt-4 flex flex-wrap items-center gap-3 print:hidden">
               {!signedIn && <ReportAuthButton className="w-full sm:hidden" />}
-              <Link href="/?intro=0" data-testid="compare-safer" className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-ink px-6 text-[15px] font-medium text-white hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:w-auto">Compare with safer alternatives</Link>
+              <Link href="/?intro=0" data-testid="compare-safer" className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-ink px-6 text-[15px] font-medium text-white hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:w-auto">Compare with lower-risk bonds</Link>
               <ReportActions isin={r.isin} />
             </div>
           </section>
@@ -186,7 +190,7 @@ export default function ReportView({ r, open, admin = false, signedIn = false }:
           {!open ? (
             <section className="report-section rounded-b-[28px] bg-[#f7f7f9] px-5 py-14 text-center sm:px-8" data-testid="report-locked">
               <p className="text-[22px] font-semibold tracking-tight">The full report is on paid plans</p>
-              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios and more for every bond we cover.</p>
+              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Summary, model-based credit assessment, financials, contractual protection, stress scenarios and more for every bond we cover.</p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <Link href="/pricing" className="inline-flex min-h-[44px] items-center rounded-full bg-accent px-7 text-[15px] font-medium text-white">See plans</Link>
                 {!signedIn && <ReportAuthButton plain label="Log in" />}
@@ -194,7 +198,7 @@ export default function ReportView({ r, open, admin = false, signedIn = false }:
             </section>
           ) : (
             <>
-              <Thesis r={r} weak={weak} />
+              <Thesis r={r} weak={weak} showView={showView} />
               <Credit r={r} />
               <Financials r={r} />
               <Protection r={r} term={term} />
@@ -222,30 +226,30 @@ function HeroFact({ title, f, note, plain }: { title: string; f: Fig; note?: str
   );
 }
 
-function Thesis({ r, weak }: { r: Report; weak: Report["scorecard"] }) {
+function Thesis({ r, weak, showView }: { r: Report; weak: Report["scorecard"]; showView: boolean }) {
   const c = r.conclusion;
   return (
-    <Section n="02" id="thesis" title="Investment thesis" intro="Should I consider buying this bond? The short answer first, then the case for and against.">
-      <div className={`${card} bg-[#f7f7f9]`} data-testid="conclusion">
+    <Section n="02" id="thesis" title="Summary and key factors" intro="The short summary first, then the main strengths and weaknesses under our model.">
+      {showView && <div className={`${card} bg-[#f7f7f9]`} data-testid="conclusion">
         <p className={label}>Our view</p>
         <p className="mt-2 text-[28px] font-semibold leading-tight tracking-tight md:text-[34px]">{c.view.status === "not_verified" ? "Not verified" : c.view.text}</p>
         <p className={`mt-2 ${meta}`}>{[STATUS[c.view.status], c.view.kind, c.view.asOf].filter(Boolean).join(" · ")}</p>
         {c.analyst ? <p className={`mt-6 max-w-[760px] ${lead}`}>{c.analyst}</p> : <p className={`mt-6 ${body} text-mute`}>Analyst conclusion: Not verified</p>}
-      </div>
+      </div>}
 
       <div className="mt-8 grid gap-8 md:grid-cols-2 md:gap-10">
         <div>
-          <h3 className="text-[20px] font-semibold tracking-tight text-[#067647]">Reasons to buy</h3>
+          <h3 className="text-[20px] font-semibold tracking-tight text-[#067647]">Relative strengths</h3>
           {c.strengths.length ? <ul className={`mt-4 space-y-3 ${body}`}>{c.strengths.map((s) => <li key={s} className="border-l-2 border-[#2f9e6e] pl-4">{s}</li>)}</ul> : <p className={`mt-4 ${body} text-mute`}>Not verified</p>}
         </div>
         <div>
-          <h3 className="text-[20px] font-semibold tracking-tight text-[#b54708]">Reasons to avoid</h3>
+          <h3 className="text-[20px] font-semibold tracking-tight text-[#b54708]">Relative weaknesses</h3>
           {weak.length ? <ul className={`mt-4 space-y-3 ${body}`}>{weak.map((s) => <li key={s.label} className="border-l-2 border-[#c77a12] pl-4">{s.label}: {s.note}</li>)}</ul> : <p className={`mt-4 ${body} text-mute`}>Not verified</p>}
           <p className={`mt-3 ${meta}`}>Taken from the weakest credit factors in section 03.</p>
         </div>
       </div>
 
-      <h3 className="mt-14 text-[24px] font-semibold tracking-tight">Three critical risks</h3>
+      <h3 className="mt-14 text-[24px] font-semibold tracking-tight">Three main risk factors</h3>
       {c.risks.length ? (
         <ol className="mt-5 grid gap-4 md:grid-cols-3">
           {c.risks.slice(0, 3).map(([k, t], i) => (
@@ -264,7 +268,7 @@ function Thesis({ r, weak }: { r: Report; weak: Report["scorecard"] }) {
 function Credit({ r }: { r: Report }) {
   const o = r.conclusion.outlook;
   return (
-    <Section n="03" id="credit" title="Credit assessment" band intro="How safe is my principal? Six factors, each scored 0 to 100 by our own research. Higher is safer.">
+    <Section n="03" id="credit" title="Model-based credit assessment" band intro="Six factors, each scored 0 to 100 by our model from public information. A higher score means a stronger position under the model.">
       {r.scorecard.length ? (
         <ul className="space-y-7">
           {r.scorecard.map((s) => (
@@ -286,7 +290,7 @@ function Credit({ r }: { r: Report }) {
         <div className={card}>
           <h3 className="text-[20px] font-semibold tracking-tight">Score methodology</h3>
           <p className={`mt-3 ${body} text-mute`}>{r.scorecardNote}</p>
-          <p className={`mt-3 ${body} text-mute`}>The 10bonds risk score (1 lowest, 10 highest) is shown beside the name at the top of the page.</p>
+          <p className={`mt-3 ${body} text-mute`}>The 10bonds risk score (1 lowest, 10 highest) is shown beside the name at the top of the page. <Link href="/disclaimer#assessments" className="text-accent">Methodology and limitations</Link></p>
         </div>
         <div className={card}>
           <h3 className="text-[20px] font-semibold tracking-tight">Outlook, −10 to +10<Tip term="Outlook" right>Our view of where the credit is heading over the next 24 months. Below zero means the trend is weakening, above zero improving.</Tip></h3>
@@ -347,7 +351,7 @@ function Protection({ r, term }: { r: Report; term: (l: string) => Fig }) {
 
       <div className={`${card} mt-5`}>
         <h3 className="text-[20px] font-semibold tracking-tight">Creditor seniority<Tip term="seniority">Seniority decides who is repaid first if the issuer fails. Senior unsecured bondholders rank above subordinated bondholders and shareholders.</Tip></h3>
-        <p className={`mt-2 ${body} text-mute`}>Where this bond ranks if the issuer cannot pay. Safest at the top.</p>
+        <p className={`mt-2 ${body} text-mute`}>Where this bond ranks if the issuer cannot pay. Most senior at the top.</p>
         {r.capital.length ? (
           <ol className="mt-6 divide-y divide-line/80 overflow-hidden rounded-2xl border border-line">
             {r.capital.map(([layer, risk, mark]) => {
@@ -404,7 +408,7 @@ function Stress({ r }: { r: Report }) {
             {s ? (
               <>
                 <p className="mt-3 text-[15px] text-mute">{s.note}</p>
-                <p className="mt-4 flex items-baseline gap-2"><span className="text-[36px] font-semibold leading-none tabular-nums" style={{ color: barColor(s.score) }}>{s.score}</span><span className="text-[14px] text-mute">out of 100, higher is safer</span></p>
+                <p className="mt-4 flex items-baseline gap-2"><span className="text-[36px] font-semibold leading-none tabular-nums" style={{ color: barColor(s.score) }}>{s.score}</span><span className="text-[14px] text-mute">out of 100 under our model</span></p>
               </>
             ) : <p className="mt-3 text-[17px] text-mute">Not verified</p>}
           </div>
@@ -490,7 +494,7 @@ function Sources({ r, admin }: { r: Report; admin: boolean }) {
         </div>
         <div className={card}>
           <h3 className="text-[20px] font-semibold tracking-tight">Verification status</h3>
-          <p className={`mt-3 ${body} text-mute`}>Every figure carries one of three marks: Verified, Provisional or Not verified. Nothing is estimated to fill a gap.</p>
+          <p className={`mt-3 ${body} text-mute`}>Every figure carries one of three marks: Verified, Provisional or Not verified. Nothing is estimated to fill a gap. Scores come from model version {MODEL_VERSION} and are dated. <Link href="/disclaimer#assessments" className="text-accent">Methodology and limitations</Link></p>
         </div>
       </div>
 
@@ -499,6 +503,7 @@ function Sources({ r, admin }: { r: Report; admin: boolean }) {
           {warnings.map((u) => <li key={u}>{u}: Not verified</li>)}
         </ul>
       </Details>
+      <ReportCorrection isin={r.isin} />
     </Section>
   );
 }

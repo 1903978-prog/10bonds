@@ -8,6 +8,7 @@ import { loadAllShown } from "@/lib/bonds";
 import { isIsin } from "@/lib/seo/bondPages";
 import type { PublicBond } from "@/lib/types";
 import { featuresFor } from "@/lib/planFeatures";
+import { recordAssessment, verdictsOn } from "@/lib/assessments";
 
 type Props = { params: Promise<{ isin: string }> };
 export const dynamic = "force-dynamic";
@@ -44,8 +45,10 @@ export default async function ReportPage({ params }: Props) {
   const user = await currentUser();
   const admin = !!user?.isAdmin;
   const r = admin ? built : hideSources(built);
+  const verdicts = await verdictsOn();
+  if (c) void recordAssessment(c);
   const open = r.free || (await featuresFor(user)).includes("risk_reports");
   return (
-    <ReportView r={r} open={open} admin={user?.isAdmin === true} signedIn={!!user} />
+    <ReportView r={r} open={open} admin={user?.isAdmin === true} signedIn={!!user} verdicts={verdicts} />
   );
 }
