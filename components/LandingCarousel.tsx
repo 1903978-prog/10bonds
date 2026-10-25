@@ -275,24 +275,18 @@ export function ListSlide({ t, bonds }: { t: LandingText; bonds: BenchmarkBond[]
   );
 }
 
-/** Countries: the 10bonds.com risk score of the euro area's main issuers. */
+/** Countries: a picture of the Brazil page in Risk assessment (the owner, 24/10/2026), a fixed image so it never shifts. */
 export function CountrySlide({ t }: { t: LandingText }) {
   const c = t.carousel;
-  const rows: [string, number][] = [["de", 1], ["nl", 1], ["fr", 3], ["es", 3], ["it", 4], ["ro", 6]];
   return (
-    <SlideCard title={actionTitle(c.act.country)} href="/risk-assessment">
-      <ul className="flex flex-1 flex-col justify-around">
-        {rows.map(([k, risk]) => (
-          <li key={k} className="flex items-center gap-3 text-[12.5px] lg:text-[13px]">
-            <span className="w-20 shrink-0 truncate font-medium">{c.countries[k as keyof typeof c.countries]}</span>
-            <span className="h-2 flex-1 rounded-full bg-[#eef2f0]">
-              <span className="block h-2 rounded-full" style={{ width: `${risk * 10}%`, background: riskColor(risk) }} />
-            </span>
-            <RiskBadge risk={risk} />
-          </li>
-        ))}
-      </ul>
-      <p className="mt-2 text-[11.5px] lg:text-[12px]" style={{ color: MUTE }}>{c.scale}</p>
+    <SlideCard title={actionTitle(c.act.country)} href="/risk-assessment/countries/brazil">
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7] bg-[#F5F5F7]">
+        {/* Desktop shows the whole page top; phones the narrow layout. Aligned to the top left, cropped at the bottom. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/carousel-brazil-phone.png" alt={c.countryAlt} className="absolute inset-0 h-full w-full object-cover object-top sm:hidden" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/carousel-brazil.png" alt={c.countryAlt} className="absolute inset-0 hidden h-full w-full object-cover object-left-top sm:block" />
+      </div>
     </SlideCard>
   );
 }
