@@ -62,7 +62,7 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
 
   return (
     <div
-      className="relative grid min-w-0"
+      className="relative grid min-w-0 h-[max(318px,calc(100svh_-_398px))] lg:h-[min(620px,calc(100vh_/_var(--z)_-_250px))]"
       role="region"
       aria-roledescription="carousel"
       aria-label={t.carousel.label}
@@ -194,19 +194,23 @@ export function HeatSlide({ t }: { t: LandingText }) {
   return (
     <SlideCard title={actionTitle(c.act.heat)}>
       <div className="grid min-h-0 flex-1 gap-[2px]" style={{ gridTemplateColumns: `30px repeat(${years.length}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rets.length}, minmax(0, 1fr)) 14px` }}>
-        {rets.map((r) => [
+        {rets.map((r) => {
+          // The framed cell: the horizon with the lowest expected loss for this return (the safest maturity).
+          const best = years.filter((y) => r <= cap(y) + 1e-9).reduce<number | null>((b, y) => (b === null || loss(r, y) < loss(r, b) ? y : b), null);
+          return [
           <span key={`r${r}`} className="self-center pr-1 text-right text-[9px] tabular-nums" style={{ color: MUTE }}>{r.toLocaleString(c.locale, { minimumFractionDigits: 1 })}%</span>,
           ...years.map((y) => {
             const ok = r <= cap(y) + 1e-9;
-            return <span key={`${r}-${y}`} className="min-h-[14px] rounded-[3px]" style={{ background: ok ? bandOf(loss(r, y)).bg : "#f2f2f4" }} />;
+            return <span key={`${r}-${y}`} className={`min-h-[14px] rounded-[3px] ${y === best ? "ring-2 ring-inset ring-[#132D3B]" : ""}`} style={{ background: ok ? bandOf(loss(r, y)).bg : "#f2f2f4" }} />;
           }),
-        ])}
+        ];
+        })}
         <span className="text-right text-[9px]" style={{ color: MUTE }}>{c.yrs}</span>
         {years.map((y) => <span key={`y${y}`} className="text-center text-[9px] tabular-nums" style={{ color: MUTE }}>{y}</span>)}
       </div>
       <p className="mt-2 flex items-center justify-between gap-2 text-[11px] lg:text-[11.5px]" style={{ color: MUTE }}>
-        <span className="truncate"><span className="sm:hidden">{c.heatKey.split(" · ").pop()}</span><span className="hidden sm:inline">{c.heatKey}</span></span>
-        <span className="flex shrink-0 items-center gap-1"><span className="h-2 w-8 rounded-full" style={{ background: "linear-gradient(90deg,#1b6e33,#c6e3a9,#f3e27c,#ec7f33,#8b1a12)" }} /></span>
+        <span className="min-w-0"><span className="block truncate sm:hidden">{c.heatKeyShort}</span><span className="hidden sm:line-clamp-2">{c.heatKey}</span></span>
+        <span className="flex shrink-0 items-center gap-1.5"><span className="h-3 w-4 rounded-[3px] bg-[#8cc782] ring-2 ring-inset ring-[#132D3B]" /><span className="h-2 w-8 rounded-full" style={{ background: "linear-gradient(90deg,#1b6e33,#c6e3a9,#f3e27c,#ec7f33,#8b1a12)" }} /></span>
       </p>
     </SlideCard>
   );
