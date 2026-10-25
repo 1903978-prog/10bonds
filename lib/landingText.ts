@@ -49,7 +49,7 @@ const en = {
   years: (n: string) => `${n} years`,
   extraTitle: "Additional illustrative return per year",
   extraSub: "At equal duration and a comparable modelled default probability.",
-  sciKicker: "The science of better combinations",
+  sciKicker: "The science of combinations",
   sciTitle: "Selected as a whole. Not each bond alone.",
   sciLead: "Bonds selected by the quantitative model for the parameters entered seek the highest attainable yield for a modeled risk level, or the lowest modeled risk for a given target yield.",
   maxReturn: "Higher return",
@@ -75,8 +75,8 @@ const en = {
     // Action titles, one per slide (the owner, 24/10/2026): [desktop, phone].
     act: {
       compare: ["Compare the Model portfolio with a bond ETF", "Model portfolio vs bond ETF"],
-      frontier: ["Find the best return/risk portfolio", "Best return/risk portfolio"],
-      curve: ["Find the best bond for each risk level", "Best bond for each risk"],
+      frontier: ["Efficient frontier: return and expected loss of model-selected bond sets", "Efficient frontier"],
+      curve: ["Model-selected bond for each risk level", "Selected bond per risk level"],
       list: ["See the top 10 bonds", "See the top 10 bonds"],
       country: ["Check country risk", "Check country risk"],
       company: ["Check company risk", "Check company risk"],
@@ -85,8 +85,8 @@ const en = {
     countryAlt: "Brazil country risk page", companyAlt: "ACMA 2031 bond: risk rating, key data and credit assessment",
 
     locale: "en-GB", label: "What 10bonds shows", slide: "Slide", prev: "Previous", next: "Next",
-    frontierShort: "Best return/risk portfolio", frontier: "Finding the best return/risk portfolio", lossAxis: "Expected loss on the money invested",
-    curveShort: "One bond, every risk level", curve: "One bond: best return for each risk level", curveX: "Higher risk → lower risk", curveCta: "Free with sign-up →",
+    frontierShort: "Efficient frontier", frontier: "Efficient frontier: return and expected loss", lossAxis: "Expected loss on the money invested",
+    curveShort: "One bond, every risk level", curve: "One bond: highest return for each risk level", curveX: "Higher risk → lower risk", curveCta: "Free with sign-up →",
     list: "Portfolio: top 10 bonds", bond: "Bond", maturity: "Maturity", risk: "Risk", ret: "Return",
     country: "Country risk", company: "Company risk", sector: "Consumer brands · Germany", rating: "10bonds.com rating",
     scale: "Risk 1 (lowest) to 10 (highest).",
@@ -138,7 +138,7 @@ const it: LandingText = {
   years: (n) => `${n} anni`,
   extraTitle: "Rendimento annuo in più in questo esempio",
   extraSub: "Stessa durata e rischio stimato di perdita comparabile.",
-  sciKicker: "La scienza delle combinazioni migliori",
+  sciKicker: "La scienza delle combinazioni",
   sciTitle: "Selezionato nel suo insieme. Non ogni singola obbligazione.",
   sciLead: "Le obbligazioni selezionate dal modello quantitativo per i parametri inseriti cercano il rendimento più alto per un livello di rischio stimato, o il rischio più basso per un rendimento obiettivo.",
   maxReturn: "Più rendimento",
@@ -161,8 +161,8 @@ const it: LandingText = {
   carousel: {
     act: {
       compare: ["Confronta il portafoglio del modello con un ETF", "Portafoglio del modello vs ETF"],
-      frontier: ["Trova il miglior portafoglio rendimento/rischio", "Miglior rendimento/rischio"],
-      curve: ["Trova la migliore obbligazione per ogni rischio", "Migliore per ogni rischio"],
+      frontier: ["Frontiera efficiente: rendimento e perdita attesa dei gruppi di obbligazioni selezionati dal modello", "Frontiera efficiente"],
+      curve: ["Obbligazione selezionata dal modello per ogni livello di rischio", "Selezionata per livello di rischio"],
       list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
       company: ["Verifica il rischio società", "Verifica il rischio società"],
@@ -171,8 +171,8 @@ const it: LandingText = {
     countryAlt: "Pagina del rischio paese: Brasile", companyAlt: "Obbligazione ACMA 2031: rating di rischio, dati chiave e valutazione del credito",
 
     locale: "it-IT", label: "Cosa mostra 10bonds", slide: "Immagine", prev: "Precedente", next: "Successiva",
-    frontierShort: "Miglior portafoglio", frontier: "Alla ricerca del miglior portafoglio rendimento/rischio", lossAxis: "Perdita attesa sul capitale investito",
-    curveShort: "Un'obbligazione, ogni rischio", curve: "Un'obbligazione: miglior rendimento per livello di rischio", curveX: "Rischio più alto → più basso", curveCta: "Gratis con la registrazione →",
+    frontierShort: "Frontiera efficiente", frontier: "Frontiera efficiente: rendimento e perdita attesa", lossAxis: "Perdita attesa sul capitale investito",
+    curveShort: "Un'obbligazione, ogni rischio", curve: "Un'obbligazione: rendimento più alto per livello di rischio", curveX: "Rischio più alto → più basso", curveCta: "Gratis con la registrazione →",
     list: "Portafoglio: le 10 obbligazioni top", bond: "Obbligazione", maturity: "Scadenza", risk: "Rischio", ret: "Rendimento",
     country: "Rischio paese", company: "Rischio società", sector: "Marchi di consumo · Germania", rating: "Rating 10bonds.com",
     scale: "Rischio da 1 (minimo) a 10 (massimo).",
@@ -223,7 +223,7 @@ const fr: LandingText = {
   years: (n) => `${n} ans`,
   extraTitle: "Rendement annuel en plus dans cet exemple",
   extraSub: "Même durée et risque modélisé de perte comparable.",
-  sciKicker: "La science des meilleures combinaisons",
+  sciKicker: "La science des combinaisons",
   sciTitle: "Sélectionné dans son ensemble. Pas chaque obligation isolément.",
   sciLead: "Les obligations sélectionnées par le modèle quantitatif pour les paramètres saisis cherchent le rendement le plus élevé pour un niveau de risque modélisé, ou le risque le plus faible pour un rendement visé.",
   maxReturn: "Plus de rendement",
@@ -246,8 +246,8 @@ const fr: LandingText = {
   carousel: {
     act: {
       compare: ["Comparer le portefeuille du modèle à un ETF obligataire", "Portefeuille du modèle vs ETF"],
-      frontier: ["Trouver le meilleur portefeuille rendement/risque", "Meilleur rendement/risque"],
-      curve: ["Trouver la meilleure obligation pour chaque risque", "Meilleure par risque"],
+      frontier: ["Frontière efficiente : rendement et perte attendue des ensembles d'obligations sélectionnés par le modèle", "Frontière efficiente"],
+      curve: ["Obligation sélectionnée par le modèle pour chaque niveau de risque", "Sélectionnée par niveau de risque"],
       list: ["Voir les 10 obligations top", "Voir les 10 top"],
       country: ["Vérifier le risque pays", "Vérifier le risque pays"],
       company: ["Vérifier le risque entreprise", "Risque entreprise"],
@@ -256,8 +256,8 @@ const fr: LandingText = {
     countryAlt: "Page du risque pays : Brésil", companyAlt: "Obligation ACMA 2031 : notation de risque, données clés et évaluation du crédit",
 
     locale: "fr-FR", label: "Ce que montre 10bonds", slide: "Image", prev: "Précédente", next: "Suivante",
-    frontierShort: "Meilleur portefeuille", frontier: "Trouver le meilleur portefeuille rendement/risque", lossAxis: "Perte attendue sur le capital investi",
-    curveShort: "Une obligation, chaque risque", curve: "Une obligation : meilleur rendement par niveau de risque", curveX: "Risque plus élevé → plus faible", curveCta: "Gratuit avec inscription →",
+    frontierShort: "Frontière efficiente", frontier: "Frontière efficiente : rendement et perte attendue", lossAxis: "Perte attendue sur le capital investi",
+    curveShort: "Une obligation, chaque risque", curve: "Une obligation : rendement le plus élevé par niveau de risque", curveX: "Risque plus élevé → plus faible", curveCta: "Gratuit avec inscription →",
     list: "Portefeuille : les 10 obligations top", bond: "Obligation", maturity: "Échéance", risk: "Risque", ret: "Rendement",
     country: "Risque pays", company: "Risque entreprise", sector: "Marques grand public · Allemagne", rating: "Notation 10bonds.com",
     scale: "Risque de 1 (le plus bas) à 10 (le plus haut).",
@@ -308,7 +308,7 @@ const de: LandingText = {
   years: (n) => `${n} Jahre`,
   extraTitle: "Mehr Rendite pro Jahr in diesem Beispiel",
   extraSub: "Gleiche Laufzeit und vergleichbares modelliertes Verlustrisiko.",
-  sciKicker: "Die Wissenschaft besserer Kombinationen",
+  sciKicker: "Die Wissenschaft der Kombinationen",
   sciTitle: "Als Ganzes ausgewählt. Nicht jede Anleihe einzeln.",
   sciLead: "Vom quantitativen Modell für die eingegebenen Parameter ausgewählte Anleihen suchen die höchste Rendite für ein modelliertes Risiko oder das niedrigste modellierte Risiko für eine Zielrendite.",
   maxReturn: "Mehr Rendite",
@@ -331,8 +331,8 @@ const de: LandingText = {
   carousel: {
     act: {
       compare: ["Modell-Portfolio mit einem Anleihe-ETF vergleichen", "Modell-Portfolio vs ETF"],
-      frontier: ["Das beste Rendite-Risiko-Portfolio finden", "Bestes Rendite-Risiko"],
-      curve: ["Die beste Anleihe je Risikostufe finden", "Beste je Risikostufe"],
+      frontier: ["Effizienzlinie: Rendite und erwarteter Verlust der vom Modell ausgewählten Anleihegruppen", "Effizienzlinie"],
+      curve: ["Vom Modell ausgewählte Anleihe je Risikostufe", "Ausgewählt je Risikostufe"],
       list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
       country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
       company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],
@@ -341,8 +341,8 @@ const de: LandingText = {
     countryAlt: "Länderrisiko-Seite: Brasilien", companyAlt: "Anleihe ACMA 2031: Risikorating, Kennzahlen und Kreditbewertung",
 
     locale: "de-DE", label: "Was 10bonds zeigt", slide: "Bild", prev: "Zurück", next: "Weiter",
-    frontierShort: "Bestes Portfolio", frontier: "Das beste Rendite-Risiko-Portfolio finden", lossAxis: "Erwarteter Verlust auf das investierte Kapital",
-    curveShort: "Eine Anleihe, jedes Risiko", curve: "Eine Anleihe: beste Rendite je Risikostufe", curveX: "Höheres Risiko → niedrigeres", curveCta: "Gratis mit Anmeldung →",
+    frontierShort: "Effizienzlinie", frontier: "Effizienzlinie: Rendite und erwarteter Verlust", lossAxis: "Erwarteter Verlust auf das investierte Kapital",
+    curveShort: "Eine Anleihe, jedes Risiko", curve: "Eine Anleihe: höchste Rendite je Risikostufe", curveX: "Höheres Risiko → niedrigeres", curveCta: "Gratis mit Anmeldung →",
     list: "Portfolio: die Top-10-Anleihen", bond: "Anleihe", maturity: "Fälligkeit", risk: "Risiko", ret: "Rendite",
     country: "Länderrisiko", company: "Unternehmensrisiko", sector: "Konsumgütermarken · Deutschland", rating: "10bonds.com-Rating",
     scale: "Risiko 1 (niedrigstes) bis 10 (höchstes).",

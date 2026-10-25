@@ -5,7 +5,7 @@ const en = {
   headline: "Build the most efficient bond portfolio for your horizon.",
   dots: (n: string) => `Every dot is a real bond: ${n} euro bonds, placed by risk and return.`,
   s1: "Select the best bond for a defined risk and maturity",
-  s1Sub: "Pick a maturity: its bonds turn blue. Then pick a risk level (10bonds.com rating, 1 to 10): the red dot is the bond with the best return.",
+  s1Sub: "Pick a maturity: its bonds turn blue. Then pick a risk level (10bonds.com rating, 1 to 10): the red dot is the bond with the highest return.",
   s2: "Get the top 10 portfolio",
   s2Sub: "The bonds with the highest return for a defined risk, joined by the red line: the highest return found at each risk level in our data.",
   s3: "Compare different portfolios",
