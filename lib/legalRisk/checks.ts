@@ -54,6 +54,7 @@ const res = (id: string, title: string, criteria: number[], level: Level, detail
 /** Checks that scan the source tree (lib/legalRisk/sourceChecks.test.ts). They run in the release tests, not on the live site. */
 export const SOURCE_CHECKS: { id: string; title: string; criteria: number[] }[] = [
   { id: "no-buy-sell-labels", title: "No new BUY / SELL / AVOID labels in customer-facing code", criteria: [3, 4, 5] },
+  { id: "verdicts-default-off", title: "BUY / WATCH / AVOID labels stay off for customers unless the owner switches them on", criteria: [5] },
   { id: "no-suitability-profiling", title: "No investor-profiling questions (risk tolerance, objectives, income) in customer code", criteria: [3, 4] },
   { id: "no-execution-features", title: "No order, trade or execution features", criteria: [8] },
   { id: "api-route-inventory", title: "No new API route that looks like advice, orders or recommendations", criteria: [3, 8] },

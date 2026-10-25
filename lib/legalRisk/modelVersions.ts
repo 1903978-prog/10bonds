@@ -3,6 +3,7 @@
 // and the author has to bump the version here on purpose (so no score changes silently).
 import { DEFAULT_RATES, DEFAULT_YEARS } from "../seo/defaultRates";
 import { LOSS_GIVEN_DEFAULT } from "../expectedLoss";
+import { MODEL_VERSION } from "../assessmentModel";
 
 export type ModelVersion = { id: string; module: string; version: string; effective: string; description: string; fingerprint?: string };
 
@@ -18,6 +19,7 @@ export const MODEL_VERSIONS: ModelVersion[] = [
   { id: "risk-score-mapping", module: "lib/ratings.ts", version: "1.0.0", effective: "2026-10-24", description: "Risk score 1-10: own LR score when present, else the worst of the three agency grades; 1=AAA ... 10=CC/C/D." },
   { id: "expected-loss", module: "lib/expectedLoss.ts", version: "1.0.0", effective: "2026-10-19", description: "Yield after expected losses = yield - cumulative default / years x loss given default.", fingerprint: "6c8e8ec8" },
   { id: "default-rate-table", module: "lib/seo/defaultRates.ts", version: "1.0.0", effective: "2026-10-19", description: "Average cumulative default rates per notch and horizon, combined from three public studies.", fingerprint: "52b70902" },
+  { id: "issuer-assessment", module: "lib/assessmentModel.ts", version: MODEL_VERSION, effective: "2026-10-25", description: "Issuer research score and six-factor scorecard on report pages; every published assessment is logged in app.assessment_evidence." },
   { id: "risk-premium-curve", module: "lib/riskPremium/versions.ts", version: "database", effective: "2026-10-20", description: "Required spread per rating; versions are stored in the database and never edited once active." },
 ];
 

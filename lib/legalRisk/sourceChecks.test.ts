@@ -47,6 +47,13 @@ describe("marketing claims", () => {
   });
 });
 
+describe("verdict labels default off", () => {
+  it("verdictsOn() is true only when the setting is exactly \"1\", and the report shows labels only to admin or when on", () => {
+    expect(/return \(await getSetting\(KEY\)\.catch\(\(\) => null\)\) === "1"/.test(read("lib/assessments.ts"))).toBe(true);
+    expect(/showView = admin \|\| verdicts/.test(read("components/report/ReportView.tsx"))).toBe(true);
+  });
+});
+
 describe("no investor profiling", () => {
   it("customer code does not ask about risk tolerance, objectives, income or net worth", () => {
     const re = /risk tolerance|risk appetite|investment objectives?|investment experience|annual income|net worth|marital status/i;
