@@ -9,9 +9,14 @@ export default function FocusTabs({ active }: { active: "companies" | "countries
     </Link>
   );
   return (
-    <div className="inline-flex rounded-full bg-line/50 p-0.5 text-[12px]">
-      {item("companies", "/risk-assessment", "Companies")}
-      {item("countries", "/risk-assessment/countries", "Countries")}
-    </div>
+    <>
+      <div className="inline-flex rounded-full bg-line/50 p-0.5 text-[12px]">
+        {item("companies", "/risk-assessment", "Companies")}
+        {item("countries", "/risk-assessment/countries", "Countries")}
+      </div>
+      <span className="text-[12px] text-mute">
+        Methodology: <Link href="/methodology?type=corporate" className="text-accent hover:underline">Companies</Link> · <Link href="/methodology" className="text-accent hover:underline">Countries</Link>
+      </span>
+    </>
   );
 }
