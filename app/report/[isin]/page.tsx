@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ReportView from "@/components/report/ReportView";
 import { buildReport, hideSources } from "@/lib/bondReport";
+import { enforceEvidence } from "@/lib/legalRisk/evidence";
 import { findCompany } from "@/lib/companiesInFocus";
 import { currentUser } from "@/lib/currentUser";
 import { loadAllShown } from "@/lib/bonds";
@@ -44,7 +45,8 @@ export default async function ReportPage({ params }: Props) {
   }
   const user = await currentUser();
   const admin = !!user?.isAdmin;
-  const r = admin ? built : hideSources(built);
+  // Customers never see a dated-market or model figure without its evidence: it is shown as "Not verified" instead (lib/legalRisk/evidence.ts).
+  const r = admin ? built : hideSources(enforceEvidence(built));
   const verdicts = await verdictsOn();
   if (c) void recordAssessment(c);
   const open = r.free || (await featuresFor(user)).includes("risk_reports");
