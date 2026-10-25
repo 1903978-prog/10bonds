@@ -93,6 +93,7 @@ export const CRITERIA: Criterion[] = [
       { ref: "app/api/pro/replace/route.ts:1-45, lib/replacement.ts", note: "Pro tool takes an uploaded portfolio and returns per-holding swap/keep lines (action 'swap' / 'keep', fields sell/buy). Closest feature to a personal recommendation.", verified: true },
       { ref: "lib/terms.ts:23-26, lib/disclaimer.ts:17-22", note: "Terms and disclaimer say no suitability assessment, no recommendation.", verified: true },
       { ref: "components/ProRequestForm.tsx:61", note: "Professionals confirm they stay responsible for suitability; Pro access approved by admin.", verified: true },
+      { ref: "components/ConsentGate.tsx, lib/consentText.ts, app.consents", note: "First use of the portfolio builder asks for a ticked agreement (illustration only, no recommendation to buy, formula accepted). Account, wording version, language, exact text and time are stored in app.consents.", verified: true },
     ],
     probability: 35, impact: 75,
     mitigation: "Keep the finder impersonal (filters, not suitability); never ask for age, income, objectives or risk tolerance (guarded by test); keep Pro limited to approved professionals under written terms; replace 'sell/buy/keep' wording in Pro with neutral 'alternative with similar duration'.",
