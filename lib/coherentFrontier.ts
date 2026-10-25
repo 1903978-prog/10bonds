@@ -55,8 +55,10 @@ type Outcome = { status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] }
 export function candidatesOf(bonds: PublicBond[], duration: number): Cand[] {
   const { pool } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), duration, N);
   const cands = pool
-    .filter((b) => b.grossYtm !== null && b.grossYtm > 0 && b.modifiedDuration !== null && issuerVerified(b))
+    .filter((b) => b.grossYtm !== null && b.grossYtm > 0 && Number.isFinite(b.grossYtm) && b.modifiedDuration !== null && Number.isFinite(b.modifiedDuration) && issuerVerified(b))
     .map((b) => ({ ...factsOf(b), b, ret: b.grossYtm!, dur: b.modifiedDuration!, u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9), notch: bondNotch(b) ?? UNRATED_NOTCH, years: lifeYears(b), beatenBy: new Set<string>() }));
+  // A bond whose default chance cannot be worked out (no usable maturity) cannot be priced into the model: left out.
+  for (let i = cands.length - 1; i >= 0; i--) if (!Number.isFinite(cands[i].pd) || !Number.isFinite(cands[i].years)) cands.splice(i, 1);
   for (const b of cands) for (const d of cands) {
     if (d.group !== b.group && d.notch < b.notch && d.pd < b.pd - 1e-12 && d.ret >= b.ret - stepGap(d.notch, b.notch, b.years) - 1e-9) b.beatenBy.add(d.group!);
   }
@@ -98,34 +100,29 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   for (const [, idx] of by((c) => c.sector)) if (idx.length > p.maxPerSector) add(`sec${k++}`, sum(idx, () => 1), "<=", p.maxPerSector);
   const objective = spec.objective === "loss" ? `Minimize\n obj: ${sum(all, (i) => cs[i].pd)}` : `Maximize\n obj: ${sum(all, (i) => cs[i].ret)}`;
 
-  const share = new Set<number>();
-  const spreadRows = new Map<string, string>();
+  // Loss share: S = the list's summed default chance, and every bond's own default chance <= share x S (sparse rows).
+  const shareRows = [
+    ` sdef: S - ${joinLines(all.filter((i) => cs[i].pd > 1e-12).map((i) => `${num(cs[i].pd)} x${i}`), " - ")} = 0`,
+    ...all.filter((i) => cs[i].pd > 1e-12).map((i) => ` sh${i}: ${num(cs[i].pd)} x${i} - ${num(p.maxLossShare)} S <= 0`),
+  ];
+  // Spread rule: a chosen bond needs every group holding a safer bond that beats it to be chosen too (b <= that group's bonds).
   const members = by((c) => c.group!);
-  for (let round = 0; round < 200; round++) {
-    const shareRows = [...share].map((i) => ` sh${i}: ${num(cs[i].pd * (1 - p.maxLossShare))} x${i} - ${joinLines(all.filter((j) => j !== i && cs[j].pd > 0).map((j) => `${num(p.maxLossShare * cs[j].pd)} x${j}`), " - ") || "0 x" + i} <= 0`);
-    const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows.values()].join("\n")}\nBinary\n ${all.map((i) => `x${i}`).reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
-    await new Promise((r) => setImmediate(r));
-    stats.solves++;
-    const res = highs.solve(lp, SOLVER_OPTIONS);
-    if (res.Status === "Infeasible" || res.Status === "Primal infeasible or unbounded") { stats.infeasible++; return { status: "infeasible", sel: [] }; }
-    if (res.Status !== "Optimal") { if (process.env.COH_DEBUG) console.log("STATUS", res.Status); stats.uncertified++; return { status: "uncertified", sel: all.filter((i) => (res.Columns[`x${i}`]?.Primal ?? 0) > 0.5).map((i) => cs[i]) }; }
-    const sel = all.filter((i) => res.Columns[`x${i}`].Primal > 0.5);
-    const total = sel.reduce((s, i) => s + cs[i].pd, 0);
-    const bad = sel.filter((i) => cs[i].pd > p.maxLossShare * total + 1e-9 && !share.has(i));
-    // Spread rule: a chosen bond beaten by a safer group that has nothing chosen gets a row (b <= that group's bonds).
-    const chosenGroups = new Set(sel.map((i) => cs[i].group!));
-    let more = 0;
-    for (const i of sel) for (const g of cs[i].beatenBy) {
-      const key = `${i}:${g}`;
-      if (chosenGroups.has(g) || spreadRows.has(key)) continue;
-      spreadRows.set(key, ` sp${spreadRows.size}: x${i} - ${joinLines((members.get(g) ?? []).map((j) => `x${j}`), " - ")} <= 0`);
-      more++;
-    }
-    if (!bad.length && !more) { stats.optimal++; return { status: "optimal", sel: sel.map((i) => cs[i]) }; }
-    for (const i of bad) share.add(i);
+  const spreadRows: string[] = [];
+  for (const i of all) for (const g of cs[i].beatenBy) spreadRows.push(` sp${spreadRows.length}: x${i} - ${joinLines((members.get(g) ?? []).map((j) => `x${j}`), " - ")} <= 0`);
+  const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows].join("\n")}\nBounds\n S >= 0\nBinary\n ${all.map((i) => `x${i}`).reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
+  if (/NaN|Infinity/.test(lp)) throw new Error("Coherent model has a non-finite number");
+  await new Promise((r) => setImmediate(r));
+  stats.solves++;
+  let res: ReturnType<typeof highs.solve>;
+  try { res = highs.solve(lp, SOLVER_OPTIONS); } catch (e) {
+    const longest = Math.max(...lp.split("\n").map((l) => l.length));
+    throw new Error(`${(e as Error).message} [model: ${cs.length} bonds, ${spreadRows.length} spread rows, ${lp.length} characters, longest line ${longest}, m=${m}]`);
   }
-  stats.uncertified++;
-  return { status: "uncertified", sel: [] };
+  if (res.Status === "Infeasible" || res.Status === "Primal infeasible or unbounded") { stats.infeasible++; return { status: "infeasible", sel: [] }; }
+  const sel = all.filter((i) => (res.Columns[`x${i}`]?.Primal ?? 0) > 0.5).map((i) => cs[i]);
+  if (res.Status !== "Optimal") { stats.uncertified++; return { status: "uncertified", sel }; }
+  stats.optimal++;
+  return { status: "optimal", sel };
 }
 
 const lossOf = (sel: Cand[]) => sel.reduce((s, c) => s + c.pd, 0);
