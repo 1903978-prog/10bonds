@@ -15,5 +15,5 @@ export const dynamic = "force-dynamic";
 export default async function RiskAssessment() {
   const user = await currentUser();
   const c = COMPANIES_IN_FOCUS.find((x) => x.free) ?? COMPANIES_IN_FOCUS[0];
-  return <CompanyFocus c={c} paid={(await featuresFor(user)).includes("risk_reports")} admin={user.isAdmin === true} />;
+  return <CompanyFocus c={c} paid={(await featuresFor(user)).includes("risk_reports")} admin={user?.isAdmin === true} />;
 }
