@@ -6,7 +6,7 @@ import { trackOnce } from "@/lib/track";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import LandingCarousel, { actionTitle, CompanySlide, CountrySlide, CurvesScreen, FrontierScreen, HeatScreen, ListScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
+import LandingCarousel, { actionTitle, CompanySlide, CountrySlide, FrontierScreen, ListScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
@@ -70,8 +70,6 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <LandingCarousel t={t} slides={[
             { key: "compare", node: <Comparison t={t} num={num} bench={bench} /> },
             { key: "frontier", node: <ScreenSlide title={actionTitle(t.carousel.act.frontier)}><FrontierScreen lang={lang} /></ScreenSlide> },
-            { key: "curves", node: <ScreenSlide title={actionTitle(t.carousel.act.curves)}><CurvesScreen lang={lang} /></ScreenSlide> },
-            { key: "heat", node: <ScreenSlide title={actionTitle(t.carousel.act.heat)}><HeatScreen lang={lang} /></ScreenSlide> },
             { key: "curve", node: <ScreenSlide title={actionTitle(t.carousel.act.curve)}><OneBondScreen lang={lang} /></ScreenSlide> },
             { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={bonds} /></ScreenSlide> },
             { key: "country", node: <CountrySlide t={t} /> },
