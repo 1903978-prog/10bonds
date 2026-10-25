@@ -634,11 +634,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {/* Results */}
       {mode === "single" ? (
         <section
-          className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] max-sm:pt-3 sm:p-5 lg:min-h-[var(--results-h)]"
+          className="flex flex-col sm:rounded-[28px] sm:bg-white sm:p-5 sm:shadow-[0_2px_20px_rgba(0,0,0,0.04)] lg:min-h-[var(--results-h)]"
           style={resultsH ? { ["--results-h" as string]: `${resultsH}px` } : undefined}
         >
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
-          <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle}</p>
+          <p className="mt-auto px-2 pt-3 text-[11px] leading-snug text-mute sm:px-0 sm:pt-2" data-testid="ranking-note">{t.howSingle}</p>
         </section>
       ) : (
       // On phones this box gives way to the full-screen results page (PhoneResults), so the slider page never scrolls down to it.
