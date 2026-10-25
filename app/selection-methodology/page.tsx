@@ -12,9 +12,9 @@ import { LANDING_TEXT } from "@/lib/landingText";
 
 export const metadata: Metadata = {
   title: "Selection methodology · 10BONDS",
-  description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest chance of a loss, and how the list is built.",
+  description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest modelled probability of at least one issuer default, and how the list is built.",
   alternates: { canonical: "/selection-methodology" },
-  openGraph: { title: "Selection methodology · 10BONDS", description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest chance of a loss, and how the list is built.", url: "/selection-methodology" },
+  openGraph: { title: "Selection methodology · 10BONDS", description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest modelled probability of at least one issuer default, and how the list is built.", url: "/selection-methodology" },
 };
 export const dynamic = "force-dynamic";
 

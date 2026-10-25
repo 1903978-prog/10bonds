@@ -23,7 +23,7 @@ export async function bondByIsin(isin: string): Promise<{ bond: PublicBond; all:
 }
 
 const home = (l: BondLang) => (l === "en" ? "/" : `/${l}`);
-const method = (l: BondLang) => (l === "en" ? "/methodology" : pathOf(l, "method"));
+const method = (l: BondLang) => (l === "en" ? "/selection-methodology" : pathOf(l, "method"));
 const bondsHub = (l: BondLang) => (l === "en" ? "/" : pathOf(l, "bonds"));
 
 /** One bond's public page: ISIN in the title, heading and text; facts for everyone; yield and rank for Plus and up. */

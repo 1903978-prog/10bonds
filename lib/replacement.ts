@@ -253,7 +253,7 @@ function rationale(kind: "yield" | "risk", sell: BondView, buy: BondView, gross:
   const out: string[] = [];
   out.push(
     kind === "yield"
-      ? `Higher yield for the same risk: ${pct(buy.ytm)} instead of ${pct(sell.ytm)} (${signedPct(gross)} a year).`
+      ? `Higher yield at the same risk level: ${pct(buy.ytm)} instead of ${pct(sell.ytm)} (${signedPct(gross)} a year).`
       : `Lower credit risk for a similar yield: risk ${buy.risk} instead of ${sell.risk}.`,
   );
   out.push(`Similar interest-rate risk: duration ${yrs(buy.duration)} vs ${yrs(sell.duration)} (${durDiff >= 0 ? "+" : "−"}${Math.abs(durDiff).toFixed(1)} yrs).`);

@@ -82,7 +82,7 @@ export default function ReplacementEngine() {
         <h1 className="mt-1 text-[32px] font-semibold leading-[1.1] tracking-tight sm:text-[40px]">Bond Replacement Engine</h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-mute sm:text-base">
           Upload a client portfolio. We compare every bond with similar bonds in our data and show, one by one, any alternative with a higher yield or lower risk and how it differs. The decision stays with you.
-          A swap is only shown when the gain is clear after trading costs. Otherwise we say <strong className="text-ink">keep</strong>.
+          A swap is only shown when the gain is clear after trading costs. Otherwise we show <strong className="text-ink">no alternative</strong>.
         </p>
 
         <form onSubmit={run} className="mt-6 space-y-4">

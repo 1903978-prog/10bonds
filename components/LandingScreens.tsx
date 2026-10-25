@@ -43,13 +43,13 @@ function Chrome({ wide, lang, children }: { wide: boolean; lang: FinderLang; chi
       {wide && (
         <div className="flex h-10 shrink-0 items-center gap-2 border-b border-[#dcdfe4] bg-[#ebecef] px-4">
           {["#ff5f57", "#febc2e", "#28c840"].map((c) => <span key={c} className="h-3 w-3 rounded-full" style={{ background: c }} />)}
-          <span className="mx-auto flex h-6 w-[380px] items-center justify-center rounded-md bg-white text-[13px] text-[#6e6e73]">10bonds.com</span>
+          <span className="mx-auto flex h-6 w-[380px] items-center justify-center rounded-md bg-white text-[13px] text-[#55555b]">10bonds.com</span>
           <span className="w-[52px]" />
         </div>
       )}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e3e5e8] bg-white px-6">
         <span className="text-[28px] font-semibold leading-none tracking-tight">10</span>
-        <span className="flex items-center gap-6 text-[14px] text-[#6e6e73]">
+        <span className="flex items-center gap-6 text-[14px] text-[#55555b]">
           {wide && nav.slice(0, 3).map((n) => <span key={n}>{n}</span>)}
           <span className="font-semibold text-[#1d1d1f]">{lang.toUpperCase()}</span>
           {wide && <span>{nav[3]}</span>}
@@ -63,7 +63,7 @@ function Chrome({ wide, lang, children }: { wide: boolean; lang: FinderLang; chi
 
 const Seg = ({ items, on }: { items: string[]; on: number }) => (
   <div className="flex rounded-full bg-[#f0f0f3] p-1 text-[15px] font-medium">
-    {items.map((s, i) => <span key={s} className={`flex-1 rounded-full py-1.5 text-center ${i === on ? "bg-white shadow-sm" : "text-[#6e6e73]"}`}>{s}</span>)}
+    {items.map((s, i) => <span key={s} className={`flex-1 rounded-full py-1.5 text-center ${i === on ? "bg-white shadow-sm" : "text-[#55555b]"}`}>{s}</span>)}
   </div>
 );
 const Track = ({ at }: { at: number }) => (
@@ -80,19 +80,19 @@ function Controls({ f, single, horizon, mix }: { f: FinderText; single: boolean;
       <div className="text-[22px] font-semibold leading-[1.1] tracking-tight">{f.h1}</div>
       <Seg items={[f.single, f.portfolio]} on={single ? 0 : 1} />
       <div>
-        <div className="text-[13px] text-[#6e6e73]">{f.currency}</div>
+        <div className="text-[13px] text-[#55555b]">{f.currency}</div>
         <div className="mt-1.5"><Seg items={["EUR", "USD"]} on={0} /></div>
       </div>
       <div>
         <div className="flex items-baseline justify-between"><span className="text-[15px] font-semibold">{f.horizon}</span><span className="text-[15px] font-semibold">{horizon} {f.years}</span></div>
         <Track at={(horizon - 1) / 14} />
-        <div className="mt-1.5 flex justify-between text-[12px] text-[#6e6e73]"><span>{f.year1}</span><span>15 {f.years}</span></div>
+        <div className="mt-1.5 flex justify-between text-[12px] text-[#55555b]"><span>{f.year1}</span><span>15 {f.years}</span></div>
       </div>
       {!single && (
         <div>
           <div className="flex items-baseline justify-between"><span className="text-[15px] font-semibold">{f.mixLabel}</span><span className="text-[15px] font-semibold">{mix} / 30</span></div>
           <Track at={(mix - 1) / 29} />
-          <div className="mt-1.5 flex justify-between text-[12px] text-[#6e6e73]"><span>{f.lowReturn}</span><span>{f.highReturn}</span></div>
+          <div className="mt-1.5 flex justify-between text-[12px] text-[#55555b]"><span>{f.lowReturn}</span><span>{f.highReturn}</span></div>
         </div>
       )}
     </div>
@@ -119,16 +119,16 @@ function BondList({ f, bonds, compact }: { f: FinderText; bonds: BenchmarkBond[]
   const rows = Array.from({ length: 10 }, (_, i) => bonds[i] ?? null);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex border-b border-[#ececef] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-[#86868b]">
+      <div className="flex border-b border-[#ececef] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-[#55555b]">
         <span className="w-6" /><span className="min-w-0 flex-1">{f.single}</span>
         {!compact && <span className="w-16 text-right">{f.maturity}</span>}<span className="w-14 text-center">{f.risk}</span><span className="w-16 text-right">%</span>
       </div>
       <ol className="flex min-h-0 flex-1 flex-col justify-between">
         {rows.map((b, i) => (
           <li key={i} className="flex items-center border-b border-[#f3f3f5] text-[15px] tabular-nums last:border-0">
-            <span className="w-6 text-[#86868b]">{i + 1}</span>
+            <span className="w-6 text-[#6b6b72]">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate font-medium">{b?.name ?? "–"}</span>
-            {!compact && <span className="w-16 text-right text-[#6e6e73]">{b?.year ?? "–"}</span>}
+            {!compact && <span className="w-16 text-right text-[#55555b]">{b?.year ?? "–"}</span>}
             <span className="w-14 text-center">{b?.risk != null ? <RiskBadge risk={b.risk} /> : "–"}</span>
             <span className="w-16 text-right font-semibold">{b?.ytm != null ? b.ytm.toFixed(2) : "–"}</span>
           </li>
@@ -167,16 +167,16 @@ function BestByRisk({ f }: { f: FinderText }) {
     <div ref={box} className="h-full w-full overflow-hidden">
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" fontSize={14} role="img" aria-label={f.chartLabel}>
         {[2.5, 3.5, 4.5, 5.5].map((v) => (
-          <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" /><text x={L - 10} y={y(v) + 5} textAnchor="end" fill="#86868b">{v.toFixed(1)}%</text></g>
+          <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" /><text x={L - 10} y={y(v) + 5} textAnchor="end" fill="#6b6b72">{v.toFixed(1)}%</text></g>
         ))}
         <polyline points={shown.map(([r, v]) => `${x(r)},${y(v)}`).join(" ")} fill="none" stroke={BLUE} strokeWidth={3} strokeLinejoin="round" />
         {pts.map(([r, v]) => (
           <g key={r}>
-            <text x={x(r)} y={H - B + 22} textAnchor="middle" fill="#86868b">{r}</text>
+            <text x={x(r)} y={H - B + 22} textAnchor="middle" fill="#6b6b72">{r}</text>
             {v > 0 && <><circle cx={x(r)} cy={y(v)} r={r === 7 ? 8 : 6} fill={r === 7 ? BLUE : "#fff"} stroke={BLUE} strokeWidth={2.5} /><text x={x(r)} y={y(v) - 14} textAnchor="middle" fontWeight={600}>{v.toFixed(1)}%</text></>}
           </g>
         ))}
-        <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fill="#86868b">{f.riskAxis}</text>
+        <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fill="#6b6b72">{f.riskAxis}</text>
       </svg>
     </div>
   );
@@ -192,7 +192,7 @@ export function OneBondScreen({ lang }: { lang: FinderLang }) {
         <Panel>
           <div className="min-h-0 flex-1"><BestByRisk f={f} /></div>
           <div className="mt-3 flex shrink-0 items-center justify-between rounded-[12px] border border-[#e5e5ea] px-4 py-3 text-[15px]">
-            <span className="flex items-center gap-3"><RiskBadge risk={7} /><span className="font-semibold">Teva</span><span className="text-[#6e6e73]">Teva 4.375% 2030</span></span>
+            <span className="flex items-center gap-3"><RiskBadge risk={7} /><span className="font-semibold">Teva</span><span className="text-[#55555b]">Teva 4.375% 2030</span></span>
             <span className="text-[26px] font-semibold tabular-nums">5.10%</span>
           </div>
         </Panel>

@@ -127,3 +127,19 @@ describe("subscription UI", () => {
     expect(statSync(path.join(ROOT, "app/api/billing/cancel/route.ts")).isFile()).toBe(true);
   });
 });
+
+describe("scores are admin-only", () => {
+  it("risk assessment, report and rating methodology pages are gated to the admin", () => {
+    expect(read("app/risk-assessment/layout.tsx")).toContain("requireAdmin()");
+    expect(read("app/report/[isin]/layout.tsx")).toContain("requireAdmin()");
+    expect(read("app/methodology/page.tsx")).toContain("requireAdmin(");
+  });
+  it("customers get no menu link, sitemap entry or landing slide for them", () => {
+    expect(read("app/layout.tsx")).toMatch(/admin && <Link href="\/risk-assessment"/);
+    const sitemap = read("app/sitemap.ts");
+    expect(sitemap).not.toContain('"/risk-assessment');
+    expect(sitemap).not.toContain('"/methodology"');
+    expect(read("components/Landing.tsx")).not.toContain("<CountrySlide");
+    expect(read("components/FooterNote.tsx")).not.toContain('"/methodology"');
+  });
+});
