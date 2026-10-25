@@ -2,7 +2,7 @@
 
 import { useGptRatings } from "@/lib/gptStore";
 import { bondNote } from "@/lib/bondNotes";
-import { SCENARIO_CAVEAT, SCENARIO_SOURCE } from "@/lib/provisionalScenarios";
+import { SCENARIO_CAVEAT, SCENARIO_SOURCE } from "@/lib/scenarioText";
 
 /** Admin only: the "BR" (bond rating) and "IR" (issuer rating) column headers, both from GPT. */
 export const BR_HEAD = "BR";

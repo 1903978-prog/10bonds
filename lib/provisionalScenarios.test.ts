@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SCENARIOS, matchScenarios, scenarioRow, type Candidate } from "./provisionalScenarios";
+import { readFileSync, readdirSync } from "node:fs";
+import { ALL_SCENARIOS, SCENARIOS, matchScenarios, scenarioRow, type Candidate } from "./provisionalScenarios";
 
 const c = (isin: string, issuer: string, maturity: string, currency = "EUR"): Candidate => ({ isin, name: issuer, issuer, currency, maturity });
 
@@ -22,5 +23,17 @@ describe("provisional scenarios", () => {
     expect(r.find((m) => m.scenario.key === "eqt")!.isin).toBe("XS2338570331");
     expect(r.find((m) => m.scenario.key === "bosch")!.problem).toBe("ambiguous");
     expect(r.find((m) => m.scenario.key === "linde")!.problem).toBe("none");
+  });
+  it("has the 20 bonds; batch 2 matches by ISIN and keeps his markers", () => {
+    expect(ALL_SCENARIOS).toHaveLength(20);
+    const r = matchScenarios([c("IT0005636797", "UniCredit", "2031-03-26"), c("XS2073758885", "PLN", "2031-11-04")]);
+    expect(r.find((m) => m.scenario.key === "unicredit")!.isin).toBe("IT0005636797");
+    expect(r.find((m) => m.scenario.key === "pln")!.problem).toBe("none");
+    const u = ALL_SCENARIOS.find((s) => s.key === "unicredit")!;
+    expect(u.detail).toMatchObject({ reco: "EXCLUDE", dur: "1.23†", ytm: "5.29% conditional", spread: "N/A" });
+    expect(ALL_SCENARIOS.find((s) => s.key === "grenke")!.detail!.ytm).toBe("~5.00%*");
+  });
+  it("the data (with recommendation labels) is never imported by browser components", () => {
+    for (const f of readdirSync("components").filter((x) => /\.tsx$/.test(x))) expect(readFileSync(`components/${f}`, "utf8")).not.toMatch(/lib\/provisionalScenarios/);
   });
 });
