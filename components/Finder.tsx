@@ -38,7 +38,7 @@ import { FOOTER_NOTE } from "@/lib/footerNote";
 import { clearResume, readResume, writeResume } from "@/lib/finderResume";
 import { isinText, parseGptRatings } from "@/lib/gptRatings";
 import { saveGptRatings, useGptRatings } from "@/lib/gptStore";
-import { GptRate, GPT_HEAD } from "./GptRate";
+import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
 import { couponTypeLabel } from "@/lib/bondFacts";
 import { profileParts, type CoherenceView } from "@/lib/creditProfileText";
 
@@ -895,7 +895,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
             <tr key={r.isin ?? i}>
               <td className="pr-2">{i + 1}. {r.issuer}</td>
               <td className="pr-2 text-right">risk {r.risk ?? "–"}{r.sp !== undefined && <> · S&amp;P {r.sp ?? "–"}</>}</td>
-              <td className="pr-2 text-right">GPT <GptRate isin={r.isin} /></td>
+              <td className="pr-2 text-right">IR <GptRate isin={r.isin} kind="ir" /> BR <GptRate isin={r.isin} /></td>
               <td className="pr-2 text-right">{r.life != null ? `${r.life.toFixed(1)} yrs` : "–"}</td>
               <td className="pr-2 text-right">default {pct(r.pd!)}</td>
               <td className="pr-2 text-right">× {LOSS_GIVEN_DEFAULT * 100}% = {pct(r.pd! * LOSS_GIVEN_DEFAULT)}</td>
@@ -1385,11 +1385,12 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           <col className="w-9" />
           {narrow ? <col /> : <col className="w-[24%]" />}
           {!narrow && <col />}
+          {!narrow && <col className="w-[8.25rem]" />}
           <col className={narrow ? "w-[4.75rem]" : "w-[6.5rem]"} />
           <col className={narrow ? "w-[3.5rem]" : "w-[6.5rem]"} />
           {!narrow && <col className="w-[9rem]" />}
           <col className="w-[5rem]" />
-          {admin && <col className="w-[3.75rem]" />}
+          {admin && <><col className="w-[3.75rem]" /><col className="w-[3.75rem]" /></>}
           <col className="w-8" />
           <col className="w-8" />
         </colgroup>
@@ -1398,11 +1399,12 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <th className="py-0 pl-2 font-medium">#</th>
             <th className="truncate py-0 pr-3 font-medium">{t.issuer}</th>
             {!narrow && <th className="truncate py-0 pr-3 font-medium">{t.bond}</th>}
+            {!narrow && <th className="truncate py-0 pr-2 font-medium">ISIN</th>}
             <th className={`truncate ${narrow ? "px-1" : "px-3"} py-0 text-center font-medium`}>{t.yield}</th>
             <th className={`truncate ${narrow ? "px-1" : "px-3"} py-0 text-center font-medium`}>{t.duration}</th>
             {!narrow && <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>}
             <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
-            {admin && <th className="truncate px-1 py-0 text-center font-medium text-amber-800">{GPT_HEAD}</th>}
+            {admin && <><th className="truncate px-1 py-0 text-center font-medium text-amber-800">{IR_HEAD}</th><th className="truncate px-1 py-0 text-center font-medium text-amber-800">{BR_HEAD}</th></>}
             <th aria-label={t.swap} />
             <th aria-label={t.exclude} />
           </tr>
@@ -1417,22 +1419,25 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               {!narrow && <td className="overflow-hidden py-0 pr-3">
                 {admin && !dense ? (
                   <div className="leading-tight" data-testid="admin-facts">
-                    <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
+                    <div className="truncate" title={r.name}>{r.name}</div>
                     <div className="truncate text-[10px] text-amber-800">{adminFacts(r)}</div>
                   </div>
                 ) : paid ? (
-                  <div className="truncate" title={`${r.name} · ${r.isin}`}>{r.name} <span className="ml-1 text-[11px] text-mute">{r.isin}</span></div>
-                ) : signedIn ? (
-                  <Link href="/pricing" className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-accent"><Lock /> {t.isinPlus}</Link>
+                  <div className="truncate" title={r.name}>{r.name}</div>
+                ) : <Dim />}
+              </td>}
+              {!narrow && <td className="py-0 pr-2">
+                {paid || admin ? <CopyIsin isin={r.isin} admin={admin} /> : signedIn ? (
+                  <Link href="/pricing" className="flex items-center gap-1 truncate whitespace-nowrap text-xs text-accent"><Lock /> {t.isinPlus}</Link>
                 ) : (
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
+                  <span className="flex items-center gap-1 truncate whitespace-nowrap text-xs text-mute"><Lock /> {t.freeAccount}</span>
                 )}
               </td>}
               <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center font-semibold tabular-nums`} title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</td>
               <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{r.duration != null ? r.duration.toFixed(1) : <Dim />}</td>
               {!narrow && <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>}
               <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
-              {admin && <td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td>}
+              {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td></>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
               <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
@@ -1440,15 +1445,15 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           {Array.from({ length: locked }).map((_, i) => (
             <tr key={`l${i}`} aria-hidden className={`select-none border-b border-line/60 blur-[5px]${hide(rows.length + i)}`} style={{ height: rowH }}>
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
-              <td colSpan={narrow ? 3 : 5} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
+              <td colSpan={narrow ? 3 : 6} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
-              {admin && <td />}
+              {admin && <><td /><td /></>}
               <td />
               <td />
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={(narrow ? 7 : 9) + (admin ? 1 : 0)} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={(narrow ? 7 : 10) + (admin ? 2 : 0)} /></tr>
           ))}
         </tbody>
       </table>
@@ -1587,7 +1592,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
   // The admin's risk column also holds the S&P slot (fixed width either way, so nothing moves when results arrive).
   const [admin, setAdmin] = useState(false);
   useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
-  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_2.5rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
+  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_2.25rem_2.25rem_3.5rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
   return (
     <div
       role="dialog"
@@ -1624,7 +1629,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
           <span>{t.issuer}</span>
           <span className="text-right">{t.yrs}</span>
           <span className="text-center">{t.risk}</span>
-          {admin && <span className="text-center text-amber-800">GPT</span>}
+          {admin && <><span className="text-center text-amber-800">{IR_HEAD}</span><span className="text-center text-amber-800">{BR_HEAD}</span></>}
           <span className="text-right">{t.yield}</span>
           <span />
           <span />
@@ -1636,14 +1641,16 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
               <div className="min-w-0">
                 <div className="truncate text-[15px] font-medium leading-tight">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</div>
                 {admin ? (
-                  <div className="truncate text-[11px] leading-tight text-amber-800" title={adminFacts(r)}>{r.isin}</div>
+                  <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
+                ) : paid ? (
+                  <CopyIsin isin={r.isin} phone />
                 ) : (
-                  <div className="truncate text-[11px] leading-tight text-mute">{paid ? r.isin : signedIn ? t.isinPlus : t.freeAccount}</div>
+                  <div className="truncate text-[11px] leading-tight text-mute">{signedIn ? t.isinPlus : t.freeAccount}</div>
                 )}
               </div>
               <span className="text-right text-[13px] tabular-nums">{r.duration != null ? r.duration.toFixed(1) : <Dim />}</span>
               <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
-              {admin && <span className="text-center"><GptRate isin={r.isin} /></span>}
+              {admin && <><span className="text-center"><GptRate isin={r.isin} kind="ir" /></span><span className="text-center"><GptRate isin={r.isin} /></span></>}
               <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
               <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
@@ -1701,6 +1708,28 @@ function adminFacts(r: ResultRow): string {
 }
 
 /** A yellow admin chip that copies text; "Copied" shows in the same fixed width for 2 seconds. */
+/** An ISIN that copies to the clipboard when clicked; "Copied ✓" takes its place for a moment, so nothing shifts. */
+function CopyIsin({ isin, admin, phone, title }: { isin?: string | null; admin?: boolean; phone?: boolean; title?: string }) {
+  const [done, setDone] = useState(false);
+  if (!isin) return <Dim />;
+  const copy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try { await navigator.clipboard.writeText(isin); setDone(true); setTimeout(() => setDone(false), 1500); } catch { setDone(false); }
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={title ?? "Click to copy"}
+      aria-label={`Copy ISIN ${isin}`}
+      data-testid="copy-isin"
+      className={`block max-w-full truncate text-left font-mono ${phone ? "text-[11px] leading-tight" : "text-[11px]"} ${admin ? "text-amber-800" : "text-mute"} hover:text-ink`}
+    >
+      {done ? "Copied ✓" : isin}
+    </button>
+  );
+}
+
 function CopyChip({ text, label, testId }: { text: string; label: string; testId: string }) {
   const [done, setDone] = useState(false);
   return (
@@ -1715,7 +1744,7 @@ function CopyChip({ text, label, testId }: { text: string; label: string; testId
   );
 }
 
-/** Admin only: paste GPT's answer; the ratings found are saved in the database and shown in every "GPT rate" column. */
+/** Admin only: paste GPT's answer; the ratings found are saved in the database and shown in every BR / IR column. */
 function GptPastePanel({ onSaved, onClose }: { onSaved: () => void; onClose: () => void }) {
   const [text, setText] = useState("");
   const [state, setState] = useState<"" | "saving" | "error">("");
@@ -1728,7 +1757,7 @@ function GptPastePanel({ onSaved, onClose }: { onSaved: () => void; onClose: () 
         value={text}
         onChange={(e) => { setText(e.target.value); setState(""); }}
         data-testid="gpt-paste"
-        placeholder="Paste GPT's answer here (ISIN | Rating | Basis)"
+        placeholder="Paste GPT's answer here (ISIN | IR | BR | Basis)"
         className="mt-1 min-h-0 w-full flex-1 resize-none rounded-lg border border-amber-300 bg-amber-50 p-2 font-mono text-[11px] text-ink outline-none"
       />
       <div className="mt-2 flex h-7 shrink-0 items-center justify-between gap-2 text-[12px]">
@@ -1962,7 +1991,7 @@ function SwapPanel({ row, options, onPick, onExclude, onClose }: { row: ResultRo
               <span className="w-14 text-right font-semibold tabular-nums">{pct(b.ytm)}</span>
               <span className="hidden w-12 text-right tabular-nums sm:inline">{b.duration?.toFixed(1)}</span>
               <span className={`${b.sp !== undefined ? "w-[4.5rem]" : "w-8"} text-center`}><RiskBadge risk={b.risk} sp={b.sp} /></span>
-              {b.sp !== undefined && <span className="w-10 text-center" title={GPT_HEAD}><GptRate isin={b.isin} /></span>}
+              {b.sp !== undefined && <><span className="w-10 text-center" title={IR_HEAD}><GptRate isin={b.isin} kind="ir" /></span><span className="w-10 text-center" title={BR_HEAD}><GptRate isin={b.isin} /></span></>}
               <button type="button" onClick={() => onPick(b)} className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90">{t.swapPick}</button>
             </li>
           ))}

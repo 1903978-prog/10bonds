@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
-import { GptRate, GPT_HEAD } from "@/components/GptRate";
+import { GptRate, BR_HEAD, IR_HEAD } from "@/components/GptRate";
 import type { DropRow, DropsData, SortKey } from "@/lib/priceHistory";
 import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
@@ -115,7 +115,8 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
               <th className="w-10 pl-4 font-medium">#</th>
               <th className="pr-3 font-medium">{t.issuer}</th>
               <th className="w-[84px] text-center font-medium">{t.risk}</th>
-              <th className="w-[64px] text-center font-medium text-amber-800">{GPT_HEAD}</th>
+              <th className="w-[64px] text-center font-medium text-amber-800">{IR_HEAD}</th>
+              <th className="w-[64px] text-center font-medium text-amber-800">{BR_HEAD}</th>
               <th className="w-[100px] text-center font-medium">{t.maturity}</th>
               <th className="w-16 text-right font-medium">{t.price}</th>
               <SortHead k="ytm" className="w-[64px]" />
@@ -133,6 +134,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className="pl-4 text-mute tabular-nums">{at * ROWS + i + 1}</td>
                     <td className="truncate pr-3 font-medium" title={`${r.name} · ${r.isin}`}>{r.issuer} <span className="font-normal text-mute">{r.isin}</span></td>
                     <td className="text-center"><RiskBadge risk={r.risk} sp={r.sp} /></td>
+                    <td className="text-center"><GptRate isin={r.isin} kind="ir" /></td>
                     <td className="text-center"><GptRate isin={r.isin} /></td>
                     <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
