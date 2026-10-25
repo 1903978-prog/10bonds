@@ -10,6 +10,7 @@ import { couponTypeOf } from "./bondFacts";
 import { judge, missingColumns, type DataHealth } from "./dataHealth";
 import { cleanSd, findOutliers, OUTLIER_SD, type Outlier } from "./outliers";
 import { liveOutlierSd } from "./riskPremium/store";
+import { screenPrices, type FlaggedBond, type PriceMeta } from "./priceIntegrity";
 
 // The public site only ever READS one table, with a read-only login.
 // It has no connection details for the main app and no way to write anywhere.
@@ -24,7 +25,7 @@ function db() {
 const CACHE_MS = 60 * 60 * 1000;
 // `rated` is every bond the site may show before the outlier rule; the rule's result is kept per number of standard
 // deviations (the admin can preview other values), and cleared with the hourly reload.
-let cache: { at: number; rated: PublicBond[]; source: "live" | "sample"; unrated: number; total: number; bySd: Map<number, { bonds: PublicBond[]; outliers: Outlier[] }> } | null = null;
+let cache: { at: number; rated: PublicBond[]; source: "live" | "sample"; unrated: number; total: number; priceFlagged: FlaggedBond[]; bySd: Map<number, { bonds: PublicBond[]; outliers: Outlier[] }> } | null = null;
 
 /** The number of standard deviations users get (admin setting), or the default when it cannot be read. */
 export async function currentOutlierSd(): Promise<number> {
@@ -70,7 +71,7 @@ async function reload() {
     if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_DATA !== "1") {
       throw new Error("Bond data is not connected yet.");
     }
-    cache = { at: Date.now(), rated: SAMPLE_BONDS.filter(hasRealRating), source: "sample", unrated: 0, total: SAMPLE_BONDS.length, bySd: new Map() };
+    cache = { at: Date.now(), rated: SAMPLE_BONDS.filter(hasRealRating), source: "sample", unrated: 0, total: SAMPLE_BONDS.length, priceFlagged: [], bySd: new Map() };
     return;
   }
 
@@ -114,11 +115,67 @@ async function reload() {
   // Bonds with a minimum above 200,000 EUR / USD stay in the database but are dormant: never shown or used (the owner, 21/10/2026).
   const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);
   // Unrated bonds never appear on the site (the owner, 18/10/2026).
-  const current = dropStale(bonds);
+  // A price that fails the sanity checks (lib/priceIntegrity.ts) keeps the bond out of every ranking; the admin sees the list.
+  const meta = new Map<string, PriceMeta>(modelled.map((r) => [r.isin, priceMetaOf(r)]));
+  const screened = screenPrices(dropStale(bonds), meta, newestQuote(bonds));
+  const current = screened.ok;
   const rated = current.filter(hasRealRating);
   // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
   const [{ total }] = await client`select count(*)::int total from public_bonds`;
-  cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), bySd: new Map() };
+  cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), priceFlagged: screened.flagged, bySd: new Map() };
+}
+
+/** Optional price facts the copy may carry (docs/handover/price-integrity.md). */
+export function priceMetaOf(r: Record<string, unknown>): PriceMeta {
+  return {
+    source: typeof r.price_source === "string" && r.price_source.trim() ? r.price_source.trim() : null,
+    asOf: r.price_as_of ? new Date(r.price_as_of as string).toISOString() : null,
+    stale: typeof r.price_stale === "boolean" ? r.price_stale : null,
+    confirmed: typeof r.price_confirmed === "boolean" ? r.price_confirmed : null,
+  };
+}
+
+function newestQuote(bonds: PublicBond[]): number {
+  const t = bonds.map((b) => (b.ytmAsOf ? Date.parse(b.ytmAsOf) : NaN)).filter(Number.isFinite);
+  return t.length ? Math.max(...t) : Date.now();
+}
+
+/** Bonds left out because their stored price failed the checks (admin only). */
+export async function loadPriceFlagged(): Promise<FlaggedBond[]> {
+  await loadAllBonds();
+  return cache?.priceFlagged ?? [];
+}
+
+/** Price audit over the WHOLE copy (every bond, shown or not): counts per currency by problem. Admin only. */
+export async function priceAudit(): Promise<{ total: number; withPrice: number; bySource: Record<string, number>; perCurrency: Record<string, { total: number; withPrice: number; flagged: number }>; reasons: Record<string, number>; flagged: FlaggedBond[] } | null> {
+  const client = db();
+  if (!client) return null;
+  const rows = await client`select * from public_bonds`;
+  const meta = new Map<string, PriceMeta>();
+  const bySource: Record<string, number> = {};
+  const all: PublicBond[] = rows.map((r) => {
+    const m = priceMetaOf(r);
+    meta.set(r.isin, m);
+    if (num(r.clean_price) != null) bySource[m.source ?? "(no source)"] = (bySource[m.source ?? "(no source)"] ?? 0) + 1;
+    return {
+      isin: r.isin, name: r.name, issuer: r.issuer, country: r.country, currency: r.currency, coupon: num(r.coupon), maturity: isoDay(r.maturity),
+      ratingSp: null, ratingMoodys: null, ratingFitch: null, ratingResolved: null, grossYtm: num(r.gross_ytm), modifiedDuration: num(r.modified_duration),
+      ytmAsOf: r.ytm_as_of ? new Date(r.ytm_as_of).toISOString() : null, cleanPrice: num(r.clean_price), couponType: couponTypeOf(r.coupon_type, num(r.coupon), r.structure_modelled),
+    };
+  });
+  const { flagged } = screenPrices(all, meta, newestQuote(all));
+  const perCurrency: Record<string, { total: number; withPrice: number; flagged: number }> = {};
+  for (const b of all) {
+    const c = (perCurrency[b.currency] ??= { total: 0, withPrice: 0, flagged: 0 });
+    c.total++;
+    if (b.cleanPrice != null) c.withPrice++;
+  }
+  const reasons: Record<string, number> = {};
+  for (const f of flagged) {
+    perCurrency[f.currency].flagged++;
+    for (const x of f.reasons) reasons[x] = (reasons[x] ?? 0) + 1;
+  }
+  return { total: all.length, withPrice: all.filter((b) => b.cleanPrice != null).length, bySource, perCurrency, reasons, flagged };
 }
 
 // A yield whose quote is more than this many days older than the newest one in the copy is stale and left out.
