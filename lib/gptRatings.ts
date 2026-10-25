@@ -20,7 +20,7 @@ export function isinText(isins: (string | null | undefined)[], prompt = false): 
 }
 
 /** `rating` is the bond rating (BR); `issuerRating` the issuer rating (IR). Old 3-column pastes (ISIN | Rating | Basis) fill BR only. */
-export type GptRating = { rating: string | null; issuerRating?: string | null; basis: string | null };
+export type GptRating = { rating: string | null; issuerRating?: string | null; riskPay?: string | null; basis: string | null };
 
 const ISIN = /\b([A-Z]{2}[A-Z0-9]{9}[0-9])\b/g;
 // S&P / Fitch style (AA-, BBB+) or Moody's style (Baa1, Aa2), plus NR. Single letters only when a whole table cell.

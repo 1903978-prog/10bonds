@@ -212,3 +212,11 @@ export async function bondDataHealth(now = Date.now()): Promise<DataHealth> {
     duplicateIsins: Number(r.dups),
   }, now);
 }
+
+/** Admin only: every bond in the copy maturing on one of these days (hidden or not), to match a list of bonds to ISINs. */
+export async function bondsMaturingOn(days: string[]): Promise<{ isin: string; name: string | null; issuer: string | null; currency: string | null; maturity: string }[]> {
+  const client = db();
+  if (!client) return [];
+  const rows = await client`select isin, name, issuer, currency, maturity from public_bonds where maturity::date in ${client(days)}`;
+  return rows.map((r) => ({ isin: r.isin, name: r.name, issuer: r.issuer, currency: r.currency, maturity: isoDay(r.maturity) ?? "" }));
+}

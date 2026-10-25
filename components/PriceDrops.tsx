@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
 import { GptRate, BR_HEAD, IR_HEAD } from "@/components/GptRate";
-import { Spread, SPREAD_HEAD, SPREAD_NOTE } from "@/components/Spread";
+import { Spread, SPREAD_HEAD, SPREAD_NOTE, RiskPayCell, RISKPAY_HEAD, RISKPAY_NOTE } from "@/components/Spread";
 import type { DropRow, DropsData, SortKey } from "@/lib/priceHistory";
 import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
@@ -122,6 +122,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
               <th className="w-[64px] text-center font-medium text-amber-800">{IR_HEAD}</th>
               <th className="w-[64px] text-center font-medium text-amber-800">{BR_HEAD}</th>
               <th className="w-[72px] text-center font-medium text-amber-800" title={SPREAD_NOTE}>{SPREAD_HEAD}</th>
+              <th className="w-[104px] text-center font-medium text-amber-800" title={RISKPAY_NOTE}>{RISKPAY_HEAD}</th>
               <th className="w-[100px] text-center font-medium">{t.maturity}</th>
               <th className="w-16 text-right font-medium">{t.price}</th>
               <SortHead k="ytm" className="w-[64px]" />
@@ -142,6 +143,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className="text-center"><GptRate isin={r.isin} kind="ir" /></td>
                     <td className="text-center"><GptRate isin={r.isin} /></td>
                     <td className="text-center"><Spread ytm={r.ytm} years={yearsLeft(r.maturity)} /></td>
+                    <td className="text-center"><RiskPayCell isin={r.isin} ytm={r.ytm} years={yearsLeft(r.maturity)} /></td>
                     <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
                     <td className={`text-right tabular-nums ${sort === "ytm" ? "font-medium" : ""}`}>{r.ytm === null ? "–" : `${num(r.ytm)}%`}</td>

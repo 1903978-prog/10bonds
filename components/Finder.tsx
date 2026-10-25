@@ -901,7 +901,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
               <td className="pr-2">{i + 1}. {r.issuer}</td>
               <td className="pr-2 text-right">risk {r.risk ?? "–"}{r.sp !== undefined && <> · S&amp;P {r.sp ?? "–"}</>}</td>
               <td className="pr-2 text-right">IR <GptRate isin={r.isin} kind="ir" /> BR <GptRate isin={r.isin} /></td>
-              <td className="pr-2 text-right">Spread <Spread ytm={r.ytm} years={r.duration} /> Risk Pay <RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td>
+              <td className="pr-2 text-right">Spread <Spread ytm={r.ytm} years={r.duration} /> Risk Pay <RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td>
               <td className="pr-2 text-right">{r.life != null ? `${r.life.toFixed(1)} yrs` : "–"}</td>
               <td className="pr-2 text-right">default {pct(r.pd!)}</td>
               <td className="pr-2 text-right">{r.debtRank ? RANK_LABEL[r.debtRank] : "Senior preferred"} · LGD {Math.round(lgdOfRow(r) * 100)}% → {pct(r.pd! * lgdOfRow(r))}</td>
@@ -1443,7 +1443,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{r.duration != null ? r.duration.toFixed(1) : <Dim />}</td>
               {!narrow && <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>}
               <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
-              {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td><td className="px-1 py-0 text-center"><RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td></>}
+              {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td><td className="px-1 py-0 text-center"><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td></>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
               <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
@@ -1648,7 +1648,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
                 {admin ? (
                   <>
                     <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
-                    <div className="flex items-center gap-1 leading-none" data-testid="admin-phone-ratings"><GptRate isin={r.isin} kind="ir" /><GptRate isin={r.isin} /><Spread ytm={r.ytm} years={r.duration} /><RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
+                    <div className="flex flex-wrap items-center gap-1 leading-none" data-testid="admin-phone-ratings"><GptRate isin={r.isin} kind="ir" /><GptRate isin={r.isin} /><Spread ytm={r.ytm} years={r.duration} /><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
                   </>
                 ) : paid ? (
                   <CopyIsin isin={r.isin} phone />
@@ -1998,7 +1998,7 @@ function SwapPanel({ row, options, onPick, onExclude, onClose }: { row: ResultRo
               <span className="w-14 text-right font-semibold tabular-nums">{pct(b.ytm)}</span>
               <span className="hidden w-12 text-right tabular-nums sm:inline">{b.duration?.toFixed(1)}</span>
               <span className={`${b.sp !== undefined ? "w-[4.5rem]" : "w-8"} text-center`}><RiskBadge risk={b.risk} sp={b.sp} /></span>
-              {b.sp !== undefined && <><span className="w-10 text-center" title={IR_HEAD}><GptRate isin={b.isin} kind="ir" /></span><span className="w-10 text-center" title={BR_HEAD}><GptRate isin={b.isin} /></span><span className="w-[3.25rem] text-center" title={SPREAD_NOTE}><Spread ytm={b.ytm} years={b.duration} /></span><span className="w-[3.25rem] text-center" title={RISKPAY_NOTE}><RiskPayCell ytm={b.ytm} years={b.duration} pd={b.pd} life={b.life} /></span></>}
+              {b.sp !== undefined && <><span className="w-12 text-center" title={IR_HEAD}><GptRate isin={b.isin} kind="ir" /></span><span className="w-12 text-center" title={BR_HEAD}><GptRate isin={b.isin} /></span><span className="w-[3.25rem] text-center" title={SPREAD_NOTE}><Spread ytm={b.ytm} years={b.duration} /></span><span className="w-24 text-center" title={RISKPAY_NOTE}><RiskPayCell isin={b.isin} ytm={b.ytm} years={b.duration} pd={b.pd} life={b.life} /></span></>}
               <button type="button" onClick={() => onPick(b)} className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90">{t.swapPick}</button>
             </li>
           ))}
