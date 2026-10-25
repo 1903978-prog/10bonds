@@ -64,6 +64,19 @@ for (const t of TERMS) {
     for (const p of pos) { const d = describe(p.isins); if (!d.ok) failing++; if (d.dup !== "none") dups++; }
     console.log(`${label}: ${pos.length} positions, return ${f2(pos[0]?.ytm ?? 0)}-${f2(pos.at(-1)?.ytm ?? 0)}%, loss ${f2(pos[0]?.expectedLoss ?? 0)}-${f2(pos.at(-1)?.expectedLoss ?? 0)}%; lists breaking a rule: ${failing}/${pos.length}; lists with a repeated issuer group: ${dups}`);
   };
+  // Which rule binds: the same optimiser with one rule at a time loosened (diagnostic only, not a product setting).
+  const loosen: [string, Partial<typeof DEFAULT_POLICY>, boolean?][] = [
+    ["without the spread rule", {}, true],
+    ["sector limit 10", { maxPerSector: 10 }],
+    ["no loss-share cap", { maxLossShare: 1 }],
+    ["no rating window / core / worst rules", { maxDispersion: 9, minCore: 0, minWorst: 1 }],
+    ["B+ limit 10", { maxWeak: 10 }],
+  ];
+  for (const [label, change, noSpread] of loosen) {
+    const q = await coherentFrontier(src.bonds, t.duration, { ...DEFAULT_POLICY, ...change }, 10, { noSpreadRule: noSpread });
+    const hi = q.points.at(-1), lo = q.points[0];
+    console.log(`  loosened: ${label}: ${q.points.length} efficient lists, return ${lo ? f2(lo.ytm) : "-"}-${hi ? f2(hi.ytm) : "-"}%${q.cert.certified ? "" : " (uncertified)"}`);
+  }
   rows("Methodology 1      ", m1);
   rows("spread rules before", before);
   rows("spread rules after ", after);

@@ -52,14 +52,14 @@ export type CoherentFrontier = ExactFrontier & { cert: Certificate; policy: Cohe
 type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number };
 type Outcome = { status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] };
 
-export function candidatesOf(bonds: PublicBond[], duration: number): Cand[] {
+export function candidatesOf(bonds: PublicBond[], duration: number, spreadRule = true): Cand[] {
   const { pool } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), duration, N);
   const cands = pool
     .filter((b) => b.grossYtm !== null && b.grossYtm > 0 && Number.isFinite(b.grossYtm) && b.modifiedDuration !== null && Number.isFinite(b.modifiedDuration) && issuerVerified(b))
     .map((b) => ({ ...factsOf(b), b, ret: b.grossYtm!, dur: b.modifiedDuration!, u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9), notch: bondNotch(b) ?? UNRATED_NOTCH, years: lifeYears(b), beatenBy: new Set<string>() }));
   // A bond whose default chance cannot be worked out (no usable maturity) cannot be priced into the model: left out.
   for (let i = cands.length - 1; i >= 0; i--) if (!Number.isFinite(cands[i].pd) || !Number.isFinite(cands[i].years)) cands.splice(i, 1);
-  for (const b of cands) for (const d of cands) {
+  if (spreadRule) for (const b of cands) for (const d of cands) {
     if (d.group !== b.group && d.notch < b.notch && d.pd < b.pd - 1e-12 && d.ret >= b.ret - stepGap(d.notch, b.notch, b.years) - 1e-9) b.beatenBy.add(d.group!);
   }
   return cands;
@@ -73,8 +73,13 @@ const sum = (idx: number[], coef: (i: number) => number) => idx.map((i) => `${nu
 async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: number, spec: Spec, stats: Certificate): Promise<Outcome> {
   let cs = cs0;
   // A bond whose beating group has no bond in this subproblem can never satisfy the spread rule: out (exact).
-  const groups = new Set(cs.map((c) => c.group!));
-  cs = cs.filter((c) => [...c.beatenBy].every((g) => groups.has(g)));
+  // Repeated until stable: dropping a bond can empty a group that another bond's rule points to.
+  for (let again = true; again; ) {
+    const groups = new Set(cs.map((c) => c.group!));
+    const kept = cs.filter((c) => [...c.beatenBy].every((g) => groups.has(g)));
+    again = kept.length < cs.length;
+    cs = kept;
+  }
   // Fewer bonds than the list needs, or fewer than the worst class needs: infeasible without asking the solver.
   if (cs.length < N || cs.filter((c) => c.cls === m).length < p.minWorst) { stats.infeasible++; return { status: "infeasible", sel: [] }; }
   const highs = await loadSolver();
@@ -183,10 +188,10 @@ async function topList(cands: Cand[], p: CoherencePolicy, duration: number, ceil
  * out, blacklist out). Each point is the exact least-loss list for its return under every rule, with the solver's
  * certificate in `cert`. Takes some seconds to minutes; yields to the server between solves.
  */
-export async function coherentFrontier(bonds: PublicBond[], duration: number, p: CoherencePolicy = activePolicy(), ceiling: number = LIMITS.risk.max): Promise<CoherentFrontier> {
+export async function coherentFrontier(bonds: PublicBond[], duration: number, p: CoherencePolicy = activePolicy(), ceiling: number = LIMITS.risk.max, opts: { /** Diagnostics only: leave the spread rule out to see which rule binds. */ noSpreadRule?: boolean } = {}): Promise<CoherentFrontier> {
   const t0 = Date.now();
   const stats: Certificate = { policy: policySignature(p), solves: 0, optimal: 0, infeasible: 0, uncertified: 0, absGap: TOL, relGap: 0, seconds: 0, certified: true };
-  const cands = candidatesOf(bonds, duration);
+  const cands = candidatesOf(bonds, duration, !opts.noSpreadRule);
   const finish = (points: FrontierList[]): CoherentFrontier => {
     stats.seconds = Math.round((Date.now() - t0) / 100) / 10;
     stats.certified = stats.uncertified === 0;
