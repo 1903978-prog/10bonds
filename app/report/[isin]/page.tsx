@@ -46,6 +46,6 @@ export default async function ReportPage({ params }: Props) {
   const r = admin ? built : hideSources(built);
   const open = r.free || (await featuresFor(user)).includes("risk_reports");
   return (
-    <ReportView r={r} open={open} admin={user?.isAdmin === true} />
+    <ReportView r={r} open={open} admin={user?.isAdmin === true} signedIn={!!user} />
   );
 }

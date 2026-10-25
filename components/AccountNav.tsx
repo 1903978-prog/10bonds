@@ -2,19 +2,29 @@
 
 import Link from "next/link";
 import NavLink from "@/components/NavLink";
-import ViewSwitch from "@/components/ViewSwitch";
-import BrandToggle from "@/components/BrandToggle";
-import AdminToggle from "@/components/AdminToggle";
+import AdminMenu from "@/components/AdminMenu";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { goAuth, isReportPath } from "@/lib/reportReturn";
+import { OPEN_EVENT } from "@/components/report/ReportAuth";
 import { loadMe, trialDaysLeft, type Me } from "@/lib/me";
 
 export default function AccountNav({ hasSession = false }: { hasSession?: boolean }) {
   const [me, setMe] = useState<Me | undefined>(undefined);
+  const onReport = isReportPath(usePathname());
   useEffect(() => {
     loadMe().then(setMe);
   }, []);
   // Until the account loads, draw what the sign-in cookie says (profile icon, or Sign in / Sign up), so nothing shifts.
   if (me === undefined && hasSession) return <ProfileIcon />;
+  // Bond report: a plain "Log in" (back to the same report afterwards) and one outcome-based action.
+  if (!me && onReport)
+    return (
+      <>
+        <button type="button" onClick={() => goAuth("login")} data-testid="nav-login" className="whitespace-nowrap hover:text-ink">Log in</button>
+        <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))} data-testid="nav-save" className="hidden whitespace-nowrap rounded-full bg-accent px-3.5 py-1.5 font-medium text-white hover:bg-[#0077ed] sm:inline-block">Save &amp; track this bond</button>
+      </>
+    );
   if (!me)
     return (
       <>
@@ -26,10 +36,7 @@ export default function AccountNav({ hasSession = false }: { hasSession?: boolea
   const days = me.isAdmin || me.adminState ? null : trialDaysLeft(me);
   return (
     <>
-      {(me.isAdmin || me.asUser) && <AdminToggle on={me.isAdmin} />}
-      {me.isAdmin && <ViewSwitch />}
-      {me.isAdmin && <BrandToggle />}
-      {(me.isAdmin || me.adminState) && <NavLink href="/admin" testId="nav-admin" className="inline-grid rounded-full bg-yellow-200 px-2 py-0.5">Admin</NavLink>}
+      {(me.isAdmin || me.asUser || me.adminState) && <AdminMenu isAdmin={me.isAdmin} asUser={!!me.asUser} adminLink={me.isAdmin || !!me.adminState} />}
       {days !== null && (
         <Link href="/pricing" className="whitespace-nowrap rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent" data-testid="trial-badge" title={`Premium trial: ${days} ${days === 1 ? "day" : "days"} left`}>
           <span className="sm:hidden">Premium {days}d</span>
