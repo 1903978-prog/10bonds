@@ -87,6 +87,10 @@ export default function HeatMapChart({ map: got, method, onMethod, retLabel, yea
             </div>
           ))}
         </div>
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="h-3 w-3 rounded-[3px] ring-2 ring-inset ring-[#1d1d1f]" />
+          lowest risk for that return (best years)
+        </span>
       </div>
     </div>
   );
