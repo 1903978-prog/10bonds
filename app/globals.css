@@ -91,3 +91,16 @@ html.brand-on :is(div, section, figure):has(> table, > svg[role="img"])::before 
 
 /* Landing (the owner, 24/10/2026): no disclaimer sentence on the page; everything is in the footer's Disclaimer link. */
 body:has([data-testid="intro"]) [data-testid="footer-note"] { display: none; }
+
+/* Bond report: print / PDF. Every tab prints, cards and rows are never cut, site chrome is hidden. */
+@media print {
+  body > header, body > footer, [data-testid="cookie-banner"] { display: none !important; }
+  html { zoom: 1 !important; }
+  body { background: #fff; font-size: 11pt; }
+  main { max-width: none; padding: 0; }
+  .report .report-panel[hidden] { display: block !important; }
+  .report .report-card, .report tr, .report details { break-inside: avoid; }
+  .report details > :not(summary) { display: block !important; }
+  .report .report-panel { margin-top: 0.5rem; }
+  @page { margin: 14mm; }
+}

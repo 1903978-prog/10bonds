@@ -23,57 +23,78 @@ const horizonLabel = (d: number) => (d >= 30 ? "30+" : String(d));
 /**
  * Admin only: the expected loss on your money of the best list for each target return (rows, 3.0% at the bottom) and
  * horizon (columns). "–" in grey where that horizon cannot reach that return. The lowest loss of each row is outlined,
- * so the best horizon for a return stands out. Fills the box it is put in; nothing in it changes size with the data.
+ * so the best horizon for a return stands out. A click on a cell with a figure picks it (outlined in blue): the finder
+ * then shows that cell's 10 bonds next to the map. Fills the box it is put in; nothing in it changes size with the data.
  */
-export default function HeatMapChart({ map: got, method, onMethod, retLabel, yearsLabel }: { map: HeatMap | "unavailable" | null; method: HeatMethod; onMethod: (m: HeatMethod) => void; retLabel: string; yearsLabel: string }) {
+export default function HeatMapChart({ map: got, method, onMethod, retLabel, yearsLabel, picked, onPick, blacklist, onBlacklist }: { map: HeatMap | "unavailable" | null; method: HeatMethod; onMethod: (m: HeatMethod) => void; retLabel: string; yearsLabel: string; picked?: { ytm: number; duration: number } | null; onPick?: (cell: { ytm: number; duration: number } | null) => void; blacklist: boolean; onBlacklist: (on: boolean) => void }) {
   const map = got === "unavailable" ? null : got;
   const rows = map ? map.ytms.map((y, r) => ({ y, cells: map.cells[r] })).reverse() : [];
   const cols = map?.horizons.length ?? 18;
   return (
     <div className="flex h-full w-full flex-col text-[10px] tabular-nums leading-none" data-testid="heat-map">
       {/* Admin (yellow): which methodology the map shows; Methodology 1 is the live one. */}
-      <div role="radiogroup" aria-label="Methodology" data-testid="heat-method" className="mb-1.5 grid h-6 w-72 shrink-0 grid-cols-2 rounded-full border border-amber-300 bg-amber-50 p-0.5 text-[11px] font-medium text-amber-900">
-        {HEAT_METHODS.map((m) => (
-          <button key={m.key} type="button" role="radio" aria-checked={method === m.key} onClick={() => onMethod(m.key)} className={`rounded-full px-2 ${method === m.key ? "bg-white shadow-sm" : ""}`}>
-            {m.label}
-          </button>
-        ))}
+      <div className="mb-1.5 flex shrink-0 gap-2">
+        <div role="radiogroup" aria-label="Methodology" data-testid="heat-method" className="grid h-6 w-72 grid-cols-2 rounded-full border border-amber-300 bg-amber-50 p-0.5 text-[11px] font-medium text-amber-900">
+          {HEAT_METHODS.map((m) => (
+            <button key={m.key} type="button" role="radio" aria-checked={method === m.key} onClick={() => onMethod(m.key)} className={`rounded-full px-2 ${method === m.key ? "bg-white shadow-sm" : ""}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+        {/* Without the bonds and issuers on the admin's blacklist: the map and the cell lists are worked out again. */}
+        <div role="radiogroup" aria-label="Blacklist" data-testid="heat-blacklist" title="On = leave out the issuers and bonds on your blacklist (returns change)" className="grid h-6 w-44 grid-cols-2 rounded-full border border-amber-300 bg-amber-50 p-0.5 text-[11px] font-medium text-amber-900">
+          {([[false, "Blacklist off"], [true, "Blacklist on"]] as const).map(([v, label]) => (
+            <button key={label} type="button" role="radio" aria-checked={blacklist === v} onClick={() => onBlacklist(v)} className={`whitespace-nowrap rounded-full px-1 ${blacklist === v ? "bg-white shadow-sm" : ""}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       {!map ? (
         <div className="flex flex-1 items-center justify-center text-[12px] text-mute">{got === "unavailable" ? "Not available yet for this methodology." : "Preparing heat map…"}</div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-px" style={{ gridTemplateColumns: `2.6rem repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr)) 1.1rem` }}>
-          {rows.map(({ y, cells }) => {
-            const vals = cells.filter((c): c is number => c !== null);
-            const min = vals.length ? Math.min(...vals) : null;
-            return [
-              <div key={`y${y}`} className="flex items-center justify-end pr-1.5 text-mute">{y.toFixed(1)}%</div>,
-              ...cells.map((c, i) => {
-                const band = c === null ? null : bandOf(c);
-                const best = c !== null && c === min;
-                return (
-                  <div
-                    key={`${y}-${i}`}
-                    title={`${horizonLabel(map.horizons[i])} ${yearsLabel} · ${y.toFixed(1)}% → ${c === null ? "–" : `${c.toFixed(2)}%`}`}
-                    className={`flex items-center justify-center overflow-hidden rounded-[3px] ${best ? "ring-2 ring-inset ring-[#1d1d1f]" : ""}`}
-                    style={band ? { background: band.bg, color: band.fg } : { background: "#f2f2f4", color: "#a1a1a6" }}
-                    data-testid="heat-cell"
-                  >
-                    {c === null ? "–" : c.toFixed(2)}
-                  </div>
-                );
-              }),
-            ];
-          })}
-          <div className="flex items-center justify-end pr-1.5 text-mute">{yearsLabel}</div>
-          {map.horizons.map((d) => (
-            <div key={`h${d}`} className="flex items-center justify-center text-mute">{horizonLabel(d)}</div>
-          ))}
+        <div className="flex min-h-0 flex-1">
+          {/* Y axis title, written upwards next to the return values like the other charts. */}
+          <div className="flex w-4 shrink-0 items-center justify-center text-mute">
+            <span className="whitespace-nowrap [writing-mode:vertical-rl] rotate-180">{retLabel} ↑</span>
+          </div>
+          <div className="grid min-h-0 flex-1 gap-px" style={{ gridTemplateColumns: `2.6rem repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr)) 1.1rem` }}>
+            {rows.map(({ y, cells }) => {
+              const vals = cells.filter((c): c is number => c !== null);
+              const min = vals.length ? Math.min(...vals) : null;
+              return [
+                <div key={`y${y}`} className="flex items-center justify-end pr-1.5 text-mute">{y.toFixed(1)}%</div>,
+                ...cells.map((c, i) => {
+                  const band = c === null ? null : bandOf(c);
+                  const best = c !== null && c === min;
+                  const d = map.horizons[i];
+                  const on = c !== null && picked?.ytm === y && picked?.duration === d;
+                  return (
+                    <div
+                      key={`${y}-${i}`}
+                      title={`${horizonLabel(d)} ${yearsLabel} · ${y.toFixed(1)}% → ${c === null ? "–" : `${c.toFixed(2)}%`}`}
+                      className={`flex items-center justify-center overflow-hidden rounded-[3px] ${on ? "ring-[3px] ring-inset ring-[#0071e3]" : best ? "ring-2 ring-inset ring-[#1d1d1f]" : ""} ${c !== null && onPick ? "cursor-pointer hover:brightness-110" : ""}`}
+                      style={band ? { background: band.bg, color: band.fg } : { background: "#f2f2f4", color: "#a1a1a6" }}
+                      onClick={c !== null && onPick ? () => onPick(on ? null : { ytm: y, duration: d }) : undefined}
+                      aria-pressed={c !== null && onPick ? on : undefined}
+                      data-testid="heat-cell"
+                    >
+                      {c === null ? "–" : c.toFixed(2)}
+                    </div>
+                  );
+                }),
+              ];
+            })}
+            <div className="flex items-center justify-end pr-1.5 text-mute">{yearsLabel}</div>
+            {map.horizons.map((d) => (
+              <div key={`h${d}`} className="flex items-center justify-center text-mute">{horizonLabel(d)}</div>
+            ))}
+          </div>
         </div>
       )}
       {/* Fixed-height legend under the grid: the colour bands, and what the numbers are. */}
       <div className="mt-1.5 flex h-4 items-center gap-2 text-mute">
-        <span className="shrink-0">{retLabel} ↑ · expected loss %</span>
+        <span className="shrink-0">Expected loss %</span>
         <div className="flex min-w-0 flex-1 overflow-hidden rounded-[3px]">
           {BANDS.map((b, i) => (
             <div key={b.to} className="flex h-3.5 flex-1 items-center justify-center text-[9px]" style={{ background: b.bg, color: b.fg }}>
@@ -81,6 +102,10 @@ export default function HeatMapChart({ map: got, method, onMethod, retLabel, yea
             </div>
           ))}
         </div>
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="h-3 w-3 rounded-[3px] ring-2 ring-inset ring-[#1d1d1f]" />
+          lowest risk for that return (best years)
+        </span>
       </div>
     </div>
   );

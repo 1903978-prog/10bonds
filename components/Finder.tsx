@@ -164,6 +164,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Admin only (yellow): Methodology 1 (what customers get) or the Methodology with spread rules (lib/stepGap.ts).
   const [spread, setSpread] = useState(false);
   const method = isAdmin && spread ? "spread" : "m1";
+  // Admin only: the risk heat map in chart mode, its methodology, and the cell clicked on it (that return and horizon);
+  // while a cell is picked the list on the right is that cell's 10 bonds. Moving any control lets go of it.
+  const [showHeat, setShowHeat] = useState(false);
+  const [heatMethod, setHeatMethod] = useState<HeatMethod>("m1");
+  const [heatPick, setHeatPick] = useState<{ ytm: number; duration: number } | null>(null);
+  const [heatBl, setHeatBl] = useState(false);
+  const heatOn = isAdmin && showHeat && heatPick !== null;
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
@@ -294,6 +301,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
         if (method === "spread") qs.set("m", method);
+        if (heatOn) {
+          // The heat map cell's list: the same exact frontier the map is built from, with the map's methodology.
+          qs.set("duration", String(heatPick.duration));
+          qs.set("ytm", String(heatPick.ytm));
+          qs.set("guard", "1");
+          if (heatMethod === "spread") qs.set("m", "spread");
+          else qs.delete("m");
+          qs.set("bl", heatBl ? "1" : "0");
+        }
         if (preview.current) qs.set("preview", preview.current);
         if (isAdmin && tuner.weight !== null) {
           qs.set("rw", String(tuner.weight));
@@ -337,7 +353,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };
-  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method]);
+  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl]);
+  useEffect(() => setHeatPick(null), [duration, ytm, risk, mix, adv, spread, showHeat]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -389,16 +406,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, [chartOn, chartable, showAll, isAdmin, risk, currency, size]);
   // Admin only: the risk heat map (expected loss per target return and horizon), in place of the curves. Asked for as
   // soon as the admin's page opens, so the server builds it in the background and it shows at once when switched on.
-  const [showHeat, setShowHeat] = useState(false);
   const [heatMap, setHeatMap] = useState<HeatMap | "unavailable" | null>(null);
-  const [heatMethod, setHeatMethod] = useState<HeatMethod>("m1");
   useEffect(() => {
     if (!isAdmin) return;
     setHeatMap(null);
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const ask = () =>
-      fetch(`/api/bonds/heat-map?${new URLSearchParams({ currency, size, method: heatMethod })}`)
+      fetch(`/api/bonds/heat-map?${new URLSearchParams({ currency, size, method: heatMethod, ...(heatBl ? { bl: "1" } : {}) })}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
           if (stop || !j) return;
@@ -409,7 +424,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         .catch(() => {});
     ask();
     return () => { stop = true; clearTimeout(timer); };
-  }, [isAdmin, currency, size, heatMethod]);
+  }, [isAdmin, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
   const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show);
@@ -623,11 +638,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {/* Results */}
       {mode === "single" ? (
         <section
-          className="flex flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] max-sm:pt-3 sm:p-5 lg:min-h-[var(--results-h)]"
+          className="flex flex-col sm:rounded-[28px] sm:bg-white sm:p-5 sm:shadow-[0_2px_20px_rgba(0,0,0,0.04)] lg:min-h-[var(--results-h)]"
           style={resultsH ? { ["--results-h" as string]: `${resultsH}px` } : undefined}
         >
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
-          <p className="mt-auto pt-2 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howSingle}</p>
+          <p className="mt-auto px-2 pt-3 text-[11px] leading-snug text-mute sm:px-0 sm:pt-2" data-testid="ranking-note">{t.howSingle}</p>
         </section>
       ) : (
       // On phones this box gives way to the full-screen results page (PhoneResults), so the slider page never scrolls down to it.
@@ -668,7 +683,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {showHeat && isAdmin ? (
-                  <HeatMapChart map={heatMap} method={heatMethod} onMethod={setHeatMethod} retLabel={t.chartX} yearsLabel="yrs" />
+                  <HeatMapChart map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
                 ) : showAll && isAdmin ? (
                   allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" />
                 ) : simple ? (
@@ -684,11 +699,18 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
             </div>
             <div className={`flex min-w-0 flex-col transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
-              <div className="mb-1 flex h-7 items-center">{arrows}</div>
+              <div className="mb-1 flex h-7 items-center">
+                {heatOn ? (
+                  // Admin (yellow): the list below is the heat map cell picked on the left.
+                  <span data-testid="heat-pick-tag" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
+                    Heat map: {heatPick.ytm.toFixed(1)}% · {heatPick.duration >= 30 ? "30+" : heatPick.duration} yrs · {heatMethod === "spread" ? "Spread rules" : "Method 1"}{heatBl ? " · blacklist on" : ""}
+                  </span>
+                ) : arrows}
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <Stat value={pct(summary?.avgYtm ?? ytm)} label={t.chartX} />
-                <Stat value={summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : curve ? pct(nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
-                <Stat value={simple ? positionSlope(positions, mix) : curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
+                <Stat value={summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : curve && !heatOn ? pct(nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
+                <Stat value={heatOn ? "—" : simple ? positionSlope(positions, mix) : curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
               </div>
               <div className="relative mt-3">
                 {loading && !simple && <Spinner />}

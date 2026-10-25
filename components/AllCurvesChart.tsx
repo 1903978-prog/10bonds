@@ -6,7 +6,7 @@ import { shownPoints } from "@/components/LossChart";
 import type { CurvePoint } from "@/lib/lossCurve";
 
 /** One colour per horizon, 2 to 10 years. */
-const COLOURS = ["#0066cc", "#e4572e", "#17a673", "#8e44ad", "#f0a202", "#1abc9c", "#c0392b", "#5d6d7e", "#d35400"];
+export const COLOURS = ["#0066cc", "#e4572e", "#17a673", "#8e44ad", "#f0a202", "#1abc9c", "#c0392b", "#5d6d7e", "#d35400"];
 
 /**
  * Admin only: the expected-loss curve for every horizon from 2 to 10 years on one chart, one colour each, with no slope
@@ -103,7 +103,8 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
           <text x={nearAt.x - F * 1.6 - 8} y={nearAt.y - 10 - F / 3} textAnchor="middle" fontSize={F - 1} className="fill-white">{series[nearAt.i].duration} {yearsLabel}</text>
         </g>
       )}
-      <g data-testid="all-curves-legend" fontSize={F}>
+      {/* Bottom right of the plot (the owner, 24/10/2026): the curves rise to the top left, so the legend no longer covers them. */}
+      <g data-testid="all-curves-legend" fontSize={F} transform={`translate(${W - R - 4 - (L + 4 + F * 13.4)} ${H - B - 4 - (T + 2 + (series.length + 1) * (F + 8) + 8)})`}>
         {/* Fixed size: horizon, then (while hovering) the list's return and expected loss, or "–" if it cannot reach it. */}
         <rect x={L + 4} y={T + 2} width={F * 13.4} height={(series.length + 1) * (F + 8) + 8} rx={8} fill="white" fillOpacity={0.9} />
         {series.map((s, i) => (

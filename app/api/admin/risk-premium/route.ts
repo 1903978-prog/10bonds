@@ -4,13 +4,14 @@ import { loadBonds, loadOutliers } from "@/lib/bonds";
 import { OUTLIER_SD } from "@/lib/outliers";
 import { signatureOf } from "@/lib/bestTable";
 import { LIMITS } from "@/lib/limits";
-import { curveProblems, CURVE_RATINGS, V1_CURVE, type CurveRating } from "@/lib/riskPremium/curve";
+import { curveProblems, curveWarnings, CURVE_RATINGS, V1_CURVE, type CurveRating } from "@/lib/riskPremium/curve";
 import { draftFrom, type DraftInput } from "@/lib/riskPremium/versions";
+import { cleanParams, setRiskParams } from "@/lib/riskPremium/params";
 import { cleanMatrix, DEFAULT_SPREAD_MATRIX } from "@/lib/stepGap";
 import { cleanPolicy, DEFAULT_POLICY, policyChanges, POLICY_FIELDS } from "@/lib/coherence";
 import { compareScenario, contextFor, DEFAULT_SCENARIO, sensitivity, universeReport } from "@/lib/riskPremium/shadow";
 import {
-  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getCoherencePolicy, getSpreadMatrix, getWeight, resetCoherencePolicy, saveCoherencePolicy, saveSpreadMatrix, latestReviews, MAX_WEIGHT, listAudit, listRuns, listVersions, recordRun, setOutlierSd, setWeight, updateDraft,
+  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getCoherencePolicy, getOutlierSd, getRiskParams, getSpreadMatrix, getWeight, resetCoherencePolicy, saveCoherencePolicy, saveRiskParams, saveSpreadMatrix, latestReviews, MAX_WEIGHT, listAudit, listRuns, listVersions, recordRun, setOutlierSd, setWeight, updateDraft,
 } from "@/lib/riskPremium/store";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,8 @@ export async function GET(req: Request) {
     ytm: num(url.searchParams.get("ytm"), DEFAULT_SCENARIO.ytm, LIMITS.ytm.min, LIMITS.ytm.max),
     risk: Math.round(num(url.searchParams.get("risk"), DEFAULT_SCENARIO.risk, LIMITS.risk.min, LIMITS.risk.max)),
   };
-  const [versions, weight, reviews, audit, data, outliers, spreadMatrix, storedPolicy] = await Promise.all([listVersions(), getWeight(), latestReviews(), listAudit(60), loadBonds(), loadOutliers(), getSpreadMatrix(), getCoherencePolicy()]);
+  const [versions, weight, reviews, audit, data, outliers, spreadMatrix, params, outlierSd, storedPolicy] = await Promise.all([listVersions(), getWeight(), latestReviews(), listAudit(60), loadBonds(), loadOutliers(), getSpreadMatrix(), getRiskParams(), getOutlierSd(), getCoherencePolicy()]);
+  setRiskParams(params); // the comparison below must use the numbers just read
   const active = versions.find((v) => v.status === "active") ?? null;
   const reviewMap = new Map(reviews.map((r) => [r.isin, r.decision]));
   const curve = active ?? V1_CURVE;
@@ -47,7 +49,7 @@ export async function GET(req: Request) {
   const draft = versions.find((v) => v.id === draftId && v.status === "draft");
   return NextResponse.json(
     {
-      weight, spreadMatrix: spreadMatrix ?? DEFAULT_SPREAD_MATRIX, spreadDefault: !spreadMatrix, policy: storedPolicy?.policy ?? DEFAULT_POLICY, policyVersion: storedPolicy?.version ?? null, policyFields: POLICY_FIELDS, policyChanges: policyChanges(storedPolicy?.policy ?? DEFAULT_POLICY), versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
+      weight, params, outlierSd, spreadMatrix: spreadMatrix ?? DEFAULT_SPREAD_MATRIX, spreadDefault: !spreadMatrix, policy: storedPolicy?.policy ?? DEFAULT_POLICY, policyVersion: storedPolicy?.version ?? null, policyFields: POLICY_FIELDS, policyChanges: policyChanges(storedPolicy?.policy ?? DEFAULT_POLICY), versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
       source: data.source, asOf: data.asOf, bund: ctx.bund.points.map((p) => ({ years: Math.round(p.years * 100) / 100, ytm: p.ytm })),
       compare: compareScenario(data.bonds, ctx, sc, outliers),
       draftCompare: draft ? { id: draft.id, version: draft.version, ...compareScenario(data.bonds, contextFor(data.bonds, data.asOf, draft, reviewMap, ctx.bund), sc) } : null,
@@ -56,6 +58,13 @@ export async function GET(req: Request) {
     },
     { headers: { "Cache-Control": "no-store" } },
   );
+}
+
+/** Next free version label: highest existing minor + 1 (1.0 -> 1.1). */
+function nextVersion(vs: { version: string }[]): string {
+  const nums = vs.map((v) => v.version.split(".").map(Number)).sort((a, b) => b[0] - a[0] || (b[1] ?? 0) - (a[1] ?? 0));
+  const [maj, min] = nums[0] ?? [1, 0];
+  return `${maj}.${(min ?? 0) + 1}`;
 }
 
 function draftInput(b: Record<string, unknown>): DraftInput {
@@ -91,6 +100,8 @@ export async function POST(req: Request) {
       const problems = curveProblems(c);
       if (versions.some((v) => v.version === c.version)) problems.push(`Version ${c.version} already exists`);
       if (problems.length) return bad("The curve has problems", problems);
+      const warn = curveWarnings(c);
+      if (warn.length && b.override !== true) return NextResponse.json({ error: "The curve looks odd. Save anyway?", problems: warn, canOverride: true }, { status: 400 });
       return NextResponse.json({ ok: true, id: await createDraft(c, notes, why, by) });
     }
     case "update_draft": {
@@ -100,7 +111,29 @@ export async function POST(req: Request) {
       const problems = curveProblems(c);
       if (versions.some((o) => o.id !== v.id && o.version === c.version)) problems.push(`Version ${c.version} already exists`);
       if (problems.length) return bad("The curve has problems", problems);
+      const warn = curveWarnings(c);
+      if (warn.length && b.override !== true) return NextResponse.json({ error: "The curve looks odd. Save anyway?", problems: warn, canOverride: true }, { status: 400 });
       return (await updateDraft(v.id, c, notes ?? v.notes, why, by)) ? NextResponse.json({ ok: true }) : bad("Only drafts can be changed");
+    }
+    case "save_curve": {
+      // Edit the active curve in place: saved as a NEW version (the old one stays in History), optionally activated at once.
+      const from = versions.find((v) => v.status === "active") ?? V1_CURVE;
+      const c = draftFrom(from, { ...draftInput(b), version: nextVersion(versions) });
+      const problems = curveProblems(c);
+      if (problems.length) return bad("The curve has problems", problems);
+      const warn = curveWarnings(c);
+      if (warn.length && b.override !== true) return NextResponse.json({ error: "The curve looks odd. Save anyway?", problems: warn, canOverride: true }, { status: 400 });
+      const id = await createDraft(c, notes, why, by);
+      if (b.activate === true) {
+        const p = await activateVersion(id, why, by);
+        if (p.length) return bad("Saved as a draft, but it cannot be activated", p);
+      }
+      return NextResponse.json({ ok: true, id, version: c.version, activated: b.activate === true });
+    }
+    case "params": {
+      if (b.reset) { await saveRiskParams(cleanParams(null), why, by, true); return NextResponse.json({ ok: true }); }
+      await saveRiskParams(cleanParams(b.params), why, by);
+      return NextResponse.json({ ok: true });
     }
     case "delete_draft":
       return (await deleteDraft(Number(b.id), why, by)) ? NextResponse.json({ ok: true }) : bad("Only drafts can be deleted");

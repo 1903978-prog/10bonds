@@ -1,5 +1,6 @@
 import type { PublicBond } from "./types";
 import { bondRisk } from "./ratings";
+import { riskParams } from "./riskPremium/params";
 
 // Bonds whose yield is far above every comparable bond usually carry a structure the rating of the issuer does not
 // describe (subordinated / Tier 2 / AT1 bank debt, hybrids, perpetuals). The copy has no seniority column, so two rules
@@ -11,8 +12,7 @@ import { bondRisk } from "./ratings";
 
 export const RISKY_STRUCTURE = /\b(sub|subord|subordinated|jr|junior|perp|perpetual|hybrid|tier ?[12]|t[12]|at1|lt2|coco)\b/i;
 export const OUTLIER_SD = { min: 0.5, max: 5, step: 0.1, default: 2 };
-export const OUTLIER_MIN_PEERS = 8;
-const PEER_DURATION = 0.2; // ±20% of the bond's duration
+export const OUTLIER_MIN_PEERS = 8; // default; the live value is riskParams().outlierMinPeers
 const PEER_DURATION_MIN = 1; // but at least ±1 year
 
 export type Outlier = { bond: PublicBond; reason: "name" | "yield"; peerMean: number | null; peerSd: number | null };
@@ -42,9 +42,9 @@ export function findOutliers(bonds: PublicBond[], sd = OUTLIER_SD.default): Outl
   for (const group of groups.values()) {
     for (const b of group) {
       const d = b.modifiedDuration!;
-      const band = Math.max(PEER_DURATION_MIN, PEER_DURATION * d);
+      const band = Math.max(PEER_DURATION_MIN, riskParams().peerDuration * d);
       const peers = group.filter((p) => p !== b && Math.abs(p.modifiedDuration! - d) <= band).map((p) => p.grossYtm!);
-      if (peers.length < OUTLIER_MIN_PEERS) continue;
+      if (peers.length < riskParams().outlierMinPeers) continue;
       const mean = peers.reduce((s, y) => s + y, 0) / peers.length;
       const sdev = Math.sqrt(peers.reduce((s, y) => s + (y - mean) ** 2, 0) / peers.length);
       if (b.grossYtm! > mean + k * sdev + 1e-9) out.push({ bond: b, reason: "yield", peerMean: mean, peerSd: sdev });

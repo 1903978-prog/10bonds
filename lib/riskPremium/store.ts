@@ -3,6 +3,7 @@ import { V1_CURVE, type CurveConfig, type CurveRating } from "./curve";
 import { activationProblems, type CurveVersion, type VersionStatus } from "./versions";
 import type { Evaluation } from "./evaluate";
 import { cleanSd, OUTLIER_SD } from "../outliers";
+import { cleanParams, setRiskParams, type RiskParams } from "./params";
 import { cleanMatrix, setSpreadMatrix, type SpreadMatrix } from "../stepGap";
 import { cleanPolicy, setPolicy, type CoherencePolicy } from "../coherence";
 
@@ -295,6 +296,24 @@ export async function resetCoherencePolicy(justification: string, by: string) {
   modeCache = null;
 }
 
+// Ranking and outlier numbers (lib/riskPremium/params.ts), in app.settings as JSON. Nothing saved = the defaults.
+const PARAMS_KEY = "risk_params";
+
+export async function getRiskParams(): Promise<RiskParams> {
+  const s = await db();
+  const [r] = await s<{ value: string }[]>`select value from app.settings where key = ${PARAMS_KEY}`;
+  try { return cleanParams(r ? JSON.parse(r.value) : null); } catch { return cleanParams(null); }
+}
+
+export async function saveRiskParams(p: RiskParams, justification: string, by: string, reset = false) {
+  const s = await db();
+  if (reset) await s`delete from app.settings where key = ${PARAMS_KEY}`;
+  else await s`insert into app.settings (key, value) values (${PARAMS_KEY}, ${JSON.stringify(p)}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+  await audit(s, by, reset ? "risk_params_reset" : "risk_params", null, justification, { params: p });
+  setRiskParams(reset ? null : p);
+  modeCache = null;
+}
+
 export type Review = { isin: string; decision: "approved" | "rejected"; note: string; by: string; at: string; versionId: number | null };
 
 export async function addReview(isin: string, decision: "approved" | "rejected", note: string, versionId: number | null, by: string) {
@@ -344,17 +363,18 @@ export async function listRuns(limit = 10) {
 }
 
 // What the public ranking needs, cached for a minute so a slider move does not hit the database each time.
-type Live = { weight: number; outlierSd: number; curve: CurveVersion | null; reviews: Map<string, "approved" | "rejected">; spreadMatrix: SpreadMatrix | null; policy: StoredPolicy | null };
+type Live = { params: RiskParams; weight: number; outlierSd: number; curve: CurveVersion | null; reviews: Map<string, "approved" | "rejected">; spreadMatrix: SpreadMatrix | null; policy: StoredPolicy | null };
 let modeCache: { at: number; live: Live } | null = null;
 
 /** Mode, active curve and review decisions for the public ranking. Without an accounts database: shadow, no curve. */
 export async function liveRiskConfig(): Promise<Live> {
-  if (!accountsConfigured()) return { weight: 0, outlierSd: OUTLIER_SD.default, curve: null, reviews: new Map(), spreadMatrix: null, policy: null };
+  if (!accountsConfigured()) return { params: cleanParams(null), weight: 0, outlierSd: OUTLIER_SD.default, curve: null, reviews: new Map(), spreadMatrix: null, policy: null };
   if (modeCache && Date.now() - modeCache.at < 60_000) return modeCache.live;
-  const [weight, outlierSd, versions, reviews, spreadMatrix, policy] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews(), getSpreadMatrix(), getCoherencePolicy()]);
-  const live: Live = { weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])), spreadMatrix, policy };
+  const [weight, outlierSd, versions, reviews, spreadMatrix, params, policy] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews(), getSpreadMatrix(), getRiskParams(), getCoherencePolicy()]);
+  const live: Live = { params, weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])), spreadMatrix, policy };
   modeCache = { at: Date.now(), live };
   setSpreadMatrix(live.spreadMatrix);
+  setRiskParams(live.params);
   setPolicy(live.policy?.policy, live.policy ? `v${live.policy.version}` : null);
   return live;
 }
