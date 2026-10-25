@@ -9,7 +9,7 @@ export default function AssessmentsAdmin({ verdicts }: { verdicts: boolean }) {
   return (
     <label className="flex items-center gap-2 text-sm" data-testid="assessments-admin">
       <input type="checkbox" checked={on} onChange={async (e) => { const v = e.target.checked; if ((await post({ verdicts: v })).ok) setOn(v); }} />
-      Show BUY / WATCH / AVOID and "Our view" to customers (keep off until the compliance review is done)
+      Show BUY / WATCH / AVOID and &quot;Our view&quot; to customers (keep off until the compliance review is done)
     </label>
   );
 }
