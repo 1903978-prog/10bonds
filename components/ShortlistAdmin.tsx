@@ -122,6 +122,7 @@ export default function ShortlistAdmin() {
           )}
 
           <Compare id={cur.id} onOverlap={setOverlap} />
+          <Alternative id={cur.id} />
 
           <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-white">
             <table className="w-full min-w-[1500px] text-left text-[11px] tabular-nums" data-testid="shortlist-table">
@@ -185,6 +186,22 @@ type Cmp = {
 };
 const sgn = (v: number | null, d: number, unit: string) => (v == null ? "–" : `${v >= 0 ? "+" : ""}${v.toFixed(d)}${unit}`);
 
+
+type Diff = Cmp["diff"];
+function compareRows(diff: Diff, a: PortfolioFigures, b: PortfolioFigures): [string, string, string, string][] {
+  return [
+    ["Average return (YTM)", pct(a.avgYtm), pct(b.avgYtm), sgn(diff.ytm, 2, " pp")],
+    ["Average duration", a.avgDuration == null ? "–" : `${a.avgDuration.toFixed(2)} yrs`, b.avgDuration == null ? "–" : `${b.avgDuration.toFixed(2)} yrs`, sgn(diff.duration, 2, " yrs")],
+    ["Expected loss on your money", pct(a.lifeLoss), pct(b.lifeLoss), sgn(diff.lifeLoss, 2, " pp")],
+    ["Average risk (1–10)", a.avgRisk == null ? "–" : a.avgRisk.toFixed(1), b.avgRisk == null ? "–" : b.avgRisk.toFixed(1), sgn(diff.risk, 1, "")],
+    ["Bonds", String(a.count), String(b.count), sgn(a.count - b.count, 0, "")],
+    ["Issuers", String(a.issuers), String(b.issuers), sgn(a.issuers - b.issuers, 0, "")],
+    ["Average spread vs Bund", a.avgSpreadBp == null ? "–" : `${Math.round(a.avgSpreadBp)} bp`, b.avgSpreadBp == null ? "–" : `${Math.round(b.avgSpreadBp)} bp`, sgn(diff.spreadBp, 0, " bp")],
+    ["Risk Pay (spread ÷ expected loss)", a.riskPay == null ? "–" : `${a.riskPay.toFixed(1)}×`, b.riskPay == null ? "–" : `${b.riskPay.toFixed(1)}×`, sgn(diff.riskPay, 1, "×")],
+    ["Net of expected loss", a.netBp == null ? "–" : `${Math.round(a.netBp)} bp`, b.netBp == null ? "–" : `${Math.round(b.netBp)} bp`, sgn(a.netBp == null || b.netBp == null ? null : a.netBp - b.netBp, 0, " bp")],
+  ];
+}
+
 /** Admin only: this shortlist against the live efficient list of one horizon at a desired return (the Multi-year chart's curve), same expected-loss method and loss given default by debt rank for both. */
 function Compare({ id, onOverlap }: { id: number; onOverlap: (isins: string[]) => void }) {
   const [years, setYears] = useState("4");
@@ -201,17 +218,7 @@ function Compare({ id, onOverlap }: { id: number; onOverlap: (isins: string[]) =
     return () => clearTimeout(t);
   }, [id, years, target, onOverlap]);
   const a = d?.mine, b = d?.other;
-  const rows: [string, string, string, string][] = !d || !a || !b ? [] : [
-    ["Average return (YTM)", pct(a.avgYtm), pct(b.avgYtm), sgn(d.diff.ytm, 2, " pp")],
-    ["Average duration", a.avgDuration == null ? "–" : `${a.avgDuration.toFixed(2)} yrs`, b.avgDuration == null ? "–" : `${b.avgDuration.toFixed(2)} yrs`, sgn(d.diff.duration, 2, " yrs")],
-    ["Expected loss on your money", pct(a.lifeLoss), pct(b.lifeLoss), sgn(d.diff.lifeLoss, 2, " pp")],
-    ["Average risk (1–10)", a.avgRisk == null ? "–" : a.avgRisk.toFixed(1), b.avgRisk == null ? "–" : b.avgRisk.toFixed(1), sgn(d.diff.risk, 1, "")],
-    ["Bonds", String(a.count), String(b.count), sgn(a.count - b.count, 0, "")],
-    ["Issuers", String(a.issuers), String(b.issuers), sgn(a.issuers - b.issuers, 0, "")],
-    ["Average spread vs Bund", a.avgSpreadBp == null ? "–" : `${Math.round(a.avgSpreadBp)} bp`, b.avgSpreadBp == null ? "–" : `${Math.round(b.avgSpreadBp)} bp`, sgn(d.diff.spreadBp, 0, " bp")],
-    ["Risk Pay (spread ÷ expected loss)", a.riskPay == null ? "–" : `${a.riskPay.toFixed(1)}×`, b.riskPay == null ? "–" : `${b.riskPay.toFixed(1)}×`, sgn(d.diff.riskPay, 1, "×")],
-    ["Net of expected loss", a.netBp == null ? "–" : `${Math.round(a.netBp)} bp`, b.netBp == null ? "–" : `${Math.round(b.netBp)} bp`, sgn(a.netBp == null || b.netBp == null ? null : a.netBp - b.netBp, 0, " bp")],
-  ];
+  const rows = d && a && b ? compareRows(d.diff, a, b) : [];
   const inp = "mt-0.5 block w-20 rounded-lg border border-line bg-white px-2 py-1 text-sm text-ink";
   return (
     <div className="mt-4 rounded-2xl border border-amber-300 bg-white p-3" data-testid="shortlist-compare">
@@ -247,6 +254,102 @@ function Compare({ id, onOverlap }: { id: number; onOverlap: (isins: string[]) =
               ))}
             </tbody>
           </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+type Alt = {
+  name: string; horizon: number; mine: PortfolioFigures; other: PortfolioFigures; diff: Diff; verdict: string | null;
+  rows: ShortlistRow[]; mix: Record<string, number>; overlapIsins: string[]; overlapIssuers: string[];
+  core: { shortlistEl: number; eligible: number; dropped: { structure: number; risk: number; rank: number }; best: { status: string }; seconds: number;
+    targets: { target: number; status: string; ytm: number | null; el: number | null; withinLoss: boolean }[]; blockers: { label: string; ytm: number | null }[] };
+};
+
+/** Admin only: a model-selected alternative set (exact solver, real bonds of the live copy) with at least the shortlist's return targets at no more expected loss than the shortlist; built in the background, so it runs on click with a spinner. */
+function Alternative({ id }: { id: number }) {
+  const [state, setState] = useState<"idle" | "busy" | "done">("idle");
+  const [d, setD] = useState<Alt | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { setState("idle"); setD(null); setErr(null); }, [id]);
+  useEffect(() => {
+    if (state !== "busy") return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ask = async () => {
+      const r = await fetch(`/api/admin/shortlists/alternative?id=${id}`, { cache: "no-store" }).catch(() => null);
+      const j = await r?.json().catch(() => null);
+      if (stop) return;
+      if (j?.pending) { timer = setTimeout(ask, 3000); return; }
+      if (!r?.ok || !j?.core) { setErr(j?.error ?? "Could not run the search."); setState("idle"); return; }
+      setD(j); setState("done");
+    };
+    ask();
+    return () => { stop = true; clearTimeout(timer); };
+  }, [state, id]);
+  const a = d?.mine, b = d?.other;
+  const rows = d && a && b ? compareRows(d.diff, a, b) : [];
+  const c = d?.core;
+  return (
+    <div className="mt-4 rounded-2xl border border-amber-300 bg-white p-3" data-testid="shortlist-alt">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-base font-semibold">Alternative set at the same expected loss (model-selected)</h2>
+        <button type="button" disabled={state === "busy"} onClick={() => { setErr(null); setState("busy"); }} className="rounded-full bg-yellow-300 px-4 py-1 text-xs font-semibold text-ink disabled:opacity-60" data-testid="alt-run">
+          {state === "busy" ? <><span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-ink border-t-transparent align-[-2px]" />Searching…</> : state === "done" ? "Run again" : "Find alternative set"}
+        </button>
+      </div>
+      <p className="mt-1 text-[11px] text-mute">Exact solver over the live EUR bonds: 10 bonds of 10 different issuers, average duration 3.8–4.2 years (4-year horizon), every bond rated AAA to BBB+ (risk 1–4), at most 2 bonds per sector, no subordinated, AT1, Tier 2, credit-linked, equity or index-linked, structured or conditional-coupon notes, bonds with price flags already left out. Expected loss is the shortlist&apos;s own method (default chance × loss given default by debt rank). A model result for comparison, not advice or a recommendation.</p>
+      {err && <p className="mt-2 text-xs text-red-600" role="alert">{err}</p>}
+      {state === "busy" && <p className="mt-2 text-xs text-mute">Running the solver in the background; this takes up to a couple of minutes the first time.</p>}
+      {d && a && b && c && state === "done" && (
+        <>
+          <p className="mt-2 text-sm font-medium" data-testid="alt-verdict">{c.best.status === "infeasible" ? `No set of 10 reaches any return at ${d.name}'s expected loss (${c.shortlistEl.toFixed(2)}%) under these rules.` : d.verdict}</p>
+          <p className="mt-1 text-xs text-mute">{c.eligible} eligible bonds (left out: {c.dropped.structure} structured or linked, {c.dropped.rank} subordinated, {c.dropped.risk} rated below BBB+ or unrated). {c.best.status === "uncertified" ? "The solver hit its time limit: this set is not proven the best. " : "Proven best under the rules. "}Took {c.seconds}s.</p>
+          <table className="mt-2 w-full max-w-xl text-left text-xs tabular-nums" data-testid="alt-targets">
+            <thead className="text-mute"><tr><th className="py-1 font-medium">Target return</th><th className="py-1 font-medium">Lowest expected loss that reaches it</th><th className="py-1 font-medium">At or below {d.name}&apos;s {c.shortlistEl.toFixed(2)}%?</th></tr></thead>
+            <tbody>{c.targets.map((t) => (
+              <tr key={t.target} className="border-t border-line"><td className="py-1 font-semibold">{t.target.toFixed(2)}%</td><td className="py-1">{t.el == null ? "not reachable under these rules" : `${t.el.toFixed(2)}% (set returns ${t.ytm!.toFixed(2)}%)`}</td><td className="py-1">{t.el == null ? "–" : t.withinLoss ? "yes" : "no"}</td></tr>
+            ))}</tbody>
+          </table>
+          {c.blockers.length > 0 && (
+            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs" data-testid="alt-blockers">
+              <p className="font-medium">The best return at {d.name}&apos;s expected loss is {c.best.status === "infeasible" ? "not reachable" : `${b.avgYtm?.toFixed(2)}%`}, under {c.targets[0].target.toFixed(2)}%. With one rule relaxed:</p>
+              {c.blockers.map((x) => <p key={x.label} className="mt-0.5">{x.label}: {x.ytm == null ? "still not reachable" : `${x.ytm.toFixed(2)}%`}</p>)}
+            </div>
+          )}
+          {rows.length > 0 && (
+            <table className="mt-3 w-full max-w-3xl text-left text-xs tabular-nums">
+              <thead className="text-mute"><tr><th className="py-1 font-medium" /><th className="py-1 font-medium">{d.name}</th><th className="py-1 font-medium">Alternative set</th><th className="py-1 font-medium">Difference</th></tr></thead>
+              <tbody>{rows.map(([k, x, y, z]) => <tr key={k} className="border-t border-line"><td className="py-1 text-mute">{k}</td><td className="py-1 font-semibold">{x}</td><td className="py-1 font-semibold">{y}</td><td className="py-1">{z}</td></tr>)}</tbody>
+            </table>
+          )}
+          {d.rows.length > 0 && (
+            <>
+              <p className="mt-3 text-xs">Rating mix: {Object.entries(d.mix).map(([k, n]) => `${k} ${n}`).join(" · ")}. Same bonds as {d.name}: {d.overlapIsins.length ? d.overlapIsins.join(", ") : "none"}. Same issuers: {d.overlapIssuers.length ? d.overlapIssuers.join(", ") : "none"}.</p>
+              <div className="mt-1 overflow-x-auto">
+                <table className="w-full min-w-[900px] text-left text-[11px] tabular-nums" data-testid="alt-table">
+                  <thead className="text-mute"><tr>{["#", "Issuer", "ISIN", "Maturity", "Return", "Duration", "Risk", "Exp. loss (rank · LGD)", SPREAD_HEAD, RISKPAY_HEAD].map((h) => <th key={h} className="px-2 py-1 font-medium">{h}</th>)}</tr></thead>
+                  <tbody>
+                    {d.rows.map((r, i) => (
+                      <tr key={r.isin} className="border-t border-line">
+                        <td className="px-2 py-1 text-mute">{i + 1}</td>
+                        <td className="px-2 py-1">{r.issuer ?? r.name}</td>
+                        <td className="px-2 py-1"><CopyIsin isin={r.isin} /></td>
+                        <td className="whitespace-nowrap px-2 py-1">{dash(r.maturity)}</td>
+                        <td className="px-2 py-1 font-semibold">{pct(r.ytm)}</td>
+                        <td className="px-2 py-1">{r.duration == null ? "–" : r.duration.toFixed(2)}</td>
+                        <td className="px-2 py-1"><RiskBadge risk={r.risk} sp={r.sp} /></td>
+                        <td className="whitespace-nowrap px-2 py-1">{r.el == null ? "–" : <><b>{r.el.toFixed(2)}%</b> <span className="text-mute">{r.rank} · {Math.round(r.lgd * 100)}%</span></>}</td>
+                        <td className="px-2 py-1"><Spread ytm={r.ytm} years={r.duration} /></td>
+                        <td className="px-2 py-1"><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
