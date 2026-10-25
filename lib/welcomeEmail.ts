@@ -55,7 +55,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     links: {
       finder: ["Bond finder", "Pick a duration, a target yield and the lowest rating you accept: you get the 10 best-matching bonds, one per issuer."],
       knowledge: ["Knowledge guides", "Plain-language guides on yield, duration, ratings and how to buy bonds."],
-      calculator: ["Yield calculator", "Gross and after-tax yield of any bond, before you buy."],
+      calculator: ["Yield calculator", "Gross yield of any bond, before you buy."],
     },
     plansTitle: "The plans",
     plans: [
