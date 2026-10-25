@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { FinderLang } from "@/lib/finderText";
 import type { WhyRow } from "@/lib/whyList";
 import { SpSlot } from "@/components/RiskBadge";
+import { BondNoteFoot } from "@/components/BondNoteFoot";
 import { GptRate, BR_HEAD, IR_HEAD } from "@/components/GptRate";
 import { Spread, SPREAD_HEAD, SPREAD_NOTE, RiskPayCell, RISKPAY_HEAD, RISKPAY_NOTE } from "@/components/Spread";
 
@@ -110,6 +111,7 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
                   </tbody>
                 </table>
               )}
+              {admin && <div className="mt-1 flex"><BondNoteFoot isins={(rows ?? []).map((r) => r.isin)} /></div>}
             </div>
           </div>
         </div>

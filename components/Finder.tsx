@@ -38,6 +38,7 @@ import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
 import { clearResume, readResume, writeResume } from "@/lib/finderResume";
+import { BondNoteFoot } from "@/components/BondNoteFoot";
 import { isinText, parseGptRatings } from "@/lib/gptRatings";
 import { saveGptRatings, useGptRatings } from "@/lib/gptStore";
 import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
@@ -1544,6 +1545,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           </Link>
         ) : null}
         {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={features.has("add_left_out") && !show && !message ? addFromWhy : undefined} />}
+        {admin && rows.length > 0 && !show && !message && <BondNoteFoot isins={rows.map((r) => r.isin)} />}
         {admin && rows.length > 0 && !show && !message && (
           <span className="ml-auto flex shrink-0 items-center gap-1" data-testid="admin-isin-tools">
             <CopyChip text={isinText(rows.map((r) => r.isin))} label="Copy ISINs" testId="copy-isins" />

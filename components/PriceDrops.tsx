@@ -1,5 +1,6 @@
 "use client";
 
+import { BondNoteFoot } from "@/components/BondNoteFoot";
 import { useState } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
 import { GptRate, BR_HEAD, IR_HEAD } from "@/components/GptRate";
@@ -161,6 +162,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
         </table>
       </section>
 
+      <div className="mt-2 flex"><BondNoteFoot isins={padded.map((r) => r?.isin)} /></div>
       <p className="mt-3 text-[11px] leading-snug text-mute">
         {data.since && <span>{t.building(day(data.since))} </span>}
         <span>{t.indicative} </span>
