@@ -92,15 +92,29 @@ html.brand-on :is(div, section, figure):has(> table, > svg[role="img"])::before 
 /* Landing (the owner, 24/10/2026): no disclaimer sentence on the page; everything is in the footer's Disclaimer link. */
 body:has([data-testid="intro"]) [data-testid="footer-note"] { display: none; }
 
-/* Bond report: print / PDF. Every tab prints, cards and rows are never cut, site chrome is hidden. */
+/* Bond report page: drawn at true size (undoing the desktop shrink above) and up to 1160 px wide, centred. */
+.report-wide { position: relative; left: 50%; width: min(calc(100vw / var(--z, 1) - 2rem), calc(1160px / var(--z, 1))); transform: translateX(-50%); }
+@media (min-width: 768px) { .report-inner { zoom: calc(1 / var(--z, 1)); } }
+.report { border: 1px solid #e5e5ea; border-radius: 28px; background: #fff; }
+/* The section menu sticks just under the site header (56 px, drawn at --z). */
+.report-nav { top: calc(56px * var(--z, 1)); }
+.report-section { scroll-margin-top: calc(56px * var(--z, 1) + 64px); }
+@media (min-width: 768px) { .report-section { scroll-margin-top: calc(56px * var(--z, 1) + 64px); } }
+@media (prefers-reduced-motion: no-preference) { html:has(.report) { scroll-behavior: smooth; } }
+
+/* Bond report: print / PDF. Every section prints, cards and rows are never cut, site chrome and the menu are hidden. */
 @media print {
   body > header, body > footer, [data-testid="cookie-banner"] { display: none !important; }
   html { zoom: 1 !important; }
   body { background: #fff; font-size: 11pt; }
   main { max-width: none; padding: 0; }
-  .report .report-panel[hidden] { display: block !important; }
-  .report .report-card, .report tr, .report details { break-inside: avoid; }
+  .report-wide { position: static; left: auto; width: auto; transform: none; }
+  .report-inner { zoom: 1 !important; }
+  .report { border: 0; border-radius: 0; }
+  .report-section { padding: 18pt 0 !important; background: #fff !important; break-inside: auto; }
+  .report-section > div:first-child, .report h3 { break-after: avoid; }
+  .report .report-card, .report tr, .report details, .report li { break-inside: avoid; }
   .report details > :not(summary) { display: block !important; }
-  .report .report-panel { margin-top: 0.5rem; }
+  .report details summary span[aria-hidden] { display: none; }
   @page { margin: 14mm; }
 }
