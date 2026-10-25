@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ReportView from "@/components/report/ReportView";
-import { buildReport } from "@/lib/bondReport";
+import { buildReport, hideSources } from "@/lib/bondReport";
 import { findCompany } from "@/lib/companiesInFocus";
 import { currentUser } from "@/lib/currentUser";
 import { loadAllShown } from "@/lib/bonds";
@@ -29,8 +29,8 @@ export default async function ReportPage({ params }: Props) {
     failed = true;
   }
   const c = findCompany(isin) ?? null;
-  const r = buildReport(isin, bond, c);
-  if (!r) {
+  const built = buildReport(isin, bond, c);
+  if (!built) {
     if (failed) {
       return (
         <section className="mx-auto mt-8 max-w-md rounded-2xl border border-line bg-white p-6 text-center" data-testid="report-error">
@@ -42,6 +42,8 @@ export default async function ReportPage({ params }: Props) {
     notFound();
   }
   const user = await currentUser();
+  const admin = !!user?.isAdmin;
+  const r = admin ? built : hideSources(built);
   const open = r.free || (await featuresFor(user)).includes("risk_reports");
   return (
     <ReportView r={r} open={open} admin={user?.isAdmin === true} />
