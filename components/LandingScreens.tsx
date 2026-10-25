@@ -46,13 +46,13 @@ function Chrome({ wide, lang, children }: { wide: boolean; lang: FinderLang; chi
       {wide && (
         <div className="flex h-10 shrink-0 items-center gap-2 border-b border-[#dcdfe4] bg-[#ebecef] px-4">
           {["#ff5f57", "#febc2e", "#28c840"].map((c) => <span key={c} className="h-3 w-3 rounded-full" style={{ background: c }} />)}
-          <span className="mx-auto flex h-6 w-[380px] items-center justify-center rounded-md bg-white text-[13px] text-[#6e6e73]">10bonds.com</span>
+          <span className="mx-auto flex h-6 w-[380px] items-center justify-center rounded-md bg-white text-[13px] text-[#55555b]">10bonds.com</span>
           <span className="w-[52px]" />
         </div>
       )}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e3e5e8] bg-white px-6">
         <span className="text-[28px] font-semibold leading-none tracking-tight">10</span>
-        <span className="flex items-center gap-6 text-[14px] text-[#6e6e73]">
+        <span className="flex items-center gap-6 text-[14px] text-[#55555b]">
           {wide && nav.slice(0, 3).map((n) => <span key={n}>{n}</span>)}
           <span className="font-semibold text-[#1d1d1f]">{lang.toUpperCase()}</span>
           {wide && <span>{nav[3]}</span>}
@@ -66,7 +66,7 @@ function Chrome({ wide, lang, children }: { wide: boolean; lang: FinderLang; chi
 
 const Seg = ({ items, on }: { items: string[]; on: number }) => (
   <div className="flex rounded-full bg-[#f0f0f3] p-1 text-[15px] font-medium">
-    {items.map((s, i) => <span key={s} className={`flex-1 rounded-full py-1.5 text-center ${i === on ? "bg-white shadow-sm" : "text-[#6e6e73]"}`}>{s}</span>)}
+    {items.map((s, i) => <span key={s} className={`flex-1 rounded-full py-1.5 text-center ${i === on ? "bg-white shadow-sm" : "text-[#55555b]"}`}>{s}</span>)}
   </div>
 );
 const Track = ({ at }: { at: number }) => (
@@ -83,19 +83,19 @@ function Controls({ f, single, horizon, mix }: { f: FinderText; single: boolean;
       <div className="text-[22px] font-semibold leading-[1.1] tracking-tight">{f.h1}</div>
       <Seg items={[f.single, f.portfolio]} on={single ? 0 : 1} />
       <div>
-        <div className="text-[13px] text-[#6e6e73]">{f.currency}</div>
+        <div className="text-[13px] text-[#55555b]">{f.currency}</div>
         <div className="mt-1.5"><Seg items={["EUR", "USD"]} on={0} /></div>
       </div>
       <div>
         <div className="flex items-baseline justify-between"><span className="text-[15px] font-semibold">{f.horizon}</span><span className="text-[15px] font-semibold">{horizon} {f.years}</span></div>
         <Track at={(horizon - 1) / 14} />
-        <div className="mt-1.5 flex justify-between text-[12px] text-[#6e6e73]"><span>{f.year1}</span><span>15 {f.years}</span></div>
+        <div className="mt-1.5 flex justify-between text-[12px] text-[#55555b]"><span>{f.year1}</span><span>15 {f.years}</span></div>
       </div>
       {!single && (
         <div>
           <div className="flex items-baseline justify-between"><span className="text-[15px] font-semibold">{f.mixLabel}</span><span className="text-[15px] font-semibold">{mix} / 30</span></div>
           <Track at={(mix - 1) / 29} />
-          <div className="mt-1.5 flex justify-between text-[12px] text-[#6e6e73]"><span>{f.lowReturn}</span><span>{f.highReturn}</span></div>
+          <div className="mt-1.5 flex justify-between text-[12px] text-[#55555b]"><span>{f.lowReturn}</span><span>{f.highReturn}</span></div>
         </div>
       )}
     </div>
@@ -131,7 +131,7 @@ function BondList({ f, bonds, compact }: { f: FinderText; bonds: BenchmarkBond[]
           <li key={i} className="flex items-center border-b border-[#f3f3f5] text-[15px] tabular-nums last:border-0">
             <span className="w-6 text-[#86868b]">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate font-medium">{b?.name ?? "–"}</span>
-            {!compact && <span className="w-16 text-right text-[#6e6e73]">{b?.year ?? "–"}</span>}
+            {!compact && <span className="w-16 text-right text-[#55555b]">{b?.year ?? "–"}</span>}
             <span className="w-14 text-center">{b?.risk != null ? <RiskBadge risk={b.risk} /> : "–"}</span>
             <span className="w-16 text-right font-semibold">{b?.ytm != null ? b.ytm.toFixed(2) : "–"}</span>
           </li>
@@ -265,7 +265,7 @@ export function OneBondScreen({ lang }: { lang: FinderLang }) {
         <Panel>
           <div className="min-h-0 flex-1"><BestByRisk f={f} /></div>
           <div className="mt-3 flex shrink-0 items-center justify-between rounded-[12px] border border-[#e5e5ea] px-4 py-3 text-[15px]">
-            <span className="flex items-center gap-3"><RiskBadge risk={7} /><span className="font-semibold">Teva</span><span className="text-[#6e6e73]">Teva 4.375% 2030</span></span>
+            <span className="flex items-center gap-3"><RiskBadge risk={7} /><span className="font-semibold">Teva</span><span className="text-[#55555b]">Teva 4.375% 2030</span></span>
             <span className="text-[26px] font-semibold tabular-nums">5.10%</span>
           </div>
         </Panel>
