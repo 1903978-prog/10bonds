@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FrontierScreen, OneBondScreen, ListScreen } from "@/components/LandingScreens";
 import type { LandingText } from "@/lib/landingText";
 
-const LVMH = "FR0013482841";
+const ACMA = "DE000ACMA031";
 
 const NAVY = "#112D3B";
 const EVERY = 3000; // ms per slide (the owner, 24/10/2026)
@@ -116,11 +116,11 @@ export function CountrySlide({ t }: { t: LandingText }) {
   );
 }
 
-/** One company: the LVMH 2031 key data (rating, score, return, credit factors), a fixed image so it never shifts. */
+/** One company: the ACMA 2031 key data (rating, score, return, credit factors), a fixed image so it never shifts. */
 export function CompanySlide({ t }: { t: LandingText }) {
   const c = t.carousel;
   return (
-    <SlideCard title={actionTitle(c.act.company)} href={`/risk-assessment/${LVMH}`}>
+    <SlideCard title={actionTitle(c.act.company)} href={`/risk-assessment/${ACMA}`}>
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7] bg-[#F5F5F7]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/carousel-company-phone.png" alt={c.companyAlt} className="absolute inset-0 h-full w-full object-cover object-top sm:hidden" />

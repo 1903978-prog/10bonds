@@ -32,7 +32,9 @@ const nextConfig = {
       ["obligations-ou-etf", "obligations-ou-etf-obligataires"],
     ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }))
       // The menu says "Plans"; the page stays at /pricing so old links keep working.
-      .concat({ source: "/plans", destination: "/pricing", permanent: false });
+      .concat({ source: "/plans", destination: "/pricing", permanent: false })
+      // The sample company is fictional (ACMA GmbH); the old real-bond links keep working.
+      .concat(["risk-assessment", "report"].map((r) => ({ source: `/${r}/FR0013482841`, destination: `/${r}/DE000ACMA031`, permanent: true })));
   },
   async headers() {
     // /embed/... is shown inside other websites' frames, so it skips the "never in a frame" and same-origin rules.
