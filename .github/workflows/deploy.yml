@@ -187,6 +187,11 @@ jobs:
         if: env.ok == '1'
         continue-on-error: true
         run: curl -sS -w ' HTTP %{http_code}\n' https://10bonds.fly.dev/api/health/data
+      # What the server said just before the failure (for finding the cause); the rollback below follows.
+      - name: Server log of the failed release
+        if: failure() && steps.deploy.outcome == 'success'
+        continue-on-error: true
+        run: flyctl logs -a 10bonds --no-tail 2>&1 | tail -80
       # A new release that fails any check above is replaced at once by the previous one; the run stays red.
       - name: Automatic rollback when a check failed
         if: failure() && steps.deploy.outcome == 'success'
