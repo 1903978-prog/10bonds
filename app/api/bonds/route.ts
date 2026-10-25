@@ -7,7 +7,7 @@ import { shapeForTier, tierFeatures } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
 import { simulateCached } from "@/lib/monteCarlo";
 import { bondRisk } from "@/lib/ratings";
-import type { Tier } from "@/lib/types";
+import type { RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
 import { publicQuota, consumeSearch } from "@/lib/searchQuota";
@@ -15,7 +15,9 @@ import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
 import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
-import { frontierFor, gapOf, parseMethod } from "@/lib/frontierCache";
+import { frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
+import { checkList, creditProfile, withoutListEdits, factsOf, activePolicy, policySignature } from "@/lib/coherence";
+import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
 
@@ -70,9 +72,23 @@ export async function GET(req: Request) {
   const filter = parseFilter(url.searchParams);
   // Admin only: m=spread searches the Methodology with spread rules (lib/stepGap.ts); everyone else Methodology 1.
   const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
-  const { results, band, engine } = url.searchParams.get("guard") === "1"
+  // The spread-rules methodology is the coherent optimiser (lib/coherentFrontier.ts): built in the background, 202 until ready.
+  // It ignores a customer's exclusions (admin test only): a list that skipped bonds would not be the certified optimum.
+  let coherent: CoherentFrontier | null = null;
+  let frontierResults: RankedBond[] | null = null;
+  if (url.searchParams.get("guard") === "1") {
+    try {
+      const fr = method === "spread" ? frontierFor(data, filter, duration, "spread") : skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method);
+      if (method === "spread") coherent = fr as CoherentFrontier;
+      frontierResults = fr.at(ytm)?.rows ?? [];
+    } catch (e) {
+      if (e instanceof FrontierPending) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
+      throw e;
+    }
+  }
+  const { results, band, engine } = frontierResults
     ? {
-        results: (skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method)).at(ytm)?.rows ?? [],
+        results: frontierResults,
         band: portfolioPool(withinRisk(data.bonds, LIMITS.risk.max), duration).band,
         engine: { method: "current" as const, version: null, weight: 0, liveWeight: 0 },
       }
@@ -92,9 +108,10 @@ export async function GET(req: Request) {
   const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null, samples: sim.samples.map((s) => s.map((v, k) => Math.round((v / best[k]) * 1000) / 10)) };
   // With "swap": the bonds left out, to swap into the list; with "why_table" also why each one is out.
   const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
-  const alternatives = has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
+  // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
+  const alternatives = coherent ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features, excluded: skip !== null, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), activePolicy()).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: policySignature(), cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

@@ -3,6 +3,9 @@ import type { BondFilter } from "./bondFilter";
 import { signatureOf } from "./bestTable";
 import { exactFrontier, NO_STEPS, type ExactFrontier } from "./exactFrontier";
 import { stepGap, stepSignature } from "./stepGap";
+import { coherentFrontier, type CoherentFrontier } from "./coherentFrontier";
+import { policySignature } from "./coherence";
+import { GROUP_TABLE_VERSION } from "./issuerGroups";
 
 /** "m1" = Methodology 1 (what customers get); "spread" = Methodology with spread rules (admin only, lib/stepGap.ts). */
 export type FrontierMethod = "m1" | "spread";
@@ -15,11 +18,42 @@ export const gapOf = (m: FrontierMethod) => (m === "spread" ? stepGap : NO_STEPS
 
 const memo = new Map<string, ExactFrontier>();
 
+// The spread-rules methodology is the coherent optimiser (lib/coherentFrontier.ts): mixed-integer solves that take
+// seconds to minutes, so they are built in the background, one solve per turn, and cached by data copy, filter,
+// horizon, rules version and issuer-group table. Until ready, frontierFor throws FrontierPending (HTTP 202 callers).
+export class FrontierPending extends Error {
+  constructor() { super("The coherent lists are still being calculated."); }
+}
+const coherentMemo = new Map<string, CoherentFrontier>();
+const coherentBuilding = new Map<string, Promise<CoherentFrontier>>();
+
 export const frontierKey = (src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1") =>
-  [signatureOf(src), f.currency, f.size, duration, m, stepSignature()].join("|");
+  [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature(), GROUP_TABLE_VERSION] : [])].join("|");
+
+/** The coherent frontier for this copy, filter and horizon once built; started in the background if not. */
+export function coherentBuild(src: BondSource, f: BondFilter, duration: number): Promise<CoherentFrontier> {
+  const key = frontierKey(src, f, duration, "spread");
+  const hit = coherentMemo.get(key);
+  if (hit) return Promise.resolve(hit);
+  let p = coherentBuilding.get(key);
+  if (!p) {
+    p = coherentFrontier(src.bonds, duration)
+      .then((r) => { if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); return r; })
+      .finally(() => coherentBuilding.delete(key));
+    p.catch((e) => console.error("[coherent] build failed:", (e as Error).message));
+    coherentBuilding.set(key, p);
+  }
+  return p;
+}
 
 export function frontierFor(src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1"): ExactFrontier {
   const key = frontierKey(src, f, duration, m);
+  if (m === "spread") {
+    const ready = coherentMemo.get(key);
+    if (ready) return ready;
+    void coherentBuild(src, f, duration).catch(() => {});
+    throw new FrontierPending();
+  }
   let hit = memo.get(key);
   if (!hit) {
     hit = exactFrontier(src.bonds, duration, gapOf(m));

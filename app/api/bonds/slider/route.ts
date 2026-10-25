@@ -35,5 +35,5 @@ export async function GET(req: Request) {
   const positions = user?.isAdmin
     ? out.positions
     : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable, worstRisk: p.worstRisk, ...(chart ? { ytm: p.ytm, expectedLoss: p.expectedLoss } : {}) }));
-  return NextResponse.json({ positions }, { headers: { "Cache-Control": "private, max-age=300" } });
+  return NextResponse.json({ positions, ...(user?.isAdmin && out.cert ? { cert: out.cert } : {}) }, { headers: { "Cache-Control": "private, max-age=300" } });
 }

@@ -7,9 +7,10 @@ import { LIMITS } from "@/lib/limits";
 import { curveProblems, CURVE_RATINGS, V1_CURVE, type CurveRating } from "@/lib/riskPremium/curve";
 import { draftFrom, type DraftInput } from "@/lib/riskPremium/versions";
 import { cleanMatrix, DEFAULT_SPREAD_MATRIX } from "@/lib/stepGap";
+import { cleanPolicy, DEFAULT_POLICY, policyChanges, POLICY_FIELDS } from "@/lib/coherence";
 import { compareScenario, contextFor, DEFAULT_SCENARIO, sensitivity, universeReport } from "@/lib/riskPremium/shadow";
 import {
-  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getSpreadMatrix, getWeight, saveSpreadMatrix, latestReviews, MAX_WEIGHT, listAudit, listRuns, listVersions, recordRun, setOutlierSd, setWeight, updateDraft,
+  activateVersion, addReview, createDraft, deactivateActive, deleteDraft, getCoherencePolicy, getSpreadMatrix, getWeight, resetCoherencePolicy, saveCoherencePolicy, saveSpreadMatrix, latestReviews, MAX_WEIGHT, listAudit, listRuns, listVersions, recordRun, setOutlierSd, setWeight, updateDraft,
 } from "@/lib/riskPremium/store";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +35,7 @@ export async function GET(req: Request) {
     ytm: num(url.searchParams.get("ytm"), DEFAULT_SCENARIO.ytm, LIMITS.ytm.min, LIMITS.ytm.max),
     risk: Math.round(num(url.searchParams.get("risk"), DEFAULT_SCENARIO.risk, LIMITS.risk.min, LIMITS.risk.max)),
   };
-  const [versions, weight, reviews, audit, data, outliers, spreadMatrix] = await Promise.all([listVersions(), getWeight(), latestReviews(), listAudit(60), loadBonds(), loadOutliers(), getSpreadMatrix()]);
+  const [versions, weight, reviews, audit, data, outliers, spreadMatrix, storedPolicy] = await Promise.all([listVersions(), getWeight(), latestReviews(), listAudit(60), loadBonds(), loadOutliers(), getSpreadMatrix(), getCoherencePolicy()]);
   const active = versions.find((v) => v.status === "active") ?? null;
   const reviewMap = new Map(reviews.map((r) => [r.isin, r.decision]));
   const curve = active ?? V1_CURVE;
@@ -46,7 +47,7 @@ export async function GET(req: Request) {
   const draft = versions.find((v) => v.id === draftId && v.status === "draft");
   return NextResponse.json(
     {
-      weight, spreadMatrix: spreadMatrix ?? DEFAULT_SPREAD_MATRIX, spreadDefault: !spreadMatrix, versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
+      weight, spreadMatrix: spreadMatrix ?? DEFAULT_SPREAD_MATRIX, spreadDefault: !spreadMatrix, policy: storedPolicy?.policy ?? DEFAULT_POLICY, policyVersion: storedPolicy?.version ?? null, policyFields: POLICY_FIELDS, policyChanges: policyChanges(storedPolicy?.policy ?? DEFAULT_POLICY), versions, active: active?.id ?? null, reviews, audit, runs: await listRuns(8), runId,
       source: data.source, asOf: data.asOf, bund: ctx.bund.points.map((p) => ({ years: Math.round(p.years * 100) / 100, ytm: p.ytm })),
       compare: compareScenario(data.bonds, ctx, sc, outliers),
       draftCompare: draft ? { id: draft.id, version: draft.version, ...compareScenario(data.bonds, contextFor(data.bonds, data.asOf, draft, reviewMap, ctx.bund), sc) } : null,
@@ -131,6 +132,14 @@ export async function POST(req: Request) {
       const m = b.reset ? DEFAULT_SPREAD_MATRIX : cleanMatrix(b.matrix);
       if (!m) return bad("Every cell must be a number from 0 to 1000 bp.");
       await saveSpreadMatrix(m, why, by);
+      return NextResponse.json({ ok: true });
+    }
+    case "coherence_policy": {
+      // Rating coherence limits (Methodology with spread rules, admin only): versioned, always inside the safe ranges.
+      if (b.reset) { await resetCoherencePolicy(why, by); return NextResponse.json({ ok: true }); }
+      const pol = cleanPolicy(b.policy);
+      if (!pol) return bad("A value is outside its allowed range.");
+      await saveCoherencePolicy(pol, why, by);
       return NextResponse.json({ ok: true });
     }
     case "outlier_sd": {

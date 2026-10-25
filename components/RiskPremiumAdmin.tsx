@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import SpreadRulesAdmin from "./SpreadRulesAdmin";
+import type { CoherencePolicy, POLICY_FIELDS } from "@/lib/coherence";
 import type { SpreadMatrix } from "@/lib/stepGap";
 import { CURVE_RATINGS, type CurveRating } from "@/lib/riskPremium/curve";
 import { shortStatus, STATUS_LABEL, type RiskStatus } from "@/lib/riskPremium/status";
@@ -16,7 +17,7 @@ import { GptRate, GPT_HEAD } from "@/components/GptRate";
 type Summary = { count: number; ytm: number | null; duration: number | null; risk: number | null; surplusBp: number | null };
 type Compare = { scenario: { duration: number; ytm: number; risk: number }; current: { rows: Row[]; summary: Summary }; riskAdjusted: { rows: Row[]; summary: Summary; targetReached: boolean; counts: Record<RiskStatus, number> }; overlap: number; bracket: BracketRow[] };
 type Payload = {
-  weight: number; spreadMatrix: SpreadMatrix; spreadDefault: boolean; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
+  weight: number; spreadMatrix: SpreadMatrix; spreadDefault: boolean; policy: CoherencePolicy; policyVersion: number | null; policyFields: typeof POLICY_FIELDS; policyChanges: string[]; versions: CurveVersion[]; active: number | null; asOf: string | null; source: string; runId: number | null;
   reviews: { isin: string; decision: string; note: string; by: string; at: string }[];
   audit: { id: number; at: string; by: string; versionId: number | null; action: string; justification: string | null }[];
   runs: { id: number; at: string; version: string | null; dataAsOf: string | null; bonds: number }[];
@@ -104,7 +105,7 @@ export default function RiskPremiumAdmin() {
       )}
 
       <div className="h-[calc(100vh-260px)] min-h-[420px] overflow-auto">
-        {tab === "Spread rules" && <SpreadRulesAdmin matrix={data.spreadMatrix} isDefault={data.spreadDefault} busy={busy} post={post} card={card} btn={btn} btnMain={btnMain} input={input} />}
+        {tab === "Spread rules" && <SpreadRulesAdmin matrix={data.spreadMatrix} isDefault={data.spreadDefault} policy={data.policy} policyVersion={data.policyVersion} policyChanges={data.policyChanges} busy={busy} post={post} card={card} btn={btn} btnMain={btnMain} input={input} />}
         {tab === "Curve" && (
           <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
             <section className={card}>
