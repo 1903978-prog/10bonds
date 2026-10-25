@@ -65,7 +65,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   const tryW = user?.isAdmin ? parseWeight(url.searchParams.get("rw")) : null;
   // The bonds and issuers this customer excluded never enter the list.
-  const skip = own && has("blacklist") ? excludedBy(await exclusionsOrNone(user!.id)) : null;
+  const skip = own && has("blacklist") && !(user?.isAdmin && url.searchParams.get("bl") === "0") ? excludedBy(await exclusionsOrNone(user!.id)) : null;
   // A slider position (guard=1): the exact frontier's list for this target (lib/exactFrontier.ts), the one on the chart.
   const filter = parseFilter(url.searchParams);
   // Admin only: m=spread searches the Methodology with spread rules (lib/stepGap.ts); everyone else Methodology 1.
