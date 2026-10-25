@@ -376,6 +376,30 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Chart mode (Livio 24/10): the chart takes the place of the controls on the left, the 10 bonds sit on the right.
   // It stays on while a new list loads, so nothing jumps between searches.
   const curveMode = chartOn && (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data;
+  // View tabs above the results (Livio 25/10): List | Chart | Multi-year chart | Heat map. The last two are admin only (yellow).
+  const view = !chartOn ? "list" : showHeat ? "heat" : showAll ? "multi" : "chart";
+  const pickView = (v: string) => {
+    setChartOn(v !== "list");
+    setShowHeat(v === "heat");
+    setShowAll(v === "multi");
+  };
+  const viewTabs = (
+    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs">
+      {([["list", t.chartOff], ["chart", t.chartOn], ...(isAdmin ? [["multi", "Multi-year chart"], ["heat", "Heat map"]] : [])] as [string, string][]).map(([k, label]) => (
+        <button
+          key={k}
+          type="button"
+          role="tab"
+          aria-selected={view === k}
+          data-testid={`view-tab-${k}`}
+          onClick={() => pickView(k)}
+          className={`whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] ${view === k ? (k === "multi" || k === "heat" ? "bg-amber-100 font-medium text-amber-900 shadow-sm" : "bg-white font-medium text-ink shadow-sm") : k === "multi" || k === "heat" ? "text-amber-800" : "text-mute"}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
   // The height of the page with the controls showing: chart mode keeps it, so the page never grows or scrolls.
   const pageBox = useRef<HTMLDivElement>(null);
   const [pageH, setPageH] = useState<number | null>(null);
@@ -659,23 +683,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-5" data-testid="curve-mode">
             <div className="flex min-h-[340px] min-w-0 flex-col">
               <div className="mb-1 flex h-7 justify-end">
-                {chartable && (
-                  <div className="flex justify-end gap-2">
-                    {chartOn && isAdmin && (
-                      <button type="button" onClick={() => setShowHeat((v) => !v)} data-testid="heat-map-toggle" className="w-24 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[12px] font-medium text-amber-900">
-                        {showHeat ? "Curves" : "Heat map"}
-                      </button>
-                    )}
-                    {chartOn && isAdmin && (
-                      <button type="button" onClick={() => { setShowHeat(false); setShowAll((v) => !v); }} data-testid="all-curves-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
-                        {showAll && !showHeat ? "One curve" : "See all curves"}
-                      </button>
-                    )}
-                    <button type="button" onClick={() => setChartOn((v) => !v)} data-testid="loss-chart-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
-                      {chartOn ? t.chartOff : t.chartOn}
-                    </button>
-                  </div>
-                )}
+                {chartable && viewTabs}
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {showHeat && isAdmin ? (
@@ -756,18 +764,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {/* Fixed-height row above the list: the chart button is always here, drawn only when a chart can be shown. */}
           <div className="mb-1 flex h-7 items-center justify-between">
             <div>{arrows}</div>
-            {chartable && (
-              <div className="flex justify-end gap-2">
-                {chartOn && isAdmin && (
-                  <button type="button" onClick={() => setShowAll((v) => !v)} data-testid="all-curves-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
-                    {showAll ? "One curve" : "See all curves"}
-                  </button>
-                )}
-                <button type="button" onClick={() => setChartOn((v) => !v)} data-testid="loss-chart-toggle" className="w-28 rounded-full px-3 py-1 text-right text-[12px] text-accent hover:underline">
-                  {chartOn ? t.chartOff : t.chartOn}
-                </button>
-              </div>
-            )}
+            {chartable && viewTabs}
           </div>
           <Results
             dense={false}
