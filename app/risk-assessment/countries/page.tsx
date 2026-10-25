@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import CountryFocus from "@/components/CountryFocus";
 import { COUNTRIES_IN_FOCUS } from "@/lib/countriesInFocus";
 import { currentUser } from "@/lib/currentUser";
+import { featuresFor } from "@/lib/planFeatures";
 
 export const metadata: Metadata = {
   title: "Risk assessment: countries in focus · 10BONDS",
@@ -14,5 +15,5 @@ export const dynamic = "force-dynamic";
 export default async function Countries() {
   const user = await currentUser();
   const c = COUNTRIES_IN_FOCUS.find((x) => x.free) ?? COUNTRIES_IN_FOCUS[0];
-  return <CountryFocus c={c} paid={!!user && user.plan !== "free"} />;
+  return <CountryFocus c={c} paid={(await featuresFor(user)).includes("risk_reports")} />;
 }

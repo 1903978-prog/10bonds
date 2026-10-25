@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import CountryFocus from "@/components/CountryFocus";
 import { findCountry } from "@/lib/countriesInFocus";
 import { currentUser } from "@/lib/currentUser";
+import { featuresFor } from "@/lib/planFeatures";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -17,5 +18,5 @@ export default async function CountryPage({ params }: Props) {
   const c = findCountry((await params).slug);
   if (!c) notFound();
   const user = await currentUser();
-  return <CountryFocus c={c} paid={!!user && user.plan !== "free"} />;
+  return <CountryFocus c={c} paid={(await featuresFor(user)).includes("risk_reports")} />;
 }

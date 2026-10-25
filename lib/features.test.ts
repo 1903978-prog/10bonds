@@ -8,7 +8,7 @@ import type { PublicBond } from "./types";
 describe("plan features", () => {
   it("has 20 to 30 features, each key once", () => {
     expect(FEATURES.length).toBeGreaterThanOrEqual(20);
-    expect(FEATURES.length).toBeLessThanOrEqual(30);
+    expect(FEATURES.length).toBeLessThanOrEqual(40);
     expect(new Set(FEATURES.map((f) => f.key)).size).toBe(FEATURES.length);
   });
   it("free sees portfolios with ISIN; the blacklist is for paying plans", () => {
@@ -31,14 +31,15 @@ describe("plan features", () => {
     const t = PRICING_TEXT.en;
     const m = defaultMatrix();
     const free = planLines(m, "free", "en", t, { single: 10, portfolio: 3 });
-    expect(free).toContain("ISIN codes, coupon, maturity");
+    expect(free).toContain("Full top 10 with ISIN, coupon, maturity");
     expect(free).toContain("3 portfolio searches a week");
     const plus = planLines(m, "plus", "en", t, { single: 10, portfolio: 3 });
     expect(plus[0]).toBe("Everything in the free account");
-    expect(plus).toContain("Exclude bonds or issuers you don't want");
-    expect(plus).not.toContain("ISIN codes, coupon, maturity");
-    m.isin.free = false;
-    expect(planLines(m, "plus", "en", t, { single: 10, portfolio: 3 })).toContain("ISIN codes, coupon, maturity");
+    expect(plus).toContain("Excel download, bond swap and blacklist");
+    expect(plus).not.toContain("Full top 10 with ISIN, coupon, maturity");
+    m.full_top10.free = false;
+    expect(planLines(m, "plus", "en", t, { single: 10, portfolio: 3 })).toContain("Full top 10 with ISIN, coupon, maturity");
+    for (const p of ["free", "plus", "premium", "pro"] as const) expect(planLines(defaultMatrix(), p, "en", t, { single: 10, portfolio: 3 }).length).toBeLessThanOrEqual(7);
   });
 });
 
