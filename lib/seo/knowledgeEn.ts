@@ -25,7 +25,7 @@ export const KC_TEXT_EN = {
     risk: { name: "Risk & ratings", intro: "Ratings, duration and credit risk explained simply." },
     academy: { name: "Bond academy", intro: "The basics to get started, step by step." },
   } satisfies Record<KcSection, { name: string; intro: string }>,
-  finder: "Bond finder: your 10 best-matching bonds",
+  finder: "Bond finder: the 10 bonds the model selects",
   brokersIn: { it: "Broker fees in Italy", fr: "Broker fees in France", de: "Broker fees in Germany" } satisfies Record<Locale, string>,
 };
 

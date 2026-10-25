@@ -238,7 +238,7 @@ export function runEngine(holdings: Holding[], universe: PublicBond[], s: Engine
 
 function keepReason(similar: number, blocked: PublicBond | null, s: EngineSettings): string {
   if (similar === 0) return `No other bond with a risk score in our data has a similar duration (within ${s.durationTolerance} years).`;
-  if (blocked) return `The best alternative (${issuerOf(blocked)}) would push that issuer above ${s.maxIssuerPct}% of the portfolio, so we do not suggest it.`;
+  if (blocked) return `The closest alternative (${issuerOf(blocked)}) would push that issuer above ${s.maxIssuerPct}% of the portfolio, so we do not suggest it.`;
   const goals =
     s.mode === "risk"
       ? "a lower risk score at a similar yield"

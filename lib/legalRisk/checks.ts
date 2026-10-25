@@ -36,6 +36,8 @@ export const BANNED_CLAIMS: { re: RegExp; why: string }[] = [
   { re: /\bsafe investment\b|\bcannot lose\b|\bcan't lose\b/i, why: "implies safety of capital" },
   { re: /\bPareto-efficient\b|\bAI[- ](optimi[sz]ed|selected|portfolio)\b/i, why: "technique claim not supported by the method (use plain wording)" },
   { re: /\boptimal portfolio\b|\boptimi[sz]ed portfolio\b|\bone chance in 125 million\b|\bsame risk,? higher (return|yield)\b/i, why: "'optimal'/'same risk' claim not supported (say: bonds selected by the quantitative model for the parameters entered)" },
+  { re: /\b(best|safest|ideal|perfect) (return[/ ]risk |return and maturity |portfolio)|\bbuild my portfolio\b|\b(highest )?risk (you )?accept(ed|s)?\b|\bsuitable for you\b|\byour (ideal |perfect )?portfolio\b/i, why: "advice-like wording (use: maximum risk level, bonds selected by the model for the parameters entered)" },
+  { re: /\b(miglior\w* portafogli\w*|crea il mio portafoglio|rischio massimo accettato|il tuo portafoglio|meilleur\w* portefeuille|créer mon portefeuille|risque maximal accepté|votre portefeuille|beste\w* portfolio|mein portfolio erstellen|höchstes akzeptiertes risiko|ihr portfolio)\b/i, why: "advice-like wording in IT/FR/DE (screening wording only)" },
   { re: /\bwe recommend\b|\byou should (buy|sell|invest)\b/i, why: "personal recommendation wording" },
   { re: /\b\d+(\.\d+)?\s?% (chance|probability) of (default|loss)\b/i, why: "stand-alone default/loss probability claim" },
 ];

@@ -98,9 +98,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (the owner, 19/10/2026).
   const [touched, setTouched] = useState(false);
-  // iPhone (the owner, 24/10/2026): "Build my portfolio" opens the results as their own full-screen page, no scrolling.
+  // iPhone (the owner, 24/10/2026): "Show selected bonds" opens the results as their own full-screen page, no scrolling.
   const [sheet, setSheet] = useState(false);
-  // Each press of "Build my portfolio" runs the search again, so the press always shows the search and a fresh list.
+  // Each press of "Show selected bonds" runs the search again, so the press always shows the search and a fresh list.
   const [rerun, setRerun] = useState(0);
   // Sign-up funnel steps (consent-only usage stats; no choices or figures are sent).
   useEffect(() => { if (touched) trackOnce("finder_started"); }, [touched]);
@@ -1565,7 +1565,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
 }
 
 /**
- * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Build my portfolio".
+ * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Show selected bonds".
  * Top to bottom: return and expected loss, the 10 bonds with a few large columns, and one small grey Monte Carlo line
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.

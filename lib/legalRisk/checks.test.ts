@@ -25,10 +25,15 @@ describe("claim scanner", () => {
     expect(scanClaims(["There is a 3.2% chance of default"])).toHaveLength(1);
     expect(scanClaims(["No fees at all"])).toHaveLength(1);
     expect(scanClaims(["The best bonds for you"])).toHaveLength(1);
+    expect(scanClaims(["Build my portfolio"])).toHaveLength(1);
+    expect(scanClaims(["Highest risk accepted"])).toHaveLength(1);
+    expect(scanClaims(["Find the best return/risk portfolio"])).toHaveLength(1);
+    expect(scanClaims(["Crea il mio portafoglio"])).toHaveLength(1);
   });
   it("lets honest wording through", () => {
     expect(scanClaims(["Returns are gross and not guaranteed."])).toEqual([]);
     expect(scanClaims(["No fund management fee; broker costs apply."])).toEqual([]);
+    expect(scanClaims(["Maximum risk level", "Show selected bonds", "Efficient frontier"])).toEqual([]);
   });
 });
 
