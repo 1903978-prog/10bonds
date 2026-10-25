@@ -21,3 +21,11 @@
 6. Callable bonds: yield-to-worst and effective duration (needs call schedules).
 7. Separate EUR and USD reference curves for spread floors (USD not measured against the Bund).
 8. Validation: point-in-time backtests, stress replays (2008-09, 2020), sensitivity of results to PD/LGD/hurdles.
+
+## Risk Pay metric (Livio 25/10/2026, admin only, live)
+- Spread_bp = 10,000 x (YTW_ask - Y_Bund at the bond's duration); ExpectedLoss_bp = 10,000 x PD_annual x LGD (LGD 60%);
+  Risk Pay = Spread_bp / ExpectedLoss_bp; Net Risk Pay = Spread_bp - ExpectedLoss_bp.
+- Livio's example: Renault 77 bp / 8.4 bp = 9.2x, net +69 bp (0.14% yearly default, 60% LGD). Labels such as STRONG / FAIR
+  are not defined yet (no thresholds given). Code: lib/riskPay.ts, components/Spread.tsx (RiskPayCell). Net shows on hover.
+- PD_annual = our combined default table (cumulative to maturity / years left), not a single agency's number; uses the
+  quoted yield (gross YTM), not yield-to-worst, until call schedules exist.

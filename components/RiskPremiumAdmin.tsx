@@ -189,6 +189,7 @@ export default function RiskPremiumAdmin() {
                     <li>Surplus = spread over the maturity-matched Bund - required premium. The ranking uses the surplus.</li>
                     <li>Surplus at or above the exceptional threshold: the bond waits for your review.</li>
                     <li>Only EUR corporate bonds in the maturity range, at or above the floor. Governments, agencies and possible subordinated, callable or floating bonds are not evaluated.</li>
+                    <li>Risk Pay metric (admin column in every bond table): Spread = 10,000 × (yield − Bund yield of the same duration) in bp; Expected loss = 10,000 × yearly default chance × 60% loss in bp; Risk Pay = Spread ÷ Expected loss (e.g. 77 bp ÷ 8.4 bp = 9.2×); Net Risk Pay = Spread − Expected loss (+69 bp). The yearly default chance is our combined historical default table for the bond&apos;s rating, over the years left. It measures pay for expected default loss only, not the overall value of the bond.</li>
                     <li>Drafts never change results. Activating a draft archives the old version; recorded runs keep the version they used.</li>
                   </ul>
                   <p className="mt-3 text-xs text-mute">Universe (EUR): {Object.entries(data.universe.counts).map(([k, v]) => `${STATUS_LABEL[k as RiskStatus] ?? k} ${v}`).join(" · ")}</p>
