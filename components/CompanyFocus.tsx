@@ -36,7 +36,7 @@ export default function CompanyFocus({ c, paid }: { c: FocusCompany; paid: boole
       </nav>
 
       <section className={`${card} mt-2 px-4 py-2`}>
-        <p className="text-[15px] font-semibold leading-tight">{c.name} <span className="font-normal text-mute">· {c.isin} · {c.issuer} · updated {c.updated}</span></p>
+        <p className="text-[15px] font-semibold leading-tight">{c.name} <span className="font-normal text-mute">· {c.isin} · {c.issuer} · updated {c.updated}</span> <Link href={`/report/${c.isin}`} className="ml-1 text-[12px] font-normal text-accent hover:underline">Full report</Link></p>
         <dl className="mt-1.5 grid grid-cols-2 gap-x-5 gap-y-1.5 sm:grid-cols-4 lg:grid-cols-7">
           {stats.map(([k, v]) => (
             <div key={k} className="min-w-0">
