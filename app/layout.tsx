@@ -15,6 +15,7 @@ import LangSwitch from "@/components/LangSwitch";
 import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
 import CopyGuard from "@/components/CopyGuard";
+import GptCalcPopup from "@/components/GptCalcPopup";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
@@ -76,6 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </footer>
         <UsageStats />
         <CopyGuard />
+        {admin && <GptCalcPopup />}
       </body>
     </html>
   );

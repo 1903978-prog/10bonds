@@ -26,23 +26,23 @@ function inGeminiLane<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /** Sends the prompt and returns the model's text; throws a plain-language Error. */
-export async function askModel(provider: Provider, model: string, prompt: string): Promise<string> {
+export async function askModel(provider: Provider, model: string, prompt: string, system = ""): Promise<string> {
   const key = process.env[PROVIDERS[provider].keyName];
   if (!key) throw new Error(`${PROVIDERS[provider].keyName} is not set`);
-  if (provider === "gemini") return inGeminiLane(() => askGemini(key, model, prompt));
-  const signal = AbortSignal.timeout(30000);
+  if (provider === "gemini") return inGeminiLane(() => askGemini(key, model, prompt, system));
+  const signal = AbortSignal.timeout(60000);
   const res =
     provider === "openai"
       ? await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model, temperature: 0, max_tokens: 300, messages: [{ role: "user", content: prompt }] }),
+          body: JSON.stringify({ model, temperature: 0, max_tokens: 2000, messages: [...(system ? [{ role: "system", content: system }] : []), { role: "user", content: prompt }] }),
           signal,
         })
       : await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-          body: JSON.stringify({ model, max_tokens: 300, messages: [{ role: "user", content: prompt }] }),
+          body: JSON.stringify({ model, max_tokens: 2000, ...(system ? { system } : {}), messages: [{ role: "user", content: prompt }] }),
           signal,
         });
   if (!res.ok) {
@@ -56,17 +56,17 @@ export async function askModel(provider: Provider, model: string, prompt: string
   return text;
 }
 
-async function askGemini(key: string, model: string, prompt: string): Promise<string> {
+async function askGemini(key: string, model: string, prompt: string, system: string): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0, maxOutputTokens: 300 } }),
-      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({ ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}), contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0, maxOutputTokens: 2048 } }),
+      signal: AbortSignal.timeout(60000),
     });
     if (res.status === 429) {
-      if (attempt === 0) { await new Promise((r) => setTimeout(r, 15000)); continue; } // per-minute limit: one retry after a pause
+      if (attempt < 2) { await new Promise((r) => setTimeout(r, 20000)); continue; } // per-minute limit: two retries after a pause
       throw new Error("Free limit of Gemini reached (per minute or per day). Wait a minute, or try tomorrow.");
     }
     if (!res.ok) {

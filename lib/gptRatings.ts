@@ -18,6 +18,25 @@ export const API_PROMPT_VERSION = "v1";
 /** The same prompt for one ISIN sent through an API (there is no $bonds tool there). */
 export const apiPrompt = (isin: string) => `${GPT_PROMPT.replace(" with $bonds", "")}\n${isin}`;
 
+/** Added after the owner's own rating instructions so the answer always ends with the three core values. */
+export const RESULT_CONTRACT = "Give your full analysis with all details first. Then end the answer with exactly one last line in this form, using the same scales as your instructions (write n/a for a value you cannot give):\nRESULT: IR=<issuer rating>; BR=<bond rating>; RISKPAY=<risk pay>";
+/** The prompt when the owner's own instructions are saved (they go with every call as the system text). */
+export const customPrompt = (isin: string) => `Rate this bond: ${isin}`;
+
+/** The three core values from the answer's "RESULT:" line (the last one wins); null when there is none. */
+export function parseResultLine(text: string): { issuerRating: string | null; rating: string | null; riskPay: string | null } | null {
+  const lines = text.split(/\r?\n/).filter((l) => /RESULT\s*:/i.test(l));
+  const line = lines[lines.length - 1];
+  if (!line) return null;
+  const get = (k: string) => {
+    const m = line.match(new RegExp(`${k}\\s*=\\s*([^;|]*)`, "i"));
+    const v = m ? clean(m[1]).replace(/[.]+$/, "").trim() : "";
+    return v && !/^(n\/a|na|none|-|–)$/i.test(v) ? v.slice(0, 40) : null;
+  };
+  const r = { issuerRating: get("IR"), rating: get("BR"), riskPay: get("RISKPAY") };
+  return r.issuerRating || r.rating || r.riskPay ? r : null;
+}
+
 /** The ISINs, one per line; with the prompt on top when `prompt` is set. */
 export function isinText(isins: (string | null | undefined)[], prompt = false): string {
   const list = isins.filter((s): s is string => !!s).join("\n");
@@ -25,7 +44,7 @@ export function isinText(isins: (string | null | undefined)[], prompt = false): 
 }
 
 /** `rating` is the bond rating (BR); `issuerRating` the issuer rating (IR). Old 3-column pastes (ISIN | Rating | Basis) fill BR only. */
-export type GptRating = { rating: string | null; issuerRating?: string | null; riskPay?: string | null; detail?: unknown; basis: string | null };
+export type GptRating = { answer?: string | null; rating: string | null; issuerRating?: string | null; riskPay?: string | null; detail?: unknown; basis: string | null };
 
 const ISIN = /\b([A-Z]{2}[A-Z0-9]{9}[0-9])\b/g;
 // S&P / Fitch style (AA-, BBB+) or Moody's style (Baa1, Aa2), plus NR. Single letters only when a whole table cell.
