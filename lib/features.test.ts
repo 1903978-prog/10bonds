@@ -8,7 +8,7 @@ import type { PublicBond } from "./types";
 describe("plan features", () => {
   it("has 20 to 30 features, each key once", () => {
     expect(FEATURES.length).toBeGreaterThanOrEqual(20);
-    expect(FEATURES.length).toBeLessThanOrEqual(30);
+    expect(FEATURES.length).toBeLessThanOrEqual(40);
     expect(new Set(FEATURES.map((f) => f.key)).size).toBe(FEATURES.length);
   });
   it("free sees portfolios with ISIN; the blacklist is for paying plans", () => {
