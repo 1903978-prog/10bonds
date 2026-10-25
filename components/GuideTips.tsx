@@ -21,7 +21,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; next: string; do
       { tip: "currency", title: "1. Select the currency", body: "Euro or US dollar bonds." },
       { tip: "size", title: "2. Choose the bond size", body: "The minimum order. 1k–10k keeps bonds you can buy with small amounts." },
       { tip: "horizon", title: "3. Set your horizon", body: "How many years you want to keep your money invested." },
-      { tip: "return", title: "4. Set your desired return", body: "The return per year you are after, before costs and taxes." },
+      { tip: "return", title: "4. Set your desired return", body: "The return per year you are after, before costs." },
       { tip: "risk", title: "5. Choose the highest risk", body: "1 is the safest. Your top 10 appears on the right." },
     ],
     next: "Next", done: "Got it", skip: "Skip",

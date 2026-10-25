@@ -15,16 +15,18 @@ const meta = "text-[13px] leading-snug text-mute";
 const label = "text-[14px] font-medium text-mute";
 const card = "report-card rounded-3xl border border-line bg-white p-6 sm:p-8";
 
-const SECTIONS: NavItem[] = [
+const ALL_SECTIONS: NavItem[] = [
   { id: "overview", n: "01", label: "Overview" },
   { id: "thesis", n: "02", label: "Thesis" },
   { id: "credit", n: "03", label: "Credit" },
   { id: "financials", n: "04", label: "Financials" },
   { id: "protection", n: "05", label: "Protection" },
   { id: "stress", n: "06", label: "Stress" },
-  { id: "yield", n: "07", label: "Yield & tax" },
+  { id: "yield", n: "07", label: "Yield" },
   { id: "sources", n: "08", label: "Sources" },
 ];
+
+const sectionsFor = (admin: boolean): NavItem[] => ALL_SECTIONS.map((s) => (s.id === "yield" && admin ? { ...s, label: "Yield & tax" } : s));
 
 /** Provenance line under a figure: status, kind, date, source. Always shows the observation date when there is one. */
 function figMeta(f: Fig) {
@@ -123,7 +125,7 @@ function barColor(score: number) {
 }
 
 /** The report: one scrolling page, eight numbered sections. `open` = this reader may see the research (paid plan, or the free example). */
-export default function ReportView({ r, open }: { r: Report; open: boolean }) {
+export default function ReportView({ r, open, admin = false }: { r: Report; open: boolean; admin?: boolean }) {
   const title = r.maturityYear && !r.name.includes(r.maturityYear) ? `${r.name} ${r.maturityYear}` : r.name;
   const c = r.conclusion;
   const v = verdict(c.view);
@@ -135,7 +137,7 @@ export default function ReportView({ r, open }: { r: Report; open: boolean }) {
     <div className="report-wide" data-testid="report-wrap">
       <div className="report-inner">
         <article className="report" data-testid="bond-report">
-          {open && <ReportNav items={SECTIONS} />}
+          {open && <ReportNav items={sectionsFor(admin)} />}
 
           {/* 01 Hero */}
           <section id="overview" aria-label="Overview" className={`report-section bg-white px-5 pb-[52px] pt-8 sm:px-8 md:px-14 md:pb-[64px] md:pt-12 ${open ? "" : "rounded-[28px]"}`}>
@@ -158,10 +160,10 @@ export default function ReportView({ r, open }: { r: Report; open: boolean }) {
 
             <div className="mt-8 grid grid-cols-2 gap-3 md:gap-5">
               <Kpi title="Investment score" f={open ? r.kpis.score : { text: "Plans", status: "not_verified" }} tip="Our own 0–100 rating of how safely the issuer can pay coupons and repay. It is a ranking aid, not a probability of default." />
-              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} right tip="Yearly return if you buy at the dated price and hold to maturity, before tax and costs. Not a promise." />
+              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} right tip="Yearly return if you buy at the dated price and hold to maturity, before costs. Not a promise." />
             </div>
-            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-6 rounded-3xl border border-line bg-white p-5 sm:p-7 md:mt-5 lg:grid-cols-4">
-              <HeroFact title="Return after tax" f={open ? r.netReturn : NV} />
+            <dl className={`mt-3 grid grid-cols-2 gap-x-6 gap-y-6 rounded-3xl border border-line bg-white p-5 sm:p-7 md:mt-5 ${admin ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+              {admin && <HeroFact title="Return after tax" f={open ? r.netReturn : NV} />}
               <HeroFact title="Maturity" f={r.kpis.maturity} note={r.kpis.maturityNote} />
               <HeroFact title="Seniority" f={r.seniority ? { text: r.seniority, status: "verified" } : NV} plain />
               <div>
@@ -179,7 +181,7 @@ export default function ReportView({ r, open }: { r: Report; open: boolean }) {
           {!open ? (
             <section className="report-section rounded-b-[28px] bg-[#f7f7f9] px-5 py-14 text-center sm:px-8" data-testid="report-locked">
               <p className="text-[22px] font-semibold tracking-tight">The full report is on paid plans</p>
-              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios, tax and sources for every bond we cover.</p>
+              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios and sources for every bond we cover.</p>
               <Link href="/pricing" className="mt-6 inline-flex min-h-[48px] items-center rounded-full bg-accent px-7 text-[15px] font-medium text-white">See plans</Link>
             </section>
           ) : (
@@ -189,8 +191,8 @@ export default function ReportView({ r, open }: { r: Report; open: boolean }) {
               <Financials r={r} />
               <Protection r={r} term={term} />
               <Stress r={r} />
-              <Yield r={r} term={term} />
-              <Sources r={r} />
+              <Yield r={r} term={term} admin={admin} />
+              <Sources r={r} admin={admin} />
             </>
           )}
         </article>
@@ -417,7 +419,7 @@ function Stress({ r }: { r: Report }) {
   );
 }
 
-function Yield({ r, term }: { r: Report; term: (l: string) => Fig }) {
+function Yield({ r, term, admin }: { r: Report; term: (l: string) => Fig; admin: boolean }) {
   const flow: Row[] = [
     { label: "Coupon", fig: term("Coupon") },
     { label: "Payment frequency", fig: term("Payment frequency") },
@@ -426,11 +428,11 @@ function Yield({ r, term }: { r: Report; term: (l: string) => Fig }) {
     { label: "Minimum denomination", fig: term("Minimum denomination") },
   ];
   return (
-    <Section n="07" id="yield" title="Yield and taxation" band intro="What yield will I earn? From the gross return to what is left after withholding tax. Your own country's tax is not included.">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-5">
-        <Kpi title="Return (gross)" f={r.kpis.ret} tip="Yearly return if held to maturity, before any tax and costs." />
-        <Kpi title="Withholding tax" f={r.kpis.wht} tip="Tax the bond's home country may take from the interest before you receive it. Often removable with the right custodian papers." />
-        <Kpi title="Return after tax" f={r.netReturn} right tip="Gross return once withholding tax is taken off. It still ignores tax in your own country of residence." />
+    <Section n="07" id="yield" title={admin ? "Yield and taxation" : "Yield and costs"} band intro={admin ? "What yield will I earn? From the gross return to what is left after withholding tax. Your own country's tax is not included." : "What yield will I earn? The gross return, then the costs and cash flows behind it."}>
+      <div className={`grid grid-cols-1 gap-4 md:gap-5 ${admin ? "sm:grid-cols-3" : ""}`}>
+        <Kpi title="Return (gross)" f={r.kpis.ret} tip={admin ? "Yearly return if held to maturity, before any tax and costs." : "Yearly return if held to maturity, before costs."} />
+        {admin && <Kpi title="Withholding tax" f={r.kpis.wht} tip="Tax the bond's home country may take from the interest before you receive it. Often removable with the right custodian papers." />}
+        {admin && <Kpi title="Return after tax" f={r.netReturn} right tip="Gross return once withholding tax is taken off. It still ignores tax in your own country of residence." />}
       </div>
 
       <div className="mt-5 grid gap-5 md:grid-cols-2 print:grid-cols-1">
@@ -447,15 +449,18 @@ function Yield({ r, term }: { r: Report; term: (l: string) => Fig }) {
         </div>
       </div>
 
-      <Details title="Withholding-tax review" className="mt-5">
-        <p className={`${body} text-mute`}>{r.tax.text ?? "No withholding-tax review on file."}</p>
-        <p className={`mt-3 ${meta}`}>Tax in your own country of residence is not included.</p>
-      </Details>
+      {admin && (
+        <Details title="Withholding-tax review" className="mt-5">
+          <p className={`${body} text-mute`}>{r.tax.text ?? "No withholding-tax review on file."}</p>
+          <p className={`mt-3 ${meta}`}>Tax in your own country of residence is not included.</p>
+        </Details>
+      )}
     </Section>
   );
 }
 
-function Sources({ r }: { r: Report }) {
+function Sources({ r, admin }: { r: Report; admin: boolean }) {
+  const warnings = admin ? r.unavailable : r.unavailable.filter((u) => !/tax/i.test(u));
   const nv = (v: string) => (v === "–" || !v ? "Not verified" : v);
   return (
     <Section n="08" id="sources" title="Sources and methodology" intro="What evidence supports the conclusion? Every price and return below is a past observation with its date, not a price you can trade at.">
@@ -479,9 +484,9 @@ function Sources({ r }: { r: Report }) {
         </div>
       </div>
 
-      <Details title={`Verification warnings (${r.unavailable.length})`} className="mt-5">
+      <Details title={`Verification warnings (${warnings.length})`} className="mt-5">
         <ul className="list-disc space-y-1.5 pl-5 text-[15px] text-mute">
-          {r.unavailable.map((u) => <li key={u}>{u}: Not verified</li>)}
+          {warnings.map((u) => <li key={u}>{u}: Not verified</li>)}
         </ul>
       </Details>
     </Section>
