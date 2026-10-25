@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ReportView from "@/components/report/ReportView";
 import { buildReport, hideSources } from "@/lib/bondReport";
+import { enforceEvidence } from "@/lib/legalRisk/evidence";
 import { findCompany } from "@/lib/companiesInFocus";
 import { currentUser } from "@/lib/currentUser";
 import { loadAllShown } from "@/lib/bonds";
 import { isIsin } from "@/lib/seo/bondPages";
 import type { PublicBond } from "@/lib/types";
 import { featuresFor } from "@/lib/planFeatures";
+import { recordAssessment, verdictsOn } from "@/lib/assessments";
 
 type Props = { params: Promise<{ isin: string }> };
 export const dynamic = "force-dynamic";
@@ -43,9 +45,12 @@ export default async function ReportPage({ params }: Props) {
   }
   const user = await currentUser();
   const admin = !!user?.isAdmin;
-  const r = admin ? built : hideSources(built);
+  // Customers never see a dated-market or model figure without its evidence: it is shown as "Not verified" instead (lib/legalRisk/evidence.ts).
+  const r = admin ? built : hideSources(enforceEvidence(built));
+  const verdicts = await verdictsOn();
+  if (c) void recordAssessment(c);
   const open = r.free || (await featuresFor(user)).includes("risk_reports");
   return (
-    <ReportView r={r} open={open} admin={user?.isAdmin === true} signedIn={!!user} />
+    <ReportView r={r} open={open} admin={user?.isAdmin === true} signedIn={!!user} verdicts={verdicts} />
   );
 }

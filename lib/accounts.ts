@@ -92,6 +92,19 @@ async function setup(sql: ReturnType<typeof postgres>) {
       detail jsonb
     )`;
   await sql`create index if not exists events_at_idx on app.events (at)`;
+  // Proof of the first-use agreement for the portfolio builder: who (account or browser), which wording, when.
+  await sql`
+    create table if not exists app.consents (
+      id bigserial primary key,
+      user_id bigint,
+      visitor_id text,
+      kind text not null,
+      version text not null,
+      lang text not null,
+      text_shown text not null,
+      accepted_at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists consents_user_idx on app.consents (user_id, kind, version)`;
   // Best bonds by duration step and rating step, rebuilt from public_bonds each time a new copy arrives (lib/bestTable.ts).
   await sql`
     create table if not exists app.best_bonds (
@@ -149,6 +162,29 @@ async function setup(sql: ReturnType<typeof postgres>) {
       picked_up_at timestamptz,
       finished_at timestamptz,
       note text
+    )`;
+  // Evidence for every published assessment (what was shown, from what, with which model version) and the issuers'
+  // requests to correct a factual error. Written by lib/assessments.ts, read on /admin/assessments.
+  await sql`
+    create table if not exists app.assessment_evidence (
+      id bigserial primary key,
+      isin text not null,
+      model_version text not null,
+      as_of text not null,
+      source text not null,
+      calculation jsonb not null,
+      published_at timestamptz not null default now(),
+      unique (isin, model_version, as_of)
+    )`;
+  await sql`
+    create table if not exists app.correction_requests (
+      id bigserial primary key,
+      isin text,
+      name text not null,
+      email text not null,
+      message text not null,
+      requested_at timestamptz not null default now(),
+      status text not null default 'open' check (status in ('open','done','rejected'))
     )`;
   // The main app's export login must be able to read and update this one table (nothing else in schema app).
   await sql`grant usage on schema app to public`.catch(() => {});
@@ -564,6 +600,20 @@ export async function recordEvents(rows: { visitorId: string; userId: number | n
   await sql`insert into app.events ${sql(
     rows.map((r) => ({ visitor_id: r.visitorId, user_id: r.userId, kind: r.kind, path: r.path, detail: r.detail === null ? null : sql.json(r.detail as never) })),
   )}`;
+}
+
+/** Records that someone ticked an agreement, with the exact wording shown. */
+export async function recordConsent(c: { userId: number | null; visitorId: string | null; kind: string; version: string; lang: string; text: string }) {
+  const { sql, ready } = db();
+  await ready;
+  await sql`insert into app.consents (user_id, visitor_id, kind, version, lang, text_shown) values (${c.userId}, ${c.visitorId}, ${c.kind}, ${c.version}, ${c.lang}, ${c.text})`;
+}
+
+export async function hasConsent(userId: number, kind: string, version: string): Promise<boolean> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql`select 1 from app.consents where user_id = ${userId} and kind = ${kind} and version = ${version} limit 1`;
+  return rows.length > 0;
 }
 
 /** Where the accounts database stands, as stage + Postgres error code only (no message, no secret). */

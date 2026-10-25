@@ -134,7 +134,7 @@ export function buildReport(isin: string, bond: PublicBond | null, c: FocusCompa
   const scoreFig: Fig = c
     ? { text: `${c.score}/100`, status: "provisional", kind: "model", asOf: c.updated, source: "10bonds internal score, not a default probability" }
     : NOT_VERIFIED;
-  if (!c) miss("Investment score and six-factor credit scorecard");
+  if (!c) miss("10bonds.com score and six-factor credit scorecard");
 
   const scorecard = c?.scorecard.map(([label, note, score]) => ({ label, note, score })) ?? [];
   const strengths = [...scorecard].sort((a, b) => b.score - a.score).slice(0, 3).map((s) => `${s.label}: ${s.note}`);

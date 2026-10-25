@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/adminOnly";
 import { pickedLang } from "@/lib/pageLang";
 import { CORP, CORP_WEIGHTS, COUNTRIES, FACTORS, METHOD, SOLVENCY_COUNT, coreScore, historyDeduction, methodLang, type Country, type MethodLang } from "@/lib/methodology";
 import { PillarRow, StressRow } from "@/components/MethodRows";
@@ -90,6 +91,7 @@ function Corporate({ lang }: { lang: MethodLang }) {
 }
 
 export default async function Methodology({ searchParams }: { searchParams: Promise<{ lang?: string | string[]; type?: string | string[] }> }) {
+  await requireAdmin("/selection-methodology"); // rating methods are the admin's only (25/10/2026)
   const sp = await searchParams;
   const lang = methodLang(await pickedLang(sp.lang));
   if (kindOf(sp.type) === "corporate") return <Corporate lang={lang} />;

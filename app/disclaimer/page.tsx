@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { pickedLang } from "@/lib/pageLang";
-import { DISCLAIMER, disclaimerLang } from "@/lib/disclaimer";
+import { ASSESSMENTS_ABOUT as A, DISCLAIMER, disclaimerLang } from "@/lib/disclaimer";
 
 export const metadata: Metadata = {
   title: "Disclaimer · 10BONDS",
@@ -25,6 +25,14 @@ export default async function Disclaimer({ searchParams }: { searchParams: Promi
           ))}
         </section>
       ))}
+      <section lang="en" id="assessments" data-testid="assessments-about">
+        <h2 className="mt-6 font-semibold">{A.title}</h2>
+        {A.paragraphs.map((p, i) => <p key={i} className="mt-2">{p}</p>)}
+        <h3 className="mt-4 font-semibold">{A.limitsTitle}</h3>
+        <ul className="mt-2 list-disc space-y-1.5 pl-5">{A.limits.map((p, i) => <li key={i}>{p}</li>)}</ul>
+        <h3 className="mt-4 font-semibold">{A.correctionTitle}</h3>
+        <p className="mt-2">{A.correction}</p>
+      </section>
       <p className="mt-8 text-sm">{d.full} <Link href="/terms" className="text-accent">{d.terms}</Link>.</p>
     </article>
   );
