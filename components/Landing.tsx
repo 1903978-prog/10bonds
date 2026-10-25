@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
+import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import LandingCarousel, { CompanySlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
+import LandingCarousel, { actionTitle, CompanySlide, CurvesSlide, FrontierSlide, HeatSlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
@@ -15,7 +16,7 @@ const MUTE = "#52666F";
 // The comparison (the owner, 24/10/2026): the admin's provisional bond ETF benchmark (no provider named in public) against
 // one live 10bonds slider list, both from /api/benchmark. Not equal risk or duration. No disclaimer text on the page (the owner, 24/10/2026):
 // the caveats, fee wording and "illustrative" live in the Disclaimer page (lib/disclaimer.ts), linked from the footer.
-type Bench = { ret: number; risk: number; duration: number; portfolio: { ytm: number; avgRisk: number; duration: number | null } | null };
+type Bench = { ret: number; risk: number; duration: number; portfolio: { ytm: number; avgRisk: number; duration: number | null; bonds?: BenchmarkBond[] } | null };
 
 /** First-visit landing page, kept minimal (the owner, 24/10/2026): the headline, a 2-portfolio comparison, the free test plus sign up / sign in. */
 export default function Landing({ lang, heading = true, onClose }: { lang: FinderLang; heading?: boolean; onClose: () => void }) {
@@ -48,7 +49,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
-      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[1.12fr_1fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
+      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.8fr_1.2fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
         <div className="mb-1 flex items-baseline justify-between gap-2 sm:mb-2">
           <p className="text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] sm:text-[12px]" style={{ color: MUTE }} data-testid="landing-eyebrow">{t.eyebrow}</p>
@@ -62,11 +63,14 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
         <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          {/* One bond's curve first: the reason to sign up (the owner, 24/10/2026). */}
+          {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
           <LandingCarousel t={t} slides={[
-            { key: "curve", node: <CurveSlide t={t} /> },
             { key: "compare", node: <Comparison t={t} num={num} bench={bench} /> },
-            { key: "list", node: <ListSlide t={t} /> },
+            { key: "frontier", node: <FrontierSlide t={t} /> },
+            { key: "curves", node: <CurvesSlide t={t} /> },
+            { key: "heat", node: <HeatSlide t={t} /> },
+            { key: "curve", node: <CurveSlide t={t} /> },
+            { key: "list", node: <ListSlide t={t} bonds={bench?.portfolio?.bonds} /> },
             { key: "country", node: <CountrySlide t={t} /> },
             { key: "company", node: <CompanySlide t={t} /> },
           ]} />
@@ -117,7 +121,9 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
     </p>
   );
   return (
-    <SlideCard title={<><span className="sm:hidden">{t.cardTitleBenchShort}</span><span className="hidden sm:inline">{t.cardTitleBench}</span></>}>
+    <SlideCard title={actionTitle(t.carousel.act.compare)}>
+      {/* Centred in the card, which now grows with the free height. */}
+      <div className="flex flex-1 flex-col justify-center">
       <div className="mt-1 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
           <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] sm:line-clamp-2 sm:min-h-[2.6em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
@@ -134,6 +140,7 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
       </div>
       <div className="mt-3 flex items-center justify-center gap-4 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3">
         <p className="shrink-0 text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : ""}${num(p.ytm - bench.ret)}` : "–"}<span className="text-[0.7em]"> pp</span></p>
+      </div>
       </div>
     </SlideCard>
   );
