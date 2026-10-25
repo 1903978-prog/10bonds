@@ -3,6 +3,7 @@ import { LIMITS, isOpenEnded } from "../limits";
 import { issuerKey, portfolioPool, RESULT_COUNT, withinRisk } from "../ranking";
 import { evaluateBond, type EvalContext, type Evaluation, type RiskStatus } from "./evaluate";
 import { yearsToMaturity } from "./benchmark";
+import { riskParams } from "./params";
 
 // Risk-adjusted Portfolio ranking (shadow mode until the owner activates it).
 //
@@ -29,8 +30,9 @@ const AVG_DURATION_PENALTY = 0.5;
 // The target must stay meaningful (live check 20/10/2026: without these, 3%, 3.5% and 4% targets all gave the same
 // 5.6% list). A bond may yield at most MAX_ABOVE_TARGET points over the target, and the list's average should stay
 // within AVG_ABOVE_TARGET of it; each point beyond costs as much as 2,000 bp of average surplus.
-export const MAX_ABOVE_TARGET = 2;
-export const AVG_ABOVE_TARGET = 0.5;
+// Both are editable in the admin (Settings tab); see lib/riskPremium/params.ts.
+export const maxAboveTarget = () => riskParams().maxAboveTarget;
+export const avgAboveTarget = () => riskParams().avgAboveTarget;
 const ABOVE_PENALTY = 20;
 
 export type RiskRanking = {
@@ -70,7 +72,7 @@ export function rankRiskAdjusted(
   for (const e of evaluations) counts[e.status]++;
 
   const order = riskOrder(targetDuration, targetYtm);
-  const cands = evaluations.filter((e) => e.status === "eligible" && e.ytm! <= targetYtm + MAX_ABOVE_TARGET + 1e-9).sort(order).map((e) => ({ e, key: issuerKey(byIsin.get(e.isin)!) }));
+  const cands = evaluations.filter((e) => e.status === "eligible" && e.ytm! <= targetYtm + maxAboveTarget() + 1e-9).sort(order).map((e) => ({ e, key: issuerKey(byIsin.get(e.isin)!) }));
   const seen = new Set<string>();
   const start = cands.filter((c) => (seen.has(c.key) ? false : (seen.add(c.key), true))).slice(0, count);
 
@@ -83,7 +85,7 @@ export function rankRiskAdjusted(
     const slack = AVG_DURATION_SLACK * targetDuration;
     const cost = (ytm: number, dur: number, surplus: number) =>
       Math.max(0, targetYtm - ytm / n) * 1000 +
-      Math.max(0, ytm / n - targetYtm - AVG_ABOVE_TARGET) * ABOVE_PENALTY +
+      Math.max(0, ytm / n - targetYtm - avgAboveTarget()) * ABOVE_PENALTY +
       Math.max(0, (isOpenEnded(targetDuration) ? targetDuration - dur / n : Math.abs(dur / n - targetDuration)) - slack) * AVG_DURATION_PENALTY -
       surplus / n / 100;
     const search = (startSet: typeof start) => {

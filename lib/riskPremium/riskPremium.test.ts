@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublicBond } from "../types";
-import { CURVE_RATINGS, curveProblems, getRequiredSpread, getRequiredYieldDifference, V1_CURVE, V1_PREMIUMS, type CurveConfig } from "./curve";
+import { CURVE_RATINGS, curveProblems, curveWarnings, getRequiredSpread, getRequiredYieldDifference, V1_CURVE, V1_PREMIUMS, type CurveConfig } from "./curve";
 import { bundCurve, bundYieldAt } from "./benchmark";
 import { evaluateBond, type EvalContext } from "./evaluate";
 import { compareBonds, explainPair } from "./compare";
@@ -186,7 +186,8 @@ describe("mandatory examples", () => {
     expect(curveProblems(V1_CURVE)).toEqual([]);
     for (let i = 1; i < CURVE_RATINGS.length; i++) expect(V1_PREMIUMS[CURVE_RATINGS[i]]).toBeGreaterThan(V1_PREMIUMS[CURVE_RATINGS[i - 1]]);
     for (const a of CURVE_RATINGS) for (const b of CURVE_RATINGS) expect(getRequiredYieldDifference(a, b, V1_CURVE)).toBe(Math.abs(V1_PREMIUMS[a] - V1_PREMIUMS[b]));
-    expect(curveProblems(draftFrom(V1_CURVE, { version: "1.1", premiums: { "BBB+": 40 } }))).not.toEqual([]); // not increasing
+    expect(curveWarnings(draftFrom(V1_CURVE, { version: "1.1", premiums: { "BBB+": 40 } }))).not.toEqual([]); // not increasing: a warning the admin may override
+    expect(curveWarnings(V1_CURVE)).toEqual([]);
   });
   it("15: a new draft (BBB+ 105 bp) changes nothing until it is activated", () => {
     const v1: CurveVersion = { ...V1_CURVE, id: 1, status: "active", notes: null, justification: null, createdAt: AS_OF, createdBy: "seed", activatedAt: AS_OF, activatedBy: "seed" };

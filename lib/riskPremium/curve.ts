@@ -85,13 +85,10 @@ export function curveProblems(c: Partial<CurveConfig> | null | undefined): strin
   if (!c || typeof c !== "object") return ["No curve"];
   if (typeof c.version !== "string" || !/^\d{1,3}(\.\d{1,3}){1,2}$/.test(c.version)) p.push("Version must look like 1.1");
   const prem = c.premiums as Record<string, unknown> | undefined;
-  let last = -Infinity;
   for (const r of CURVE_RATINGS) {
     const v = prem?.[r];
     if (typeof v !== "number" || !Number.isFinite(v)) { p.push(`${r}: premium missing`); continue; }
     if (v < 0 || v > 2000) p.push(`${r}: premium must be between 0 and 2000 bp`);
-    if (v <= last) p.push(`${r}: premium must be higher than the rating above it`);
-    last = v;
   }
   if (prem && Object.keys(prem).some((k) => !(CURVE_RATINGS as readonly string[]).includes(k))) p.push("Unknown rating in the curve");
   const lo = c.minMaturity, hi = c.maxMaturity;
@@ -101,6 +98,20 @@ export function curveProblems(c: Partial<CurveConfig> | null | undefined): strin
   if (c.currency !== "EUR") p.push("Version 1 curves are EUR only");
   if (c.issuerCategory !== "corporate") p.push("Version 1 curves are for corporate bonds only");
   return p;
+}
+
+/** Things worth a second look that the admin may still save (an override): a premium that is not higher than the rating above it. */
+export function curveWarnings(c: Partial<CurveConfig> | null | undefined): string[] {
+  const w: string[] = [];
+  const prem = (c?.premiums ?? {}) as Record<string, unknown>;
+  let last = -Infinity;
+  for (const r of CURVE_RATINGS) {
+    const v = prem[r];
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    if (v <= last) w.push(`${r}: premium is not higher than the rating above it`);
+    last = v;
+  }
+  return w;
 }
 
 /** The same curve with every premium moved by `bp` (parallel), or only some ratings, for sensitivity checks. */
