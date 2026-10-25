@@ -6,7 +6,7 @@ import type { GptRating } from "./gptRatings";
 // Admin only (the owner, 24/10/2026): GPT's ratings saved in the database (app.gpt_ratings), loaded once per page and
 // shared by every bond table on the site (the "GPT rate" column).
 
-export type StoredGpt = GptRating & { at?: string };
+export type StoredGpt = GptRating & { at?: string; model?: string | null };
 const EMPTY: Record<string, StoredGpt> = {};
 let map: Record<string, StoredGpt> = EMPTY;
 let pending: Promise<void> | null = null;
@@ -42,4 +42,45 @@ export function useGptRatings(on = true): Record<string, StoredGpt> {
 export function reloadGptRatings() {
   pending = null;
   load();
+}
+
+// ---- Calculate button (admin only): asks the model API for one bond's IR and BR ----
+
+export type CalcState = { busy?: boolean; error?: string; missingKey?: boolean };
+const NO_CALC: Record<string, CalcState> = {};
+let calc: Record<string, CalcState> = NO_CALC;
+const calcListeners = new Set<() => void>();
+const setCalc = (isin: string, v: CalcState | null) => {
+  const next = { ...calc };
+  if (v) next[isin] = v; else delete next[isin];
+  calc = next;
+  calcListeners.forEach((l) => l());
+};
+
+/** Calculates one bond; resolves with an error text, or null when saved. One call at a time per ISIN. */
+export async function calcGptRating(isin: string): Promise<string | null> {
+  if (calc[isin]?.busy) return null;
+  setCalc(isin, { busy: true });
+  try {
+    const r = await fetch("/api/admin/gpt-calc", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isin }) });
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j?.ratings) {
+      const error = j?.error ?? "Calculation failed";
+      setCalc(isin, { error, missingKey: !!j?.missingKey });
+      return error;
+    }
+    map = j.ratings;
+    emit();
+    setCalc(isin, null);
+    return null;
+  } catch {
+    const error = "No answer from the server";
+    setCalc(isin, { error });
+    return error;
+  }
+}
+
+const subscribeCalc = (l: () => void) => { calcListeners.add(l); return () => { calcListeners.delete(l); }; };
+export function useGptCalc(): Record<string, CalcState> {
+  return useSyncExternalStore(subscribeCalc, () => calc, () => NO_CALC);
 }

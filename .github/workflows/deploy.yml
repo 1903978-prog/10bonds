@@ -27,6 +27,9 @@ jobs:
       BING_WEBMASTER_API_KEY: ${{ secrets.BING_WEBMASTER_API_KEY }}
       LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
       LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       X_API_KEY: ${{ secrets.X_API_KEY }}
       X_API_SECRET: ${{ secrets.X_API_SECRET }}
       X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
@@ -108,6 +111,16 @@ jobs:
           if [ -n "$X_API_KEY" ] && [ -n "$X_API_SECRET" ] && [ -n "$X_ACCESS_TOKEN" ] && [ -n "$X_ACCESS_TOKEN_SECRET" ]; then
             printf 'X_API_KEY=%s\nX_API_SECRET=%s\nX_ACCESS_TOKEN=%s\nX_ACCESS_TOKEN_SECRET=%s\n' "$X_API_KEY" "$X_API_SECRET" "$X_ACCESS_TOKEN" "$X_ACCESS_TOKEN_SECRET" | flyctl secrets import -a 10bonds --stage >/dev/null
             echo "X: keys set."
+          fi
+          # Admin-only rating calculator (BR / IR button): the key of the chosen provider, each only when its secret exists.
+          if [ -n "$GEMINI_API_KEY" ]; then
+            printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
+          fi
+          if [ -n "$OPENAI_API_KEY" ]; then
+            printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
+          fi
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            printf 'ANTHROPIC_API_KEY=%s\n' "$ANTHROPIC_API_KEY" | flyctl secrets import -a 10bonds --stage >/dev/null
           fi
       - name: "Own domain: 10bonds.com and www (certificates, site address)"
         if: env.ok == '1'

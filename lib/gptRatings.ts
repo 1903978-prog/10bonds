@@ -13,6 +13,11 @@ export const GPT_PROMPT = [
   "The ISINs:",
 ].join("\n");
 
+/** Version of the prompt used by the API button (stored with each answer). */
+export const API_PROMPT_VERSION = "v1";
+/** The same prompt for one ISIN sent through an API (there is no $bonds tool there). */
+export const apiPrompt = (isin: string) => `${GPT_PROMPT.replace(" with $bonds", "")}\n${isin}`;
+
 /** The ISINs, one per line; with the prompt on top when `prompt` is set. */
 export function isinText(isins: (string | null | undefined)[], prompt = false): string {
   const list = isins.filter((s): s is string => !!s).join("\n");

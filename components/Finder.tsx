@@ -44,6 +44,7 @@ import { BondNoteFoot } from "@/components/BondNoteFoot";
 import { isinText, parseGptRatings } from "@/lib/gptRatings";
 import { saveGptRatings, useGptRatings } from "@/lib/gptStore";
 import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
+import { GptCalcAll } from "./GptCalcAll";
 import { Spread, SPREAD_HEAD, SPREAD_NOTE, RiskPayCell, RISKPAY_HEAD, RISKPAY_NOTE } from "./Spread";
 import { couponTypeLabel } from "@/lib/bondFacts";
 import { profileParts, type CoherenceView } from "@/lib/creditProfileText";
@@ -1580,6 +1581,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
         {admin && rows.length > 0 && !show && !message && <BondNoteFoot isins={rows.map((r) => r.isin)} />}
         {admin && rows.length > 0 && !show && !message && (
           <span className="ml-auto flex shrink-0 items-center gap-1" data-testid="admin-isin-tools">
+            <GptCalcAll isins={rows.map((r) => r.isin).filter((i): i is string => !!i)} />
             <CopyChip text={isinText(rows.map((r) => r.isin))} label="Copy ISINs" testId="copy-isins" />
             <CopyChip text={isinText(rows.map((r) => r.isin), true)} label="+ prompt" testId="copy-isins-prompt" />
             <button type="button" onClick={() => setPanel({ kind: "gpt" })} data-testid="paste-gpt" className="w-[5.5rem] rounded-full border border-amber-300 bg-amber-50 py-0.5 text-center text-[11px] font-medium text-amber-900 hover:bg-amber-100">
