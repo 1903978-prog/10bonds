@@ -39,6 +39,7 @@ import { clearResume, readResume, writeResume } from "@/lib/finderResume";
 import { isinText, parseGptRatings } from "@/lib/gptRatings";
 import { saveGptRatings, useGptRatings } from "@/lib/gptStore";
 import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
+import { Spread, SPREAD_HEAD, SPREAD_NOTE } from "./Spread";
 import { couponTypeLabel } from "@/lib/bondFacts";
 import { profileParts, type CoherenceView } from "@/lib/creditProfileText";
 
@@ -896,6 +897,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
               <td className="pr-2">{i + 1}. {r.issuer}</td>
               <td className="pr-2 text-right">risk {r.risk ?? "–"}{r.sp !== undefined && <> · S&amp;P {r.sp ?? "–"}</>}</td>
               <td className="pr-2 text-right">IR <GptRate isin={r.isin} kind="ir" /> BR <GptRate isin={r.isin} /></td>
+              <td className="pr-2 text-right">Spread <Spread ytm={r.ytm} years={r.duration} /></td>
               <td className="pr-2 text-right">{r.life != null ? `${r.life.toFixed(1)} yrs` : "–"}</td>
               <td className="pr-2 text-right">default {pct(r.pd!)}</td>
               <td className="pr-2 text-right">× {LOSS_GIVEN_DEFAULT * 100}% = {pct(r.pd! * LOSS_GIVEN_DEFAULT)}</td>
@@ -1390,7 +1392,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           <col className={narrow ? "w-[3.5rem]" : "w-[6.5rem]"} />
           {!narrow && <col className="w-[9rem]" />}
           <col className="w-[5rem]" />
-          {admin && <><col className="w-[3.75rem]" /><col className="w-[3.75rem]" /></>}
+          {admin && <><col className="w-[3.75rem]" /><col className="w-[3.75rem]" /><col className="w-[4.5rem]" /></>}
           <col className="w-8" />
           <col className="w-8" />
         </colgroup>
@@ -1404,7 +1406,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <th className={`truncate ${narrow ? "px-1" : "px-3"} py-0 text-center font-medium`}>{t.duration}</th>
             {!narrow && <th className="truncate px-3 py-0 text-center font-medium">{t.minInvest}</th>}
             <th className="truncate px-3 py-0 text-center font-medium" title={t.riskNote}>{t.risk}</th>
-            {admin && <><th className="truncate px-1 py-0 text-center font-medium text-amber-800">{IR_HEAD}</th><th className="truncate px-1 py-0 text-center font-medium text-amber-800">{BR_HEAD}</th></>}
+            {admin && <><th className="truncate px-1 py-0 text-center font-medium text-amber-800">{IR_HEAD}</th><th className="truncate px-1 py-0 text-center font-medium text-amber-800">{BR_HEAD}</th><th className="truncate px-1 py-0 text-center font-medium text-amber-800" title={SPREAD_NOTE}>{SPREAD_HEAD}</th></>}
             <th aria-label={t.swap} />
             <th aria-label={t.exclude} />
           </tr>
@@ -1437,7 +1439,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{r.duration != null ? r.duration.toFixed(1) : <Dim />}</td>
               {!narrow && <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>}
               <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
-              {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td></>}
+              {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td></>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
               <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
@@ -1447,13 +1449,13 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className="pl-2"><span className="inline-block h-3 w-4 rounded bg-line align-middle" /></td>
               <td colSpan={narrow ? 3 : 6} className="pr-3"><span className="block h-3 rounded bg-line" /></td>
               <td className="px-3"><span className="block h-3 rounded bg-line" /></td>
-              {admin && <><td /><td /></>}
+              {admin && <><td /><td /><td /></>}
               <td />
               <td />
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={(narrow ? 7 : 10) + (admin ? 2 : 0)} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={(narrow ? 7 : 10) + (admin ? 3 : 0)} /></tr>
           ))}
         </tbody>
       </table>
@@ -1592,7 +1594,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
   // The admin's risk column also holds the S&P slot (fixed width either way, so nothing moves when results arrive).
   const [admin, setAdmin] = useState(false);
   useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
-  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_2.25rem_2.25rem_3.5rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
+  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
   return (
     <div
       role="dialog"
@@ -1629,8 +1631,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
           <span>{t.issuer}</span>
           <span className="text-right">{t.yrs}</span>
           <span className="text-center">{t.risk}</span>
-          {admin && <><span className="text-center text-amber-800">{IR_HEAD}</span><span className="text-center text-amber-800">{BR_HEAD}</span></>}
-          <span className="text-right">{t.yield}</span>
+                    <span className="text-right">{t.yield}</span>
           <span />
           <span />
         </div>
@@ -1641,7 +1642,10 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
               <div className="min-w-0">
                 <div className="truncate text-[15px] font-medium leading-tight">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</div>
                 {admin ? (
-                  <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
+                  <>
+                    <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
+                    <div className="flex items-center gap-1 leading-none" data-testid="admin-phone-ratings"><GptRate isin={r.isin} kind="ir" /><GptRate isin={r.isin} /><Spread ytm={r.ytm} years={r.duration} /></div>
+                  </>
                 ) : paid ? (
                   <CopyIsin isin={r.isin} phone />
                 ) : (
@@ -1650,8 +1654,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
               </div>
               <span className="text-right text-[13px] tabular-nums">{r.duration != null ? r.duration.toFixed(1) : <Dim />}</span>
               <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
-              {admin && <><span className="text-center"><GptRate isin={r.isin} kind="ir" /></span><span className="text-center"><GptRate isin={r.isin} /></span></>}
-              <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
+                            <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
               <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
             </li>
@@ -1991,7 +1994,7 @@ function SwapPanel({ row, options, onPick, onExclude, onClose }: { row: ResultRo
               <span className="w-14 text-right font-semibold tabular-nums">{pct(b.ytm)}</span>
               <span className="hidden w-12 text-right tabular-nums sm:inline">{b.duration?.toFixed(1)}</span>
               <span className={`${b.sp !== undefined ? "w-[4.5rem]" : "w-8"} text-center`}><RiskBadge risk={b.risk} sp={b.sp} /></span>
-              {b.sp !== undefined && <><span className="w-10 text-center" title={IR_HEAD}><GptRate isin={b.isin} kind="ir" /></span><span className="w-10 text-center" title={BR_HEAD}><GptRate isin={b.isin} /></span></>}
+              {b.sp !== undefined && <><span className="w-10 text-center" title={IR_HEAD}><GptRate isin={b.isin} kind="ir" /></span><span className="w-10 text-center" title={BR_HEAD}><GptRate isin={b.isin} /></span><span className="w-[3.25rem] text-center" title={SPREAD_NOTE}><Spread ytm={b.ytm} years={b.duration} /></span></>}
               <button type="button" onClick={() => onPick(b)} className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90">{t.swapPick}</button>
             </li>
           ))}

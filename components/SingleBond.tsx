@@ -9,6 +9,7 @@ import type { Tier } from "@/lib/types";
 import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
 import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
+import { Spread } from "./Spread";
 import { downloadXlsx } from "@/lib/xlsx";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import { dominatedLevels, dropDominated } from "@/lib/curveFilter";
@@ -242,7 +243,7 @@ function BondBox(props: {
         {row(t.minInvest, signedIn ? fmtMin(bond.minInvestment, props.currency) : lock)}
         {row(t.country, signedIn ? bond.country || "—" : lock)}
         {row(t.currency, signedIn ? props.currency : lock)}
-        {bond.sp !== undefined && <>{row(`${IR_HEAD} (admin)`, <GptRate isin={bond.isin} kind="ir" />)}{row(`${BR_HEAD} (admin)`, <GptRate isin={bond.isin} />)}</>}
+        {bond.sp !== undefined && <>{row(`${IR_HEAD} (admin)`, <GptRate isin={bond.isin} kind="ir" />)}{row(`${BR_HEAD} (admin)`, <GptRate isin={bond.isin} />)}{row("Spread vs Bund (admin)", <Spread ytm={bond.ytm} years={bond.duration} />)}</>}
         {bond.sp !== undefined && row("52w min / max (admin)", <span className="rounded bg-yellow-100 px-1">{range52(bond.low52w, bond.high52w)}</span>)}
       </dl>
       {/* Fixed slots: every control keeps the same place whichever bond is shown. */}

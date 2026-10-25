@@ -6,6 +6,7 @@ import type { FinderLang } from "@/lib/finderText";
 import type { WhyRow } from "@/lib/whyList";
 import { SpSlot } from "@/components/RiskBadge";
 import { GptRate, BR_HEAD, IR_HEAD } from "@/components/GptRate";
+import { Spread, SPREAD_HEAD, SPREAD_NOTE } from "@/components/Spread";
 
 // Small icon under the results: opens "why in or out" for the current search, every bond of the search window with
 // the reason it is in the top 10 or not (Premium, Pro and admin; others see the Plans link). The table scrolls inside
@@ -81,7 +82,7 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
                     <tr>
                       <th className="py-1 pr-2">#</th><th className="pr-2">{t.issuer}</th><th className="pr-2 text-right">{t.yld}</th><th className="pr-2 text-right">{t.risk}</th><th className="pr-2 text-right">{t.dur}</th>
                       {bp && <><th className="pr-2 text-right">{t.surplus}</th></>}
-                      {admin && <><th className="w-14 pr-2 text-center text-amber-800">{IR_HEAD}</th><th className="w-14 pr-2 text-center text-amber-800">{BR_HEAD}</th></>}
+                      {admin && <><th className="w-14 pr-2 text-center text-amber-800">{IR_HEAD}</th><th className="w-14 pr-2 text-center text-amber-800">{BR_HEAD}</th><th className="w-16 pr-2 text-center text-amber-800" title={SPREAD_NOTE}>{SPREAD_HEAD}</th></>}
                       <th>{t.why}</th>
                       {onAdd && <th />}
                     </tr>
@@ -95,7 +96,7 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
                         <td className="whitespace-nowrap pr-2 text-right">{r.risk ?? "–"}{r.sp !== undefined && <> <SpSlot sp={r.sp} /></>}</td>
                         <td className="pr-2 text-right">{r.duration.toFixed(1)}</td>
                         {bp && <><td className="pr-2 text-right">{n(r.surplusBp, true)}</td></>}
-                        {admin && <><td className="pr-2 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="pr-2 text-center"><GptRate isin={r.isin} /></td></>}
+                        {admin && <><td className="pr-2 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="pr-2 text-center"><GptRate isin={r.isin} /></td><td className="pr-2 text-center"><Spread ytm={r.ytm} years={r.duration} /></td></>}
                         <td>{r.why}</td>
                         {onAdd && (
                           <td className="py-0.5 pl-2 text-right">

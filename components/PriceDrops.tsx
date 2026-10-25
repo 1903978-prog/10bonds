@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
 import { GptRate, BR_HEAD, IR_HEAD } from "@/components/GptRate";
+import { Spread, SPREAD_HEAD, SPREAD_NOTE } from "@/components/Spread";
 import type { DropRow, DropsData, SortKey } from "@/lib/priceHistory";
 import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
 
@@ -14,6 +15,9 @@ const MOVES: SortKey[] = ["vsMax", "vsMin", "d1w", "d1m"];
 const HIGHEST_FIRST: SortKey[] = ["ytm", "gain1y"]; // as sorted in lib/priceHistory
 
 /** Admin-only price moves: currency toggle, risk chips, sortable move columns, and a table that always keeps 10 rows. */
+/** Years from today to a maturity date (the price-drop rows carry no duration). */
+const yearsLeft = (m: string | null) => (m && Number.isFinite(Date.parse(m)) ? (Date.parse(m) - Date.now()) / (365.25 * 86_400_000) : null);
+
 export default function PriceDrops({ data, lang }: { data: DropsData; lang: DropsLang }) {
   const t = DROPS_TEXT[lang];
   const [currency, setCurrency] = useState<"EUR" | "USD">("EUR");
@@ -117,6 +121,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
               <th className="w-[84px] text-center font-medium">{t.risk}</th>
               <th className="w-[64px] text-center font-medium text-amber-800">{IR_HEAD}</th>
               <th className="w-[64px] text-center font-medium text-amber-800">{BR_HEAD}</th>
+              <th className="w-[72px] text-center font-medium text-amber-800" title={SPREAD_NOTE}>{SPREAD_HEAD}</th>
               <th className="w-[100px] text-center font-medium">{t.maturity}</th>
               <th className="w-16 text-right font-medium">{t.price}</th>
               <SortHead k="ytm" className="w-[64px]" />
@@ -136,6 +141,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className="text-center"><RiskBadge risk={r.risk} sp={r.sp} /></td>
                     <td className="text-center"><GptRate isin={r.isin} kind="ir" /></td>
                     <td className="text-center"><GptRate isin={r.isin} /></td>
+                    <td className="text-center"><Spread ytm={r.ytm} years={yearsLeft(r.maturity)} /></td>
                     <td className="text-center tabular-nums">{r.maturity ? day(r.maturity) : "–"}</td>
                     <td className="text-right tabular-nums">{num(r.price)}</td>
                     <td className={`text-right tabular-nums ${sort === "ytm" ? "font-medium" : ""}`}>{r.ytm === null ? "–" : `${num(r.ytm)}%`}</td>
@@ -145,7 +151,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
                     <td className={`pr-4 text-right tabular-nums ${sort === "gain1y" ? "font-medium" : ""}`}>{r.gain1y === null ? "–" : `${num(r.gain1y, 1)}%`}</td>
                   </>
                 ) : (
-                  <td colSpan={14} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
+                  <td colSpan={15} className="px-4 text-center text-mute">{i === 0 ? t.none : ""}</td>
                 )}
               </tr>
             ))}
