@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FocusTabs from "@/components/FocusTabs";
 import { RiskBadge } from "@/components/RiskBadge";
 import { COMPANIES_IN_FOCUS, type FocusCompany } from "@/lib/companiesInFocus";
 
@@ -22,6 +23,7 @@ export default function CompanyFocus({ c, paid }: { c: FocusCompany; paid: boole
     <article className="mx-auto max-w-6xl" data-testid="company-focus">
       <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Companies in focus</h1>
+        <FocusTabs active="companies" />
         <p className="text-[12px] text-mute">Free plan: one full example. <Link href="/pricing" className="text-accent hover:underline">Paid plans</Link> have access to all scorings.</p>
       </div>
       <nav className="mt-2 flex flex-wrap gap-1.5 text-[12px]" aria-label="Companies">
