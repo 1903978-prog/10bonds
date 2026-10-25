@@ -2,15 +2,12 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { RiskBadge, riskColor } from "@/components/RiskBadge";
 import { FrontierScreen, CurvesScreen, HeatScreen, OneBondScreen, ListScreen } from "@/components/LandingScreens";
 import type { LandingText } from "@/lib/landingText";
-import { findCompany } from "@/lib/companiesInFocus";
 
 const LVMH = "FR0013482841";
 
 const NAVY = "#112D3B";
-const MUTE = "#52666F";
 const EVERY = 3000; // ms per slide (the owner, 24/10/2026)
 
 /** A slide's action title: the long one on desktop, the short one on phones. */
@@ -119,35 +116,17 @@ export function CountrySlide({ t }: { t: LandingText }) {
   );
 }
 
-/** One company: LVMH on the 10bonds.com risk scale. */
+/** One company: the LVMH 2031 key data (rating, score, return, credit factors), a fixed image so it never shifts. */
 export function CompanySlide({ t }: { t: LandingText }) {
   const c = t.carousel;
-  // Same score as the LVMH page in Risk assessment.
-  const risk = findCompany(LVMH)?.risk ?? 2;
   return (
     <SlideCard title={actionTitle(c.act.company)} href={`/risk-assessment/${LVMH}`}>
-      <div className="flex flex-1 flex-col justify-center gap-4">
-        <div className="flex items-center gap-4">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[14px] text-[13px] font-bold tracking-[0.12em] text-white" style={{ background: NAVY }}>LVMH</span>
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-semibold min-[400px]:text-[15px] lg:text-[16px]">LVMH Moët Hennessy Louis Vuitton</p>
-            <p className="truncate text-[12px]" style={{ color: MUTE }}>{c.sector}</p>
-          </div>
-        </div>
-        <div>
-          <div className="flex items-center justify-between text-[12px]" style={{ color: MUTE }}>
-            <span>{c.rating}</span><RiskBadge risk={risk} size="lg" />
-          </div>
-          {/* The 1-10 scale, the company's place marked. */}
-          <div className="mt-3 grid grid-cols-10 gap-1">
-            {Array.from({ length: 10 }, (_, i) => (
-              <span key={i} className="h-2 rounded-full" style={{ background: riskColor(i + 1), opacity: i + 1 === risk ? 1 : 0.22 }} />
-            ))}
-          </div>
-          <div className="mt-1 flex justify-between text-[10.5px]" style={{ color: MUTE }}><span>1</span><span>10</span></div>
-        </div>
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7] bg-[#F5F5F7]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/carousel-company-phone.png" alt={c.companyAlt} className="absolute inset-0 h-full w-full object-cover object-top sm:hidden" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/carousel-company.png" alt={c.companyAlt} className="absolute inset-0 hidden h-full w-full object-cover object-left-top sm:block" />
       </div>
-      <p className="mt-2 text-[11.5px] lg:text-[12px]" style={{ color: MUTE }}>{c.scale}</p>
     </SlideCard>
   );
 }
