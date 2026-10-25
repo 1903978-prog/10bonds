@@ -1,3 +1,4 @@
+import { notOwnerVisitor } from "@/lib/ownerExclusion";
 import { accountsConfigured, accountsSql } from "../accounts";
 import { PROFILES, SEED_TARIFFS } from "./data";
 import { DEFAULT_METHODOLOGY, type BrokerProfile, type Country, type Methodology, type Tariff, type TariffData } from "./types";
@@ -240,12 +241,12 @@ export async function brokerTraffic() {
   const [pages, clicks] = await Promise.all([
     s<{ path: string; n: string }[]>`
       select path, count(*) n from app.events
-      where kind = 'page_view' and at > now() - interval '30 days'
+      where kind = 'page_view' and at > now() - interval '30 days' and ${notOwnerVisitor(s)}
         and (path like '/it/broker-obbligazioni%' or path like '/fr/courtiers-obligations%' or path like '/de/anleihen-broker%')
       group by path order by n desc limit 50`,
     s<{ label: string; n: string }[]>`
       select detail->>'label' as label, count(*) n from app.events
-      where kind = 'click' and at > now() - interval '30 days' and detail->>'label' like 'broker:%'
+      where kind = 'click' and at > now() - interval '30 days' and ${notOwnerVisitor(s)} and detail->>'label' like 'broker:%'
       group by 1 order by n desc limit 50`,
   ]);
   return { pages: pages.map((p) => ({ path: p.path, n: Number(p.n) })), clicks: clicks.map((c) => ({ label: c.label, n: Number(c.n) })) };

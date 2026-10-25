@@ -193,6 +193,8 @@ export type User = {
   subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean; interval: "month" | "year" | null } | null;
 };
 
+import { OWNER_EMAILS } from "./ownerExclusion";
+
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
   .split(",")
   .map((e) => e.trim().toLowerCase())
@@ -432,7 +434,7 @@ function visitEvents(sql: ReturnType<typeof db>["sql"], days: number) {
     from app.events e
     where e.at > now() - ${days} * interval '1 day'
       and e.visitor_id not in (
-        select distinct x.visitor_id from app.events x join app.users u on u.id = x.user_id where lower(u.email) in ${sql(ADMIN_EMAILS.length ? ADMIN_EMAILS : [""])})`;
+        select distinct x.visitor_id from app.events x join app.users u on u.id = x.user_id where lower(u.email) in ${sql(OWNER_EMAILS)})`;
 }
 
 /** Unique visitors and average minutes per visitor for each day (UTC), oldest first. */
@@ -471,10 +473,10 @@ export async function adminStats() {
     select count(*) users, count(email_verified_at) verified,
            count(*) filter (where premium_until > now()) trial,
            count(*) filter (where created_at > now() - interval '7 days') week
-    from app.users`;
+    from app.users where lower(email) not in ${sql(OWNER_EMAILS)}`;
   // Any browser the owner ever used while signed in is left out, signed-out visits from it included.
   const notOwner = sql`visitor_id not in (
-    select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where lower(u.email) in ${sql(ADMIN_EMAILS.length ? ADMIN_EMAILS : [""])})`;
+    select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where lower(u.email) in ${sql(OWNER_EMAILS)})`;
   const events = await sql<{ kind: string; n: string }[]>`
     select kind, count(*) n from app.events where at > now() - interval '30 days' and ${notOwner} group by kind order by n desc`;
   const pages = await sql<{ path: string; n: string }[]>`

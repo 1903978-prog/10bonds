@@ -1,3 +1,4 @@
+import { notOwnerVisitor } from "@/lib/ownerExclusion";
 import type { Locale } from "./locales";
 import { seoSql } from "./store";
 
@@ -30,7 +31,7 @@ export async function firstPartyFunnel(days = 28, market: Locale | null = null):
              bool_or(kind = 'search') searched,
              bool_or(kind = 'signup') signed,
              max(user_id) user_id
-      from app.events where at > now() - make_interval(days => ${days}) group by visitor_id
+      from app.events where at > now() - make_interval(days => ${days}) and ${notOwnerVisitor(s)} group by visitor_id
     )
     select count(*) visitors,
            count(*) filter (where organic) organic,

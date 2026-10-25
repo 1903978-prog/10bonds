@@ -1,3 +1,4 @@
+import { notOwnerVisitor } from "@/lib/ownerExclusion";
 import type { MetadataRoute } from "next";
 import { faqFromHtml } from "./sanitize";
 import { seoSql, type Guide } from "./store";
@@ -151,7 +152,7 @@ export async function aiFunnel(days = 28): Promise<AiFunnel> {
              min(case when kind = 'page_view' and coalesce(detail->>'referrer', '') ~* ${AI_SQL} then lower(detail->>'referrer') end) source,
              bool_or(kind = 'signup') signed,
              max(user_id) user_id
-      from app.events where at > now() - make_interval(days => ${days}) group by visitor_id
+      from app.events where at > now() - make_interval(days => ${days}) and ${notOwnerVisitor(s)} group by visitor_id
     )
     select source, signed, exists (select 1 from app.users u where u.id = v.user_id and u.plan in ('plus','premium')) paid
     from v where source is not null`;
