@@ -15,6 +15,7 @@ import LossChart, { slopeAt } from "@/components/LossChart";
 import OptimalPanel, { OptimalButton, useOptimal } from "@/components/OptimalPanel";
 import AllCurvesChart from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
+import { useShortlistDots } from "@/lib/shortlistStore";
 import type { HeatMap, HeatMethod } from "@/lib/heatMapGrid";
 import SliderCurveChart from "@/components/SliderCurveChart";
 import { nearestLoss } from "@/lib/lossCurve";
@@ -181,6 +182,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [optShown, setOptShown] = useState(false);
   const [optSel, setOptSel] = useState<number | null>(null);
   const heatOn = isAdmin && (showHeat || (showAll && optShown)) && heatPick !== null;
+  const shortlistDots = useShortlistDots(isAdmin && (showHeat || showAll));
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
@@ -718,9 +720,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {showHeat && isAdmin ? (
-                  <HeatMapChart map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
+                  <HeatMapChart shortlists={shortlistDots} map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
                 ) : showAll && isAdmin ? (
-                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={optShown ? optSel : null} onSelect={pickOpt} />
+                  allCurves && <AllCurvesChart shortlists={shortlistDots} curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={optShown ? optSel : null} onSelect={pickOpt} />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
                     <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
