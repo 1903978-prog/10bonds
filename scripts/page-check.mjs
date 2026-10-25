@@ -70,9 +70,25 @@ for (const [w, h] of WIDTHS) {
   await ctx.close();
 }
 
+// First use of the portfolio builder: the agreement popup must be ticked before it closes.
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const p = await ctx.newPage();
+  await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
+  await p.locator('[data-testid="find-portfolio"]').click();
+  ok(await p.locator('[data-testid="consent-gate"]').isVisible(), "consent: popup shows on first use");
+  ok(await p.locator('[data-testid="consent-continue"]').isDisabled(), "consent: Continue disabled until ticked");
+  await p.locator('[data-testid="consent-check"]').check();
+  await p.locator('[data-testid="consent-continue"]').click();
+  await p.locator('[data-testid="consent-gate"]').waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
+  ok(!(await p.locator('[data-testid="consent-gate"]').count()), "consent: popup closes after agreeing");
+  await ctx.close();
+}
+
 // Home page behaviour (intro already seen): results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
 for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  await ctx.addInitScript(() => localStorage.setItem("tb_agree", "2026-10-25.1")); // first-use agreement already given
   const p = await ctx.newPage();
   await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);

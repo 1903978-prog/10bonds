@@ -51,6 +51,16 @@ table app.broker_tariffs
   approved_at timestamp with time zone
   approved_by text
 
+table app.consents
+  id bigint not null default nextval(...)
+  user_id bigint
+  visitor_id text
+  kind text not null
+  version text not null
+  lang text not null
+  text_shown text not null
+  accepted_at timestamp with time zone not null default now()
+
 table app.correction_requests
   id bigint not null default nextval(...)
   isin text
@@ -393,6 +403,7 @@ constraints
   app.broker_tariffs broker_tariffs_country_check: CHECK ((country = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
   app.broker_tariffs broker_tariffs_pkey: PRIMARY KEY (id)
   app.broker_tariffs broker_tariffs_status_check: CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'archived'::text])))
+  app.consents consents_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
   app.events events_pkey: PRIMARY KEY (id)
@@ -479,6 +490,8 @@ indexes
   CREATE UNIQUE INDEX broker_settings_pkey ON app.broker_settings USING btree (key)
   CREATE INDEX broker_tariffs_lookup ON app.broker_tariffs USING btree (country, broker_id, status, effective_from DESC)
   CREATE UNIQUE INDEX broker_tariffs_pkey ON app.broker_tariffs USING btree (id)
+  CREATE INDEX consents_user_idx ON app.consents USING btree (user_id, kind, version)
+  CREATE UNIQUE INDEX consents_pkey ON app.consents USING btree (id)
   CREATE UNIQUE INDEX correction_requests_pkey ON app.correction_requests USING btree (id)
   CREATE INDEX events_at_idx ON app.events USING btree (at)
   CREATE INDEX events_kind_at_idx ON app.events USING btree (kind, at)

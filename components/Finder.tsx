@@ -26,6 +26,7 @@ import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
 import { MC_PATHS } from "@/lib/monteCarlo";
 import { loadMe } from "@/lib/me";
+import ConsentGate from "./ConsentGate";
 import WhyTable from "./WhyTable";
 import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
@@ -822,6 +823,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
       </section>
       )}
+      <ConsentGate active={touched && mode === "portfolio"} lang={lang} isAdmin={isAdmin} />
       {sheet && mode === "portfolio" && createPortal(
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
