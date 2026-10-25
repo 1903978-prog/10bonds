@@ -7,7 +7,7 @@ const en = {
   s1: "Select the best bond for a defined risk and maturity",
   s1Sub: "Pick a maturity: its bonds turn blue. Then pick a risk level (10bonds.com rating, 1 to 10): the red dot is the bond with the best return.",
   s2: "Get the top 10 portfolio",
-  s2Sub: "The bonds with the highest return for a defined risk, joined by the red line: nothing else pays more for the same risk.",
+  s2Sub: "The bonds with the highest return for a defined risk, joined by the red line: the highest return found at each risk level in our data.",
   s3: "Compare different portfolios",
   s3Sub: "See the efficient portfolios for 1–3, 4–6 and 7–10 years and decide what best suits your risk and return appetite.",
   result: "Your shortlist in seconds. Examples from today's data:",

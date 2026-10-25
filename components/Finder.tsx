@@ -903,7 +903,7 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
             </tr>
           ))}
           <tr className="border-t border-amber-300 font-medium">
-            <td colSpan={6} className="pr-2">Expected loss on your money (sum) · chance of any default {pct(listLossChance(rows.map((r) => r.pd!)), 1)}</td>
+            <td colSpan={6} className="pr-2">Expected loss on your money (sum) · modelled probability of at least one issuer default {pct(listLossChance(rows.map((r) => r.pd!)), 1)}</td>
             <td className="text-right">{pct(listLifeLoss(rows.map((r) => r.pd!)), 3)}</td>
           </tr>
         </tbody>

@@ -36,7 +36,7 @@ export default function ProRequestForm({ status }: { status: "none" | "pending" 
         <p className="text-sm font-medium text-accent">For professional wealth managers</p>
         <h1 className="mt-1 text-[28px] font-semibold tracking-tight">Bond Replacement Engine</h1>
         <p className="mt-2 text-[15px] text-mute">
-          Upload a client portfolio and see, bond by bond, which one to sell, which to buy and why: higher yield for the same risk, or lower risk for the same yield.
+          Upload a client portfolio and see, bond by bond, which one to sell, which to buy and why: a higher yield or a lower risk level, based on the data shown.
           This tool is open to regulated professionals only, so we check every request by hand.
         </p>
 
