@@ -44,6 +44,11 @@ export const FEATURES = [
     plans: { en: "Why each bond is in or out of the top 10", it: "Perché ogni bond è dentro o fuori dalla top 10", fr: "Pourquoi chaque obligation est dans le top 10 ou non", de: "Warum jede Anleihe in den Top 10 ist oder nicht" } },
   { key: "add_left_out", admin: "Add a left-out bond to the top 10", built: true, ticks: t(false, false, true, true),
     plans: { en: "Add a left-out bond to your top 10", it: "Aggiungi alla top 10 un bond escluso", fr: "Ajoutez une obligation écartée au top 10", de: "Eine ausgeschlossene Anleihe hinzufügen" } },
+  { key: "risk_companies", admin: "Risk assessment: all companies (Free sees 1 example)", built: false, ticks: t(false, true, true, true) },
+  { key: "risk_countries", admin: "Risk assessment: all countries (Free sees Italy)", built: false, ticks: t(false, true, true, true) },
+  { key: "bond_report", admin: "Bond report pages: full report (Free sees the free examples)", built: false, ticks: t(false, true, true, true) },
+  { key: "visitor_names", admin: "Issuer names visible in the top 10 (visitors see them blurred)", built: false, ticks: t(true, true, true, true) },
+  { key: "heat_map", admin: "Heat map", built: false, ticks: t(false, true, true, true) },
   // Ideas not in the app yet: ticking them plans the offer, the site does not change.
   { key: "weekly_email", admin: "Weekly e-mail with the new top bonds", built: false, ticks: t(true, true, true, true) },
   { key: "saved_searches", admin: "Save searches and portfolios", built: false, ticks: t(false, true, true, true) },
