@@ -13,7 +13,7 @@ import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expected
 import { RANK_LABEL } from "@/lib/seniority";
 import LossChart, { slopeAt } from "@/components/LossChart";
 import OptimalPanel, { OptimalButton, useOptimal } from "@/components/OptimalPanel";
-import AllCurvesChart from "@/components/AllCurvesChart";
+import AllCurvesChart, { type MPoint, type PickedPoint } from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
 import type { HeatMap, HeatMethod } from "@/lib/heatMapGrid";
 import SliderCurveChart from "@/components/SliderCurveChart";
@@ -180,7 +180,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [optAsked, setOptAsked] = useState(false);
   const [optShown, setOptShown] = useState(false);
   const [optSel, setOptSel] = useState<number | null>(null);
-  const heatOn = isAdmin && (showHeat || (showAll && optShown)) && heatPick !== null;
+  // Multi-year chart (admin): a curve selected by its legend year, and the real list picked on it; that list shows on the right through heatPick.
+  const [selDur, setSelDur] = useState<number | null>(null);
+  const [picked, setPicked] = useState<PickedPoint | null>(null);
+  const heatOn = isAdmin && (showHeat || showAll) && heatPick !== null;
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
@@ -364,7 +367,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       if (hasData.current) ctrl.abort();
     };
   }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl]);
-  useEffect(() => setHeatPick(null), [duration, ytm, risk, mix, adv, spread, showHeat, showAll]);
+  useEffect(() => { setHeatPick(null); setPicked(null); setSelDur(null); }, [duration, ytm, risk, mix, adv, spread, showHeat, showAll]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -384,7 +387,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [chartOn, setChartOn] = useState(false);
   const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
   // Admin only: every horizon from 2 to 10 years on one chart, in place of the single curve.
-  const [allCurves, setAllCurves] = useState<{ duration: number; points: CurvePoint[]; max: number }[] | null>(null);
+  const [allCurves, setAllCurves] = useState<{ duration: number; points: MPoint[]; max: number }[] | null>(null);
   const chartable = (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
   // Chart mode (Livio 24/10): the chart takes the place of the controls on the left, the 10 bonds sit on the right.
   // It stays on while a new list loads, so nothing jumps between searches.
@@ -396,7 +399,20 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const pickOpt = (years: number) => {
     const m = optReady ? opt.maturities.find((x) => x.years === years) : null;
     setOptSel(years);
-    if (m?.optimum) { setTouched(true); setHeatPick({ ytm: m.optimum.target, duration: years }); }
+    setSelDur(years);
+    if (m?.optimum) {
+      setTouched(true);
+      setHeatPick({ ytm: m.optimum.target, duration: years });
+      setPicked({ duration: years, ytm: Math.round(m.optimum.ytm * 100) / 100, loss: Math.round(m.optimum.el * 1000) / 1000 });
+    }
+  };
+  const selectCurve = (d: number | null) => { setSelDur(d); setPicked(null); setHeatPick(null); };
+  const pickPoint = (d: number, p: MPoint) => {
+    if (p.target == null) return;
+    setTouched(true);
+    setSelDur(d);
+    setPicked({ duration: d, ytm: p.ytm, loss: p.loss, dur: p.dur });
+    setHeatPick({ ytm: p.target, duration: d });
   };
   const pickView = (v: string) => {
     setChartOn(v !== "list");
@@ -708,7 +724,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                     state={opt}
                     shown={optShown}
                     onClick={() => {
-                      if (optReady) { if (optShown) setHeatPick(null); setOptShown(!optShown); return; }
+                      if (optReady) { if (optShown) { setHeatPick(null); setPicked(null); } setOptShown(!optShown); return; }
                       setOptAsked(true);
                       setOptShown(true);
                     }}
@@ -720,7 +736,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 {showHeat && isAdmin ? (
                   <HeatMapChart map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
                 ) : showAll && isAdmin ? (
-                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={optShown ? optSel : null} onSelect={pickOpt} />
+                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={selDur} onSelect={selectCurve} picked={picked} onPickPoint={pickPoint} onPickOptimal={pickOpt} />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
                     <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
@@ -745,7 +761,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                   <span data-testid="heat-pick-tag" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
                     {showHeat
                       ? <>Heat map: {heatPick.ytm.toFixed(1)}% · {heatPick.duration >= 30 ? "30+" : heatPick.duration} yrs · {heatMethod === "spread" ? "Spread rules" : "Method 1"}{heatBl ? " · blacklist on" : ""}</>
-                      : <>Optimal portfolio: {heatPick.duration} yrs · {heatPick.ytm.toFixed(2)}%</>}
+                      : <>Selected point: {heatPick.duration} yrs{picked ? ` · return ${picked.ytm.toFixed(2)}% · expected loss ${picked.loss.toFixed(2)}%${picked.dur != null ? ` · duration ${picked.dur.toFixed(1)}` : ""}` : ""}</>}
                   </span>
                 ) : arrows}
               </div>
