@@ -23,7 +23,7 @@ const SECTIONS: NavItem[] = [
   { id: "protection", n: "05", label: "Protection" },
   { id: "stress", n: "06", label: "Stress" },
   { id: "yield", n: "07", label: "Yield & tax" },
-  { id: "sources", n: "08", label: "Sources" },
+  { id: "sources", n: "08", label: "Methodology" },
 ];
 
 /** Provenance line under a figure: status, kind, date, source. Always shows the observation date when there is one. */
@@ -123,7 +123,7 @@ function barColor(score: number) {
 }
 
 /** The report: one scrolling page, eight numbered sections. `open` = this reader may see the research (paid plan, or the free example). */
-export default function ReportView({ r, open }: { r: Report; open: boolean }) {
+export default function ReportView({ r, open, admin = false }: { r: Report; open: boolean; admin?: boolean }) {
   const title = r.maturityYear && !r.name.includes(r.maturityYear) ? `${r.name} ${r.maturityYear}` : r.name;
   const c = r.conclusion;
   const v = verdict(c.view);
@@ -152,13 +152,13 @@ export default function ReportView({ r, open }: { r: Report; open: boolean }) {
               {r.seniority && <span>· {r.seniority}</span>}
               {identity && <span>· {identity}</span>}
             </p>
-            <p className={`mt-1 ${r.freshness.stale ? "text-[14px] text-[#b54708]" : "text-[14px] text-mute"}`} data-testid="freshness">{r.freshness.label}</p>
+            {admin && <p className={`mt-1 ${r.freshness.stale ? "text-[14px] text-[#b54708]" : "text-[14px] text-mute"}`} data-testid="freshness">{r.freshness.label}</p>}
 
             {open && c.summary && <p className={`mt-6 max-w-[760px] text-[18px] leading-[1.6] md:text-[20px]`}>{c.summary}</p>}
 
             <div className="mt-8 grid grid-cols-2 gap-3 md:gap-5">
               <Kpi title="Investment score" f={open ? r.kpis.score : { text: "Plans", status: "not_verified" }} tip="Our own 0–100 rating of how safely the issuer can pay coupons and repay. It is a ranking aid, not a probability of default." />
-              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} right tip="Yearly return if you buy at the dated price and hold to maturity, before tax and costs. Not a promise." />
+              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} right tip="Yearly return if you hold to maturity, before tax and costs. Not a promise." />
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-6 rounded-3xl border border-line bg-white p-5 sm:p-7 md:mt-5 lg:grid-cols-4">
               <HeroFact title="Return after tax" f={open ? r.netReturn : NV} />
@@ -179,7 +179,7 @@ export default function ReportView({ r, open }: { r: Report; open: boolean }) {
           {!open ? (
             <section className="report-section rounded-b-[28px] bg-[#f7f7f9] px-5 py-14 text-center sm:px-8" data-testid="report-locked">
               <p className="text-[22px] font-semibold tracking-tight">The full report is on paid plans</p>
-              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios, tax and sources for every bond we cover.</p>
+              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios, and tax for every bond we cover.</p>
               <Link href="/pricing" className="mt-6 inline-flex min-h-[48px] items-center rounded-full bg-accent px-7 text-[15px] font-medium text-white">See plans</Link>
             </section>
           ) : (
@@ -190,7 +190,7 @@ export default function ReportView({ r, open }: { r: Report; open: boolean }) {
               <Protection r={r} term={term} />
               <Stress r={r} />
               <Yield r={r} term={term} />
-              <Sources r={r} />
+              <Sources r={r} admin={admin} />
             </>
           )}
         </article>
@@ -455,23 +455,25 @@ function Yield({ r, term }: { r: Report; term: (l: string) => Fig }) {
   );
 }
 
-function Sources({ r }: { r: Report }) {
+function Sources({ r, admin }: { r: Report; admin: boolean }) {
   const nv = (v: string) => (v === "–" || !v ? "Not verified" : v);
   return (
-    <Section n="08" id="sources" title="Sources and methodology" intro="What evidence supports the conclusion? Every price and return below is a past observation with its date, not a price you can trade at.">
-      <div className={card}>
-        <h3 className="text-[20px] font-semibold tracking-tight">Dated price observations</h3>
-        <div className="mt-4">
-          {r.sources.length ? <Table header={["Source", "Observed", "Price", "Return"]} rows={r.sources.map((s) => [s.source, nv(s.date), nv(s.price), nv(s.ret)])} /> : <p className={`${body} text-mute`}>Not verified</p>}
+    <Section n="08" id="sources" title="Methodology" intro="What evidence supports the conclusion? Every figure carries a verification mark.">
+      {admin && (
+        <div className={`${card} mb-5`}>
+          <h3 className="text-[20px] font-semibold tracking-tight">Dated price observations <span className="text-[13px] font-medium text-mute">Admin only</span></h3>
+          <div className="mt-4">
+            {r.sources.length ? <Table header={["Source", "Observed", "Price", "Return"]} rows={r.sources.map((s) => [s.source, nv(s.date), nv(s.price), nv(s.ret)])} /> : <p className={`${body} text-mute`}>Not verified</p>}
+          </div>
+          <p className={`mt-4 text-[15px] text-mute`}>{r.sourcesNote}</p>
         </div>
-        <p className={`mt-4 text-[15px] text-mute`}>{r.sourcesNote}</p>
-      </div>
+      )}
 
       <div className="mt-5 grid gap-5 md:grid-cols-2 print:grid-cols-1">
         <div className={card}>
           <h3 className="text-[20px] font-semibold tracking-tight">Research coverage</h3>
           <p className={`mt-3 ${body} text-mute`} data-testid="research-status">{r.conclusion.status}</p>
-          <p className={`mt-3 ${meta}`}>{r.freshness.label}</p>
+          {admin && <p className={`mt-3 ${meta}`}>{r.freshness.label}</p>}
         </div>
         <div className={card}>
           <h3 className="text-[20px] font-semibold tracking-tight">Verification status</h3>
