@@ -81,13 +81,17 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
 
   return (
     <div className={`transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+      {/* On phones the chart and the bond are two separate rounded cards on the grey page; from sm up they are one box as before. */}
+      <div className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none" data-testid="curve-card">
       <div className="flex items-baseline justify-between gap-2 whitespace-nowrap">
         <h2 className="shrink-0 text-[16px] font-semibold sm:text-[17px]">{t.bestByRating}</h2>
         <span className="min-w-0 truncate text-[11px] text-mute sm:text-xs">{t.tapDot}</span>
       </div>
       <Chart points={points} ghosts={dominatedLevels(all)} axis={all} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
-      {dominatedLevels(all).length > 0 && <p className="text-[11px] text-mute max-sm:hidden" data-testid="ghost-note">{t.ghostNote}</p>}
+      {dominatedLevels(all).length > 0 && <p className="hidden text-[11px] text-mute sm:block" data-testid="ghost-note">{t.ghostNote}</p>}
+      </div>
 
+      <div className="mt-3 min-h-[440px] sm:mt-0 sm:min-h-0">
       {point && bond ? (
         <BondBox
           currency={currency}
@@ -109,6 +113,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
           </p>
         )
       )}
+      </div>
       <QuotaNote quota={data?.quota} />
     </div>
   );
@@ -209,13 +214,13 @@ function BondBox(props: {
   const f = FACT_TEXT[lang];
   const lock = signedIn ? <Link href="/pricing" className="text-accent">{t.withPlus}</Link> : <Link href="/signup" className="text-accent">{t.freeAccountLower}</Link>;
   const row = (k: string, v: React.ReactNode) => (
-    <div className="flex justify-between gap-2 border-b border-line/50 py-0.5 text-xs">
+    <div className="flex justify-between gap-2 border-b border-line/50 py-1.5 text-[13px] sm:py-0.5 sm:text-xs">
       <dt className="text-mute">{k}</dt>
       <dd className="text-right font-medium tabular-nums">{v}</dd>
     </div>
   );
   return (
-    <div className="mt-1 rounded-xl border border-line/70 px-3 py-2" data-testid="bond-box">
+    <div className="rounded-[28px] bg-white px-4 py-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:mt-1 sm:rounded-xl sm:border sm:border-line/70 sm:px-3 sm:py-2 sm:shadow-none" data-testid="bond-box">
       <div className="flex items-baseline justify-between gap-3">
         <div className="min-w-0 truncate text-sm">
           <span className="text-xs text-mute">{t.ratingStep} {props.label}{props.bond.rank > 1 ? ` · ${t.option} ${props.bond.rank}` : ""} · </span>

@@ -162,11 +162,11 @@ const it: LandingText = {
   paperShort: "Metodologia (PDF)",
   carousel: {
     act: {
-      compare: ["Confronta il portafoglio IA con un ETF obbligazionario", "Portafoglio IA vs ETF"],
+      compare: ["Confronta il portafoglio IA con un ETF", "Portafoglio IA vs ETF"],
       frontier: ["Trova il miglior portafoglio rendimento/rischio", "Miglior rendimento/rischio"],
       heat: ["Trova il rendimento e la scadenza più sicuri", "Rendimento e scadenza sicuri"],
       curves: ["Confronta gli orizzonti da 2 a 10 anni", "Confronta orizzonti 2-10 anni"],
-      curve: ["Trova la migliore obbligazione per ogni livello di rischio", "Migliore per ogni rischio"],
+      curve: ["Trova la migliore obbligazione per ogni rischio", "Migliore per ogni rischio"],
       list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
       company: ["Verifica il rischio società", "Verifica il rischio società"],

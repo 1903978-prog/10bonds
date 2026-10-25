@@ -5,7 +5,7 @@ import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import LandingCarousel, { actionTitle, CompanySlide, CurvesSlide, FrontierSlide, HeatSlide, CountrySlide, CurveSlide, ListSlide, SlideCard } from "@/components/LandingCarousel";
+import LandingCarousel, { actionTitle, CompanySlide, CountrySlide, CurvesScreen, FrontierScreen, HeatScreen, ListScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
@@ -49,14 +49,14 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
-      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.8fr_1.2fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
+      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.68fr_1.32fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
         <div className="mb-1 flex items-baseline justify-between gap-2 sm:mb-2">
           <p className="text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] sm:text-[12px]" style={{ color: MUTE }} data-testid="landing-eyebrow">{t.eyebrow}</p>
           {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
           <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="whitespace-nowrap text-[10.5px] font-semibold leading-none underline underline-offset-2 sm:hidden" style={{ color: GREEN }}>{t.paperShort} ↓</a>
         </div>
-        <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[58px]">
+        <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[52px]">
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>
@@ -66,11 +66,11 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
           <LandingCarousel t={t} slides={[
             { key: "compare", node: <Comparison t={t} num={num} bench={bench} /> },
-            { key: "frontier", node: <FrontierSlide t={t} /> },
-            { key: "curves", node: <CurvesSlide t={t} /> },
-            { key: "heat", node: <HeatSlide t={t} /> },
-            { key: "curve", node: <CurveSlide t={t} /> },
-            { key: "list", node: <ListSlide t={t} bonds={bench?.portfolio?.bonds} /> },
+            { key: "frontier", node: <ScreenSlide title={actionTitle(t.carousel.act.frontier)}><FrontierScreen lang={lang} /></ScreenSlide> },
+            { key: "curves", node: <ScreenSlide title={actionTitle(t.carousel.act.curves)}><CurvesScreen lang={lang} /></ScreenSlide> },
+            { key: "heat", node: <ScreenSlide title={actionTitle(t.carousel.act.heat)}><HeatScreen lang={lang} /></ScreenSlide> },
+            { key: "curve", node: <ScreenSlide title={actionTitle(t.carousel.act.curve)}><OneBondScreen lang={lang} /></ScreenSlide> },
+            { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={bench?.portfolio?.bonds} /></ScreenSlide> },
             { key: "country", node: <CountrySlide t={t} /> },
             { key: "company", node: <CompanySlide t={t} /> },
           ]} />

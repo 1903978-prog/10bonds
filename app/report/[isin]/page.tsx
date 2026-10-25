@@ -7,6 +7,7 @@ import { currentUser } from "@/lib/currentUser";
 import { loadAllShown } from "@/lib/bonds";
 import { isIsin } from "@/lib/seo/bondPages";
 import type { PublicBond } from "@/lib/types";
+import { featuresFor } from "@/lib/planFeatures";
 
 type Props = { params: Promise<{ isin: string }> };
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function ReportPage({ params }: Props) {
     notFound();
   }
   const user = await currentUser();
-  const open = r.free || (!!user && user.plan !== "free");
+  const open = r.free || (await featuresFor(user)).includes("risk_reports");
   return (
     <ReportView r={r} open={open} />
   );
