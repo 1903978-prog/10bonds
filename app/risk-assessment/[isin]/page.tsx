@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import CompanyFocus from "@/components/CompanyFocus";
 import { findCompany } from "@/lib/companiesInFocus";
 import { currentUser } from "@/lib/currentUser";
+import { featuresFor } from "@/lib/planFeatures";
 
 type Props = { params: Promise<{ isin: string }> };
 
@@ -18,5 +19,5 @@ export default async function CompanyPage({ params }: Props) {
   const c = findCompany((await params).isin);
   if (!c) notFound();
   const user = await currentUser();
-  return <CompanyFocus c={c} paid={!!user && user.plan !== "free"} />;
+  return <CompanyFocus c={c} paid={(await featuresFor(user)).includes("risk_reports")} />;
 }
