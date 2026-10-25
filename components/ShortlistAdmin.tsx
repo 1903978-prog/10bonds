@@ -97,18 +97,12 @@ export default function ShortlistAdmin() {
 
       {cur && sm && (
         <>
-          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3" data-testid="shortlist-kpis">
-            <span className="text-base font-semibold">{cur.name}</span>
-            <Kpi label="Avg return (YTM)" value={pct(sm.avgYtm)} />
-            <Kpi label="Avg duration" value={sm.avgDuration == null ? "–" : `${sm.avgDuration.toFixed(2)} yrs`} />
-            <Kpi label="Avg risk (1–10)" value={sm.avgRisk == null ? "–" : sm.avgRisk.toFixed(1)} />
-            <Kpi label="Expected loss on your money" value={pct(sm.lifeLoss)} />
-            <Kpi label="Bonds counted" value={`${sm.count} of ${cur.isins.length}`} />
+          <SummaryBar name={cur.name} sm={sm} of={cur.isins.length} className="mt-5">
             <span className="ml-auto flex gap-2">
               <button type="button" onClick={() => setEdit({ id: cur.id, name: cur.name, isins: cur.isins.join("\n") })} className="rounded-full border border-amber-400 bg-white px-3 py-1 text-xs font-medium text-amber-900" data-testid="shortlist-edit">Edit</button>
               <button type="button" onClick={() => remove(cur)} className="rounded-full border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-700" data-testid="shortlist-delete">Delete</button>
             </span>
-          </div>
+          </SummaryBar>
           <p className="mt-1 text-[11px] text-mute">Expected loss = average over the bonds of (chance of defaulting before maturity × loss given default by debt rank: 60% senior, 75% senior non-preferred, 90% subordinated). Unrated bonds count with the same worst-grade default chance the finder uses.</p>
 
           {(missing.length > 0 || flagged.length > 0) && (
@@ -166,6 +160,21 @@ export default function ShortlistAdmin() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** The yellow summary bar of one portfolio: name, average return, duration, risk, expected loss on your money and bonds counted. Same bar for every list on the page. */
+function SummaryBar({ name, sm, of, className = "", testId = "shortlist-kpis", children }: { name: string; sm: ShortlistSummary; of: number; className?: string; testId?: string; children?: React.ReactNode }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 ${className}`} data-testid={testId}>
+      <span className="text-base font-semibold">{name}</span>
+      <Kpi label="Avg return (YTM)" value={pct(sm.avgYtm)} />
+      <Kpi label="Avg duration" value={sm.avgDuration == null ? "–" : `${sm.avgDuration.toFixed(2)} yrs`} />
+      <Kpi label="Avg risk (1–10)" value={sm.avgRisk == null ? "–" : sm.avgRisk.toFixed(1)} />
+      <Kpi label="Expected loss on your money" value={pct(sm.lifeLoss)} />
+      <Kpi label="Bonds counted" value={`${sm.count} of ${of}`} />
+      {children}
     </div>
   );
 }
@@ -231,6 +240,7 @@ function Compare({ id, onOverlap }: { id: number; onOverlap: (isins: string[]) =
       {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
       {d && a && b && (
         <>
+          <SummaryBar name={`${d.years}-year portfolio`} sm={b} of={b.count} className="mt-3" testId="compare-bar" />
           <p className="mt-2 text-sm font-medium" data-testid="compare-verdict">{d.verdict}</p>
           <table className="mt-2 w-full max-w-3xl text-left text-xs tabular-nums">
             <thead className="text-mute"><tr><th className="py-1 font-medium" /><th className="py-1 font-medium">{d.name}</th><th className="py-1 font-medium">{d.years}-year portfolio</th><th className="py-1 font-medium">Difference</th></tr></thead>
@@ -304,6 +314,7 @@ function Alternative({ id }: { id: number }) {
       {state === "busy" && <p className="mt-2 text-xs text-mute">Running the solver in the background; this takes up to a couple of minutes the first time.</p>}
       {d && a && b && c && state === "done" && (
         <>
+          {d.rows.length > 0 && <SummaryBar name="Alternative set" sm={b} of={d.rows.length} className="mt-3" testId="alt-bar" />}
           <p className="mt-2 text-sm font-medium" data-testid="alt-verdict">{c.best.status === "infeasible" ? `No set of 10 reaches any return at ${d.name}'s expected loss (${c.shortlistEl.toFixed(2)}%) under these rules.` : d.verdict}</p>
           <p className="mt-1 text-xs text-mute">{c.eligible} eligible bonds (left out: {c.dropped.structure} structured or linked, {c.dropped.rank} subordinated, {c.dropped.risk} rated below BBB+ or unrated). {c.best.status === "uncertified" ? "The solver hit its time limit: this set is not proven the best. " : "Proven best under the rules. "}Took {c.seconds}s.</p>
           <table className="mt-2 w-full max-w-xl text-left text-xs tabular-nums" data-testid="alt-targets">
