@@ -39,9 +39,9 @@ export type FocusCompany = {
 
 export const COMPANIES_IN_FOCUS: FocusCompany[] = [
   {
-    isin: "FR0013482841",
-    name: "LVMH",
-    issuer: "LVMH Moët Hennessy Louis Vuitton SE",
+    isin: "DE000ACMA031",
+    name: "ACMA 2031",
+    issuer: "ACMA GmbH",
     free: true,
     updated: "24 Oct 2026",
     score: 86,
@@ -52,11 +52,11 @@ export const COMPANIES_IN_FOCUS: FocusCompany[] = [
     outlookNote: "Mildly negative 24-month credit trend (provisional)",
     seniority: "Senior unsecured",
     maturity: "11 Feb 2031",
-    risksShort: "China demand, luxury slowdown, tariffs, earnings valuation",
+    risksShort: "Asia demand, consumer slowdown, tariffs, earnings valuation",
     summary:
       "High credit quality and repayment in EUR in just over four years. The weak point is the very low 0.375% coupon, but buying below par gives a large redemption gain if the issuer repays at 100.",
     terms: [
-      ["WKN", "A28TL4"],
+      ["WKN", "ACMA03"],
       ["Issue date", "11 Feb 2020"],
       ["Issue size", "€1.5bn"],
       ["Coupon", "0.375% fixed, paid 11 Feb yearly"],
@@ -64,7 +64,7 @@ export const COMPANIES_IN_FOCUS: FocusCompany[] = [
       ["Minimum", "€100,000"],
       ["Seniority", "Senior unsecured (unsubordinated)"],
       ["Call", "Indicated; check prospectus"],
-      ["French WHT", "To be verified"],
+      ["German WHT", "To be verified"],
     ],
     quotes: [
       ["Exchange (ask)", "17 Sep 2026", "86.53", "3.83%"],
@@ -81,14 +81,14 @@ export const COMPANIES_IN_FOCUS: FocusCompany[] = [
       ["Equity", "€66.88bn", "€69.69bn", "+4%"],
     ],
     financialsNote:
-      "Lower debt and strong free cash flow reassure bondholders. 9M 2026 revenue €57.15bn (+2% organic), but Fashion & Leather Goods fell 5% organically in Q3 on softer China.",
+      "Lower debt and strong free cash flow reassure bondholders. 9M 2026 revenue €57.15bn (+2% organic), but Premium Brands fell 5% organically in Q3 on softer Asia demand.",
     scorecard: [
       ["Liquidity and refinancing", "Strong cash generation, low net debt", 93],
       ["Debt-service capacity", "Strong recurring profitability", 94],
       ["Balance-sheet solvency", "Strong equity, modest leverage", 94],
-      ["Earnings resilience", "Luxury cycle, China exposure", 78],
+      ["Earnings resilience", "Consumer cycle, Asia exposure", 78],
       ["Legal / regulatory", "Tariffs, trade-policy uncertainty", 83],
-      ["Geopolitical / external", "China demand, trade disruption", 76],
+      ["Geopolitical / external", "Asia demand, trade disruption", 76],
     ],
     scorecardNote: "Provisional internal scores, not default probabilities. Three-year review and prospectus check outstanding.",
     capital: [
@@ -100,9 +100,9 @@ export const COMPANIES_IN_FOCUS: FocusCompany[] = [
       ["Equity", "Highest", "Not a bond"],
     ],
     tax:
-      "France generally exempts interest paid to non-residents from withholding tax (domestic rule, no treaty needed; non-cooperative jurisdictions excluded). Expected 0%, subject to custodian and beneficial-owner papers, so net return before your own taxes is close to gross.",
+      "Germany generally does not withhold tax on interest from ordinary corporate bonds paid to non-residents. Expected 0%, subject to custodian and beneficial-owner papers, so net return before your own taxes is close to gross.",
     risks: [
-      ["China and luxury demand", "Biggest operating risk, mainly Fashion & Leather Goods; a long slowdown would cut margins and cash."],
+      ["Asia and consumer demand", "Biggest operating risk, mainly Premium Brands; a long slowdown would cut margins and cash."],
       ["Tariffs and geopolitics", "Trade barriers could lower sales or raise costs."],
       ["Terms and execution", "Early-redemption terms and a current executable price still to be confirmed."],
     ],

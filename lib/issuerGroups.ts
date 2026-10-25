@@ -312,7 +312,6 @@ h m finance
 harley davidson finance
 jaguar land rover
 kering
-lvmh moet henn l vuitton | lvmh
 magna international
 mahle
 mcdonald s
