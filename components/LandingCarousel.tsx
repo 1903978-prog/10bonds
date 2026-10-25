@@ -4,16 +4,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { RiskBadge, riskColor } from "@/components/RiskBadge";
 import { FrontierScreen, CurvesScreen, HeatScreen, OneBondScreen, ListScreen } from "@/components/LandingScreens";
-import type { FinderLang } from "@/lib/finderText";
 import type { LandingText } from "@/lib/landingText";
 import { findCompany } from "@/lib/companiesInFocus";
 
 const LVMH = "FR0013482841";
 
 const NAVY = "#112D3B";
-const GREEN = "#127052";
 const MUTE = "#52666F";
-const BLUE = "#0066cc";
 const EVERY = 3000; // ms per slide (the owner, 24/10/2026)
 
 /** A slide's action title: the long one on desktop, the short one on phones. */
