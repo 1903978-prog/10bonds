@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loadBondsFor } from "@/lib/bonds";
 import { parseFilter } from "@/lib/bondFilter";
 import { currentUser } from "@/lib/currentUser";
+import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
 import { FRONTIER_BY_METHOD, heatMapFor, parseMethod } from "@/lib/heatMap";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,10 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-  const map = heatMapFor(src, filter, method);
+  // bl=1: the same map without the bonds and issuers on the admin's own blacklist (its own cache entry).
+  const list = params.get("bl") === "1" ? await exclusionsOrNone(user.id) : [];
+  const skip = excludedBy(list);
+  const without = skip ? { key: list.map((e) => `${e.kind}:${e.value}`).sort().join(","), skip } : null;
+  const map = heatMapFor(src, filter, method, without);
   return NextResponse.json(map ?? { pending: true }, { headers: { "Cache-Control": "private, no-store" } });
 }
