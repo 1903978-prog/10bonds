@@ -1,14 +1,11 @@
 "use client";
 
 import { type ReactNode } from "react";
-import AllCurvesChart from "@/components/AllCurvesChart";
-import { bandOf } from "@/components/HeatMapChart";
 import { RiskBadge } from "@/components/RiskBadge";
 import SliderCurveChart from "@/components/SliderCurveChart";
 import { useBoxSize } from "@/components/useBoxSize";
 import { FINDER_TEXT, type FinderLang, type FinderText } from "@/lib/finderText";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
-import type { CurvePoint } from "@/lib/lossCurve";
 import type { SliderPosition } from "@/lib/sliderPortfolios";
 
 // The landing carousel's "real screen" slides (the owner, 24/10/2026): the finder's own chart components with fixed
@@ -155,76 +152,6 @@ export function FrontierScreen({ lang }: { lang: FinderLang }) {
         {wide && <Panel className="max-w-[250px]"><BondList f={f} bonds={SAMPLE_BONDS} compact /></Panel>}
       </Chrome>
     )} />
-  );
-}
-
-/** The "all curves" chart, 2 to 10 years, legend bottom right. */
-export function CurvesScreen({ lang }: { lang: FinderLang }) {
-  const f = FINDER_TEXT[lang];
-  const tops: [number, number, number][] = [[2, 5.9, 1.3], [3, 5.85, 2.4], [4, 7.2, 4.4], [5, 7.0, 5.2], [6, 6.05, 4.8], [7, 5.75, 3.8], [8, 5.85, 4.1], [9, 5.85, 4.3], [10, 5.85, 4.8]];
-  const curves = tops.map(([duration, top, last]) => {
-    const points: CurvePoint[] = Array.from({ length: 40 }, (_, i) => {
-      const loss = last * Math.pow(i / 39, 1.5);
-      const ytm = 3 + (top - 3.1) * (1 - Math.exp(-loss / (0.25 + duration * 0.12))) + 0.1 - Math.max(0, duration - 5) * 0.06 * (1 - loss / last);
-      return { ytm: Math.round(ytm * 100) / 100, loss: Math.round(loss * 1000) / 1000 };
-    });
-    return { duration, points, max: top };
-  });
-  return (
-    <ScaledScreen render={(wide) => (
-      <Chrome wide={wide} lang={lang}>
-        {wide && <Controls f={f} single={false} horizon={5} mix={8} />}
-        <Panel><div className="min-h-0 flex-1"><AllCurvesChart curves={curves} retLabel={f.chartX} lossLabel={f.chartY} yearsLabel={f.years} /></div></Panel>
-      </Chrome>
-    )} />
-  );
-}
-
-/** Heat map: expected loss for each return (up) and horizon (across); the framed cell is the safest horizon for that return. */
-export function HeatScreen({ lang }: { lang: FinderLang }) {
-  const f = FINDER_TEXT[lang];
-  const allYears = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30];
-  const phoneYears = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20];
-  const cap = (y: number) => (y === 1 ? 4.0 : y <= 6 ? 6.4 : y <= 11 ? 5.8 : y <= 15 ? 5.6 : y === 20 ? 5.0 : y === 25 ? 4.6 : 3.4);
-  const loss = (r: number, y: number) => 0.006 * Math.pow(y, 1.25) * Math.exp((r - 3) * 1.05);
-  return (
-    <ScaledScreen render={(wide) => {
-      // Phones: fewer columns and rows, bands only (no figures), so the cells stay readable.
-      const years = wide ? allYears : phoneYears;
-      const rets = Array.from({ length: wide ? 18 : 9 }, (_, i) => Math.round((6.4 - i * (wide ? 0.2 : 0.4)) * 10) / 10);
-      return (
-      <Chrome wide={wide} lang={lang}>
-        {wide && <Controls f={f} single={false} horizon={5} mix={8} />}
-        <Panel>
-          <div className="flex min-h-0 flex-1">
-            <div className="flex w-5 shrink-0 items-center justify-center text-[13px] text-[#6b6b72]"><span className="whitespace-nowrap [writing-mode:vertical-rl] rotate-180">{f.chartX} ↑</span></div>
-            <div className="grid min-h-0 flex-1 gap-px text-[11px] tabular-nums" style={{ gridTemplateColumns: `2.8rem repeat(${years.length}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rets.length}, minmax(0, 1fr)) 1.2rem` }}>
-              {rets.map((r) => {
-                const reach = years.filter((y) => r <= cap(y) + 1e-9);
-                const best = reach.reduce<number | null>((b, y) => (b === null || loss(r, y) < loss(r, b) ? y : b), null);
-                return [
-                  <div key={`r${r}`} className="flex items-center justify-end pr-1.5 text-[#6b6b72]">{r.toFixed(1)}%</div>,
-                  ...years.map((y) => {
-                    const ok = r <= cap(y) + 1e-9;
-                    const l = loss(r, y), band = bandOf(l);
-                    return <div key={`${r}-${y}`} className={`flex items-center justify-center rounded-[3px] ${y === best ? "ring-2 ring-inset ring-[#1d1d1f]" : ""}`} style={ok ? { background: band.bg, color: band.fg } : { background: "#f2f2f4", color: "#a1a1a6" }}>{wide ? (ok ? l.toFixed(2) : "–") : ""}</div>;
-                  }),
-                ];
-              })}
-              <div className="flex items-center justify-end pr-1.5 text-[#6b6b72]">{f.years}</div>
-              {years.map((y) => <div key={`y${y}`} className="flex items-center justify-center text-[#6b6b72]">{y === 30 ? "30+" : y}</div>)}
-            </div>
-          </div>
-          <div className="mt-2 flex h-5 shrink-0 items-center gap-2 text-[12px] text-[#6b6b72]">
-            <span className="shrink-0">{f.chartY}</span>
-            <div className="flex flex-1 overflow-hidden rounded-[3px]">
-              {[0.1, 0.2, 0.35, 0.5, 0.75, 1, 1.5, 2, 3, 4].map((v) => { const b = bandOf(v - 1e-6); return <div key={v} className="h-4 flex-1" style={{ background: b.bg }} />; })}
-            </div>
-          </div>
-        </Panel>
-      </Chrome>
-      );
-    }} />
   );
 }
 
