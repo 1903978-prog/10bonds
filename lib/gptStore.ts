@@ -66,12 +66,14 @@ export async function calcGptRating(isin: string): Promise<string | null> {
     const j = await r.json().catch(() => null);
     if (!r.ok || !j?.ratings) {
       const error = j?.error ?? "Calculation failed";
+      if (typeof j?.answer === "string") openPopup({ isin, answer: j.answer, error });
       setCalc(isin, { error, missingKey: !!j?.missingKey });
       return error;
     }
     map = j.ratings;
     emit();
     setCalc(isin, null);
+    if (bulkDepth === 0) openPopup({ isin, answer: String(j.answer ?? "") });
     return null;
   } catch {
     const error = "No answer from the server";
@@ -83,4 +85,21 @@ export async function calcGptRating(isin: string): Promise<string | null> {
 const subscribeCalc = (l: () => void) => { calcListeners.add(l); return () => { calcListeners.delete(l); }; };
 export function useGptCalc(): Record<string, CalcState> {
   return useSyncExternalStore(subscribeCalc, () => calc, () => NO_CALC);
+}
+
+// The answer window: one per page, opened when a single bond's calculation returns (not during "Calculate all 10").
+export type CalcPopup = { isin: string; answer: string; error?: string };
+let popup: CalcPopup | null = null;
+let bulkDepth = 0;
+const popupListeners = new Set<() => void>();
+function openPopup(p: CalcPopup | null) { popup = p; popupListeners.forEach((l) => l()); }
+export const closeCalcPopup = () => openPopup(null);
+/** Runs `fn` (a bulk run) without opening one window per bond. */
+export async function withoutPopups<T>(fn: () => Promise<T>): Promise<T> {
+  bulkDepth++;
+  try { return await fn(); } finally { bulkDepth--; }
+}
+const subscribePopup = (l: () => void) => { popupListeners.add(l); return () => { popupListeners.delete(l); }; };
+export function useCalcPopup(): CalcPopup | null {
+  return useSyncExternalStore(subscribePopup, () => popup, () => null);
 }
