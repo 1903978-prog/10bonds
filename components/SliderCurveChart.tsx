@@ -15,7 +15,7 @@ const LABEL_GAP = 14; // closest two numbered dots may be, in px
  * LABEL_GAP px only every other one is numbered (then every fourth, and so on); hovering any dot shows its numbers. The chosen position is the filled dot; hovering a dot shows its numbers,
  * a click chooses it (same as moving the slider). Fills its box, drawn at the box's real pixel size.
  */
-export default function SliderCurveChart({ positions, current, onPick, retLabel, lossLabel, dotText, sameText, noneText }: {
+export default function SliderCurveChart({ positions, current, onPick, retLabel, lossLabel, dotText, sameText, noneText, labels = true }: {
   positions: SliderPosition[];
   current: number;
   onPick: (position: number) => void;
@@ -24,6 +24,8 @@ export default function SliderCurveChart({ positions, current, onPick, retLabel,
   dotText: string; // {p} {y} {l}
   sameText: string; // {n}
   noneText: string;
+  /** false: dots only, no position numbers (the landing carousel). */
+  labels?: boolean;
 }) {
   const [box, size] = useBoxSize<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -103,7 +105,7 @@ export default function SliderCurveChart({ positions, current, onPick, retLabel,
           return (
             <g key={g.root.position}>
               {n > 1 && <rect x={cx - ((n - 1) * GAP) / 2 - DOT - 3} y={cy - DOT - 3} width={(n - 1) * GAP + 2 * DOT + 6} height={2 * DOT + 6} rx={DOT + 3} fill="#eef4fb" stroke={BLUE} strokeOpacity={0.35} />}
-              {showLabel[gi] && <text x={cx + DOT + 4} y={cy + DOT + F - 4} textAnchor="start" fontSize={F - 2} className="fill-[#1d1d1f] tabular-nums" data-testid={`curve-label-${g.root.position}`}>{range(g.members.map((m) => m.position))}</text>}
+              {labels && showLabel[gi] && <text x={cx + DOT + 4} y={cy + DOT + F - 4} textAnchor="start" fontSize={F - 2} className="fill-[#1d1d1f] tabular-nums" data-testid={`curve-label-${g.root.position}`}>{range(g.members.map((m) => m.position))}</text>}
               {g.members.map((m, i) => {
                 const x = cx + (i - (n - 1) / 2) * GAP;
                 const on = m.position === current;
