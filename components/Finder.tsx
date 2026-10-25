@@ -10,6 +10,7 @@ import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
 import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
+import { RANK_LABEL } from "@/lib/seniority";
 import LossChart, { slopeAt } from "@/components/LossChart";
 import AllCurvesChart from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
@@ -885,13 +886,14 @@ function CreditProfileLine({ c }: { c: CoherenceView }) {
 }
 
 /** Admin only (Livio): the expected loss on your money worked out bond by bond, in the yellow admin style. */
+const lgdOfRow = (r: ResultRow) => r.lgd ?? LOSS_GIVEN_DEFAULT;
 function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
   if (!rows.length || rows.some((r) => r.pd == null)) return null;
-  const share = (r: ResultRow) => (r.pd! * LOSS_GIVEN_DEFAULT) / rows.length;
+  const share = (r: ResultRow) => (r.pd! * lgdOfRow(r)) / rows.length;
   const pct = (x: number, d = 2) => `${x.toFixed(d)}%`;
   return (
     <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-900" data-testid="admin-loss-calc">
-      <p className="font-medium">Expected loss on your money = Σ default chance to maturity × {LOSS_GIVEN_DEFAULT * 100}% ÷ {rows.length} bonds</p>
+      <p className="font-medium">Expected loss on your money = Σ default chance to maturity × loss given default (by debt rank) ÷ {rows.length} bonds</p>
       <table className="mt-1 w-full tabular-nums">
         <tbody>
           {rows.map((r, i) => (
@@ -899,16 +901,16 @@ function AdminLossCalc({ rows }: { rows: ResultRow[] }) {
               <td className="pr-2">{i + 1}. {r.issuer}</td>
               <td className="pr-2 text-right">risk {r.risk ?? "–"}{r.sp !== undefined && <> · S&amp;P {r.sp ?? "–"}</>}</td>
               <td className="pr-2 text-right">IR <GptRate isin={r.isin} kind="ir" /> BR <GptRate isin={r.isin} /></td>
-              <td className="pr-2 text-right">Spread <Spread ytm={r.ytm} years={r.duration} /> Risk Pay <RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} /></td>
+              <td className="pr-2 text-right">Spread <Spread ytm={r.ytm} years={r.duration} /> Risk Pay <RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td>
               <td className="pr-2 text-right">{r.life != null ? `${r.life.toFixed(1)} yrs` : "–"}</td>
               <td className="pr-2 text-right">default {pct(r.pd!)}</td>
-              <td className="pr-2 text-right">× {LOSS_GIVEN_DEFAULT * 100}% = {pct(r.pd! * LOSS_GIVEN_DEFAULT)}</td>
+              <td className="pr-2 text-right">{r.debtRank ? RANK_LABEL[r.debtRank] : "Senior preferred"} · LGD {Math.round(lgdOfRow(r) * 100)}% → {pct(r.pd! * lgdOfRow(r))}</td>
               <td className="text-right">÷ {rows.length} = {pct(share(r), 3)}</td>
             </tr>
           ))}
           <tr className="border-t border-amber-300 font-medium">
             <td colSpan={6} className="pr-2">Expected loss on your money (sum) · modelled probability of at least one issuer default {pct(listLossChance(rows.map((r) => r.pd!)), 1)}</td>
-            <td className="text-right">{pct(listLifeLoss(rows.map((r) => r.pd!)), 3)}</td>
+            <td className="text-right">{pct(listLifeLoss(rows.map((r) => r.pd!), rows.map(lgdOfRow)), 3)}</td>
           </tr>
         </tbody>
       </table>
@@ -1441,7 +1443,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className={`${narrow ? "px-1" : "px-3"} py-0 text-center tabular-nums`}>{r.duration != null ? r.duration.toFixed(1) : <Dim />}</td>
               {!narrow && <td className="px-3 py-0 text-center tabular-nums">{signedIn ? fmtMin(r.minInvestment, currency) : <Dim />}</td>}
               <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
-              {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td><td className="px-1 py-0 text-center"><RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} /></td></>}
+              {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td><td className="px-1 py-0 text-center"><RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td></>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
               <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
@@ -1646,7 +1648,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
                 {admin ? (
                   <>
                     <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
-                    <div className="flex items-center gap-1 leading-none" data-testid="admin-phone-ratings"><GptRate isin={r.isin} kind="ir" /><GptRate isin={r.isin} /><Spread ytm={r.ytm} years={r.duration} /><RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} /></div>
+                    <div className="flex items-center gap-1 leading-none" data-testid="admin-phone-ratings"><GptRate isin={r.isin} kind="ir" /><GptRate isin={r.isin} /><Spread ytm={r.ytm} years={r.duration} /><RiskPayCell ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
                   </>
                 ) : paid ? (
                   <CopyIsin isin={r.isin} phone />
@@ -1861,7 +1863,7 @@ function listSummary(list: ResultRow[]): ResultsPayload["summary"] {
     avgYtm: avg(list.map((r) => r.ytm)),
     avgDuration: avg(list.flatMap((r) => (r.duration == null ? [] : [r.duration]))),
     avgRisk: averageRisk(list.map((r) => r.risk ?? null)),
-    lifeLoss: list.length && list.every((r) => r.pd != null) ? listLifeLoss(list.map((r) => r.pd!)) : null,
+    lifeLoss: list.length && list.every((r) => r.pd != null) ? listLifeLoss(list.map((r) => r.pd!), list.map(lgdOfRow)) : null,
   };
 }
 

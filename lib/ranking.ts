@@ -2,7 +2,8 @@ import type { PublicBond, RankedBond } from "./types";
 import { cleanIssuer } from "./issuer";
 import { bondNotch, riskOfNotch } from "./ratings";
 import { riskLevel, LIMITS, nearHorizon, isOpenEnded } from "./limits";
-import { bondLossChance, lossAdjustedYield } from "./expectedLoss";
+import { bondLossChance, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
+import { lgdOf } from "./seniority";
 import { lifeYears } from "./lifeYears";
 
 export const RESULT_COUNT = 10;
@@ -39,7 +40,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: bondLossChance(notch, lifeYears(b)), score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!) };
+    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: (bondLossChance(notch, lifeYears(b)) * lgdOf(b)) / LOSS_GIVEN_DEFAULT, score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!, lgdOf(b)) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };

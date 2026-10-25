@@ -1,10 +1,12 @@
 import type { PublicBond } from "./types";
 import { bondRisk } from "./ratings";
+import { isExcludedRank } from "./seniority";
 import { riskParams } from "./riskPremium/params";
 
 // Bonds whose yield is far above every comparable bond usually carry a structure the rating of the issuer does not
-// describe (subordinated / Tier 2 / AT1 bank debt, hybrids, perpetuals). The copy has no seniority column, so two rules
+// describe (subordinated / Tier 2 / AT1 bank debt, hybrids, perpetuals). Three rules
 // leave them out everywhere on the site, before any ranking, Pareto or frontier step (the owner, 20/10/2026):
+// 0. The seniority field says so (subordinated, junior, hybrid, AT1, CoCo, Tier 1/2, perpetual; lib/seniority.ts, 25/10/2026).
 // 1. The name says so (subordinated, junior, Tier 1/2, AT1, hybrid, perpetual, CoCo).
 // 2. Statistical outlier: its yield is more than k standard deviations above the average yield of its cohort (same
 //    currency, same 10BONDS risk score, duration within ±20% or ±1 year, the bond itself not counted). k is set by the
@@ -15,7 +17,7 @@ export const OUTLIER_SD = { min: 0.5, max: 5, step: 0.1, default: 2 };
 export const OUTLIER_MIN_PEERS = 8; // default; the live value is riskParams().outlierMinPeers
 const PEER_DURATION_MIN = 1; // but at least ±1 year
 
-export type Outlier = { bond: PublicBond; reason: "name" | "yield"; peerMean: number | null; peerSd: number | null };
+export type Outlier = { bond: PublicBond; reason: "name" | "rank" | "yield"; peerMean: number | null; peerSd: number | null };
 
 /** A valid number of standard deviations, or the default. */
 export function cleanSd(v: unknown): number {
@@ -30,6 +32,11 @@ export function findOutliers(bonds: PublicBond[], sd = OUTLIER_SD.default): Outl
   const out: Outlier[] = [];
   const groups = new Map<string, PublicBond[]>();
   for (const b of bonds) {
+    // The seniority field decides first (subordinated, junior, hybrid, AT1, CoCo, Tier 1/2, perpetual), then the name.
+    if (isExcludedRank(b)) {
+      out.push({ bond: b, reason: "rank", peerMean: null, peerSd: null });
+      continue;
+    }
     if (RISKY_STRUCTURE.test(b.name)) {
       out.push({ bond: b, reason: "name", peerMean: null, peerSd: null });
       continue;

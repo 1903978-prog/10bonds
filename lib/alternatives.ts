@@ -2,12 +2,13 @@ import type { PublicBond, RankedBond } from "./types";
 import { issuerKey, portfolioPool, withinRisk, UNRATED_NOTCH } from "./ranking";
 import { bondNotch, bondRisk } from "./ratings";
 import { lossAdjustedYield } from "./expectedLoss";
+import { lgdOf } from "./seniority";
 import { pdOf, type ResultRow } from "./tiers";
 import { lifeYears } from "./lifeYears";
 
 /** A bond left out of the top 10 that could take a place in it: Plus swaps it in. */
 export type AltRow = Required<Pick<ResultRow, "issuer" | "ytm" | "name" | "isin" | "duration">> &
-  Pick<ResultRow, "risk" | "sp" | "couponType" | "seniority" | "coupon" | "maturity" | "country" | "minInvestment" | "pd" | "life"> & { adjYtm?: number };
+  Pick<ResultRow, "risk" | "sp" | "couponType" | "seniority" | "coupon" | "maturity" | "country" | "minInvestment" | "pd" | "life" | "lgd"> & { adjYtm?: number };
 
 export const MAX_ALTERNATIVES = 40;
 
@@ -23,7 +24,7 @@ export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], durat
   const issuersIn = new Set(chosen.map(issuerKey));
   const scored = pool
     .filter((b) => !inList.has(b.isin))
-    .map((b) => ({ b, key: issuerKey(b), adj: lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!) }))
+    .map((b) => ({ b, key: issuerKey(b), adj: lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!, lgdOf(b)) }))
     .sort((x, y) => y.adj - x.adj || x.b.isin.localeCompare(y.b.isin));
   const seen = new Set<string>();
   const out: AltRow[] = [];
@@ -44,6 +45,7 @@ export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], durat
       country: b.country,
       minInvestment: b.minInvestment ?? null,
       pd: pdOf(b),
+      lgd: lgdOf(b),
       life: Math.round(lifeYears(b) * 100) / 100,
     };
     if (withScore) row.adjYtm = Math.round(adj * 100) / 100;

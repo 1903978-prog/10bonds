@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { PublicBond } from "../types";
 import { bondNotch, bondRisk } from "../ratings";
 import { lossAdjustedYield } from "../expectedLoss";
+import { lgdOf } from "../seniority";
 import { LOCALE, LOCALES, pathOf, type Locale } from "./locales";
 
 // One public page per bond the site shows, at /bonds/{ISIN} (English) and /it/obbligazioni/{ISIN},
@@ -87,7 +88,7 @@ export function bondDescription(l: BondLang, b: PublicBond): string {
 export function peerRank(b: PublicBond, all: PublicBond[]): { rank: number; of: number; adj: number } | null {
   const score = (x: PublicBond) => {
     const n = bondNotch(x);
-    return n === null || x.grossYtm === null || x.modifiedDuration === null ? null : lossAdjustedYield(x.grossYtm, n, x.modifiedDuration);
+    return n === null || x.grossYtm === null || x.modifiedDuration === null ? null : lossAdjustedYield(x.grossYtm, n, x.modifiedDuration, lgdOf(x));
   };
   const own = score(b);
   if (own === null || b.modifiedDuration === null) return null;
