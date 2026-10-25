@@ -21,7 +21,7 @@ export type SelectionText = {
 export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
   en: {
     title: "How we pick the top 10",
-    intro: "A transparent, rules-based process: clean the data, measure each bond's chance of default year by year, then choose the 10 bonds whose combined chance of a loss is lowest while still reaching your target return. A Monte Carlo simulation then stress-tests the list.",
+    intro: "A transparent, rules-based process: clean the data, measure each bond's chance of default year by year, then choose the 10 bonds whose combined probability of at least one issuer default is lowest while still reaching your target return. A Monte Carlo simulation then stress-tests the list.",
     stepsHead: "The process",
     steps: [
       ["Universe", "Bonds from our daily data copy in your currency and minimum order size, with a 10BONDS risk score no higher than your limit. Unscored bonds never appear."],
@@ -29,7 +29,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Horizon window", "Duration within ±{window}% of your horizon, widened in half-year steps (at most 2 years) until 10 different issuers are available."],
       ["One per issuer", "Each issuer can appear once, so the list is spread across 10 different credits."],
       ["Default probabilities", "Each bond's chance of default for every year until it matures, from long-run historical default studies for its risk level."],
-      ["Optimisation", "Among all valid lists, the one with the lowest chance of a loss whose average return reaches your target and whose average duration stays within 5% of your horizon."],
+      ["Optimisation", "Among all valid lists, the one with the lowest modelled probability of at least one issuer default whose average return reaches your target and whose average duration stays within 5% of your horizon."],
       ["Stress test", "{paths} simulated scenarios of defaults give the expected return after defaults and a bad-case (5th percentile) return."],
     ],
     formulasHead: "Formulas",
@@ -37,7 +37,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Yearly default chance", "p(t) = PD(t) − PD(t−1), with PD(t) the cumulative default rate after t years"],
       ["Outlier rule", "return > μ + {sd}·σ of comparable bonds (same currency and risk score, similar duration, at least {peers} peers, the bond itself excluded)"],
       ["Bond survival", "S = 1 − PD(T), T = years to maturity"],
-      ["List chance of a loss", "P = 1 − S₁ × S₂ × … × S₁₀"],
+      ["Probability of at least one issuer default", "P = 1 − S₁ × S₂ × … × S₁₀"],
       ["Selection", "minimise P such that average return ≥ target"],
       ["Expected loss on your money (shown)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd}%, over the bonds' life"],
       ["Return after expected losses", "y − PD(D) ÷ D × {lgd}%, D = duration (used for ties and for the 1-bond view)"],

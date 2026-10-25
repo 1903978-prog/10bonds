@@ -3,6 +3,9 @@
 // card (/api/benchmark: ret, risk, duration and portfolio.ytm, avgRisk, duration) and update `asOf`.
 export const LANDING_SNAPSHOT = {
   asOf: "2026-10-25",
+  // Legal (25/10/2026): the ETF comparison slide is shown to customers only when this is true, i.e. once the benchmark is verified
+  // (methodology and data-use rights confirmed, /admin/benchmark). Until then only the admin sees it, in yellow.
+  verified: false,
   ret: 4.46,
   risk: 6,
   duration: 3.77,
