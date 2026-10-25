@@ -64,7 +64,9 @@ export function candidatesOf(bonds: PublicBond[], duration: number): Cand[] {
 }
 
 const num = (x: number) => x.toFixed(6);
-const sum = (idx: number[], coef: (i: number) => number) => idx.map((i) => `${num(coef(i))} x${i}`).join(" + ");
+// The LP reader refuses lines over about 560 characters, so long sums continue on new lines.
+const joinLines = (terms: string[], op: string) => terms.reduce((out, t, k) => out + (k === 0 ? "" : k % 8 === 0 ? `\n  ${op.trim()} ` : op) + t, "");
+const sum = (idx: number[], coef: (i: number) => number) => idx.map((i) => `${num(coef(i))} x${i}`).reduce((out, t, k) => out + (k === 0 ? "" : k % 8 === 0 ? " +\n  " : " + ") + t, "");
 
 async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: number, spec: Spec, stats: Certificate): Promise<Outcome> {
   let cs = cs0;
@@ -100,8 +102,8 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   const spreadRows = new Map<string, string>();
   const members = by((c) => c.group!);
   for (let round = 0; round < 200; round++) {
-    const shareRows = [...share].map((i) => ` sh${i}: ${num(cs[i].pd * (1 - p.maxLossShare))} x${i} - ${all.filter((j) => j !== i && cs[j].pd > 0).map((j) => `${num(p.maxLossShare * cs[j].pd)} x${j}`).join(" - ") || "0 x" + i} <= 0`);
-    const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows.values()].join("\n")}\nBinary\n ${all.map((i) => `x${i}`).join(" ")}\nEnd`;
+    const shareRows = [...share].map((i) => ` sh${i}: ${num(cs[i].pd * (1 - p.maxLossShare))} x${i} - ${joinLines(all.filter((j) => j !== i && cs[j].pd > 0).map((j) => `${num(p.maxLossShare * cs[j].pd)} x${j}`), " - ") || "0 x" + i} <= 0`);
+    const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows.values()].join("\n")}\nBinary\n ${all.map((i) => `x${i}`).reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
     await new Promise((r) => setImmediate(r));
     stats.solves++;
     const res = highs.solve(lp, SOLVER_OPTIONS);
@@ -116,7 +118,7 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
     for (const i of sel) for (const g of cs[i].beatenBy) {
       const key = `${i}:${g}`;
       if (chosenGroups.has(g) || spreadRows.has(key)) continue;
-      spreadRows.set(key, ` sp${spreadRows.size}: x${i} - ${(members.get(g) ?? []).map((j) => `x${j}`).join(" - ")} <= 0`);
+      spreadRows.set(key, ` sp${spreadRows.size}: x${i} - ${joinLines((members.get(g) ?? []).map((j) => `x${j}`), " - ")} <= 0`);
       more++;
     }
     if (!bad.length && !more) { stats.optimal++; return { status: "optimal", sel: sel.map((i) => cs[i]) }; }

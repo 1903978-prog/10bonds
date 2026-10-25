@@ -115,6 +115,16 @@ describe("coherent frontier regression", () => {
   });
 });
 
+describe("larger universes", () => {
+  it("builds long model lines the solver can read (several bonds per issuer)", { timeout: 120000 }, async () => {
+    const bonds = NAMES.flatMap((n, k) => [0, 1, 2, 3, 4].map((j) => bond(`L${k}-${j}`, n, 2.8 + ((k * 7 + j * 3) % 11) * 0.12, GRADES[(k + j) % 4], 3.6 + ((k + j) % 5) * 0.2)));
+    const f = await coherentFrontier(bonds, 4);
+    expect(f.points.length).toBeGreaterThan(1);
+    expect(f.cert.certified).toBe(true);
+    for (const p of f.points) expect(checkList(p.rows.map((r) => factsOf(r)), DEFAULT_POLICY).every((c) => c.ok)).toBe(true);
+  });
+});
+
 describe("infeasible and scarce universes never relax a rule", () => {
   it("a risk ceiling below every available bond is infeasible", { timeout: 60000 }, async () => {
     const f = await coherentFrontier(universe(5, NAMES, ["BBB", "BBB-"]), 4, DEFAULT_POLICY, 2);
