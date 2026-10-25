@@ -76,7 +76,8 @@ export async function GET(req: Request) {
   // It ignores a customer's exclusions (admin test only): a list that skipped bonds would not be the certified optimum.
   let coherent: CoherentFrontier | null = null;
   let frontierResults: RankedBond[] | null = null;
-  if (url.searchParams.get("guard") === "1") {
+  // Spread rules always use the coherent frontier, never the plain ranking below (which knows none of the rules), whether or not the page asked for guard=1.
+  if (url.searchParams.get("guard") === "1" || method === "spread") {
     try {
       const fr = method === "spread" ? frontierFor(data, filter, duration, "spread") : skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method);
       if (method === "spread") coherent = fr as CoherentFrontier;
@@ -84,6 +85,15 @@ export async function GET(req: Request) {
     } catch (e) {
       if (e instanceof FrontierPending) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
       throw e;
+    }
+  }
+  // Mandatory last check: a list that breaks any rule is never returned (the page, chart data and Excel all come from this list).
+  // No relaxing to reach ten bonds: it is reported as unavailable.
+  if (coherent && frontierResults?.length) {
+    const bad = checkList(frontierResults.map((r) => factsOf(r)), activePolicy(), LIMITS.risk.max).filter((c) => !c.ok);
+    if (bad.length) {
+      console.error("coherent list refused", bad.map((c) => `${c.rule}: ${c.detail}`).join("; "));
+      frontierResults = [];
     }
   }
   const { results, band, engine } = frontierResults
