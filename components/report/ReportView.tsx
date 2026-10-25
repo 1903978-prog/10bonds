@@ -24,7 +24,7 @@ const ALL_SECTIONS: NavItem[] = [
   { id: "protection", n: "05", label: "Protection" },
   { id: "stress", n: "06", label: "Stress" },
   { id: "yield", n: "07", label: "Yield" },
-  { id: "sources", n: "08", label: "Sources" },
+  { id: "sources", n: "08", label: "Methodology" },
 ];
 
 const sectionsFor = (admin: boolean): NavItem[] => ALL_SECTIONS.map((s) => (s.id === "yield" && admin ? { ...s, label: "Yield & tax" } : s));
@@ -158,13 +158,13 @@ export default function ReportView({ r, open, admin = false, signedIn = false }:
               {r.seniority && <span>· {r.seniority}</span>}
               {identity && <span>· {identity}</span>}
             </p>
-            <p className={`mt-1 text-[15px] leading-snug ${r.freshness.stale ? "text-[#b54708]" : "text-mute"}`} data-testid="freshness">{r.freshness.label}</p>
+            {admin && <p className={`mt-1 text-[15px] leading-snug ${r.freshness.stale ? "text-[#b54708]" : "text-mute"}`} data-testid="freshness">{r.freshness.label}</p>}
 
             {open && c.summary && <p className="mt-4 max-w-[800px] text-[18px] leading-[28px]">{c.summary}</p>}
 
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 wide:grid-cols-4">
               <Kpi title="Investment score" f={open ? r.kpis.score : { text: "Plans", status: "not_verified" }} tip="Our own 0–100 rating of how safely the issuer can pay coupons and repay. It is a ranking aid, not a probability of default." />
-              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} tip="Yearly return if you buy at the dated price and hold to maturity, before costs. Not a promise." right />
+              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} tip="Yearly return if you hold to maturity, before costs. Not a promise." right />
               <Kpi title="Maturity" f={r.kpis.maturity} note={r.kpis.maturityNote} />
               <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-3xl border border-line bg-white p-6" data-testid="kpi-10bonds-risk">
                 <p className={label}>10bonds risk</p>
@@ -186,7 +186,7 @@ export default function ReportView({ r, open, admin = false, signedIn = false }:
           {!open ? (
             <section className="report-section rounded-b-[28px] bg-[#f7f7f9] px-5 py-14 text-center sm:px-8" data-testid="report-locked">
               <p className="text-[22px] font-semibold tracking-tight">The full report is on paid plans</p>
-              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios and sources for every bond we cover.</p>
+              <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios and more for every bond we cover.</p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <Link href="/pricing" className="inline-flex min-h-[44px] items-center rounded-full bg-accent px-7 text-[15px] font-medium text-white">See plans</Link>
                 {!signedIn && <ReportAuthButton plain label="Log in" />}
@@ -471,20 +471,22 @@ function Sources({ r, admin }: { r: Report; admin: boolean }) {
   const warnings = admin ? r.unavailable : r.unavailable.filter((u) => !/tax/i.test(u));
   const nv = (v: string) => (v === "–" || !v ? "Not verified" : v);
   return (
-    <Section n="08" id="sources" title="Sources and methodology" intro="What evidence supports the conclusion? Every price and return below is a past observation with its date, not a price you can trade at.">
-      <div className={card}>
-        <h3 className="text-[20px] font-semibold tracking-tight">Dated price observations</h3>
-        <div className="mt-4">
-          {r.sources.length ? <Table header={["Source", "Observed", "Price", "Return"]} rows={r.sources.map((s) => [s.source, nv(s.date), nv(s.price), nv(s.ret)])} /> : <p className={`${body} text-mute`}>Not verified</p>}
+    <Section n="08" id="sources" title="Methodology" intro="What evidence supports the conclusion? Every figure carries a verification mark.">
+      {admin && (
+        <div className={`${card} mb-5`}>
+          <h3 className="text-[20px] font-semibold tracking-tight">Dated price observations <span className="text-[13px] font-medium text-mute">Admin only</span></h3>
+          <div className="mt-4">
+            {r.sources.length ? <Table header={["Source", "Observed", "Price", "Return"]} rows={r.sources.map((s) => [s.source, nv(s.date), nv(s.price), nv(s.ret)])} /> : <p className={`${body} text-mute`}>Not verified</p>}
+          </div>
+          <p className={`mt-4 text-[15px] text-mute`}>{r.sourcesNote}</p>
         </div>
-        <p className={`mt-4 text-[15px] text-mute`}>{r.sourcesNote}</p>
-      </div>
+      )}
 
       <div className="mt-5 grid gap-5 md:grid-cols-2 print:grid-cols-1">
         <div className={card}>
           <h3 className="text-[20px] font-semibold tracking-tight">Research coverage</h3>
           <p className={`mt-3 ${body} text-mute`} data-testid="research-status">{r.conclusion.status}</p>
-          <p className={`mt-3 ${meta}`}>{r.freshness.label}</p>
+          {admin && <p className={`mt-3 ${meta}`}>{r.freshness.label}</p>}
         </div>
         <div className={card}>
           <h3 className="text-[20px] font-semibold tracking-tight">Verification status</h3>

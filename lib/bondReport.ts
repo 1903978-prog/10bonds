@@ -227,3 +227,19 @@ function curatedTerm(c: FocusCompany | null, key: string, re?: RegExp): Fig {
   if (/verif|indicated/i.test(text)) return NOT_VERIFIED;
   return fig(text, "provisional", { kind: "observed", source: "10bonds research" });
 }
+
+/** Customer copy of a report: no data suppliers, observation dates, quote tables or "data as of" lines (no data licence). Admin keeps the full report. */
+export function hideSources(r: Report): Report {
+  const out = JSON.parse(JSON.stringify(r)) as Report;
+  const walk = (o: unknown): void => {
+    if (!o || typeof o !== "object") return;
+    const rec = o as Record<string, unknown>;
+    if ("status" in rec && "text" in rec && rec.kind === "observed") { delete rec.asOf; delete rec.source; }
+    for (const v of Object.values(rec)) walk(v);
+  };
+  walk(out);
+  out.sources = [];
+  out.sourcesNote = "";
+  out.freshness = { label: "", stale: false };
+  return out;
+}
