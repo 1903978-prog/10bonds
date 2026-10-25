@@ -5,7 +5,7 @@ import { COMPANIES_IN_FOCUS, type FocusCompany } from "@/lib/companiesInFocus";
 const td = "px-3 py-[3px] align-top";
 
 /** Risk assessment, companies: same layout as the country pages, with the corporate dimensions. */
-export default function CompanyFocus({ c, paid }: { c: FocusCompany; paid: boolean }) {
+export default function CompanyFocus({ c, paid, admin = false }: { c: FocusCompany; paid: boolean; admin?: boolean }) {
   const nav = COMPANIES_IN_FOCUS.map((x) => ({ key: x.isin, href: `/risk-assessment/${x.isin}`, label: x.name, current: x.isin === c.isin, locked: !x.free, free: x.free }));
   return (
     <FocusShell kind="companies" testId="company-focus" nav={nav} paid={paid} open={paid || c.free === true}
@@ -15,8 +15,8 @@ export default function CompanyFocus({ c, paid }: { c: FocusCompany; paid: boole
         text: paid || c.free ? c.summary : `Main risks: ${c.risksShort}.`,
       }}
       lockedTitle={`The full ${c.name} scoring is on paid plans`}
-      lockedText="Key financials, credit scorecard, terms, tax and our view for every company in focus.">
-      <Body c={c} />
+      lockedText="Key financials, credit scorecard, terms and our view for every company in focus.">
+      <Body c={c} admin={admin} />
     </FocusShell>
   );
 }
@@ -34,7 +34,7 @@ function Table({ rows, cols }: { rows: (string | number)[][]; cols?: string[] })
   );
 }
 
-function Body({ c }: { c: FocusCompany }) {
+function Body({ c, admin }: { c: FocusCompany; admin: boolean }) {
   const [fh, ...fin] = c.financials;
   return (
     <div className="mt-2 grid gap-3 md:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr_1.3fr]">
@@ -44,10 +44,12 @@ function Body({ c }: { c: FocusCompany }) {
         <Table cols={fh} rows={fin} />
         <p className="px-3 pb-2 pt-1 text-[11px] leading-snug text-mute">{c.financialsNote}</p>
       </section>
-        <section className={card}>
-          <h2 className={head}>Withholding tax</h2>
-          <p className="px-3 pb-2 text-[11.5px] leading-snug text-mute">{c.tax}</p>
-        </section>
+        {admin && (
+          <section className={card}>
+            <h2 className={head}>Withholding tax</h2>
+            <p className="px-3 pb-2 text-[11.5px] leading-snug text-mute">{c.tax}</p>
+          </section>
+        )}
       </div>
       <div className="space-y-3">
       <section className={card}>
