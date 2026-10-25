@@ -1,11 +1,9 @@
 name: Coherence live check
-# Manual (and when the rules, the groups or this check change): the slider on live EUR data before and after the rating
+# Manual only (about 11 minutes): the slider on live EUR data before and after the rating
 # coherence rules (lib/coherentFrontier.ts), with solver certificates. Read-only; fails if a list breaks a rule or a
 # solve is not certified.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/coherence-live-check.yml", "scripts/coherence-live-check.ts", "lib/coherence.ts", "lib/coherentFrontier.ts", "lib/issuerGroups.ts", "lib/sectors.ts", "lib/stepGap.ts"]
 jobs:
   check:
     runs-on: ubuntu-latest
