@@ -122,7 +122,7 @@ function BondList({ f, bonds, compact }: { f: FinderText; bonds: BenchmarkBond[]
   const rows = Array.from({ length: 10 }, (_, i) => bonds[i] ?? null);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex border-b border-[#ececef] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-[#86868b]">
+      <div className="flex border-b border-[#ececef] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-[#55555b]">
         <span className="w-6" /><span className="min-w-0 flex-1">{f.single}</span>
         {!compact && <span className="w-16 text-right">{f.maturity}</span>}<span className="w-14 text-center">{f.risk}</span><span className="w-16 text-right">%</span>
       </div>
