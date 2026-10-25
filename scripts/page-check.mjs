@@ -80,6 +80,7 @@ for (const [w, h] of WIDTHS) {
   ok(await p.locator('[data-testid="consent-continue"]').isDisabled(), "consent: Continue disabled until ticked");
   await p.locator('[data-testid="consent-check"]').check();
   await p.locator('[data-testid="consent-continue"]').click();
+  await p.locator('[data-testid="consent-gate"]').waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
   ok(!(await p.locator('[data-testid="consent-gate"]').count()), "consent: popup closes after agreeing");
   await ctx.close();
 }
