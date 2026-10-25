@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useBoxSize } from "@/components/useBoxSize";
 import { shownPoints } from "@/components/LossChart";
 import type { CurvePoint } from "@/lib/lossCurve";
+import type { OptResult } from "@/lib/optimalBuild";
 
 /** One colour per horizon, 2 to 10 years. */
 export const COLOURS = ["#0066cc", "#e4572e", "#17a673", "#8e44ad", "#f0a202", "#1abc9c", "#c0392b", "#5d6d7e", "#d35400"];
@@ -14,7 +15,7 @@ export const COLOURS = ["#0066cc", "#e4572e", "#17a673", "#8e44ad", "#f0a202", "
  * Hovering shows each horizon's expected loss at that target yield. It fills whatever box
  * it is put in (drawn at the box's real pixel size, so text stays readable at any size); the box decides the layout.
  */
-export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel }: { curves: { duration: number; points: CurvePoint[]; max: number }[]; retLabel: string; lossLabel: string; yearsLabel: string }) {
+export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel, optimal, selected, onSelect }: { curves: { duration: number; points: CurvePoint[]; max: number }[]; retLabel: string; lossLabel: string; yearsLabel: string; optimal?: OptResult | null; selected?: number | null; onSelect?: (years: number) => void }) {
   const [box, size] = useBoxSize<HTMLDivElement>();
   const narrow = size.w < 520;
   const F = narrow ? 12 : 14; // font size in px
@@ -32,7 +33,8 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
   const lTicks = [0, 1, 2, 3, 4].map((i) => (lMax / 1.1) * (i / 4));
   const [hover, setHover] = useState<number | null>(null);
   const [nearAt, setNearAt] = useState<{ i: number; x: number; y: number } | null>(null); // the curve under the mouse, highlighted
-  const near = nearAt?.i ?? null;
+  const selIdx = selected == null ? -1 : curves.findIndex((c) => c.duration === selected);
+  const near = nearAt?.i ?? (selIdx >= 0 ? selIdx : null);
   // Each curve's horizon at its end (top right of the curve), pushed apart so two labels never overlap.
   const ends = series
     .map((s, i) => ({ i, p: s.shown[s.shown.length - 1] }))
@@ -92,6 +94,41 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
         strokeLinejoin="round"
         />
       ))}
+      {optimal && (
+        // "Find Optimal Portfolio" (admin): one dot per curve at its model-selected list, a hollow ring at the geometric knee when that is a different list, and a gold star on the best maturity. Tap or hover for the figures.
+        <g data-testid="optimal-markers">
+          {optimal.maturities.map((m) => {
+            const i = series.findIndex((s) => s.duration === m.years);
+            if (i < 0) return null;
+            const inside = (p: { ytm: number; el: number }) => p.ytm >= r0 && p.ytm <= r1 + 1e-9 && p.el <= lMax;
+            const o = m.optimum, k = m.knee;
+            const win = optimal.winner === m.years;
+            return (
+              <g key={m.years}>
+                {k && o && k.isins.join() !== o.isins.join() && inside(k) && (
+                  <circle cx={X(k.el)} cy={Y(k.ytm)} r={4} fill="white" stroke={COLOURS[i]} strokeWidth={1.5} onClick={() => onSelect?.(m.years)} style={{ cursor: "pointer" }}>
+                    <title>{`${m.years}-year mathematical knee: point of diminishing marginal return gains. Return ${k.ytm.toFixed(2)}%, expected loss ${k.el.toFixed(2)}%.`}</title>
+                  </circle>
+                )}
+                {o && inside(o) && (win ? (
+                  <path d={starPath(X(o.el), Y(o.ytm), 11)} fill="#f0b400" stroke="#8a6500" strokeWidth={1} onClick={() => onSelect?.(m.years)} style={{ cursor: "pointer" }} data-testid="optimal-winner">
+                    <title>{optTitle(m.years, o, true)}</title>
+                  </path>
+                ) : (
+                  <circle cx={X(o.el)} cy={Y(o.ytm)} r={selected === m.years ? 7 : 5} fill={COLOURS[i]} stroke="white" strokeWidth={1.5} onClick={() => onSelect?.(m.years)} style={{ cursor: "pointer" }} data-testid={`optimal-dot-${m.years}`}>
+                    <title>{optTitle(m.years, o, false)}</title>
+                  </circle>
+                ))}
+                {win && o && inside(o) && (
+                  <text x={Math.min(X(o.el) + 14, W - R - F * 12)} y={Y(o.ytm) + F} fontSize={F - 1} fontWeight={600} className="fill-[#8a6500]" pointerEvents="none">
+                    ★ Best Risk-Adjusted Portfolio · {m.years}y · {o.ytm.toFixed(2)}% · loss {o.el.toFixed(2)}%
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </g>
+      )}
       {ends.map((e) => (
         <text key={`end${e.i}`} x={e.x} y={e.y + F / 3} fontSize={F - 1} fontWeight={near === e.i ? 600 : 400} fill={COLOURS[e.i]} fillOpacity={near === null || near === e.i ? 1 : 0.35} data-testid={`curve-end-${series[e.i].duration}`}>
           {series[e.i].duration}y
@@ -139,3 +176,12 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
     </div>
   );
 }
+
+const starPath = (cx: number, cy: number, r: number) =>
+  Array.from({ length: 10 }, (_, k) => {
+    const a = (Math.PI / 5) * k - Math.PI / 2, rr = k % 2 ? r * 0.45 : r;
+    return `${k ? "L" : "M"}${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`;
+  }).join(" ") + "Z";
+
+const optTitle = (years: number, o: { ytm: number; el: number; mu: number; es95: number; efficiency: number | null }, best: boolean) =>
+  `${years}-year portfolio, ${best ? "Optimal point, best risk-adjusted maturity" : "Optimal point"}. Return ${o.ytm.toFixed(2)}%, expected loss ${o.el.toFixed(2)}%, expected net return ${o.mu.toFixed(2)}% a year, ES95 ${o.es95.toFixed(2)}% a year${o.efficiency != null ? `, marginal efficiency ${o.efficiency.toFixed(2)}` : ""}.`;

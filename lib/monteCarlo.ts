@@ -6,7 +6,10 @@ export const MC_PATHS = 1_000_000;
 export const MC_RECOVERY = 0.4;
 
 /** `samples`: the first MC_SAMPLES simulated paths, as the portfolio's value (100 at the start) at MC_STEPS+1 even points of the horizon, drawn while the search runs. */
-export type MonteCarloResult = { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
+/** `es5`: the average yield (annual, %) of the worst 5% of paths (Expected Shortfall 95%). */
+export type MonteCarloResult = { paths: number; expYield: number | null; p5: number | null; es5?: number | null; samples: number[][] };
+/** Optional stress for a run: default chances times `pdMult` (capped at 1), loss given default plus `lgdAdd` (capped at 1). */
+export type McStress = { pdMult?: number; lgdAdd?: number };
 export const MC_SAMPLES = 60;
 export const MC_STEPS = 40;
 
@@ -51,12 +54,12 @@ const TOP = 4;
  * risk score), at a random time within the horizon, returning MC_RECOVERY of its value then. Gives the average yield after
  * defaults and the yield that 95% of the paths beat.
  */
-export function simulatePortfolio(bonds: { ytm: number; risk: number | null | undefined; lgd?: number }[], years: number, paths = MC_PATHS, seed = 1): MonteCarloResult {
+export function simulatePortfolio(bonds: { ytm: number; risk: number | null | undefined; lgd?: number }[], years: number, paths = MC_PATHS, seed = 1, stress: McStress = {}): MonteCarloResult {
   if (!bonds.length || years <= 0) return { paths: 0, expYield: null, p5: null, samples: [] };
   const n = bonds.length;
   const y = bonds.map((b) => b.ytm / 100);
-  const pd = bonds.map((b) => defaultProbability(b.risk, years));
-  const rec = bonds.map((b) => 1 - (b.lgd ?? 1 - MC_RECOVERY)); // share recovered in a default: follows the loss given default by debt rank
+  const pd = bonds.map((b) => Math.min(1, defaultProbability(b.risk, years) * (stress.pdMult ?? 1)));
+  const rec = bonds.map((b) => 1 - Math.min(1, (b.lgd ?? 1 - MC_RECOVERY) + (stress.lgdAdd ?? 0))); // share recovered in a default: follows the loss given default by debt rank
   const full = y.map((r) => Math.pow(1 + r, years));
   const rand = mulberry32(seed);
   // Paths are counted by ending value; the yield of each value is worked out once per step, not once per path.
@@ -81,14 +84,16 @@ export function simulatePortfolio(bonds: { ytm: number; risk: number | null | un
     bins[k > last ? last : k]++;
   }
   const yieldOf = (k: number) => Math.pow((k + 0.5) * BIN, 1 / years) - 1;
-  let sum = 0, seen = 0, p5: number | null = null;
+  let sum = 0, seen = 0, p5: number | null = null, tail = 0;
+  const tailN = paths * 0.05;
   for (let k = 0; k <= last; k++) {
     if (!bins[k]) continue;
     sum += bins[k] * yieldOf(k);
+    if (seen < tailN) tail += Math.min(bins[k], tailN - seen) * yieldOf(k);
     seen += bins[k];
-    if (p5 === null && seen >= paths * 0.05) p5 = yieldOf(k) * 100;
+    if (p5 === null && seen >= tailN) p5 = yieldOf(k) * 100;
   }
-  return { paths, expYield: (sum / paths) * 100, p5, samples };
+  return { paths, expYield: (sum / paths) * 100, p5, es5: (tail / tailN) * 100, samples };
 }
 
 /** One simulated path as portfolio value over time: each bond grows at its yield until it defaults, then keeps MC_RECOVERY of its value. */

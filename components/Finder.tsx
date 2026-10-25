@@ -12,6 +12,7 @@ import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import { RANK_LABEL } from "@/lib/seniority";
 import LossChart, { slopeAt } from "@/components/LossChart";
+import OptimalPanel, { OptimalButton, useOptimal } from "@/components/OptimalPanel";
 import AllCurvesChart from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
 import type { HeatMap, HeatMethod } from "@/lib/heatMapGrid";
@@ -174,7 +175,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [heatMethod, setHeatMethod] = useState<HeatMethod>("m1");
   const [heatPick, setHeatPick] = useState<{ ytm: number; duration: number } | null>(null);
   const [heatBl, setHeatBl] = useState(false);
-  const heatOn = isAdmin && showHeat && heatPick !== null;
+  // Admin Multi-year chart: "Find Optimal Portfolio" (lib/optimalBuild.ts). A picked maturity row shows its 10 bonds on the right through heatPick.
+  const [showAll, setShowAll] = useState(false);
+  const [optAsked, setOptAsked] = useState(false);
+  const [optShown, setOptShown] = useState(false);
+  const [optSel, setOptSel] = useState<number | null>(null);
+  const heatOn = isAdmin && (showHeat || (showAll && optShown)) && heatPick !== null;
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
@@ -310,9 +316,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           qs.set("duration", String(heatPick.duration));
           qs.set("ytm", String(heatPick.ytm));
           qs.set("guard", "1");
-          if (heatMethod === "spread") qs.set("m", "spread");
+          if (showHeat && heatMethod === "spread") qs.set("m", "spread");
           else qs.delete("m");
-          qs.set("bl", heatBl ? "1" : "0");
+          qs.set("bl", showHeat && heatBl ? "1" : "0");
         }
         if (preview.current) qs.set("preview", preview.current);
         if (isAdmin && tuner.weight !== null) {
@@ -358,7 +364,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       if (hasData.current) ctrl.abort();
     };
   }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl]);
-  useEffect(() => setHeatPick(null), [duration, ytm, risk, mix, adv, spread, showHeat]);
+  useEffect(() => setHeatPick(null), [duration, ytm, risk, mix, adv, spread, showHeat, showAll]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -378,7 +384,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [chartOn, setChartOn] = useState(false);
   const [curve, setCurve] = useState<{ points: CurvePoint[]; max: number } | null>(null);
   // Admin only: every horizon from 2 to 10 years on one chart, in place of the single curve.
-  const [showAll, setShowAll] = useState(false);
   const [allCurves, setAllCurves] = useState<{ duration: number; points: CurvePoint[]; max: number }[] | null>(null);
   const chartable = (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
   // Chart mode (Livio 24/10): the chart takes the place of the controls on the left, the 10 bonds sit on the right.
@@ -386,6 +391,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const curveMode = chartOn && (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data;
   // View tabs above the results (Livio 25/10): List | Chart | Multi-year chart | Heat map. The last two are admin only (yellow).
   const view = !chartOn ? "list" : showHeat ? "heat" : showAll ? "multi" : "chart";
+  const opt = useOptimal(isAdmin && optAsked && chartOn && chartable, currency, size);
+  const optReady = opt !== null && opt !== "pending" && opt !== "failed";
+  const pickOpt = (years: number) => {
+    const m = optReady ? opt.maturities.find((x) => x.years === years) : null;
+    setOptSel(years);
+    if (m?.optimum) { setTouched(true); setHeatPick({ ytm: m.optimum.target, duration: years }); }
+  };
   const pickView = (v: string) => {
     setChartOn(v !== "list");
     setShowHeat(v === "heat");
@@ -691,13 +703,24 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-5" data-testid="curve-mode">
             <div className="flex min-h-[340px] min-w-0 flex-col">
               <div className="mb-1 flex h-7 justify-end">
+                {isAdmin && showAll && chartable && (
+                  <OptimalButton
+                    state={opt}
+                    shown={optShown}
+                    onClick={() => {
+                      if (optReady) { if (optShown) setHeatPick(null); setOptShown(!optShown); return; }
+                      setOptAsked(true);
+                      setOptShown(true);
+                    }}
+                  />
+                )}
                 {chartable && viewTabs}
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {showHeat && isAdmin ? (
                   <HeatMapChart map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
                 ) : showAll && isAdmin ? (
-                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" />
+                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={optShown ? optSel : null} onSelect={pickOpt} />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
                     <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
@@ -709,13 +732,20 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                   curve && <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
                 )}
               </div>
+              {isAdmin && showAll && optShown && opt && (
+                <div className="mt-2 shrink-0">
+                  <OptimalPanel res={opt} selected={optSel} onSelect={pickOpt} onView={() => pickOpt(optSel ?? (optReady ? opt.winner : null) ?? 0)} />
+                </div>
+              )}
             </div>
             <div className={`flex min-w-0 flex-col transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
               <div className="mb-1 flex h-7 items-center">
                 {heatOn ? (
                   // Admin (yellow): the list below is the heat map cell picked on the left.
                   <span data-testid="heat-pick-tag" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[11px] tabular-nums font-medium text-amber-900">
-                    Heat map: {heatPick.ytm.toFixed(1)}% · {heatPick.duration >= 30 ? "30+" : heatPick.duration} yrs · {heatMethod === "spread" ? "Spread rules" : "Method 1"}{heatBl ? " · blacklist on" : ""}
+                    {showHeat
+                      ? <>Heat map: {heatPick.ytm.toFixed(1)}% · {heatPick.duration >= 30 ? "30+" : heatPick.duration} yrs · {heatMethod === "spread" ? "Spread rules" : "Method 1"}{heatBl ? " · blacklist on" : ""}</>
+                      : <>Optimal portfolio: {heatPick.duration} yrs · {heatPick.ytm.toFixed(2)}%</>}
                   </span>
                 ) : arrows}
               </div>
