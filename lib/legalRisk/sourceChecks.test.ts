@@ -106,7 +106,7 @@ describe("rating agencies", () => {
 });
 
 describe("LLM separation", () => {
-  const ALLOWED_IMPORTERS = ["components/GptRate.tsx", "components/Finder.tsx", "app/api/admin/gpt-ratings/route.ts", "lib/gptRatingsDb.ts", "lib/gptStore.ts", "lib/gptRatings.test.ts"];
+  const ALLOWED_IMPORTERS = ["components/GptRate.tsx", "components/Finder.tsx", "app/api/admin/gpt-ratings/route.ts", "lib/gptRatingsDb.ts", "lib/bondImportDb.ts", "lib/gptStore.ts", "lib/gptRatings.test.ts"];
   it("GPT helper modules are imported only by admin code", () => {
     const files = [...walk("components"), ...walk("app"), ...walk("lib")].filter((f) => /\.tsx?$/.test(f) && !f.startsWith("lib/legalRisk/"));
     const found = files.filter((f) => /from "(@\/lib|\.\/|\.\.\/lib\/|\.\.\/)(lib\/)?(gptRatings|gptStore|gptRatingsDb)"/.test(read(f)) || /from "\.\/(gptRatings|gptStore|gptRatingsDb)"/.test(read(f)));

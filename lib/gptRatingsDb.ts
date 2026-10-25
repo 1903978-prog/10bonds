@@ -61,3 +61,31 @@ export async function saveScenarioRatings(rows: { isin: string; rating: string; 
     on conflict (isin) do update set rating = excluded.rating, issuer_rating = excluded.issuer_rating, risk_pay = excluded.risk_pay, basis = excluded.basis, pasted_at = now()`;
   return clean.length;
 }
+
+/** Spreadsheet import: fills IR / BR / Risk Pay only where the saved row has nothing; a different saved value is never overwritten. */
+export async function mergeImportedRatings(rows: { isin: string; issuerRating: string | null; rating: string | null; riskPay: string | null }[], basis: string): Promise<{ filled: number; kept: number }> {
+  const clean = rows.filter((r) => ISIN.test(r.isin));
+  if (!clean.length) return { filled: 0, kept: 0 };
+  const have = await loadGptRatings();
+  const cut = (v: string | null, n: number) => (v ? v.slice(0, n) : null);
+  let filled = 0;
+  let kept = 0;
+  const out: { isin: string; rating: string | null; issuer_rating: string | null; risk_pay: string | null; basis: string | null }[] = [];
+  for (const r of clean) {
+    const old = have[r.isin];
+    const next = { rating: old?.rating ?? null, issuer_rating: old?.issuerRating ?? null, risk_pay: old?.riskPay ?? null };
+    let changed = false;
+    for (const [k, v, o] of [["issuer_rating", r.issuerRating, old?.issuerRating], ["rating", r.rating, old?.rating], ["risk_pay", r.riskPay, old?.riskPay]] as const) {
+      if (!v) continue;
+      if (!o) { next[k] = cut(v, 40); filled++; changed = true; }
+      else if (o !== v) kept++;
+    }
+    if (changed) out.push({ isin: r.isin, ...next, basis: old?.basis ?? cut(basis, 600) });
+  }
+  if (!out.length) return { filled, kept };
+  const s = await sql();
+  await s`
+    insert into app.gpt_ratings ${s(out, "isin", "rating", "issuer_rating", "risk_pay", "basis")}
+    on conflict (isin) do update set rating = excluded.rating, issuer_rating = excluded.issuer_rating, risk_pay = excluded.risk_pay, basis = excluded.basis, pasted_at = now()`;
+  return { filled, kept };
+}

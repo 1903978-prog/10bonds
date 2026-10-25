@@ -86,6 +86,8 @@ async function reload() {
   const missing = rows.length ? missingColumns(rows.columns.map((c) => c.name)) : [];
   if (missing.length) throw new Error(`Bond table is missing columns: ${missing.join(", ")}`);
   const modelled = rows.filter((r) => r.structure_modelled !== false);
+  // Imported seniority (admin switch, lib/bondImportDb.ts) only fills bonds whose copy has none; the copy's own value always wins.
+  const importedSeniority = await import("./bondImportDb").then((m) => m.importedSeniorityMap()).catch(() => new Map<string, string>());
   const mapped: (PublicBond & { flaggedDormant: unknown })[] = modelled.map((r) => ({
     flaggedDormant: r.dormant,
     isin: r.isin,
@@ -108,7 +110,7 @@ async function reload() {
     high52w: num(r.high_52w),
     low52w: num(r.low_52w),
     couponType: couponTypeOf(r.coupon_type, num(r.coupon), r.structure_modelled),
-    seniority: typeof r.seniority === "string" && r.seniority.trim() ? r.seniority.trim() : null,
+    seniority: typeof r.seniority === "string" && r.seniority.trim() ? r.seniority.trim() : (importedSeniority.get(r.isin) ?? null),
     issueDate: isoDay(r.issue_date),
     callable: typeof r.callable === "boolean" ? r.callable : null,
   }));
@@ -276,4 +278,24 @@ export async function bondsMaturingOn(days: string[]): Promise<{ isin: string; n
   if (!client) return [];
   const rows = await client`select isin, name, issuer, currency, maturity from public_bonds where maturity::date in ${client(days)}`;
   return rows.map((r) => ({ isin: r.isin, name: r.name, issuer: r.issuer, currency: r.currency, maturity: isoDay(r.maturity) ?? "" }));
+}
+
+/** Admin only: what the bond copy holds for these ISINs (to compare an imported spreadsheet with the site's data). */
+export async function siteBondsByIsin(isins: string[]): Promise<Record<string, { issuer: string | null; coupon: number | null; maturity: string | null; price: number | null; ytm: number | null; duration: number | null; seniority: string | null; ratingSp: string | null; ratingMoodys: string | null; ratingFitch: string | null; dormant: boolean }>> {
+  const client = db();
+  if (!client || !isins.length) return {};
+  const rows = await client`select * from public_bonds where isin in ${client(isins)}`;
+  return Object.fromEntries(rows.map((r) => [r.isin, {
+    issuer: r.issuer ?? null,
+    coupon: num(r.coupon),
+    maturity: isoDay(r.maturity),
+    price: num(r.clean_price),
+    ytm: num(r.gross_ytm),
+    duration: num(r.modified_duration),
+    seniority: typeof r.seniority === "string" && r.seniority.trim() ? r.seniority.trim() : null,
+    ratingSp: r.rating_sp ?? null,
+    ratingMoodys: r.rating_moodys ?? null,
+    ratingFitch: r.rating_fitch ?? null,
+    dormant: Boolean(dormantReason({ currency: r.currency, minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot), r.currency)) }, r.dormant)),
+  }]));
 }
