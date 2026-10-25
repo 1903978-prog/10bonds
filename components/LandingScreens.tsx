@@ -129,7 +129,7 @@ function BondList({ f, bonds, compact }: { f: FinderText; bonds: BenchmarkBond[]
       <ol className="flex min-h-0 flex-1 flex-col justify-between">
         {rows.map((b, i) => (
           <li key={i} className="flex items-center border-b border-[#f3f3f5] text-[15px] tabular-nums last:border-0">
-            <span className="w-6 text-[#86868b]">{i + 1}</span>
+            <span className="w-6 text-[#6b6b72]">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate font-medium">{b?.name ?? "–"}</span>
             {!compact && <span className="w-16 text-right text-[#55555b]">{b?.year ?? "–"}</span>}
             <span className="w-14 text-center">{b?.risk != null ? <RiskBadge risk={b.risk} /> : "–"}</span>
@@ -197,13 +197,13 @@ export function HeatScreen({ lang }: { lang: FinderLang }) {
         {wide && <Controls f={f} single={false} horizon={5} mix={8} />}
         <Panel>
           <div className="flex min-h-0 flex-1">
-            <div className="flex w-5 shrink-0 items-center justify-center text-[13px] text-[#86868b]"><span className="whitespace-nowrap [writing-mode:vertical-rl] rotate-180">{f.chartX} ↑</span></div>
+            <div className="flex w-5 shrink-0 items-center justify-center text-[13px] text-[#6b6b72]"><span className="whitespace-nowrap [writing-mode:vertical-rl] rotate-180">{f.chartX} ↑</span></div>
             <div className="grid min-h-0 flex-1 gap-px text-[11px] tabular-nums" style={{ gridTemplateColumns: `2.8rem repeat(${years.length}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rets.length}, minmax(0, 1fr)) 1.2rem` }}>
               {rets.map((r) => {
                 const reach = years.filter((y) => r <= cap(y) + 1e-9);
                 const best = reach.reduce<number | null>((b, y) => (b === null || loss(r, y) < loss(r, b) ? y : b), null);
                 return [
-                  <div key={`r${r}`} className="flex items-center justify-end pr-1.5 text-[#86868b]">{r.toFixed(1)}%</div>,
+                  <div key={`r${r}`} className="flex items-center justify-end pr-1.5 text-[#6b6b72]">{r.toFixed(1)}%</div>,
                   ...years.map((y) => {
                     const ok = r <= cap(y) + 1e-9;
                     const l = loss(r, y), band = bandOf(l);
@@ -211,11 +211,11 @@ export function HeatScreen({ lang }: { lang: FinderLang }) {
                   }),
                 ];
               })}
-              <div className="flex items-center justify-end pr-1.5 text-[#86868b]">{f.years}</div>
-              {years.map((y) => <div key={`y${y}`} className="flex items-center justify-center text-[#86868b]">{y === 30 ? "30+" : y}</div>)}
+              <div className="flex items-center justify-end pr-1.5 text-[#6b6b72]">{f.years}</div>
+              {years.map((y) => <div key={`y${y}`} className="flex items-center justify-center text-[#6b6b72]">{y === 30 ? "30+" : y}</div>)}
             </div>
           </div>
-          <div className="mt-2 flex h-5 shrink-0 items-center gap-2 text-[12px] text-[#86868b]">
+          <div className="mt-2 flex h-5 shrink-0 items-center gap-2 text-[12px] text-[#6b6b72]">
             <span className="shrink-0">{f.chartY}</span>
             <div className="flex flex-1 overflow-hidden rounded-[3px]">
               {[0.1, 0.2, 0.35, 0.5, 0.75, 1, 1.5, 2, 3, 4].map((v) => { const b = bandOf(v - 1e-6); return <div key={v} className="h-4 flex-1" style={{ background: b.bg }} />; })}
@@ -240,16 +240,16 @@ function BestByRisk({ f }: { f: FinderText }) {
     <div ref={box} className="h-full w-full overflow-hidden">
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" fontSize={14} role="img" aria-label={f.chartLabel}>
         {[2.5, 3.5, 4.5, 5.5].map((v) => (
-          <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" /><text x={L - 10} y={y(v) + 5} textAnchor="end" fill="#86868b">{v.toFixed(1)}%</text></g>
+          <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" /><text x={L - 10} y={y(v) + 5} textAnchor="end" fill="#6b6b72">{v.toFixed(1)}%</text></g>
         ))}
         <polyline points={shown.map(([r, v]) => `${x(r)},${y(v)}`).join(" ")} fill="none" stroke={BLUE} strokeWidth={3} strokeLinejoin="round" />
         {pts.map(([r, v]) => (
           <g key={r}>
-            <text x={x(r)} y={H - B + 22} textAnchor="middle" fill="#86868b">{r}</text>
+            <text x={x(r)} y={H - B + 22} textAnchor="middle" fill="#6b6b72">{r}</text>
             {v > 0 && <><circle cx={x(r)} cy={y(v)} r={r === 7 ? 8 : 6} fill={r === 7 ? BLUE : "#fff"} stroke={BLUE} strokeWidth={2.5} /><text x={x(r)} y={y(v) - 14} textAnchor="middle" fontWeight={600}>{v.toFixed(1)}%</text></>}
           </g>
         ))}
-        <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fill="#86868b">{f.riskAxis}</text>
+        <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fill="#6b6b72">{f.riskAxis}</text>
       </svg>
     </div>
   );
