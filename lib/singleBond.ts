@@ -3,6 +3,7 @@ import { RISK_LEVELS, nearHorizon } from "./limits";
 import { bondNotch, bondRisk, riskBand } from "./ratings";
 import { issuerKey } from "./ranking";
 import { lossAdjustedYield } from "./expectedLoss";
+import { lgdOf } from "./seniority";
 import { tierFeatures, type ResultRow } from "./tiers";
 
 /** How many bonds per rating step can be cycled with "Change". */
@@ -27,7 +28,7 @@ export function curveByLevel(bonds: PublicBond[], targetDuration: number): { lev
     const pool = bonds.filter(
       (b) => levelOf(b) === level && b.grossYtm !== null && b.modifiedDuration !== null && nearHorizon(b.modifiedDuration, targetDuration, band),
     );
-    const adj = new Map(pool.map((b) => [b.isin, lossAdjustedYield(b.grossYtm!, bondNotch(b)!, b.modifiedDuration!)]));
+    const adj = new Map(pool.map((b) => [b.isin, lossAdjustedYield(b.grossYtm!, bondNotch(b)!, b.modifiedDuration!, lgdOf(b))]));
     const sorted = [...pool].sort((a, b) => adj.get(b.isin)! - adj.get(a.isin)! || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin));
     const seen = new Set<string>();
     const picked = sorted.filter((b) => {

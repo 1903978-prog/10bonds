@@ -10,6 +10,12 @@ for (const sd of [0.5, 1, 1.5, 2, 2.5, 3, 4, 5]) console.log(`sd ${sd}: ${(await
 const data = await loadBonds();
 const outliers = await loadOutliers();
 console.log(`\nshown EUR bonds ${data.bonds.length} · left out as outliers at 2 sd (all currencies) ${outliers.length}`);
+const count = (xs: string[]) => Object.entries(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})).map(([k, n]) => `${k} ${n}`).join(" · ");
+for (const cur of ["EUR", "USD", "all"]) {
+  const out = outliers.filter((o) => cur === "all" || o.bond.currency === cur);
+  const shown = data.bonds.filter((b) => cur === "all" || b.currency === cur);
+  console.log(`${cur}: left out by reason: ${count(out.map((o) => o.reason))} · by seniority text of the rank/name cuts: ${count(out.filter((o) => o.reason !== "yield").map((o) => o.bond.seniority ?? "(none)"))} · shown with seniority text ${shown.filter((b) => b.seniority).length} of ${shown.length}; shown senior non-preferred ${shown.filter((b) => /non[- ]?preferred/i.test(b.seniority ?? "")).length}`);
+}
 for (const o of outliers.filter((o) => o.bond.currency === "EUR").sort((a, b) => b.bond.grossYtm! - a.bond.grossYtm!))
   console.log(`${o.reason.padEnd(5)} ${o.bond.currency} risk ${bondRisk(o.bond)} dur ${o.bond.modifiedDuration?.toFixed(1)} ytm ${o.bond.grossYtm?.toFixed(2)} avg ${o.peerMean?.toFixed(2) ?? "-"} sd ${o.peerSd?.toFixed(2) ?? "-"} ${o.bond.name.slice(0, 60)}`);
 for (const sc of [{ d: 5, y: 4, r: 7 }, { d: 5, y: 3.5, r: 6 }]) {

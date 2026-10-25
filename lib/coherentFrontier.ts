@@ -2,6 +2,7 @@ import type { PublicBond, RankedBond } from "./types";
 import { bondNotch } from "./ratings";
 import { LIMITS } from "./limits";
 import { lossAdjustedYield, listLifeLoss } from "./expectedLoss";
+import { lgdOf } from "./seniority";
 import { portfolioPool, RESULT_COUNT, UNRATED_NOTCH, withinRisk } from "./ranking";
 import { RETURN_UNIT, type ExactFrontier, type FrontierList } from "./exactFrontier";
 import { activePolicy, checkList, factsOf, policySignature, type CoherenceFacts, type CoherencePolicy } from "./coherence";
@@ -135,7 +136,7 @@ const retOf = (sel: Cand[]) => sel.reduce((s, c) => s + c.ret, 0) / sel.length;
 
 function listOf(picked: Cand[]): FrontierList {
   const rows: RankedBond[] = picked
-    .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!), rank: 0 }))
+    .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!, lgdOf(o.b)), rank: 0 }))
     .sort((a, b) => b.score - a.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin))
     .map((x, i) => ({ ...x, rank: i + 1 }));
   return { u: picked.reduce((s, o) => s + o.u, 0), ytm: retOf(picked), el: listLifeLoss(picked.map((o) => o.pd)), isins: rows.map((x) => x.isin).sort(), rows };

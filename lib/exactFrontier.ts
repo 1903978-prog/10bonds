@@ -2,7 +2,8 @@ import type { PublicBond, RankedBond } from "./types";
 import { bondNotch } from "./ratings";
 import { LIMITS } from "./limits";
 import { lossAdjustedYield, listLifeLoss } from "./expectedLoss";
-import { pdOf } from "./tiers";
+import { lossPdOf } from "./tiers";
+import { lgdOf } from "./seniority";
 import { issuerKey, portfolioPool, RESULT_COUNT, UNRATED_NOTCH, withinRisk } from "./ranking";
 import { isWeak, MAX_WEAK } from "./frontierGuard";
 import { lifeYears } from "./lifeYears";
@@ -58,7 +59,7 @@ function candidates(bonds: PublicBond[], duration: number): Cand[] {
   const { pool } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), duration, N);
   return pool
     .filter((b) => b.grossYtm !== null && b.grossYtm > 0)
-    .map((b) => ({ b, issuer: issuerKey(b), ret: b.grossYtm!, pd: pdOf(b), weak: isWeak(b), u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9), notch: bondNotch(b) ?? UNRATED_NOTCH, years: lifeYears(b) }));
+    .map((b) => ({ b, issuer: issuerKey(b), ret: b.grossYtm!, pd: lossPdOf(b), weak: isWeak(b), u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9), notch: bondNotch(b) ?? UNRATED_NOTCH, years: lifeYears(b) }));
 }
 
 /**
@@ -164,7 +165,7 @@ export function exactFrontier(bonds: PublicBond[], duration: number, gap: Gap = 
     const picked = polish(chosen);
     if (picked !== chosen) r = picked.reduce((s, o) => s + o.u, 0);
     const rows = picked
-      .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!), rank: 0 }))
+      .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!, lgdOf(o.b)), rank: 0 }))
       .sort((a, b) => b.score - a.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin))
       .map((x, i) => ({ ...x, rank: i + 1 }));
     return {

@@ -51,11 +51,12 @@ const TOP = 4;
  * risk score), at a random time within the horizon, returning MC_RECOVERY of its value then. Gives the average yield after
  * defaults and the yield that 95% of the paths beat.
  */
-export function simulatePortfolio(bonds: { ytm: number; risk: number | null | undefined }[], years: number, paths = MC_PATHS, seed = 1): MonteCarloResult {
+export function simulatePortfolio(bonds: { ytm: number; risk: number | null | undefined; lgd?: number }[], years: number, paths = MC_PATHS, seed = 1): MonteCarloResult {
   if (!bonds.length || years <= 0) return { paths: 0, expYield: null, p5: null, samples: [] };
   const n = bonds.length;
   const y = bonds.map((b) => b.ytm / 100);
   const pd = bonds.map((b) => defaultProbability(b.risk, years));
+  const rec = bonds.map((b) => 1 - (b.lgd ?? 1 - MC_RECOVERY)); // share recovered in a default: follows the loss given default by debt rank
   const full = y.map((r) => Math.pow(1 + r, years));
   const rand = mulberry32(seed);
   // Paths are counted by ending value; the yield of each value is worked out once per step, not once per path.
@@ -68,14 +69,14 @@ export function simulatePortfolio(bonds: { ytm: number; risk: number | null | un
     for (let i = 0; i < n; i++) {
       const u = rand();
       if (u < pd[i]) {
-        v += Math.pow(1 + y[i], (years * u) / pd[i]) * MC_RECOVERY;
+        v += Math.pow(1 + y[i], (years * u) / pd[i]) * rec[i];
         at[i] = (years * u) / pd[i];
       } else {
         v += full[i];
         at[i] = Infinity;
       }
     }
-    if (p < MC_SAMPLES) samples.push(samplePath(y, at, years));
+    if (p < MC_SAMPLES) samples.push(samplePath(y, at, years, rec));
     const k = Math.floor(v / n / BIN);
     bins[k > last ? last : k]++;
   }
@@ -91,12 +92,12 @@ export function simulatePortfolio(bonds: { ytm: number; risk: number | null | un
 }
 
 /** One simulated path as portfolio value over time: each bond grows at its yield until it defaults, then keeps MC_RECOVERY of its value. */
-function samplePath(y: number[], at: Float64Array, years: number): number[] {
+function samplePath(y: number[], at: Float64Array, years: number, rec: number[]): number[] {
   const out: number[] = [];
   for (let k = 0; k <= MC_STEPS; k++) {
     const x = (years * k) / MC_STEPS;
     let v = 0;
-    for (let i = 0; i < y.length; i++) v += x < at[i] ? Math.pow(1 + y[i], x) : Math.pow(1 + y[i], at[i]) * MC_RECOVERY;
+    for (let i = 0; i < y.length; i++) v += x < at[i] ? Math.pow(1 + y[i], x) : Math.pow(1 + y[i], at[i]) * rec[i];
     out.push(Math.round((v / y.length) * 1000) / 10);
   }
   return out;
@@ -106,7 +107,7 @@ function samplePath(y: number[], at: Float64Array, years: number): number[] {
 const cache = new Map<string, MonteCarloResult>();
 
 /** simulatePortfolio for a ranked list, remembered for the last few hundred lists. */
-export function simulateCached(key: string, bonds: { ytm: number; risk: number | null | undefined }[], years: number): MonteCarloResult {
+export function simulateCached(key: string, bonds: { ytm: number; risk: number | null | undefined; lgd?: number }[], years: number): MonteCarloResult {
   const hit = cache.get(key);
   if (hit) return hit;
   const res = simulatePortfolio(bonds, years);
