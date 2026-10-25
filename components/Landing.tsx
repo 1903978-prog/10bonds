@@ -6,6 +6,7 @@ import { trackOnce } from "@/lib/track";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
+import { loadMe } from "@/lib/me";
 import LandingCarousel, { actionTitle, CompanySlide, CountrySlide, FrontierScreen, ListScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
@@ -28,6 +29,9 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   useEffect(() => trackOnce("landing_view", { variant: "a" }), []);
   // The first slide comes from the stored snapshot, so it is there on the first paint and nothing is calculated or fetched
   // for it (the owner, 25/10/2026). Only the top 10 slide's bond names are fetched, once the page is idle.
+  // Country and company risk pages are hidden from customers, so their slides are the admin's only (yellow frame).
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { loadMe().then((me) => setIsAdmin(!!me?.isAdmin)); }, []);
   const [bonds, setBonds] = useState<BenchmarkBond[] | undefined>(undefined);
   const bench: Bench = { ret: LANDING_SNAPSHOT.ret, risk: LANDING_SNAPSHOT.risk, duration: LANDING_SNAPSHOT.duration, portfolio: LANDING_SNAPSHOT.portfolio };
   useEffect(() => {
@@ -72,8 +76,10 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
             { key: "frontier", node: <ScreenSlide title={actionTitle(t.carousel.act.frontier)}><FrontierScreen lang={lang} /></ScreenSlide> },
             { key: "curve", node: <ScreenSlide title={actionTitle(t.carousel.act.curve)}><OneBondScreen lang={lang} /></ScreenSlide> },
             { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={bonds} /></ScreenSlide> },
-            { key: "country", node: <CountrySlide t={t} /> },
-            { key: "company", node: <CompanySlide t={t} /> },
+            ...(isAdmin ? [
+              { key: "country", node: <div className="h-full rounded-[20px] ring-2 ring-yellow-400"><CountrySlide t={t} /></div> },
+              { key: "company", node: <div className="h-full rounded-[20px] ring-2 ring-yellow-400"><CompanySlide t={t} /></div> },
+            ] : []),
           ]} />
         </div>
         {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
