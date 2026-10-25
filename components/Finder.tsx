@@ -40,6 +40,7 @@ import { isinText, parseGptRatings } from "@/lib/gptRatings";
 import { saveGptRatings, useGptRatings } from "@/lib/gptStore";
 import { GptRate, GPT_HEAD } from "./GptRate";
 import { couponTypeLabel } from "@/lib/bondFacts";
+import { profileParts, type CoherenceView } from "@/lib/creditProfileText";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
@@ -55,6 +56,7 @@ type Response = ResultsPayload & {
   features?: FeatureKey[]; // What this plan includes (the admin's feature table)
   excluded?: boolean; // The customer's excluded bonds and issuers were left out of this search
   outliers?: { sd: number; liveSd: number; count: number; liveCount: number };
+  coherence?: CoherenceView; // Admin, spread rules: the rating profile and rule checks of this list
   engine?: { method: string; version: string | null; weight: number; liveWeight: number; preview?: boolean; premiums?: Record<string, number> };
 };
 
@@ -317,13 +319,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         // A busy or waking server can answer with an error page instead of the list: try again a few times before saying so.
         let res: globalThis.Response | null = null;
         let body = null;
-        for (let i = 0; i < 4; i++) {
-          if (i) await new Promise((done) => setTimeout(done, 1500));
+        // The spread-rules lists are built in the background (202 until ready): keep asking, up to a few minutes.
+        for (let i = 0; i < 4 || (res?.status === 202 && i < 90); i++) {
+          if (i) await new Promise((done) => setTimeout(done, res?.status === 202 ? 3000 : 1500));
           res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
           body = await res.json().catch(() => null);
-          if (body && res.status < 500) break;
+          if (body && res.status < 500 && res.status !== 202) break;
         }
         if (!res || !body) throw new Error(errText);
+        if (res.status === 202) throw new Error("The spread-rules lists are still being calculated. Try again in a minute.");
         // A slower, older search never replaces a newer answer already on screen.
         if (seq < appliedSeq.current) return;
         appliedSeq.current = seq;
@@ -753,6 +757,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">
+          {isAdmin && data?.coherence && <CreditProfileLine c={data.coherence} />}
           {data && (!paid || !signedIn) && (
             <Link href={lockTo.href} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline" data-testid="avg-unlock">
               <Lock /> {lockTo.label}
@@ -858,6 +863,22 @@ function positionSlope(positions: SliderPosition[] | null, at: number): string {
   const i = Math.max(0, pts.findIndex((p) => p.position === root));
   const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
   return b.ytm === a.ytm ? "—" : ((b.expectedLoss! - a.expectedLoss!) / (b.ytm! - a.ytm!)).toFixed(2);
+}
+
+/** Admin only, spread rules: the actual credit profile of the ten bonds, one small line in the fixed row under the KPIs. */
+function CreditProfileLine({ c }: { c: CoherenceView }) {
+  const p = profileParts(c);
+  const failed = c.checks.filter((k) => !k.ok);
+  const cert = c.cert.certified ? `exact: ${c.cert.optimal} solves optimal, gap ≤ ${c.cert.absGap}` : `UNCERTIFIED: ${c.cert.uncertified} solves hit the time limit`;
+  const title = `${c.checks.map((k) => `${k.rule}: ${k.ok ? "pass" : "FAIL"} (${k.detail})`).join("\n")}\nRules ${c.policy}\n${cert}`;
+  return (
+    <p data-testid="credit-profile" title={title} className="truncate whitespace-nowrap text-[11px] leading-4 tabular-nums text-amber-900">
+      Max permitted risk {p.permitted} · Actual range {p.range} · Core {p.core} · Highest {p.worst}
+      {c.unclassified > 0 && <> · {c.unclassified} sector unclassified</>}
+      {failed.length > 0 && <span className="font-semibold text-red-700"> · FAILS {failed.map((k) => k.rule).join(", ")}</span>}
+      {!c.cert.certified && <span className="font-semibold text-red-700"> · uncertified</span>}
+    </p>
+  );
 }
 
 /** Admin only (Livio): the expected loss on your money worked out bond by bond, in the yellow admin style. */

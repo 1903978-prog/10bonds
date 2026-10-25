@@ -16,7 +16,8 @@ const building = new Map<string, Promise<HeatMap>>();
 // spread = the Methodology with spread rules (lib/stepGap.ts), admin only.
 export const FRONTIER_BY_METHOD: Record<HeatMethod, ((src: BondSource, f: BondFilter, duration: number) => Pick<ExactFrontier, "at">) | null> = {
   m1: frontierFor,
-  spread: (src, f, duration) => frontierFor(src, f, duration, "spread"),
+  // The coherent optimiser takes minutes per horizon: no map for it (yet), the map says "not built".
+  spread: null,
 };
 
 /** Admin only: the bonds and issuers on the admin's blacklist left out of the map (key = the list, for the cache). */
