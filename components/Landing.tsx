@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
+import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
 import LandingCarousel, { actionTitle, CompanySlide, CountrySlide, CurvesScreen, FrontierScreen, HeatScreen, ListScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
@@ -14,7 +15,7 @@ const GREEN = "#127052";
 const MUTE = "#52666F";
 
 // The comparison (the owner, 24/10/2026): the admin's provisional bond ETF benchmark (no provider named in public) against
-// one live 10bonds slider list, both from /api/benchmark. Not equal risk or duration. No disclaimer text on the page (the owner, 24/10/2026):
+// one 10bonds slider list, both stored in lib/landingSnapshot.ts (no request on load). Not equal risk or duration. No disclaimer text on the page (the owner, 24/10/2026):
 // the caveats, fee wording and "illustrative" live in the Disclaimer page (lib/disclaimer.ts), linked from the footer.
 type Bench = { ret: number; risk: number; duration: number; portfolio: { ytm: number; avgRisk: number; duration: number | null; bonds?: BenchmarkBond[] } | null };
 
@@ -25,18 +26,20 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   const num = (n: number, d = 2) => n.toLocaleString(LANDING_NUM[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
 
   useEffect(() => trackOnce("landing_view", { variant: "a" }), []);
-  const [bench, setBench] = useState<Bench | null>(null);
+  // The first slide comes from the stored snapshot, so it is there on the first paint and nothing is calculated or fetched
+  // for it (the owner, 25/10/2026). Only the top 10 slide's bond names are fetched, once the page is idle.
+  const [bonds, setBonds] = useState<BenchmarkBond[] | undefined>(undefined);
+  const bench: Bench = { ret: LANDING_SNAPSHOT.ret, risk: LANDING_SNAPSHOT.risk, duration: LANDING_SNAPSHOT.duration, portfolio: LANDING_SNAPSHOT.portfolio };
   useEffect(() => {
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    // The live list can take a moment to be worked out after a deploy: ask again until it is there.
     const load = (tries: number) =>
       fetch("/api/benchmark").then((r) => (r.ok ? r.json() : null)).then((b: Bench | null) => {
         if (stop || !b) return;
-        setBench(b);
-        if (!b.portfolio && tries < 10) timer = setTimeout(() => load(tries + 1), 3000);
+        if (b.portfolio?.bonds?.length) setBonds(b.portfolio.bonds);
+        else if (tries < 10) timer = setTimeout(() => load(tries + 1), 3000);
       }).catch(() => {});
-    load(0);
+    timer = setTimeout(() => load(0), 2500);
     return () => { stop = true; clearTimeout(timer); };
   }, []);
   // Escape skips to the finder, as the old intro did.
@@ -70,7 +73,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
             { key: "curves", node: <ScreenSlide title={actionTitle(t.carousel.act.curves)}><CurvesScreen lang={lang} /></ScreenSlide> },
             { key: "heat", node: <ScreenSlide title={actionTitle(t.carousel.act.heat)}><HeatScreen lang={lang} /></ScreenSlide> },
             { key: "curve", node: <ScreenSlide title={actionTitle(t.carousel.act.curve)}><OneBondScreen lang={lang} /></ScreenSlide> },
-            { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={bench?.portfolio?.bonds} /></ScreenSlide> },
+            { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={bonds} /></ScreenSlide> },
             { key: "country", node: <CountrySlide t={t} /> },
             { key: "company", node: <CompanySlide t={t} /> },
           ]} />
