@@ -272,12 +272,33 @@ export async function bondDataHealth(now = Date.now()): Promise<DataHealth> {
   }, now);
 }
 
-/** Admin only: every bond in the copy maturing on one of these days (hidden or not), to match a list of bonds to ISINs. */
-export async function bondsMaturingOn(days: string[]): Promise<{ isin: string; name: string | null; issuer: string | null; currency: string | null; maturity: string }[]> {
+export type CopyBond = { isin: string; name: string | null; issuer: string | null; currency: string | null; maturity: string; why: string | null };
+
+/** Why a bond in the copy is not shown on the site (null = it passes the copy-level rules; the outlier cut and stale rule come later). */
+function whyHidden(r: Record<string, unknown>): string | null {
+  if (r.gross_ytm == null || r.modified_duration == null) return "no yield or duration in the copy";
+  if (r.maturity && new Date(String(r.maturity)) <= new Date()) return "already matured";
+  if (r.structure_modelled === false) return "structure not modelled (floating, step-up, inflation-linked or similar)";
+  if (dormantReason({ currency: String(r.currency ?? ""), minInvestment: minInvestmentOf(num(r.min_denomination), num(r.min_lot), String(r.currency ?? "")) } as never, r.dormant)) return "dormant (minimum investment above 200,000)";
+  if (!hasRealRating({ ratingSp: r.rating_sp, ratingMoodys: r.rating_moodys, ratingFitch: r.rating_fitch, ratingResolved: r.rating_resolved, lrScore: num(r.lr_score) } as never)) return "no rating from S&P, Moody's or Fitch";
+  return null;
+}
+
+/** Admin only: bonds of the WHOLE copy (no site filters) with one of these ISINs, or maturing within 4 days of one of these days. */
+export async function bondsForScenarios(isins: string[], days: string[]): Promise<CopyBond[]> {
   const client = db();
   if (!client) return [];
-  const rows = await client`select isin, name, issuer, currency, maturity from public_bonds where maturity::date in ${client(days)}`;
-  return rows.map((r) => ({ isin: r.isin, name: r.name, issuer: r.issuer, currency: r.currency, maturity: isoDay(r.maturity) ?? "" }));
+  const cols = client`isin, name, issuer, currency, maturity, gross_ytm, modified_duration, structure_modelled, dormant, min_denomination, min_lot, rating_sp, rating_moodys, rating_fitch, rating_resolved, lr_score`;
+  const parts = await Promise.all([
+    client`select ${cols} from public_bonds where upper(trim(isin)) in ${client(isins)}`,
+    ...days.map((d) => client`select ${cols} from public_bonds where maturity::date between (${d}::date - 4) and (${d}::date + 4)`),
+  ]);
+  const seen = new Map<string, CopyBond>();
+  for (const r of parts.flat()) {
+    const isin = String(r.isin).trim().toUpperCase();
+    if (!seen.has(isin)) seen.set(isin, { isin, name: r.name, issuer: r.issuer, currency: r.currency, maturity: isoDay(r.maturity) ?? "", why: whyHidden(r) });
+  }
+  return [...seen.values()];
 }
 
 /** Admin only: what the bond copy holds for these ISINs (to compare an imported spreadsheet with the site's data). */
