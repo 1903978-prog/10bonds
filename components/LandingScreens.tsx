@@ -1,14 +1,11 @@
 "use client";
 
 import { type ReactNode } from "react";
-import AllCurvesChart from "@/components/AllCurvesChart";
-import { bandOf } from "@/components/HeatMapChart";
 import { RiskBadge } from "@/components/RiskBadge";
 import SliderCurveChart from "@/components/SliderCurveChart";
 import { useBoxSize } from "@/components/useBoxSize";
 import { FINDER_TEXT, type FinderLang, type FinderText } from "@/lib/finderText";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
-import type { CurvePoint } from "@/lib/lossCurve";
 import type { SliderPosition } from "@/lib/sliderPortfolios";
 
 // The landing carousel's "real screen" slides (the owner, 24/10/2026): the finder's own chart components with fixed
