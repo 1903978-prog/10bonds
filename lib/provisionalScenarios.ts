@@ -77,16 +77,42 @@ export const BATCH2: Scenario[] = [
 ];
 export const ALL_SCENARIOS: Scenario[] = [...SCENARIOS, ...BATCH2];
 
-export type Candidate = { isin: string; name: string | null; issuer: string | null; currency: string | null; maturity: string };
-export type MatchResult = { scenario: Scenario; isin: string | null; problem: "none" | "ambiguous" | null; candidates: Candidate[] };
+export type Candidate = { isin: string; name: string | null; issuer: string | null; currency: string | null; maturity: string; why?: string | null };
+export type MatchResult = {
+  scenario: Scenario;
+  /** The ISIN to store under (the one given, or the unique match); null when there is none. */
+  isin: string | null;
+  /** "copy" = found in the bond copy; "not-in-copy" = stored under the ISIN given, but the copy has no such bond. */
+  where: "copy" | "not-in-copy" | null;
+  problem: "none" | "ambiguous" | null;
+  /** Why the site does not show the bond (found in the copy but filtered out), or a differing maturity; null when nothing to say. */
+  note: string | null;
+  candidates: Candidate[];
+};
 
-/** One unique ISIN per scenario (issuer words + exact maturity, EUR); never a guess: none or several is reported. */
+const DAY = 86400000;
+const near = (a: string, b: string, days: number) => Math.abs(Date.parse(a) - Date.parse(b)) <= days * DAY;
+
+/**
+ * One ISIN per scenario, over the WHOLE bond copy. An ISIN given by the owner is looked up exactly (trimmed, upper case);
+ * if the copy has no such bond the values are still stored under that ISIN and marked "not-in-copy". Without an ISIN:
+ * issuer words + maturity within 4 days (EUR), and never a guess: none or several is reported.
+ */
 export function matchScenarios(cands: Candidate[], list: Scenario[] = ALL_SCENARIOS): MatchResult[] {
   return list.map((s) => {
-    const hits = cands.filter((c) => c.maturity === s.maturity && (c.currency ?? "EUR") === "EUR" && s.match.test(`${c.issuer ?? ""} ${c.name ?? ""}`) && (!s.isin || c.isin === s.isin));
-    const given = s.isin ? hits.filter((c) => c.isin === s.isin) : [];
-    const pick = given.length === 1 ? given : hits;
-    return pick.length === 1 ? { scenario: s, isin: pick[0].isin, problem: null, candidates: pick } : { scenario: s, isin: null, problem: pick.length ? "ambiguous" : "none", candidates: pick };
+    if (s.isin) {
+      const c = cands.find((x) => x.isin.trim().toUpperCase() === s.isin);
+      if (!c) return { scenario: s, isin: s.isin, where: "not-in-copy", problem: null, note: "not in the bond copy", candidates: [] };
+      const notes = [c.maturity && c.maturity !== s.maturity ? `copy maturity ${c.maturity}` : null, c.why ? `not shown on the site: ${c.why}` : null].filter(Boolean);
+      return { scenario: s, isin: s.isin, where: "copy", problem: null, note: notes.length ? notes.join("; ") : null, candidates: [c] };
+    }
+    const hits = cands.filter((c) => near(c.maturity, s.maturity, 4) && (c.currency ?? "EUR") === "EUR" && s.match.test(`${c.issuer ?? ""} ${c.name ?? ""}`));
+    const exact = hits.filter((c) => c.maturity === s.maturity);
+    const pick = exact.length === 1 ? exact : hits;
+    if (pick.length !== 1) return { scenario: s, isin: null, where: null, problem: pick.length ? "ambiguous" : "none", note: null, candidates: pick };
+    const c = pick[0];
+    const notes = [c.maturity !== s.maturity ? `copy maturity ${c.maturity}` : null, c.why ? `not shown on the site: ${c.why}` : null].filter(Boolean);
+    return { scenario: s, isin: c.isin, where: "copy", problem: null, note: notes.length ? notes.join("; ") : null, candidates: pick };
   });
 }
 

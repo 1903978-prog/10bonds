@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { bondsMaturingOn } from "@/lib/bonds";
+import { bondsForScenarios } from "@/lib/bonds";
 import { saveScenarioRatings } from "@/lib/gptRatingsDb";
 import { ALL_SCENARIOS, matchScenarios, scenarioRow } from "@/lib/provisionalScenarios";
 
@@ -12,8 +12,8 @@ async function admin() {
 }
 
 async function match() {
-  const cands = await bondsMaturingOn([...new Set(ALL_SCENARIOS.map((s) => s.maturity))]);
-  return matchScenarios(cands).map((m) => ({ key: m.scenario.key, label: m.scenario.label, isin: m.isin, problem: m.problem, candidates: m.candidates.slice(0, 5).map((c) => `${c.isin} ${c.issuer ?? c.name ?? ""}`) }));
+  const cands = await bondsForScenarios(ALL_SCENARIOS.flatMap((s) => (s.isin ? [s.isin] : [])), [...new Set(ALL_SCENARIOS.filter((s) => !s.isin).map((s) => s.maturity))]);
+  return matchScenarios(cands).map((m) => ({ key: m.scenario.key, label: m.scenario.label, isin: m.isin, problem: m.problem, where: m.where, note: m.note, candidates: m.candidates.slice(0, 5).map((c) => `${c.isin} ${c.issuer ?? c.name ?? ""}`) }));
 }
 
 /** Admin only: which ISIN each of the 10 provisional-scenario bonds matches (nothing is saved). */
@@ -29,7 +29,9 @@ export async function POST() {
   const matches = await match();
   const rows = matches.flatMap((m) => {
     const s = ALL_SCENARIOS.find((x) => x.key === m.key)!;
-    return m.isin ? [{ isin: m.isin, ...scenarioRow(s) }] : [];
+    if (!m.isin) return [];
+    const row = scenarioRow(s);
+    return [{ isin: m.isin, ...row, basis: m.where === "not-in-copy" ? `${row.basis} · not in copy` : row.basis }];
   });
   const saved = await saveScenarioRatings(rows);
   return NextResponse.json({ saved, matches });

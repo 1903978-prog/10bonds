@@ -22,13 +22,23 @@ describe("provisional scenarios", () => {
     ]);
     expect(r.find((m) => m.scenario.key === "eqt")!.isin).toBe("XS2338570331");
     expect(r.find((m) => m.scenario.key === "bosch")!.problem).toBe("ambiguous");
-    expect(r.find((m) => m.scenario.key === "linde")!.problem).toBe("none");
+    expect(r.find((m) => m.scenario.key === "linde")!).toMatchObject({ isin: "XS1309526405", where: "not-in-copy" });
+    expect(r.find((m) => m.scenario.key === "dometic")!.problem).toBe("none");
+  });
+  it("matches a Sunday maturity within 4 days and reports why a bond is hidden", () => {
+    const r = matchScenarios([{ ...c("DE000B", "Robert Bosch GmbH", "2030-06-03"), why: "no rating from S&P, Moody's or Fitch" }, c("xs2338570331 ", "EQT AB", "2031-05-15")]);
+    expect(r.find((m) => m.scenario.key === "bosch")).toMatchObject({ isin: "DE000B", where: "copy" });
+    expect(r.find((m) => m.scenario.key === "bosch")!.note).toContain("no rating");
+    expect(r.find((m) => m.scenario.key === "eqt")).toMatchObject({ isin: "XS2338570331", where: "copy" });
   });
   it("has the 20 bonds; batch 2 matches by ISIN and keeps his markers", () => {
     expect(ALL_SCENARIOS).toHaveLength(20);
     const r = matchScenarios([c("IT0005636797", "UniCredit", "2031-03-26"), c("XS2073758885", "PLN", "2031-11-04")]);
     expect(r.find((m) => m.scenario.key === "unicredit")!.isin).toBe("IT0005636797");
-    expect(r.find((m) => m.scenario.key === "pln")!.problem).toBe("none");
+    // an ISIN is found whatever its maturity in the copy (the difference is reported); one the copy lacks is stored anyway
+    expect(r.find((m) => m.scenario.key === "pln")!).toMatchObject({ isin: "XS2073758885", where: "copy" });
+    expect(r.find((m) => m.scenario.key === "pln")!.note).toContain("copy maturity");
+    expect(r.find((m) => m.scenario.key === "fiserv")!).toMatchObject({ isin: "XS2626288257", where: "not-in-copy" });
     const u = ALL_SCENARIOS.find((s) => s.key === "unicredit")!;
     expect(u.detail).toMatchObject({ reco: "EXCLUDE", dur: "1.23†", ytm: "5.29% conditional", spread: "N/A" });
     expect(ALL_SCENARIOS.find((s) => s.key === "grenke")!.detail!.ytm).toBe("~5.00%*");

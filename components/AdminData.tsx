@@ -11,7 +11,7 @@ const when = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { da
 const STATUS: Record<string, string> = { pending: "Waiting for the main app", running: "Refreshing now", done: "Done", failed: "Failed" };
 
 type Row = { key: string; label: string; isin: string | null; ir: string; br: string; riskPay: string; detail: { coupon: string; maturity: string; agency: string; ytm: string; dur: string; spread: string; el: string; net: string; at1: string; t2: string; snp: string; cln: string; reco: string } | null };
-type Match = { key: string; label: string; isin: string | null; problem: "none" | "ambiguous" | null; candidates: string[] };
+type Match = { key: string; label: string; isin: string | null; problem: "none" | "ambiguous" | null; where: "copy" | "not-in-copy" | null; note: string | null; candidates: string[] };
 
 /** Admin only: loads the provisional IR / BR / Risk Pay values (GPT scenario, 25 Oct 2026) for the 10 bonds the owner sent. */
 function ProvisionalScenarios() {
@@ -40,13 +40,13 @@ function ProvisionalScenarios() {
       {res && res.saved !== undefined && (
         <ul className="mt-3 space-y-1 text-xs" data-testid="scenario-result">
           <li className="font-medium">Saved {res.saved} of {res.matches.length}.</li>
-          {res.matches.filter((m) => !m.isin).map((m) => (
-            <li key={m.key}>{m.label}: {m.problem === "ambiguous" ? `NOT SAVED, several bonds match (${m.candidates.join("; ")})` : "NOT SAVED, no bond with this ISIN or issuer and maturity in the data"}</li>
+          {res.matches.map((m) => (
+            <li key={m.key}>{m.label}: {m.isin ? `${m.isin} ${m.where === "not-in-copy" ? "(saved, NOT in the bond copy)" : "(saved)"}${m.note ? `, ${m.note}` : ""}` : m.problem === "ambiguous" ? `NOT SAVED, several bonds match (${m.candidates.join("; ")})` : "NOT SAVED, no ISIN given and no bond with this issuer and maturity in the copy"}</li>
           ))}
         </ul>
       )}
-      {res && res.saved === undefined && res.matches.some((m) => !m.isin) && (
-        <p className="mt-3 text-xs" data-testid="scenario-unmatched">Not found in the data: {res.matches.filter((m) => !m.isin).map((m) => m.label).join("; ")}.</p>
+      {res && res.saved === undefined && res.matches.some((m) => !m.isin || m.where === "not-in-copy") && (
+        <p className="mt-3 text-xs" data-testid="scenario-unmatched">{res.matches.filter((m) => m.where === "not-in-copy").length > 0 && <>Not in the bond copy (will be stored under the ISIN given): {res.matches.filter((m) => m.where === "not-in-copy").map((m) => m.label).join("; ")}. </>}{res.matches.filter((m) => !m.isin).length > 0 && <>No match: {res.matches.filter((m) => !m.isin).map((m) => m.label).join("; ")}.</>}</p>
       )}
       {table.length > 0 && (
         <div className="mt-4 overflow-x-auto" data-testid="consolidated-comparison">
