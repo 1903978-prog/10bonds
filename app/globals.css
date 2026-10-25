@@ -92,9 +92,12 @@ html.brand-on :is(div, section, figure):has(> table, > svg[role="img"])::before 
 /* Landing (the owner, 24/10/2026): no disclaimer sentence on the page; everything is in the footer's Disclaimer link. */
 body:has([data-testid="intro"]) [data-testid="footer-note"] { display: none; }
 
-/* Bond report page: drawn at true size (undoing the desktop shrink above) and up to 1160 px wide, centred. */
-.report-wide { position: relative; left: 50%; width: min(calc(100vw / var(--z, 1) - 2rem), calc(1160px / var(--z, 1))); transform: translateX(-50%); }
-@media (min-width: 768px) { .report-inner { zoom: calc(1 / var(--z, 1)); } }
+/* Bond report page: drawn at true size (no page shrink here) and up to 1360 px wide, centred. Gutters: 16 px phone, 24 px tablet, 32 px desktop. */
+html:has(.report) { --z: 1; zoom: 1; }
+html:has(.report) body { overflow-x: clip; }
+.report-wide { position: relative; left: 50%; width: calc(100vw - 2rem); transform: translateX(-50%); }
+@media (min-width: 768px) { .report-wide { width: calc(100vw - 3rem); } }
+@media (min-width: 1200px) { .report-wide { width: min(1360px, calc(100vw - 4rem)); } }
 .report { border: 1px solid #e5e5ea; border-radius: 28px; background: #fff; }
 /* The section menu sticks just under the site header (56 px, drawn at --z). */
 .report-nav { top: calc(56px * var(--z, 1)); }
@@ -109,7 +112,6 @@ body:has([data-testid="intro"]) [data-testid="footer-note"] { display: none; }
   body { background: #fff; font-size: 11pt; }
   main { max-width: none; padding: 0; }
   .report-wide { position: static; left: auto; width: auto; transform: none; }
-  .report-inner { zoom: 1 !important; }
   .report { border: 0; border-radius: 0; }
   .report-section { padding: 18pt 0 !important; background: #fff !important; break-inside: auto; }
   .report-section > div:first-child, .report h3 { break-after: avoid; }

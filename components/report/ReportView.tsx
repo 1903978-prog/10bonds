@@ -4,6 +4,7 @@ import { RiskBadge } from "@/components/RiskBadge";
 import type { Fig, Report, Row } from "@/lib/bondReport";
 import ReportActions from "./ReportActions";
 import ReportNav, { type NavItem } from "./ReportNav";
+import { ReportAuthButton, ReportAuthDialog } from "./ReportAuth";
 import { Metric } from "./FinancialChart";
 import Tip from "./Tip";
 
@@ -11,7 +12,7 @@ const STATUS: Record<Fig["status"], string> = { verified: "Verified", provisiona
 const NV: Fig = { text: "Not verified", status: "not_verified" };
 const lead = "text-[17px] leading-[1.6] text-ink";
 const body = "text-[16px] leading-[1.65]";
-const meta = "text-[13px] leading-snug text-mute";
+const meta = "text-[14px] leading-snug text-mute";
 const label = "text-[14px] font-medium text-mute";
 const card = "report-card rounded-3xl border border-line bg-white p-6 sm:p-8";
 
@@ -93,13 +94,13 @@ function Table({ header, rows }: { header?: string[]; rows: string[][] }) {
   );
 }
 
-function Kpi({ title, f, tip, right }: { title: string; f: Fig; tip?: React.ReactNode; right?: boolean }) {
+function Kpi({ title, f, tip, note, right }: { title: string; f: Fig; tip?: React.ReactNode; note?: string; right?: boolean }) {
   const none = f.status === "not_verified";
   return (
-    <div className="report-card min-w-0 rounded-3xl border border-line bg-white p-4 sm:p-7" style={{ containerType: "inline-size" }} data-testid={`kpi-${title.toLowerCase().replace(/\W+/g, "-")}`}>
+    <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-3xl border border-line bg-white p-6" style={{ containerType: "inline-size" }} data-testid={`kpi-${title.toLowerCase().replace(/\W+/g, "-")}`}>
       <p className={label}>{title}{tip && <Tip term={title} right={right}>{tip}</Tip>}</p>
-      <BigText text={f.text} className={`mt-3 block whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums ${none ? "text-[24px] text-mute md:text-[36px]" : ""}`} size={none ? undefined : "clamp(26px, 22cqi, 56px)"} />
-      <p className={`mt-3 ${meta}`}>{figMeta(f)}</p>
+      <BigText text={f.text} className={`mt-1 block whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums ${none ? "text-[24px] text-mute" : ""}`} size={none ? undefined : "clamp(32px, 15cqi, 40px)"} />
+      <p className={`mt-1 ${meta}`}>{note ?? figMeta(f)}</p>
     </div>
   );
 }
@@ -125,7 +126,7 @@ function barColor(score: number) {
 }
 
 /** The report: one scrolling page, eight numbered sections. `open` = this reader may see the research (paid plan, or the free example). */
-export default function ReportView({ r, open, admin = false }: { r: Report; open: boolean; admin?: boolean }) {
+export default function ReportView({ r, open, admin = false, signedIn = false }: { r: Report; open: boolean; admin?: boolean; signedIn?: boolean }) {
   const title = r.maturityYear && !r.name.includes(r.maturityYear) ? `${r.name} ${r.maturityYear}` : r.name;
   const c = r.conclusion;
   const v = verdict(c.view);
@@ -136,44 +137,48 @@ export default function ReportView({ r, open, admin = false }: { r: Report; open
   return (
     <div className="report-wide" data-testid="report-wrap">
       <div className="report-inner">
+        <ReportAuthDialog isin={r.isin} title={title} />
         <article className="report" data-testid="bond-report">
           {open && <ReportNav items={sectionsFor(admin)} />}
 
           {/* 01 Hero */}
-          <section id="overview" aria-label="Overview" className={`report-section bg-white px-5 pb-[52px] pt-8 sm:px-8 md:px-14 md:pb-[64px] md:pt-12 ${open ? "" : "rounded-[28px]"}`}>
+          <section id="overview" aria-label="Overview" className={`report-section bg-white px-5 pb-8 pt-[30px] md:px-6 wide:px-10 ${open ? "" : "rounded-[28px]"}`}>
             <div className="hidden print:block"><Logo className="mb-4 h-7 w-auto" /></div>
             <nav aria-label="Breadcrumb" className="text-[14px] text-mute print:hidden"><Link href="/risk-assessment" className="hover:text-ink">Companies in focus</Link> › Bond report</nav>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <span className={`inline-flex min-h-[40px] items-center rounded-full px-5 text-[15px] font-semibold tracking-wide ${TONE[v.tone]}`} data-testid="verdict">{v.word}</span>
-              {v.tone !== "none" && <span className="text-[15px] text-mute">{c.view.text}</span>}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className={`inline-flex h-8 items-center gap-2 rounded-full px-4 text-[14px] ${TONE[v.tone]}`} data-testid="verdict">
+                <span className="font-semibold tracking-wide">{v.word}</span>
+                {v.tone !== "none" && c.view.text.toLowerCase() !== v.word.toLowerCase() && <span className="font-normal opacity-90" data-testid="verdict-view">· {c.view.text}</span>}
+              </span>
             </div>
-            <h1 className="mt-5 break-words text-[36px] font-semibold leading-[1.05] tracking-tight md:text-[60px]" data-testid="report-title">{title}</h1>
-            <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] text-mute" data-testid="report-identity">
+            <h1 className="mt-3 break-words text-[clamp(32px,8vw,36px)] font-semibold leading-[1.05] tracking-tight md:text-[clamp(40px,5vw,44px)] wide:text-[clamp(36px,3vw,48px)]" data-testid="report-title">{title}</h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] text-mute" data-testid="report-identity">
               <span className="font-medium text-ink">{r.isin}</span>
               {r.issuer !== r.name && <span>· {r.issuer}</span>}
               {r.seniority && <span>· {r.seniority}</span>}
               {identity && <span>· {identity}</span>}
             </p>
-            <p className={`mt-1 ${r.freshness.stale ? "text-[14px] text-[#b54708]" : "text-[14px] text-mute"}`} data-testid="freshness">{r.freshness.label}</p>
+            <p className={`mt-1 text-[15px] leading-snug ${r.freshness.stale ? "text-[#b54708]" : "text-mute"}`} data-testid="freshness">{r.freshness.label}</p>
 
-            {open && c.summary && <p className={`mt-6 max-w-[760px] text-[18px] leading-[1.6] md:text-[20px]`}>{c.summary}</p>}
+            {open && c.summary && <p className="mt-4 max-w-[800px] text-[18px] leading-[28px]">{c.summary}</p>}
 
-            <div className="mt-8 grid grid-cols-2 gap-3 md:gap-5">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 wide:grid-cols-4">
               <Kpi title="Investment score" f={open ? r.kpis.score : { text: "Plans", status: "not_verified" }} tip="Our own 0–100 rating of how safely the issuer can pay coupons and repay. It is a ranking aid, not a probability of default." />
-              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} right tip="Yearly return if you buy at the dated price and hold to maturity, before costs. Not a promise." />
-            </div>
-            <dl className={`mt-3 grid grid-cols-2 gap-x-6 gap-y-6 rounded-3xl border border-line bg-white p-5 sm:p-7 md:mt-5 ${admin ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-              {admin && <HeroFact title="Return after tax" f={open ? r.netReturn : NV} />}
-              <HeroFact title="Maturity" f={r.kpis.maturity} note={r.kpis.maturityNote} />
-              <HeroFact title="Seniority" f={r.seniority ? { text: r.seniority, status: "verified" } : NV} plain />
-              <div>
-                <dt className={label}>10bonds risk</dt>
-                <dd className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"><RiskBadge risk={r.risk} size="lg" /><span className={meta}>1 lowest · 10 highest</span></dd>
+              <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} tip="Yearly return if you buy at the dated price and hold to maturity, before costs. Not a promise." right />
+              <Kpi title="Maturity" f={r.kpis.maturity} note={r.kpis.maturityNote} />
+              <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-3xl border border-line bg-white p-6" data-testid="kpi-10bonds-risk">
+                <p className={label}>10bonds risk</p>
+                <div className="mt-2"><RiskBadge risk={r.risk} size="lg" /></div>
+                <p className={`mt-2 ${meta}`}>1 lowest · 10 highest</p>
               </div>
-            </dl>
+            </div>
+            {admin && (
+              <dl className="mt-4 rounded-3xl border border-line bg-white p-4"><HeroFact title="Return after tax" f={open ? r.netReturn : NV} /></dl>
+            )}
 
-            <div className="mt-8 flex flex-wrap items-center gap-3 print:hidden">
-              <Link href="/?intro=0" data-testid="compare-safer" className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-ink px-6 text-[15px] font-medium text-white hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">Compare with safer alternatives</Link>
+            <div className="mt-4 flex flex-wrap items-center gap-3 print:hidden">
+              {!signedIn && <ReportAuthButton className="w-full sm:hidden" />}
+              <Link href="/?intro=0" data-testid="compare-safer" className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-ink px-6 text-[15px] font-medium text-white hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:w-auto">Compare with safer alternatives</Link>
               <ReportActions isin={r.isin} />
             </div>
           </section>
@@ -182,7 +187,10 @@ export default function ReportView({ r, open, admin = false }: { r: Report; open
             <section className="report-section rounded-b-[28px] bg-[#f7f7f9] px-5 py-14 text-center sm:px-8" data-testid="report-locked">
               <p className="text-[22px] font-semibold tracking-tight">The full report is on paid plans</p>
               <p className="mx-auto mt-2 max-w-md text-[16px] text-mute">Investment thesis, credit assessment, financials, contractual protection, stress scenarios and sources for every bond we cover.</p>
-              <Link href="/pricing" className="mt-6 inline-flex min-h-[48px] items-center rounded-full bg-accent px-7 text-[15px] font-medium text-white">See plans</Link>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <Link href="/pricing" className="inline-flex min-h-[44px] items-center rounded-full bg-accent px-7 text-[15px] font-medium text-white">See plans</Link>
+                {!signedIn && <ReportAuthButton plain label="Log in" />}
+              </div>
             </section>
           ) : (
             <>
