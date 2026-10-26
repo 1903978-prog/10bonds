@@ -76,7 +76,7 @@ export async function solveSet(bonds: PublicBond[], spec: Spec): Promise<Solved>
   if (/NaN|Infinity/.test(lp)) throw new Error("Alternative-set model has a non-finite number");
   const highs = await loadSolver();
   await new Promise((r) => setImmediate(r));
-  const res = highs.solve(lp, { ...SOLVER_OPTIONS, mip_abs_gap: spec.objective === "ret" ? 1e-6 : MIP_ABS_GAP });
+  const res = await highs.solve(lp, { ...SOLVER_OPTIONS, mip_abs_gap: spec.objective === "ret" ? 1e-6 : MIP_ABS_GAP });
   if (res.Status === "Infeasible" || res.Status === "Primal infeasible or unbounded") return none;
   const sel = all.filter((i) => (res.Columns[`x${i}`]?.Primal ?? 0) > 0.5).map((i) => cs[i]);
   if (sel.length !== N) return none;

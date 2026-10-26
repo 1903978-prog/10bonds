@@ -119,8 +119,8 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   if (/NaN|Infinity/.test(lp)) throw new Error("Coherent model has a non-finite number");
   await new Promise((r) => setImmediate(r));
   stats.solves++;
-  let res: ReturnType<typeof highs.solve>;
-  try { res = highs.solve(lp, SOLVER_OPTIONS); } catch (e) {
+  let res: Awaited<ReturnType<typeof highs.solve>>;
+  try { res = await highs.solve(lp, SOLVER_OPTIONS); } catch (e) {
     const longest = Math.max(...lp.split("\n").map((l) => l.length));
     throw new Error(`${(e as Error).message} [model: ${cs.length} bonds, ${spreadRows.length} spread rows, ${lp.length} characters, longest line ${longest}, m=${m}]`);
   }
