@@ -197,8 +197,26 @@ for (const w of [1440, 390]) {
   await p.goto(BASE + "/admin/visitors");
   await p.waitForSelector('[data-testid="visitors-table"]');
   await p.screenshot({ path: `${SHOTS}/admin-visitors.png`, fullPage: true });
-  await ctx.close();
 }
+// 7 outreach drafts (nothing is sent)
+{
+  const { p } = admin;
+  await p.goto(BASE + "/admin/outreach");
+  await p.click('[data-testid="outreach-load"]');
+  await p.waitForFunction(() => document.querySelectorAll('[data-testid="outreach-row"]').length >= 7);
+  const counts = await p.textContent('[data-testid="outreach-counts"]');
+  console.log("outreach", counts);
+  ok(/IT: 3/.test(counts) && /FR: 2/.test(counts) && /DE: 2/.test(counts), "outreach batch: IT 3, FR 2, DE 2 drafts");
+  ok((await p.locator('[data-testid="outreach-send"]:disabled').count()) === 2, "send is blocked for the 2 German firms");
+  p.on("dialog", (d) => d.accept());
+  await p.locator('[data-testid="outreach-send"]:not(:disabled)').first().click();
+  await p.waitForSelector('[data-testid="outreach-msg"]');
+  ok((await p.textContent('[data-testid="outreach-msg"]')).includes("OUTREACH_REPLY_TO"), "send refused until a reply inbox is set; nothing went out");
+  const j = await p.evaluate(async () => (await fetch("/api/admin/outreach")).json());
+  ok(j.rows.every((r) => r.status === "draft"), "all outreach lines still draft");
+  await p.screenshot({ path: `${SHOTS}/admin-outreach.png`, fullPage: true });
+}
+await admin.ctx.close();
 console.log("timings", JSON.stringify(timings));
 await browser.close();
 console.log(fails ? `${fails} FAILED` : "ALL PASSED");

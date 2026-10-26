@@ -20,6 +20,7 @@ async function buildAll() {
   const { seoSql } = await import("./seo/store");
   const { brokerTablesReady } = await import("./brokers/store");
   const { proTableReady } = await import("./pro");
+  const { outreachTableReady } = await import("./outreach");
   const { riskTablesReady } = await import("./riskPremium/store");
   const { ytmHistoryReady } = await import("./ytmHistory");
   const { weeklyTablesReady } = await import("./weeklySend");
@@ -31,6 +32,7 @@ async function buildAll() {
   await seoSql();
   await brokerTablesReady();
   await proTableReady();
+  await outreachTableReady();
   await riskTablesReady();
   await ytmHistoryReady();
   await weeklyTablesReady();

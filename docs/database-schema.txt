@@ -138,6 +138,21 @@ table app.frontier_cache
   data jsonb not null
   created_at timestamp with time zone not null default now()
 
+table app.outreach
+  id bigint not null default nextval(...)
+  batch text not null
+  country text not null
+  lang text not null
+  firm text not null
+  city text
+  email text not null
+  source_url text not null
+  subject text not null
+  body text not null
+  status text not null default 'draft'::text
+  created_at timestamp with time zone not null default now()
+  sent_at timestamp with time zone
+
 table app.pro_access
   user_id bigint not null
   firm text not null
@@ -503,6 +518,8 @@ constraints
   app.events events_pkey: PRIMARY KEY (id)
   app.events events_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
   app.frontier_cache frontier_cache_pkey: PRIMARY KEY (key)
+  app.outreach outreach_pkey: PRIMARY KEY (id)
+  app.outreach outreach_status_check: CHECK ((status = ANY (ARRAY['draft'::text, 'sent'::text, 'failed'::text, 'optout'::text])))
   app.pro_access pro_access_pkey: PRIMARY KEY (user_id)
   app.pro_access pro_access_status_check: CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))
   app.pro_access pro_access_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
@@ -603,6 +620,8 @@ indexes
   CREATE INDEX events_user_idx ON app.events USING btree (user_id) WHERE (user_id IS NOT NULL)
   CREATE UNIQUE INDEX events_pkey ON app.events USING btree (id)
   CREATE UNIQUE INDEX frontier_cache_pkey ON app.frontier_cache USING btree (key)
+  CREATE UNIQUE INDEX outreach_email_idx ON app.outreach USING btree (lower(email))
+  CREATE UNIQUE INDEX outreach_pkey ON app.outreach USING btree (id)
   CREATE UNIQUE INDEX pro_access_pkey ON app.pro_access USING btree (user_id)
   CREATE UNIQUE INDEX refresh_requests_pkey ON app.refresh_requests USING btree (id)
   CREATE UNIQUE INDEX risk_calc_results_pkey ON app.risk_calc_results USING btree (run_id, isin)
