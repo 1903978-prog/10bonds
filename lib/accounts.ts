@@ -79,21 +79,6 @@ async function setup(sql: ReturnType<typeof postgres>) {
       redeemed_by bigint references app.users(id) on delete set null,
       redeemed_at timestamptz
     )`;
-  // Stripe discount codes the admin makes for one user (percent or fixed amount, for N months).
-  await sql`
-    create table if not exists app.discount_codes (
-      code text primary key,
-      user_id bigint references app.users(id) on delete cascade,
-      percent_off numeric,
-      amount_off_cents integer,
-      months integer not null,
-      stripe_coupon_id text,
-      stripe_promo_id text,
-      stripe_mode text,
-      created_by bigint references app.users(id) on delete set null,
-      created_at timestamptz not null default now(),
-      used_at timestamptz
-    )`;
   await sql`create unique index if not exists users_username_key on app.users (lower(username))`;
   // Usage events: only written for visitors who accepted usage stats. No IP address is stored.
   await sql`
@@ -801,24 +786,49 @@ export async function subscriptionIdOf(userId: number): Promise<string | null> {
   return r[0]?.s ?? null;
 }
 
+// Created on first use, not in setup(): keeps this table off the path every account request waits for.
+let discountReady: Promise<void> | null = null;
+export async function discountTable() {
+  const { sql, ready } = db();
+  await ready;
+  discountReady ??= (async () => {
+    await sql`
+    create table if not exists app.discount_codes (
+      code text primary key,
+      user_id bigint references app.users(id) on delete cascade,
+      percent_off numeric,
+      amount_off_cents integer,
+      months integer not null,
+      stripe_coupon_id text,
+      stripe_promo_id text,
+      stripe_mode text,
+      created_by bigint references app.users(id) on delete set null,
+      created_at timestamptz not null default now(),
+      used_at timestamptz
+    )`;
+  })().catch((e) => {
+    discountReady = null;
+    throw e;
+  });
+  await discountReady;
+  return sql;
+}
+
 export type DiscountCode = { code: string; email: string | null; percentOff: number | null; amountOffCents: number | null; months: number; mode: string | null; createdAt: string; usedAt: string | null };
 
 export async function saveDiscountCode(c: { code: string; userId: number; percentOff: number | null; amountOffCents: number | null; months: number; couponId: string; promoId: string; mode: string; createdBy: number }) {
-  const { sql, ready } = db();
-  await ready;
+  const sql = await discountTable();
   await sql`insert into app.discount_codes (code, user_id, percent_off, amount_off_cents, months, stripe_coupon_id, stripe_promo_id, stripe_mode, created_by)
     values (${c.code}, ${c.userId}, ${c.percentOff}, ${c.amountOffCents}, ${c.months}, ${c.couponId}, ${c.promoId}, ${c.mode}, ${c.createdBy})`;
 }
 
 export async function markDiscountUsed(code: string) {
-  const { sql, ready } = db();
-  await ready;
+  const sql = await discountTable();
   await sql`update app.discount_codes set used_at = now() where code = ${code} and used_at is null`;
 }
 
 export async function listDiscountCodes(limit = 200): Promise<(DiscountCode & { promoId: string | null })[]> {
-  const { sql, ready } = db();
-  await ready;
+  const sql = await discountTable();
   const rows = await sql<{ code: string; email: string | null; percent_off: string | null; amount_off_cents: number | null; months: number; stripe_mode: string | null; created_at: Date; used_at: Date | null; stripe_promo_id: string | null }[]>`
     select d.code, u.email, d.percent_off, d.amount_off_cents, d.months, d.stripe_mode, d.created_at, d.used_at, d.stripe_promo_id
     from app.discount_codes d left join app.users u on u.id = d.user_id order by d.created_at desc limit ${limit}`;
