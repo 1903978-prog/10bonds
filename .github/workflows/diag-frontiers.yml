@@ -1,0 +1,10 @@
+name: Diag frontiers
+on:
+  push:
+    branches: [claude/diag-frontier]
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for d in 2 4 10; do for i in 1 2 3; do curl -s -o /tmp/o -w "d=$d try=$i status=%{http_code} time=%{time_total}\n" --max-time 70 "https://10bonds.com/api/bonds?duration=$d&ytm=4&risk=10&currency=EUR&size=100k"; head -c 120 /tmp/o; echo; sleep 3; done; done
