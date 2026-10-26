@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   const duration = Number(url.searchParams.get("duration"));
   if (!TERMS.some((t) => t.duration === duration)) return NextResponse.json({ error: "Unknown horizon." }, { status: 400 });
   const user = await currentUser().catch(() => null);
-  // Admin only: m=spread gives the Methodology with spread rules; everyone else Methodology 1.
+  // Everyone gets the Methodology with spread rules; the admin can add m=m1 to compare with Methodology 1.
   const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
   let out;
   try {

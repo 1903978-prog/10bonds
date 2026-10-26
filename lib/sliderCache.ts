@@ -17,7 +17,7 @@ const certs = new Map<string, Certificate>();
 const building = new Map<string, Promise<SliderPosition[]>>();
 
 /** The positions if ready, else null (and the build starts in the background). */
-export async function sliderFor(f: BondFilter, duration: number, m: FrontierMethod = "m1"): Promise<{ positions: SliderPosition[] | null; key: string; cert?: Certificate }> {
+export async function sliderFor(f: BondFilter, duration: number, m: FrontierMethod = "spread"): Promise<{ positions: SliderPosition[] | null; key: string; cert?: Certificate }> {
   const src = await loadBondsFor(f);
   const key = [SLIDER_METHOD, frontierKey(src, f, duration, m)].join("|");
   const hit = ready.get(key);

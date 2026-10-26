@@ -1,4 +1,5 @@
 import type { BondSource } from "./bonds";
+import type { PublicBond } from "./types";
 import type { BondFilter } from "./bondFilter";
 import { signatureOf } from "./bestTable";
 import { exactFrontier, NO_STEPS, type ExactFrontier } from "./exactFrontier";
@@ -7,9 +8,10 @@ import { coherentFrontier, type CoherentFrontier } from "./coherentFrontier";
 import { policySignature } from "./coherence";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
 
-/** "m1" = Methodology 1 (what customers get); "spread" = Methodology with spread rules (admin only, lib/stepGap.ts). */
+/** "spread" = Methodology with spread rules (what everyone gets); "m1" = Methodology 1 (admin comparison only, lib/stepGap.ts). */
 export type FrontierMethod = "m1" | "spread";
-export const parseMethod = (raw: string | null, admin: boolean): FrontierMethod => (admin && raw === "spread" ? "spread" : "m1");
+// Everyone gets the spread-rules methodology (the owner, 26/10/2026); only the admin can switch back to Methodology 1 (m=m1) to compare.
+export const parseMethod = (raw: string | null, admin: boolean): FrontierMethod => (admin && raw === "m1" ? "m1" : "spread");
 export const gapOf = (m: FrontierMethod) => (m === "spread" ? stepGap : NO_STEPS);
 
 // The exact frontier per data copy, filter and horizon, kept in memory: the slider positions and every search of a
@@ -27,17 +29,20 @@ export class FrontierPending extends Error {
 const coherentMemo = new Map<string, CoherentFrontier>();
 const coherentBuilding = new Map<string, Promise<CoherentFrontier>>();
 
-export const frontierKey = (src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1") =>
-  [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature(), GROUP_TABLE_VERSION] : [])].join("|");
+/** A customer's own exclusions (blacklist): `key` names the set, `fn` says which bonds are left out. */
+export type Without = { key: string; fn: (b: PublicBond) => boolean };
+
+export const frontierKey = (src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1", without?: Without | null) =>
+  [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature(), GROUP_TABLE_VERSION] : []), ...(without ? [`x:${without.key}`] : [])].join("|");
 
 /** The coherent frontier for this copy, filter and horizon once built; started in the background if not. */
-export function coherentBuild(src: BondSource, f: BondFilter, duration: number): Promise<CoherentFrontier> {
-  const key = frontierKey(src, f, duration, "spread");
+export function coherentBuild(src: BondSource, f: BondFilter, duration: number, without?: Without | null): Promise<CoherentFrontier> {
+  const key = frontierKey(src, f, duration, "spread", without);
   const hit = coherentMemo.get(key);
   if (hit) return Promise.resolve(hit);
   let p = coherentBuilding.get(key);
   if (!p) {
-    p = coherentFrontier(src.bonds, duration)
+    p = coherentFrontier(without ? src.bonds.filter((b) => !without.fn(b)) : src.bonds, duration)
       .then((r) => { if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); return r; })
       .finally(() => coherentBuilding.delete(key));
     p.catch((e) => console.error("[coherent] build failed:", (e as Error).message));
@@ -46,12 +51,12 @@ export function coherentBuild(src: BondSource, f: BondFilter, duration: number):
   return p;
 }
 
-export function frontierFor(src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1"): ExactFrontier {
-  const key = frontierKey(src, f, duration, m);
+export function frontierFor(src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1", without?: Without | null): ExactFrontier {
+  const key = frontierKey(src, f, duration, m, without);
   if (m === "spread") {
     const ready = coherentMemo.get(key);
     if (ready) return ready;
-    void coherentBuild(src, f, duration).catch(() => {});
+    void coherentBuild(src, f, duration, without).catch(() => {});
     throw new FrontierPending();
   }
   let hit = memo.get(key);
