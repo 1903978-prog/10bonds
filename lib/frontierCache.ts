@@ -8,6 +8,7 @@ import { coherentFrontier, type CoherentFrontier } from "./coherentFrontier";
 import { policySignature } from "./coherence";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
 import { loadSavedFrontier, saveFrontier } from "./frontierStore";
+import { runLow } from "./highsSolver";
 
 /** "spread" = Methodology with spread rules (what everyone gets); "m1" = Methodology 1 (admin comparison only, lib/stepGap.ts). */
 export type FrontierMethod = "m1" | "spread";
@@ -47,10 +48,20 @@ export function coherentBuild(src: BondSource, f: BondFilter, duration: number, 
     p = (async () => {
       if (!without) {
         const saved = await loadSavedFrontier(key);
-        if (saved?.points?.length) return { ...saved, at: (t: number) => saved.points.find((x) => x.ytm >= t - 1e-9) ?? null } as CoherentFrontier;
+        if (saved?.data.points?.length) {
+          const pts = saved.data.points;
+          const hit: CoherentFrontier = { ...saved.data, at: (t: number) => pts.find((x) => x.ytm >= t - 1e-9) ?? null };
+          // Saved for slightly older prices: serve it now, and work out the exact list in the background (low priority).
+          if (saved.stale) {
+            void runLow(() => coherentFrontier(src.bonds, duration))
+              .then(async (r) => { await saveFrontier(key, r); if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); })
+              .catch((e) => console.error("[coherent] refresh failed:", (e as Error).message));
+          }
+          return hit;
+        }
       }
       const r = await coherentFrontier(without ? src.bonds.filter((b) => !without.fn(b)) : src.bonds, duration);
-      if (!without) void saveFrontier(key, r);
+      if (!without) await saveFrontier(key, r);
       return r;
     })()
       .then((r) => { if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); return r; })

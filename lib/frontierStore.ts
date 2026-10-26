@@ -27,13 +27,22 @@ export async function frontierTableReady(): Promise<void> {
   await sql();
 }
 
-/** The saved lists as a plain object, or null (also when the database is not connected or the read fails). */
-export async function loadSavedFrontier(key: string): Promise<Omit<CoherentFrontier, "at"> | null> {
+const esc = (x: string) => x.replace(/[\\%_]/g, "\\$&");
+
+/**
+ * The saved lists for this key as a plain object, or null (also when the database is not connected or the read fails).
+ * A key starts with a signature of the bond data, which moves a little with every price refresh; when no list is saved
+ * for exactly this data, the newest list saved for the same filter, horizon and rules is returned with stale = true.
+ */
+export async function loadSavedFrontier(key: string): Promise<{ data: Omit<CoherentFrontier, "at">; stale: boolean } | null> {
   if (!accountsConfigured()) return null;
   try {
     const s = await sql();
-    const r = await s`select data from app.frontier_cache where key = ${key}`;
-    return (r[0]?.data as Omit<CoherentFrontier, "at">) ?? null;
+    const exact = await s`select data from app.frontier_cache where key = ${key}`;
+    if (exact[0]) return { data: exact[0].data as Omit<CoherentFrontier, "at">, stale: false };
+    const rest = key.slice(key.indexOf("|"));
+    const near = await s`select data from app.frontier_cache where key like ${"%" + esc(rest)} order by created_at desc limit 1`;
+    return near[0] ? { data: near[0].data as Omit<CoherentFrontier, "at">, stale: true } : null;
   } catch (e) {
     console.error("[frontier-store] load failed:", (e as Error).message);
     return null;
@@ -45,9 +54,9 @@ export async function saveFrontier(key: string, f: CoherentFrontier): Promise<vo
   try {
     const s = await sql();
     const { at: _at, ...data } = f;
-    // Keys start with the data copy's signature; lists of other copies and older rules are no longer reachable.
-    const prefix = key.split("|")[0];
-    await s`delete from app.frontier_cache where key not like ${prefix.replace(/[\\%_]/g, "\\$&") + "|%"}`;
+    // Older lists for the same filter, horizon and rules (other data signatures) are replaced by this one.
+    const rest = key.slice(key.indexOf("|"));
+    await s`delete from app.frontier_cache where key like ${"%" + esc(rest)} and key <> ${key}`;
     await s`insert into app.frontier_cache (key, data) values (${key}, ${s.json(data as never)})
             on conflict (key) do update set data = excluded.data, created_at = now()`;
   } catch (e) {
