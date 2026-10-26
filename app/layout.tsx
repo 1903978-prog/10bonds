@@ -8,6 +8,8 @@ import "./globals.css";
 import AccountNav from "@/components/AccountNav";
 import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
+import HomeNavLink from "@/components/HomeNavLink";
+import CalculatorNavLink from "@/components/CalculatorNavLink";
 import PlansNavLink from "@/components/PlansNavLink";
 import DropsNavLink from "@/components/DropsNavLink";
 import { currentUser } from "@/lib/currentUser";
@@ -56,10 +58,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {admin && <Link href="/admin/shortlist" data-testid="nav-shortlist" className="rounded-full bg-yellow-200 px-2 py-0.5">Shortlist</Link>}
               {admin && <Link href="/admin/features" data-testid="nav-features" className="hidden rounded-full bg-yellow-200 px-2 py-0.5 sm:inline-block">Plan features</Link>}
               {admin && <Link href="/risk-assessment" data-testid="nav-focus" className="hidden rounded-full bg-yellow-200 px-2 py-0.5 sm:inline-block">Risk assessment</Link>}
+              <HomeNavLink />
               <Link href="/isin-search" aria-label="Search by ISIN" title="ISIN" data-testid="nav-isin" className="flex h-5 w-5 items-center justify-center hover:text-ink">
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="M13 13l4 4" /></svg>
               </Link>
               <KnowledgeNavLink />
+              <CalculatorNavLink admin={admin} />
               <PlansNavLink />
               {/* Fixed-width slot for the links that load after the page (Retail/Pro switch, Admin, Sign in, profile), so the menu never shifts. */}
               <div className="flex min-w-[128px] items-center justify-end gap-1.5 sm:min-w-[232px] sm:gap-5">
