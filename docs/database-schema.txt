@@ -126,6 +126,11 @@ table app.events
   path text
   detail jsonb
 
+table app.frontier_cache
+  key text not null
+  data jsonb not null
+  created_at timestamp with time zone not null default now()
+
 table app.pro_access
   user_id bigint not null
   firm text not null
@@ -468,6 +473,7 @@ constraints
   app.discount_codes discount_codes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.events events_pkey: PRIMARY KEY (id)
   app.events events_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
+  app.frontier_cache frontier_cache_pkey: PRIMARY KEY (key)
   app.pro_access pro_access_pkey: PRIMARY KEY (user_id)
   app.pro_access pro_access_status_check: CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))
   app.pro_access pro_access_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
@@ -563,6 +569,7 @@ indexes
   CREATE INDEX events_kind_at_idx ON app.events USING btree (kind, at)
   CREATE INDEX events_user_idx ON app.events USING btree (user_id) WHERE (user_id IS NOT NULL)
   CREATE UNIQUE INDEX events_pkey ON app.events USING btree (id)
+  CREATE UNIQUE INDEX frontier_cache_pkey ON app.frontier_cache USING btree (key)
   CREATE UNIQUE INDEX pro_access_pkey ON app.pro_access USING btree (user_id)
   CREATE UNIQUE INDEX refresh_requests_pkey ON app.refresh_requests USING btree (id)
   CREATE UNIQUE INDEX risk_calc_results_pkey ON app.risk_calc_results USING btree (run_id, isin)

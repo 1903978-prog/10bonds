@@ -7,6 +7,7 @@ import { stepGap, stepSignature } from "./stepGap";
 import { coherentFrontier, type CoherentFrontier } from "./coherentFrontier";
 import { policySignature } from "./coherence";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
+import { loadSavedFrontier, saveFrontier } from "./frontierStore";
 
 /** "spread" = Methodology with spread rules (what everyone gets); "m1" = Methodology 1 (admin comparison only, lib/stepGap.ts). */
 export type FrontierMethod = "m1" | "spread";
@@ -42,7 +43,16 @@ export function coherentBuild(src: BondSource, f: BondFilter, duration: number, 
   if (hit) return Promise.resolve(hit);
   let p = coherentBuilding.get(key);
   if (!p) {
-    p = coherentFrontier(without ? src.bonds.filter((b) => !without.fn(b)) : src.bonds, duration)
+    // A customer's own exclusions are worked out on the spot; everyone else's lists are saved in the database and read back after a restart.
+    p = (async () => {
+      if (!without) {
+        const saved = await loadSavedFrontier(key);
+        if (saved?.points?.length) return { ...saved, at: (t: number) => saved.points.find((x) => x.ytm >= t - 1e-9) ?? null } as CoherentFrontier;
+      }
+      const r = await coherentFrontier(without ? src.bonds.filter((b) => !without.fn(b)) : src.bonds, duration);
+      if (!without) void saveFrontier(key, r);
+      return r;
+    })()
       .then((r) => { if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); return r; })
       .finally(() => coherentBuilding.delete(key));
     p.catch((e) => console.error("[coherent] build failed:", (e as Error).stack));
