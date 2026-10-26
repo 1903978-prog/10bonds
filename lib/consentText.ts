@@ -1,51 +1,47 @@
 // First-use agreement for the portfolio builder. Changing any wording means raising CONSENT_VERSION, so everyone is asked again.
-export const CONSENT_VERSION = "2026-10-25.1";
+export const CONSENT_VERSION = "2026-10-26.1";
 
 export type ConsentLang = "en" | "it" | "fr" | "de";
 
 export const CONSENT_TEXT: Record<ConsentLang, { title: string; points: string[]; link: string; agree: string; button: string }> = {
   en: {
-    title: "Before you start",
+    title: "Before you explore",
     points: [
-      "The portfolio comes from mathematical formulas that pick one portfolio out of the many possible.",
-      "It is only an illustration of what the formula produces. We do not recommend buying any of the bonds shown.",
-      "You accept our formula.",
+      "Our model selects 10 bonds based on your chosen criteria and our methodology.",
+      "The portfolio is an illustrative model output, not a recommendation to buy. It does not assess your personal financial circumstances or investment suitability.",
     ],
-    link: "How we pick the top 10",
-    agree: "I understand and agree.",
-    button: "Continue",
+    link: "How we select the 10 bonds ↗",
+    agree: "I understand this is a research tool, not investment advice.",
+    button: "View portfolio",
   },
   it: {
-    title: "Prima di iniziare",
+    title: "Prima di esplorare",
     points: [
-      "Il portafoglio nasce da formule matematiche che scelgono un portafoglio tra i tanti possibili.",
-      "È solo un'illustrazione di ciò che produce la formula. Non consigliamo l'acquisto di nessuna delle obbligazioni mostrate.",
-      "Accetti la nostra formula.",
+      "Il nostro modello seleziona 10 obbligazioni in base ai criteri scelti e alla nostra metodologia.",
+      "Il portafoglio è un risultato illustrativo del modello, non una raccomandazione all'acquisto. Non valuta la tua situazione finanziaria personale né l'idoneità dell'investimento.",
     ],
-    link: "Come scegliamo le 10",
-    agree: "Ho capito e accetto.",
-    button: "Continua",
+    link: "Come selezioniamo le 10 obbligazioni ↗",
+    agree: "Capisco che questo è uno strumento di ricerca, non una consulenza in materia di investimenti.",
+    button: "Vedi il portafoglio",
   },
   fr: {
-    title: "Avant de commencer",
+    title: "Avant d'explorer",
     points: [
-      "Le portefeuille vient de formules mathématiques qui en choisissent un parmi tous ceux possibles.",
-      "Ce n'est qu'une illustration de ce que produit la formule. Nous ne recommandons l'achat d'aucune des obligations affichées.",
-      "Vous acceptez notre formule.",
+      "Notre modèle sélectionne 10 obligations selon les critères choisis et notre méthodologie.",
+      "Le portefeuille est un résultat illustratif du modèle, pas une recommandation d'achat. Il n'évalue ni votre situation financière personnelle ni l'adéquation de l'investissement.",
     ],
-    link: "Comment nous choisissons les 10",
-    agree: "J'ai compris et j'accepte.",
-    button: "Continuer",
+    link: "Comment nous sélectionnons les 10 obligations ↗",
+    agree: "Je comprends qu'il s'agit d'un outil de recherche, et non d'un conseil en investissement.",
+    button: "Voir le portefeuille",
   },
   de: {
-    title: "Bevor Sie starten",
+    title: "Bevor Sie erkunden",
     points: [
-      "Das Portfolio stammt aus mathematischen Formeln, die aus vielen möglichen ein Portfolio auswählen.",
-      "Es ist nur eine Veranschaulichung dessen, was die Formel ergibt. Wir empfehlen den Kauf keiner der gezeigten Anleihen.",
-      "Sie akzeptieren unsere Formel.",
+      "Unser Modell wählt 10 Anleihen anhand der gewählten Kriterien und unserer Methodik aus.",
+      "Das Portfolio ist ein illustratives Modellergebnis, keine Kaufempfehlung. Es berücksichtigt weder Ihre persönliche finanzielle Situation noch die Eignung der Anlage.",
     ],
-    link: "Wie wir die 10 auswählen",
-    agree: "Ich habe verstanden und stimme zu.",
-    button: "Weiter",
+    link: "Wie wir die 10 Anleihen auswählen ↗",
+    agree: "Ich verstehe, dass dies ein Recherche-Tool ist und keine Anlageberatung.",
+    button: "Portfolio ansehen",
   },
 };

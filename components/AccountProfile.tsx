@@ -118,7 +118,7 @@ export default function AccountProfile(p: Props) {
           <>
             <div className="mt-4 inline-flex rounded-full bg-canvas p-1 text-sm">
               {(["month", "year"] as Interval[]).map((i) => (
-                <button key={i} onClick={() => setInterval(i)} data-testid={`profile-${i}`} className={`rounded-full px-4 py-1.5 ${interval === i ? "bg-white font-medium shadow-sm" : "text-mute"}`}>
+                <button key={i} onClick={() => setInterval(i)} disabled={i === "year"} data-testid={`profile-${i}`} className={`rounded-full px-4 py-1.5 ${i === "year" ? "cursor-default opacity-60" : ""} ${interval === i ? "bg-white font-medium shadow-sm" : "text-mute"}`}>
                   {i === "month" ? "Monthly" : <>Yearly <span className="text-accent">−20%</span></>}
                 </button>
               ))}

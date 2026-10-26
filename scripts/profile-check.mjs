@@ -42,9 +42,10 @@ for (const w of [1440, 390]) {
   // Pricing
   await p.goto(BASE + "/pricing");
   ok((await p.textContent("[data-testid=price-premium]")).includes("€19") && (await p.textContent("[data-testid=price-pro]")).includes("€89"), `${w} monthly prices 19 and 89`);
-  await p.click("[data-testid=billing-year]");
-  await p.waitForURL(/billing=year/);
-  ok((await p.textContent("[data-testid=price-plus]")).includes("€86.40") && (await p.textContent("[data-testid=price-pro]")).includes("€854.40"), `${w} yearly prices`);
+  // Yearly is not sold for now (26/10/2026): the option is shown but is not a link, and the page stays monthly. The yearly purchase steps below no longer apply.
+  ok((await p.locator("a[data-testid=billing-year]").count()) === 0, `${w} yearly option is not clickable`);
+  await p.goto(BASE + "/pricing?billing=year");
+  ok((await p.textContent("[data-testid=price-plus]")).includes("€9") && !(await p.textContent("[data-testid=price-plus]")).includes("€86.40"), `${w} page stays monthly`);
   ok(await p.isVisible("text=For professionals"), `${w} Pro card marked for professionals`);
   await p.screenshot({ path: `${SHOTS}/pricing4-${w}.png`, fullPage: true });
   await noScroll("pricing");
