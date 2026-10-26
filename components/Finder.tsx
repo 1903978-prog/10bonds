@@ -661,7 +661,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
         {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
-        <GuideTips lang={lang} simple={simple} only={simple ? (mode === "portfolio" ? ["horizon", "return"] : ["horizon"]) : mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
+        {mode === "single"
+          ? <GuideTips key="single" page="single" lang={lang} />
+          : <GuideTips key="portfolio" lang={lang} simple={simple} only={simple ? ["horizon", "return"] : undefined} />}
         {isAdmin && mode === "portfolio" && (
           <details className="mt-2" data-testid="admin-tuner-box">
             <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: tuning</summary>
