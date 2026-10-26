@@ -59,8 +59,8 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 
   // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
-    <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
-      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.68fr_1.32fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
+    <div data-testid="intro" className="landing mx-auto max-w-[1400px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
+      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.82fr_1.18fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
         <div className="mb-1 flex items-baseline justify-end gap-2 sm:hidden">
           {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
@@ -70,7 +70,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>
-        <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
+        <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:max-w-[640px] lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
         <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
