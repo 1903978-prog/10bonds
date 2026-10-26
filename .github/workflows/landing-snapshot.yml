@@ -3,9 +3,6 @@ name: Landing snapshot
 # commits it to the branch it is run on. Read-only on the database.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/landing-snapshot.yml", "scripts/landing-snapshot.ts"]
-    branches-ignore: [main]
 permissions:
   contents: write
 jobs:
