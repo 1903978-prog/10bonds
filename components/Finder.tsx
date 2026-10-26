@@ -741,7 +741,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {viewLocked ? (
-                  <LockedChart kind={view === "heat" ? "heat" : view === "multi" ? "multi" : "chart"} label={t.chartLock} href="/pricing" />
+                  <LockedChart kind={view === "heat" ? "heat" : view === "multi" ? "multi" : "chart"} label={signedIn ? t.chartLock : t.chartSignUp} href={signedIn ? "/pricing" : signupHref(lang)} />
                 ) : showHeat && canHeat ? (
                   <HeatMapChart plain={!isAdmin} shortlists={shortlistDots} map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
                 ) : showAll && canMulti ? (
@@ -1544,7 +1544,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
 
       {/* Allocation by industry and country plus the diversification score: a fixed strip under the full-width table (not beside the chart). */}
       {!dense && !narrow && (
-        <Diversification rows={show || message ? [] : rows} lang={lang} locked={!(features.has("loss_chart") || admin)} />
+        <Diversification rows={show || message ? [] : rows} lang={lang} signedIn={signedIn} locked={!(features.has("loss_chart") || admin)} />
       )}
 
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
