@@ -2,10 +2,21 @@
 // "signup" = registration completed. The sign-up funnel (the owner, 24/10/2026): landing_view, cta_click (the landing button),
 // finder_started (first control moved), portfolio_generated, preview_view (a visitor sees the 3-bond preview),
 // signup_started (first field of the sign-up form), signup, email_verified, plan_selected (a paid plan's button).
-export const EVENT_KINDS = ["page_view", "search", "click", "signup", "login", "landing_view", "cta_click", "finder_started", "portfolio_generated", "preview_view", "signup_started", "email_verified", "plan_selected"] as const;
+export const EVENT_KINDS = ["page_view", "search", "click", "signup", "login", "landing_view", "cta_click", "finder_started", "portfolio_generated", "preview_view", "signup_started", "email_verified", "plan_selected", "consent_box", "pricing_viewed", "limit_reached", "upgrade_click", "checkout_started", "paid", "pro_page_view", "pro_demo_view", "pro_request_sent"] as const;
 
 /** The funnel steps in order, for the admin page. */
-export const FUNNEL = ["landing_view", "cta_click", "finder_started", "portfolio_generated", "preview_view", "signup_started", "signup", "email_verified", "plan_selected"] as const satisfies readonly EventKind[];
+// consent_box = the first-use agreement ticked in the portfolio builder; pricing_viewed / plan_selected / checkout_started /
+// paid follow the plans page (paid = the thank-you page after Stripe); limit_reached / upgrade_click = free-limit prompts;
+// pro_* = the wealth-manager page, its demo and a verification request.
+export const FUNNEL = ["landing_view", "cta_click", "finder_started", "portfolio_generated", "consent_box", "preview_view", "signup_started", "signup", "email_verified", "pricing_viewed", "plan_selected", "checkout_started", "paid"] as const satisfies readonly EventKind[];
+/** Labels for the admin funnel page. */
+export const FUNNEL_LABEL: Record<string, string> = {
+  landing_view: "Landing page", cta_click: "Start button", finder_started: "Tool used", portfolio_generated: "Result shown", consent_box: "Agreement box ticked",
+  preview_view: "Preview seen", signup_started: "Sign-up started", signup: "Account created", email_verified: "E-mail confirmed", pricing_viewed: "Plans viewed",
+  plan_selected: "Plan chosen", checkout_started: "Checkout opened", paid: "Paid (thank-you page)",
+  limit_reached: "Free limit reached", upgrade_click: "Upgrade clicked", pro_page_view: "Pro page viewed", pro_demo_view: "Pro demo viewed", pro_request_sent: "Pro verification sent",
+};
+export const FUNNEL_EXTRA = ["limit_reached", "upgrade_click", "pro_page_view", "pro_demo_view", "pro_request_sent"] as const satisfies readonly EventKind[];
 export type EventKind = (typeof EVENT_KINDS)[number];
 
 export type IncomingEvent = { kind: EventKind; path: string | null; detail: Record<string, string | number | boolean | null> | null };

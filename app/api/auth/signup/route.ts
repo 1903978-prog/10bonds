@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { accountsConfigured, createUser, redeemTrialCode, trialCodeStatus, normaliseEmail, normaliseUsername, generateUsername } from "@/lib/accounts";
+import { accountsConfigured, createUser, setUserCountry, redeemTrialCode, trialCodeStatus, normaliseEmail, normaliseUsername, generateUsername } from "@/lib/accounts";
 import { readCredentials, withSession } from "@/lib/authResponse";
 import { hashPassword } from "@/lib/password";
 import { allow, clientIp } from "@/lib/rateLimit";
@@ -7,6 +7,7 @@ import { TERMS_VERSION } from "@/lib/terms";
 import { checkSolution } from "@/lib/botCheck";
 import { sendConfirmation } from "@/lib/confirm";
 import { normaliseCode } from "@/lib/codes";
+import { geoOf } from "@/lib/geo";
 import { requestLang } from "@/lib/welcomeEmail";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   if (!accountsConfigured()) return NextResponse.json({ error: "Free accounts open very soon." }, { status: 503 });
   if (!allow(`signup:${clientIp(req)}`, 5)) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
-  const { email, password, username, acceptTerms, challenge, nonce, website, code: rawCode, newsletter } = await readCredentials(req);
+  const { email, password, username, acceptTerms, challenge, nonce, website, code: rawCode, newsletter, tz } = await readCredentials(req);
   // "website" is a hidden field people never see; scripts that fill every field do.
   if (website || !checkSolution(challenge, nonce))
     return NextResponse.json({ error: "The robot check did not pass. Please reload the page and try again." }, { status: 400 });
@@ -47,6 +48,8 @@ export async function POST(req: Request) {
     }
     if (user === "email-taken") return NextResponse.json({ error: "An account with this email already exists. Please sign in." }, { status: 409 });
     if (user === "username-taken") return NextResponse.json({ error: "This username is taken. Please choose another." }, { status: 409 });
+    const geo = geoOf(req.headers, tz);
+    await setUserCountry(user.id, geo.country, geo.source).catch(() => {});
     const redeemed = code ? await redeemTrialCode(user.id, code) : null;
     const premiumUntil = redeemed && typeof redeemed === "object" ? redeemed.premiumUntil : user.premiumUntil;
     const emailed = await sendConfirmation(user.id, user.email, u, requestLang(req));

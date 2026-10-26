@@ -74,7 +74,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       const res = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signup ? { email, password, acceptTerms: accept, newsletter, website, code: code.trim() || undefined, ...check } : { email, password }),
+        body: JSON.stringify(signup ? { email, password, acceptTerms: accept, newsletter, website, code: code.trim() || undefined, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, ...check } : { email, password }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");

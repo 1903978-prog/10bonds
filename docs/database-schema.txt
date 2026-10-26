@@ -104,6 +104,13 @@ table app.correction_requests
   requested_at timestamp with time zone not null default now()
   status text not null default 'open'::text
 
+table app.daily_counts
+  day date not null
+  kind text not null
+  path text not null
+  country text not null
+  n integer not null default 0
+
 table app.discount_codes
   code text not null
   user_id bigint
@@ -143,6 +150,8 @@ table app.pro_access
   status text not null default 'pending'::text
   requested_at timestamp with time zone not null default now()
   decided_at timestamp with time zone
+  trial_ends_at timestamp with time zone
+  register_url text
 
 table app.refresh_requests
   id bigint not null default nextval(...)
@@ -440,6 +449,21 @@ table app.users
   totp_last_step bigint
   totp_enabled_at timestamp with time zone
   first_paid_at timestamp with time zone
+  country text
+  country_source text
+
+table app.visitors
+  code_no bigint not null default nextval(...)
+  visitor_id text not null
+  first_seen timestamp with time zone not null default now()
+  last_seen timestamp with time zone not null default now()
+  visits integer not null default 1
+  country text
+  country_source text
+  device text
+  lang text
+  referrer text
+  first_path text
 
 table app.weekly_email_sends
   week text not null
@@ -472,6 +496,7 @@ constraints
   app.consents consents_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
+  app.daily_counts daily_counts_pkey: PRIMARY KEY (day, kind, path, country)
   app.discount_codes discount_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.discount_codes discount_codes_pkey: PRIMARY KEY (code)
   app.discount_codes discount_codes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
@@ -541,15 +566,17 @@ constraints
   app.seo_shares seo_shares_guide_id_fkey: FOREIGN KEY (guide_id) REFERENCES app.seo_guides(id) ON DELETE SET NULL
   app.seo_shares seo_shares_pkey: PRIMARY KEY (id)
   app.settings settings_pkey: PRIMARY KEY (key)
+  app.shortlist_seeds shortlist_seeds_pkey: PRIMARY KEY (key)
   app.shortlists shortlists_name_key: UNIQUE (name)
   app.shortlists shortlists_pkey: PRIMARY KEY (id)
-  app.shortlist_seeds shortlist_seeds_pkey: PRIMARY KEY (key)
   app.trial_codes trial_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.trial_codes trial_codes_pkey: PRIMARY KEY (code)
   app.trial_codes trial_codes_redeemed_by_fkey: FOREIGN KEY (redeemed_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.users users_email_key: UNIQUE (email)
   app.users users_pkey: PRIMARY KEY (id)
   app.users users_plan_check: CHECK ((plan = ANY (ARRAY['free'::text, 'plus'::text, 'premium'::text, 'pro'::text])))
+  app.visitors visitors_code_no_key: UNIQUE (code_no)
+  app.visitors visitors_pkey: PRIMARY KEY (visitor_id)
   app.weekly_email_sends weekly_email_sends_pkey: PRIMARY KEY (week, user_id)
   app.ytm_history ytm_history_pkey: PRIMARY KEY (as_of, isin)
 
@@ -569,6 +596,7 @@ indexes
   CREATE INDEX consents_user_idx ON app.consents USING btree (user_id, kind, version)
   CREATE UNIQUE INDEX consents_pkey ON app.consents USING btree (id)
   CREATE UNIQUE INDEX correction_requests_pkey ON app.correction_requests USING btree (id)
+  CREATE UNIQUE INDEX daily_counts_pkey ON app.daily_counts USING btree (day, kind, path, country)
   CREATE UNIQUE INDEX discount_codes_pkey ON app.discount_codes USING btree (code)
   CREATE INDEX events_at_idx ON app.events USING btree (at)
   CREATE INDEX events_kind_at_idx ON app.events USING btree (kind, at)
@@ -615,6 +643,8 @@ indexes
   CREATE UNIQUE INDEX users_email_key ON app.users USING btree (email)
   CREATE UNIQUE INDEX users_pkey ON app.users USING btree (id)
   CREATE UNIQUE INDEX users_username_key ON app.users USING btree (lower(username))
+  CREATE UNIQUE INDEX visitors_code_no_key ON app.visitors USING btree (code_no)
+  CREATE UNIQUE INDEX visitors_pkey ON app.visitors USING btree (visitor_id)
   CREATE UNIQUE INDEX weekly_email_sends_pkey ON app.weekly_email_sends USING btree (week, user_id)
   CREATE INDEX ytm_history_isin ON app.ytm_history USING btree (isin, as_of)
   CREATE UNIQUE INDEX ytm_history_pkey ON app.ytm_history USING btree (as_of, isin)

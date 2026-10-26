@@ -1,8 +1,8 @@
 // Local browser check: start the standalone server on :3311 with a throwaway accounts database, then run `node scripts/e2e-local.mjs`.
 import { chromium } from "playwright-core";
 const BASE = "http://127.0.0.1:3311";
-const SHOTS = "/tmp/claude-0/-home-claude/4b337658-00ee-5dac-b7d9-34aa865191b3/scratchpad";
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const SHOTS = process.env.SHOTS ?? "/tmp";
+const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome" });
 let fails = 0;
 const ok = (c, m) => { console.log((c ? "PASS " : "FAIL ") + m); if (!c) fails++; };
 const noSide = async (p, label) => ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${label}: no sideways scroll`);
@@ -23,7 +23,7 @@ for (const w of [1440, 390]) {
   await p.goto(BASE + "/cookies"); // cookie settings live on the Cookies page, not in the footer
   await p.click("text=Cookie settings");
   ok(await p.isChecked('[data-testid="cookie-statistics"]'), `${w} reopened with choice`);
-  await p.click("text=Reject all");
+  await p.getByRole("button", { name: "Necessary only" }).click();
   ok(await p.evaluate(() => !localStorage.getItem("tb_vid")), `${w} deny removes visitor id`);
   await noSide(p, `${w} home`);
   const signup = async (email, user) => {

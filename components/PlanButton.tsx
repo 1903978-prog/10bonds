@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 
 import { track, flushNow } from "@/lib/track";
@@ -20,6 +21,8 @@ export function PlanButton({ plan, interval = "month", highlight, label }: Props
       const r = await fetch("/api/billing/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, interval, startNow }) });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.url) {
+        track("checkout_started", { plan, interval });
+        flushNow();
         window.location.href = j.url;
         return;
       }
@@ -33,7 +36,11 @@ export function PlanButton({ plan, interval = "month", highlight, label }: Props
     <div className="mt-4">
       <label className="flex gap-1.5 text-left text-[11px] leading-snug text-mute">
         <input type="checkbox" className="mt-0.5" checked={startNow} onChange={(e) => setStartNow(e.target.checked)} data-testid={`start-now-${plan}`} />
-        <span>Start my plan straight away. If I withdraw within 14 days, I pay for the days already used.</span>
+        {plan === "pro" ? (
+          <span>I am buying for my firm and want my plan to start straight away. The consumer 14-day withdrawal right does not apply to business customers; see the <Link href="/pro/terms" className="underline">Pro terms</Link>.</span>
+        ) : (
+          <span>Start my plan straight away. If I withdraw within 14 days, I pay for the days already used (<Link href="/terms" className="underline">Terms</Link>).</span>
+        )}
       </label>
       <button
         onClick={go}

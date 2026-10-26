@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { flushNow, track } from "@/lib/track";
 import { CONSENT_TEXT, CONSENT_VERSION, type ConsentLang } from "@/lib/consentText";
 
 const KEY = "tb_agree";
@@ -48,6 +49,7 @@ export default function ConsentGate({ active, lang, isAdmin }: { active: boolean
       localStorage.setItem(KEY, CONSENT_VERSION);
     } catch {}
     if (!replay) await fetch("/api/consent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lang, visitorId: vid }) }).catch(() => null);
+    if (!replay) { track("consent_box", { lang }); flushNow(); }
     setKnown("yes");
     setReplay(false);
     setBusy(false);

@@ -3,6 +3,7 @@ import { OWNER_COOKIE, accountsConfigured, forgetVisitor, recordEvents } from "@
 import { currentUser } from "@/lib/currentUser";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { parseEventBatch } from "@/lib/trackRules";
+import { geoOf } from "@/lib/geo";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,8 @@ export async function POST(req: Request) {
     // anything this browser sent before goes too.
     const ownerDevice = (await cookies()).get(OWNER_COOKIE)?.value === "1";
     if (user?.isAdmin || ownerDevice) { await forgetVisitor(batch.visitorId); return done; }
-    await recordEvents(batch.events.map((e) => ({ visitorId: batch.visitorId, userId: user?.id ?? null, ...e })));
+    const tz = batch.events.map((e) => e.detail?.tz).find((v) => typeof v === "string");
+    await recordEvents(batch.events.map((e) => ({ visitorId: batch.visitorId, userId: user?.id ?? null, ...e })), geoOf(req.headers, tz));
   } catch {
     // Usage stats never break the site.
   }

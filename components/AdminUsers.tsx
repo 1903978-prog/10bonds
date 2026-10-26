@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 type Row = {
   id: number; email: string; username: string | null; plan: string; premiumUntil: string | null; promoCode: string | null;
   createdAt: string; emailConfirmed: boolean; lastLoginAt: string | null; lastSeenAt: string | null;
-  secondsOnSite: number | null; searches: number | null; isAdmin: boolean; cameFrom: string | null;
+  secondsOnSite: number | null; searches: number | null; isAdmin: boolean; cameFrom: string | null; country: string | null;
 };
-type Key = "email" | "username" | "plan" | "promoCode" | "createdAt" | "emailConfirmed" | "lastSeenAt" | "secondsOnSite" | "searches" | "cameFrom";
+type Key = "email" | "username" | "plan" | "promoCode" | "createdAt" | "emailConfirmed" | "lastSeenAt" | "secondsOnSite" | "searches" | "cameFrom" | "country";
 
 const card = "rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
 const day = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -30,6 +30,7 @@ const COLS: { key: Key; label: string }[] = [
   { key: "lastSeenAt", label: "Last seen" },
   { key: "secondsOnSite", label: "Time on site" },
   { key: "searches", label: "Searches" },
+  { key: "country", label: "Country" },
   { key: "cameFrom", label: "Came from" },
 ];
 
@@ -38,8 +39,8 @@ function csv(rows: Row[]): string {
     const s = v === null || v === undefined ? "" : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const head = ["email", "username", "plan", "premium_until", "promo_code", "registered", "email_confirmed", "last_login", "last_seen", "seconds_on_site", "searches", "came_from"];
-  const lines = rows.map((r) => [r.email, r.username, r.plan, r.premiumUntil, r.promoCode, r.createdAt, r.emailConfirmed ? "yes" : "no", r.lastLoginAt, r.lastSeenAt, r.secondsOnSite, r.searches, r.cameFrom].map(cell).join(","));
+  const head = ["email", "username", "plan", "premium_until", "promo_code", "registered", "email_confirmed", "last_login", "last_seen", "seconds_on_site", "searches", "came_from", "country"];
+  const lines = rows.map((r) => [r.email, r.username, r.plan, r.premiumUntil, r.promoCode, r.createdAt, r.emailConfirmed ? "yes" : "no", r.lastLoginAt, r.lastSeenAt, r.secondsOnSite, r.searches, r.cameFrom, r.country].map(cell).join(","));
   return [head.join(","), ...lines].join("\n");
 }
 
@@ -171,6 +172,7 @@ export default function AdminUsers() {
                 <td className="pr-3 text-mute">{when(r.lastSeenAt)}</td>
                 <td className={`pr-3 ${r.secondsOnSite === null ? "text-mute" : ""}`}>{duration(r.secondsOnSite)}</td>
                 <td className={`pr-3 ${r.searches === null ? "text-mute" : ""}`}>{r.searches ?? "no stats"}</td>
+                <td className="pr-3" title={r.country?.startsWith("~") ? "Estimated from the browser timezone" : undefined}>{r.country ?? "—"}</td>
                 <td className={`max-w-[10rem] truncate ${r.cameFrom === null ? "text-mute" : ""}`} title={r.cameFrom ?? undefined}>{r.cameFrom ?? "no stats"}</td>
                 <td className="w-24 text-right"><DiscountButton row={r} onMade={loadDiscs} /></td>
               </tr>
