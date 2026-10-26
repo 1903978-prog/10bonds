@@ -1,4 +1,5 @@
 import { emailConfigured } from "./email";
+import { purgeUnconfirmed } from "./unconfirmedPurge";
 import postgres from "postgres";
 import { accountsUrl } from "./pgUrl";
 import type { Tier } from "./types";
@@ -201,6 +202,8 @@ async function setup(sql: ReturnType<typeof postgres>) {
       select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where u.email in ${sql(ADMIN_EMAILS)})`;
     await sql`delete from app.search_usage where user_id in (select id from app.users where email in ${sql(ADMIN_EMAILS)})`;
   }
+  // Never-confirmed, never-paid accounts older than 30 days: removed only when PRIVACY_PURGE_UNCONFIRMED=on (off by default).
+  await purgeUnconfirmed(sql, ADMIN_EMAILS);
 }
 
 type Plan = Exclude<Tier, "visitor">;
