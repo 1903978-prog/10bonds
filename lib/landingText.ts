@@ -6,7 +6,6 @@ import type { FinderLang } from "./finderText";
 // Compliance (23/10): impersonal wording only, no "you/your", no calls to act, no promises; "Model portfolio" vs
 // "hand-picked portfolio" is allowed.
 const en = {
-  eyebrow: "Bond investments",
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
   tagline: "Smarter bond selection. Higher potential return.",
   cardTitleBench: "Average Bond ETF vs Model portfolio",
@@ -29,8 +28,8 @@ const en = {
   ctaBtn: "Explore the tool",
   sticky: "Open the finder",
   kicker: "Model-selected bonds",
-  h1a: "Higher modeled return.",
-  h1b: "Same modeled risk.",
+  h1a: "AI-powered",
+  h1b: "Bond portfolios",
   lead: "An illustration of how a model portfolio of 10 bonds can reach a higher modeled return than a hand-picked one, at the same duration and modeled risk.",
   cta: "Find top 10 bonds",
   signUp: "Sign up",
@@ -74,9 +73,9 @@ const en = {
   carousel: {
     // Action titles, one per slide (the owner, 24/10/2026): [desktop, phone].
     act: {
-      compare: ["Compare the Model portfolio with a bond ETF", "Model portfolio vs bond ETF"],
-      frontier: ["Efficient frontier: return and expected loss of model-selected bond sets", "Efficient frontier"],
-      curve: ["Model-selected bond for each risk level", "Selected bond per risk level"],
+      compare: ["Model portfolio vs bond ETF", "Model vs bond ETF"],
+      frontier: ["Efficient frontier of model-selected bonds", "Efficient frontier"],
+      curve: ["Model-selected bond per risk level", "Bond per risk level"],
       list: ["See the top 10 bonds", "See the top 10 bonds"],
       country: ["Check country risk", "Check country risk"],
       company: ["Check company risk", "Check company risk"],
@@ -96,7 +95,6 @@ const en = {
 export type LandingText = typeof en;
 
 const it: LandingText = {
-  eyebrow: "Investimenti obbligazionari",
   tagline: "Selezione obbligazionaria più intelligente. Rendimento potenziale più alto.",
   cardTitleBench: "ETF obbligazionario medio e portafoglio del modello",
   cardTitleBenchShort: "ETF obbligazionario medio e modello",
@@ -118,8 +116,8 @@ const it: LandingText = {
   ctaBtn: "Esplora lo strumento",
   sticky: "Apri lo strumento",
   kicker: "Obbligazioni selezionate dal modello",
-  h1a: "Più rendimento stimato.",
-  h1b: "A pari rischio stimato.",
+  h1a: "Portafogli obbligazionari",
+  h1b: "basati sull'AI",
   lead: "Un esempio di come un portafoglio del modello di 10 obbligazioni possa avere un rendimento stimato più alto di uno scelto a mano, a parità di durata e di rischio stimato.",
   cta: "Trova le top 10",
   signUp: "Registrati",
@@ -160,9 +158,9 @@ const it: LandingText = {
   paperShort: "Metodologia (PDF)",
   carousel: {
     act: {
-      compare: ["Confronta il portafoglio del modello con un ETF", "Portafoglio del modello vs ETF"],
-      frontier: ["Frontiera efficiente: rendimento e perdita attesa dei gruppi di obbligazioni selezionati dal modello", "Frontiera efficiente"],
-      curve: ["Obbligazione selezionata dal modello per ogni livello di rischio", "Selezionata per livello di rischio"],
+      compare: ["Portafoglio del modello vs ETF", "Modello vs ETF"],
+      frontier: ["Frontiera efficiente del modello", "Frontiera efficiente"],
+      curve: ["Obbligazione scelta per rischio", "Per livello di rischio"],
       list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
       company: ["Verifica il rischio società", "Verifica il rischio società"],
@@ -181,7 +179,6 @@ const it: LandingText = {
 };
 
 const fr: LandingText = {
-  eyebrow: "Investissement obligataire",
   tagline: "Une sélection obligataire plus intelligente. Un rendement potentiel plus élevé.",
   cardTitleBench: "ETF obligataire moyen et portefeuille du modèle",
   cardTitleBenchShort: "ETF obligataire moyen et modèle",
@@ -203,8 +200,8 @@ const fr: LandingText = {
   ctaBtn: "Explorer l'outil",
   sticky: "Ouvrir l'outil",
   kicker: "Obligations sélectionnées par le modèle",
-  h1a: "Plus de rendement modélisé.",
-  h1b: "À risque modélisé égal.",
+  h1a: "Portefeuilles obligataires",
+  h1b: "propulsés par l'IA",
   lead: "Une illustration : un portefeuille du modèle de 10 obligations peut atteindre un rendement modélisé plus élevé qu'un portefeuille choisi à la main, à durée et risque modélisé égaux.",
   cta: "Voir le top 10",
   signUp: "S'inscrire",
@@ -245,9 +242,9 @@ const fr: LandingText = {
   paperShort: "Méthodologie (PDF)",
   carousel: {
     act: {
-      compare: ["Comparer le portefeuille du modèle à un ETF obligataire", "Portefeuille du modèle vs ETF"],
-      frontier: ["Frontière efficiente : rendement et perte attendue des ensembles d'obligations sélectionnés par le modèle", "Frontière efficiente"],
-      curve: ["Obligation sélectionnée par le modèle pour chaque niveau de risque", "Sélectionnée par niveau de risque"],
+      compare: ["Portefeuille du modèle vs ETF", "Modèle vs ETF"],
+      frontier: ["Frontière efficiente du modèle", "Frontière efficiente"],
+      curve: ["Obligation choisie par niveau de risque", "Par niveau de risque"],
       list: ["Voir les 10 obligations top", "Voir les 10 top"],
       country: ["Vérifier le risque pays", "Vérifier le risque pays"],
       company: ["Vérifier le risque entreprise", "Risque entreprise"],
@@ -266,7 +263,6 @@ const fr: LandingText = {
 };
 
 const de: LandingText = {
-  eyebrow: "Anleihen-Investments",
   tagline: "Klügere Anleihenauswahl. Höhere potenzielle Rendite.",
   cardTitleBench: "Durchschnittlicher Anleihen-ETF und Modell-Portfolio",
   cardTitleBenchShort: "Anleihen-ETF und Modell",
@@ -288,8 +284,8 @@ const de: LandingText = {
   ctaBtn: "Das Tool entdecken",
   sticky: "Tool öffnen",
   kicker: "Vom Modell ausgewählte Anleihen",
-  h1a: "Mehr modellierte Rendite.",
-  h1b: "Bei gleichem modelliertem Risiko.",
+  h1a: "KI-gestützte",
+  h1b: "Anleihe-Portfolios",
   lead: "Zur Illustration: Ein Modell-Portfolio aus 10 Anleihen kann bei gleicher Laufzeit und gleichem Modell-Risiko mehr modellierte Rendite erzielen als ein handverlesenes.",
   cta: "Top 10 finden",
   signUp: "Registrieren",
@@ -330,9 +326,9 @@ const de: LandingText = {
   paperShort: "Methodik (PDF)",
   carousel: {
     act: {
-      compare: ["Modell-Portfolio mit einem Anleihe-ETF vergleichen", "Modell-Portfolio vs ETF"],
-      frontier: ["Effizienzlinie: Rendite und erwarteter Verlust der vom Modell ausgewählten Anleihegruppen", "Effizienzlinie"],
-      curve: ["Vom Modell ausgewählte Anleihe je Risikostufe", "Ausgewählt je Risikostufe"],
+      compare: ["Modell-Portfolio vs ETF", "Modell vs ETF"],
+      frontier: ["Effizienzlinie des Modells", "Effizienzlinie"],
+      curve: ["Anleihe je Risikostufe", "Je Risikostufe"],
       list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
       country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
       company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],
