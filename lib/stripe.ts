@@ -179,3 +179,20 @@ export function readSubscription(sub: any): {
     cancelAtEnd: sub?.cancel_at_period_end === true,
   };
 }
+
+/**
+ * The Stripe coupon for the running promo: found by its id, created the first time it is needed (test and live keys alike).
+ * Applies once (first billing period) and cannot be redeemed after the promo's end (redeem_by), so Stripe stops it by itself.
+ */
+export async function ensurePromoCoupon(percent: number, endsAt: string, label: string): Promise<string> {
+  const end = Math.floor(Date.parse(endsAt) / 1000);
+  const id = `tenbonds_promo_${percent}_${end}`;
+  try {
+    await stripe("GET", `/coupons/${id}`);
+    return id;
+  } catch (e) {
+    if (!(e instanceof StripeError) || e.status !== 404) throw e;
+  }
+  await stripe("POST", "/coupons", { id, percent_off: percent, duration: "once", redeem_by: end, name: label, metadata: { app: "10bonds" } });
+  return id;
+}

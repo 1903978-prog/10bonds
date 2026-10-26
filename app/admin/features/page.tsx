@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import PromoAdmin from "@/components/PromoAdmin";
 import FeatureAdmin from "@/components/FeatureAdmin";
 import { currentUser } from "@/lib/currentUser";
 
@@ -11,5 +12,10 @@ export default async function AdminFeatures() {
   if (!user) redirect("/login?next=%2Fadmin%2Ffeatures");
   if (user?.adminState && user.adminState !== "ok") redirect("/admin");
   if (!user?.isAdmin) notFound();
-  return <FeatureAdmin />;
+  return (
+    <>
+      <PromoAdmin />
+      <FeatureAdmin />
+    </>
+  );
 }
