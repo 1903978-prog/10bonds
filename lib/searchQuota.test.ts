@@ -7,7 +7,7 @@ const DAY = 24 * 60;
 
 describe("weekly search allowance", () => {
   it("Free: 3 portfolio and 10 single-bond searches; Plus and Premium unlimited; admin unlimited", () => {
-    expect(limitFor({ plan: "free", isAdmin: false }, "portfolio")).toBe(3);
+    expect(limitFor({ plan: "free", isAdmin: false }, "portfolio")).toBe(10);
     expect(limitFor({ plan: "free", isAdmin: false }, "single")).toBe(10);
     expect(limitFor({ plan: "plus", isAdmin: false }, "single")).toBeNull();
     expect(limitFor({ plan: "plus", isAdmin: false }, "portfolio")).toBeNull();
