@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { calcGptRating, useGptCalc, withoutPopups } from "@/lib/gptStore";
 
-type Info = { settings: { provider: "gemini" | "openai" | "anthropic"; model: string; dailyCap: number; instructions: string }; used: number; keyPresent: boolean; keyName: string; secretsUrl: string; keyUrl: string };
+type Info = { settings: { provider: "gemini" | "openai" | "anthropic"; model: string; dailyCap: number; instructions: string }; used: number; perMinute?: number; perMinuteLimit?: number; keyPresent: boolean; keyName: string; secretsUrl: string; keyUrl: string };
 
 /** Admin only: "Calculate all 10" (IR and BR through the API, one bond after the other), with progress, errors and the calculator settings. */
 export function GptCalcAll({ isins }: { isins: string[] }) {
@@ -18,6 +18,8 @@ export function GptCalcAll({ isins }: { isins: string[] }) {
   useEffect(() => { void refresh(); }, [open]);
   const anyBusy = Object.values(calc).some((c) => c.busy);
   useEffect(() => { if (!anyBusy) void refresh(); }, [anyBusy]);
+  // the per-minute count falls back on its own, so look again every 10 seconds
+  useEffect(() => { const t = setInterval(() => { void fetch("/api/admin/gpt-calc", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) setInfo(j); }).catch(() => {}); }, 10000); return () => clearInterval(t); }, []);
   const left = info && info.settings.dailyCap > 0 ? Math.max(0, Math.round(((info.settings.dailyCap - info.used) / info.settings.dailyCap) * 100)) : null;
 
   async function all() {
@@ -44,7 +46,7 @@ export function GptCalcAll({ isins }: { isins: string[] }) {
         {run ? `Calculating ${run.done}/${run.total}…` : "Calculate all 10"}
       </button>
       <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Calculator settings" title="Calculator settings" data-testid="gpt-calc-settings" className="flex h-5 w-5 items-center justify-center rounded-full border border-amber-300 bg-amber-50 text-[11px] text-amber-900 hover:bg-amber-100">⚙</button>
-      <span className={`w-[8.5rem] whitespace-nowrap text-[11px] tabular-nums ${left !== null && left <= 10 ? "font-medium text-red-700" : "text-amber-800"}`} title={info ? `${info.used} of ${info.settings.dailyCap} calls used since midnight Pacific (counted here; Google's own page shows the real quota)` : undefined} data-testid="gpt-calc-left">{info ? `${info.used} calls today · ${left ?? "–"}% left` : "– calls today"}</span>
+      <span className={`w-[11.5rem] whitespace-nowrap rounded-full border px-2 py-0.5 text-center text-[11px] tabular-nums ${(left !== null && left <= 10) || (info && info.perMinute !== undefined && info.perMinute >= (info.perMinuteLimit ?? 15)) ? "border-red-300 bg-red-50 font-medium text-red-700" : "border-amber-300 bg-amber-50 text-amber-800"}`} title={info ? `${info.used} of ${info.settings.dailyCap} calls used since midnight Pacific (${left ?? "–"}% left); ${info.perMinute ?? 0} in the last minute, limit ${info.perMinuteLimit ?? 15} per minute (counted here; Google's own page shows the real quota)` : undefined} data-testid="gpt-calc-left">{info ? info.settings.provider === "gemini" ? "Gemini" : info.settings.provider === "openai" ? "OpenAI" : "Claude" : "Gemini"}{info ? ` ${info.used} today · ${info.perMinute ?? 0}/min` : " – today"}</span>
       {(open || firstError) && (
         <div className="absolute bottom-full right-0 z-20 mb-1 w-80 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900 shadow" data-testid="gpt-calc-panel">
           {firstError?.error && <p className="mb-1 font-medium text-red-700" data-testid="gpt-calc-error">{firstError.error}{firstError.missingKey && info?.secretsUrl ? "" : ""}</p>}

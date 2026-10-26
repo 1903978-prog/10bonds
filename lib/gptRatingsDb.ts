@@ -137,6 +137,13 @@ export async function llmCallsToday(provider: string): Promise<number> {
   return Number(r?.n ?? 0);
 }
 
+/** Calls made by this provider in the last 60 seconds (failed ones included). */
+export async function llmCallsLastMinute(provider: string): Promise<number> {
+  const s = await sql();
+  const [r] = await s<{ n: string }[]>`select count(*) as n from app.llm_calls where provider = ${provider} and at >= now() - interval '60 seconds'`;
+  return Number(r?.n ?? 0);
+}
+
 export async function logLlmCall(isin: string, provider: string, model: string, ok: boolean): Promise<void> {
   const s = await sql();
   await s`insert into app.llm_calls (isin, provider, model, ok) values (${isin}, ${provider}, ${model}, ${ok})`;
