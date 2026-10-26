@@ -108,9 +108,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (the owner, 19/10/2026).
   const [touched, setTouched] = useState(false);
-  // iPhone (the owner, 24/10/2026): "Show selected bonds" opens the results as their own full-screen page, no scrolling.
+  // The list replaces the chart only when the main button is pressed (the owner, 26/10/2026); until then the chart follows the horizon.
+  const [listOn, setListOn] = useState(false);
+  // iPhone (the owner, 24/10/2026): "Show AI Efficient Portfolio" opens the results as their own full-screen page, no scrolling.
   const [sheet, setSheet] = useState(false);
-  // Each press of "Show selected bonds" runs the search again, so the press always shows the search and a fresh list.
+  // Each press of "Show AI Efficient Portfolio" runs the search again, so the press always shows the search and a fresh list.
   const [rerun, setRerun] = useState(0);
   // Sign-up funnel steps (consent-only usage stats; no choices or figures are sent).
   useEffect(() => { if (touched) trackOnce("finder_started"); }, [touched]);
@@ -300,6 +302,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setSize(r.size);
       setMode(r.mode);
       setTouched(true);
+      setListOn(true);
       if (r.sheet && r.mode === "portfolio" && window.matchMedia("(max-width: 639px)").matches) setSheet(true);
       setResumed((n) => n + 1);
     });
@@ -677,6 +680,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             tabIndex={mode === "portfolio" ? 0 : -1}
             onClick={() => {
               setTouched(true);
+              setListOn(true);
               // A desired return above the slider's maximum is brought back to it, so the figure shown is the one searched.
               if (caps && ytm > ytmMax) setYtm(ytmMax);
               setRerun((n) => n + 1);
@@ -708,9 +712,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         style={pageH ? { ["--page-h" as string]: `${pageH}px` } : undefined}
       >
         {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
-        {!touched && (
+        {!listOn && (
           <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
-            <Frontier currency={currency} />
+            <Frontier currency={currency} band={TERMS.find((x) => x.key === termOf(duration)) ?? { from: Math.max(0, duration - 1), to: duration + 1 }} />
           </div>
         )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
@@ -874,7 +878,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
       </section>
       )}
-      <ConsentGate active={touched && mode === "portfolio"} lang={lang} isAdmin={isAdmin} />
+      <ConsentGate active={listOn && mode === "portfolio"} lang={lang} isAdmin={isAdmin} />
       {sheet && mode === "portfolio" && createPortal(
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
@@ -1654,7 +1658,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
 }
 
 /**
- * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Show selected bonds".
+ * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Show AI Efficient Portfolio".
  * Top to bottom: return and expected loss, the 10 bonds with a few large columns, and one small grey Monte Carlo line
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.

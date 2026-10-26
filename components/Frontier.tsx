@@ -2,14 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFinderText } from "@/lib/finderText";
-import type { Frontier as FrontierData } from "@/lib/frontier";
+import { picksFor, type Frontier as FrontierData } from "@/lib/frontier";
 
 const RED = "#ff3b30";
 const DOTS_MS = 1400, LINE_MS = 700;
 const BLUE = "#0a84ff";
 
-/** Landing chart, shown before the visitor moves a control: every bond as a grey dot, 4-6 year bonds in blue, in red their efficient frontier from risk 1 to 8. */
-export default function Frontier({ currency }: { currency: string }) {
+const WAVE_MS = 1100, FADE_MS = 450, GREY = [174, 174, 178], BLUE_RGB = [10, 132, 255], LEVELS = 10;
+
+/**
+ * Chart shown until the visitor presses the main button: every bond as a grey dot, the bonds of the chosen horizon in blue,
+ * in red their efficient frontier from risk 1 to 8. `band` (years) is the horizon; without it, the 4-6 year bonds.
+ * When the band changes the dots turn blue or grey in a wave from left to right, then the red line draws again.
+ */
+export default function Frontier({ currency, band }: { currency: string; band?: { from: number; to: number } }) {
   const t = useFinderText();
   const [data, setData] = useState<FrontierData | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -37,7 +43,9 @@ export default function Frontier({ currency }: { currency: string }) {
   const spread = (i: number) => ((((Math.sin(i * 12.9898 + 78.233) * 43758.5453) % 1) + 1) % 1) - 0.5;
   const rx = (i: number) => dots[i][0] + spread(i);
   // The frontier bonds, safest first, each drawn at the centre of its risk level.
-  const picks = (data?.picks ?? []).filter((i) => dots[i] && dots[i][0] <= 8);
+  const dLo = band ? band.from - 0.5 : 4, dHi = band ? band.to + 0.5 : 6;
+  const picks = (band ? picksFor(dots, dLo, dHi) : data?.picks ?? []).filter((i) => dots[i] && dots[i][0] <= 8);
+  const bandKey = `${dLo}-${dHi}`;
   // The axis follows the bulk of the bonds (a few distressed yields would flatten everything else) and always the red bonds.
   const sorted = dots.map((d) => d[1]).sort((a, b) => a - b);
   const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
@@ -57,7 +65,10 @@ export default function Frontier({ currency }: { currency: string }) {
   const [lineOn, setLineOn] = useState(false);
   const drawn = useRef<string>("");
 
+  const lastBand = useRef<string>("");
+  const wasBlue = useRef<Uint8Array | null>(null);
   // Dots fly in over about 1.4 s (canvas, so thousands stay smooth), then the red line draws left to right.
+  // A later change of horizon recolours the dots in a wave instead, then the red line draws again.
   useEffect(() => {
     const c = cv.current;
     if (!c || !dots.length) return;
@@ -67,36 +78,57 @@ export default function Frontier({ currency }: { currency: string }) {
     if (!g) return;
     g.scale(dpr, dpr);
     const key = `${dots.length}`;
-    const still = drawn.current === key || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const pts = dots.map(([r, v, b], i) => ({ px: x(rx(i)), py: y(v), b, vis: r <= 8, d: ((i * 2654435761) % 1000) / 1000 * (DOTS_MS - 500) }));
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const now = new Uint8Array(dots.length);
+    dots.forEach((d, i) => { now[i] = (band ? d[3] >= dLo && d[3] <= dHi : d[2] === 1) ? 1 : 0; });
+    const before = wasBlue.current && wasBlue.current.length === now.length ? wasBlue.current : now;
+    const flying = drawn.current !== key && !reduced;
+    const waving = !flying && !reduced && lastBand.current !== "" && lastBand.current !== bandKey;
+    const pts = dots.map(([r], i) => ({ px: x(rx(i)), py: y(dots[i][1]), vis: r <= 8, d: ((i * 2654435761) % 1000) / 1000 * (DOTS_MS - 500) }));
+    const colours = Array.from({ length: LEVELS + 1 }, (_, k) => `rgb(${GREY.map((v, n) => Math.round(v + (BLUE_RGB[n] - v) * (k / LEVELS))).join(",")})`);
     const paint = (t: number) => {
       g.clearRect(0, 0, W, H);
-      for (const blue of [false, true]) {
-        g.fillStyle = blue ? BLUE : "#aeaeb2";
-        for (const p of pts) {
-          if (!p.vis || !!p.b !== blue) continue;
-          const k = Math.min(1, Math.max(0, (t - p.d) / 500));
-          if (k <= 0) continue;
-          const e = 1 - (1 - k) ** 3;
-          g.globalAlpha = (blue ? 0.55 : 0.5) * e;
+      // Greyest first, bluest last, so the blue bonds sit on top.
+      const buckets: number[][] = Array.from({ length: LEVELS + 1 }, () => []);
+      const fall: number[] = [];
+      pts.forEach((p, i) => {
+        if (!p.vis) return;
+        let k = now[i], a = 1;
+        if (flying) { a = Math.min(1, Math.max(0, (t - p.d) / 500)); if (a <= 0) return; }
+        else if (waving) {
+          const e = Math.min(1, Math.max(0, (t - (p.px / W) * (WAVE_MS - FADE_MS)) / FADE_MS));
+          k = before[i] + (now[i] - before[i]) * (1 - (1 - e) ** 3);
+        }
+        buckets[Math.round(k * LEVELS)].push(i);
+        fall[i] = (1 - (1 - a) ** 3);
+      });
+      buckets.forEach((list, lv) => {
+        g.fillStyle = colours[lv];
+        for (const i of list) {
+          const e = flying ? fall[i] : 1;
+          g.globalAlpha = (lv > LEVELS / 2 ? 0.55 : 0.5) * e;
           g.beginPath();
-          g.arc(p.px, p.py + (1 - e) * 24, 1.8, 0, 6.2832);
+          g.arc(pts[i].px, pts[i].py + (1 - e) * 24, 1.8, 0, 6.2832);
           g.fill();
         }
-      }
+      });
     };
-    if (still) { paint(DOTS_MS); setLineOn(true); drawn.current = key; return; }
+    const done = () => { drawn.current = key; lastBand.current = bandKey; wasBlue.current = now; setLineOn(true); };
+    if (!flying && !waving) { paint(DOTS_MS); done(); return; }
+    // The old red line goes away while the dots change.
+    if (waving) setLineOn(false);
+    const total = flying ? DOTS_MS : WAVE_MS;
     let raf = 0; const t0 = performance.now();
-    const tick = (now: number) => {
-      const t = now - t0;
+    const tick = (stamp: number) => {
+      const t = stamp - t0;
       paint(t);
-      if (t < DOTS_MS) raf = requestAnimationFrame(tick);
-      else { drawn.current = key; setLineOn(true); }
+      if (t < total) raf = requestAnimationFrame(tick);
+      else done();
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, W, H]);
+  }, [data, W, H, bandKey]);
 
   const path = picks.map((i, k) => `${k ? "L" : "M"}${x(dots[i][0]).toFixed(1)},${y(dots[i][1]).toFixed(1)}`).join(" ");
 
@@ -105,7 +137,7 @@ export default function Frontier({ currency }: { currency: string }) {
       <h2 className="text-[17px] font-semibold">{t.frontierTitle}</h2>
       <div className="mt-0.5 flex flex-wrap gap-x-4 text-[11px] text-mute">
         <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#aeaeb2] align-middle" />{t.frontierDots(data ? dots.length : null, currency)}</span>
-        <span><span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: BLUE }} />{t.frontierBlue}</span>
+        <span><span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: BLUE }} />{t.frontierBlue(band ? band.from : 4, band ? band.to : 6)}</span>
         <span><span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: RED }} />{t.frontierLine}</span>
       </div>
       <div ref={box} className="relative mt-1 min-h-0 w-full flex-1 overflow-hidden">
