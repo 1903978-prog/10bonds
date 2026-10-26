@@ -172,6 +172,7 @@ function BestByRisk({ f, data }: { f: FinderText; data: OneBondData }) {
   const vals = pts.map((p) => p.ytm).filter((v): v is number => v !== null);
   const lo = Math.floor(Math.min(...vals) * 2) / 2 - 0.5, hi = Math.ceil(Math.max(...vals) * 2) / 2 + 0.5;
   const small = size.h < 200;
+  const narrow = size.w < 520;
   const W = size.w, H = size.h, L = 52, R = 24, T = small ? 26 : 30, B = small ? 40 : 52, PAD = 22;
   const x = (r: number) => L + PAD + ((top - r) / (top - 1)) * (W - L - PAD - R);
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
@@ -188,7 +189,7 @@ function BestByRisk({ f, data }: { f: FinderText; data: OneBondData }) {
         {pts.map((p) => <text key={p.level} x={x(p.level)} y={H - B + (small ? 16 : 22)} textAnchor="middle" fill="#86868b">{p.level}</text>)}
         <text x={(L + W - R) / 2} y={H - (small ? 2 : 8)} textAnchor="middle" fill="#86868b" fontSize={small ? 12 : 14}>{f.riskAxis}</text>
         {pts.filter((p) => p.ghost && p.ytm !== null).map((p) => (
-          <g key={`g${p.level}`}><circle cx={x(p.level)} cy={y(p.ytm!)} r={4.5} fill="#fff" stroke="#c7c7cc" strokeWidth={2} /><text x={x(p.level)} y={y(p.ytm!) - 12} textAnchor="middle" fontSize={12} fill="#aeaeb2">{p.ytm!.toFixed(1)}%</text></g>
+          <g key={`g${p.level}`}><circle cx={x(p.level)} cy={y(p.ytm!)} r={4.5} fill="#fff" stroke="#c7c7cc" strokeWidth={2} />{!narrow && <text x={x(p.level)} y={y(p.ytm!) - 12} textAnchor="middle" fontSize={12} fill="#aeaeb2">{p.ytm!.toFixed(1)}%</text>}</g>
         ))}
         <polyline points={line.map((p) => `${x(p.level)},${y(p.ytm!)}`).join(" ")} fill="none" stroke={BLUE} strokeWidth={3} strokeLinejoin="round" />
         {line.map((p) => {
@@ -196,7 +197,7 @@ function BestByRisk({ f, data }: { f: FinderText; data: OneBondData }) {
           return (
             <g key={p.level}>
               <circle cx={x(p.level)} cy={y(p.ytm!)} r={on ? 8 : 6} fill={on ? BLUE : "#fff"} stroke={BLUE} strokeWidth={2.5} />
-              <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontWeight={600} fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>
+              {(!narrow || on || p.level === 1 || p.level === top) && <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontWeight={on ? 700 : 600} fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>}
             </g>
           );
         })}
@@ -218,22 +219,22 @@ export function OneBondScreen({ lang, data, asOf, locale }: { lang: FinderLang; 
   ];
   return (
     <ScaledScreen render={(wide) => (
-      <Chrome wide={wide} lang={lang}>
+      <Chrome wide={wide} lang={lang} bare>
         {wide && <Controls f={f} single horizon={data.duration} mix={8} />}
-        <Panel>
+        <Panel className={wide ? "" : "!p-3"}>
           {wide && <div className="mb-1 text-[22px] font-semibold tracking-tight">{f.bestByRating}</div>}
-          <div className="min-h-0 flex-1"><BestByRisk f={f} data={data} /></div>
-          <div className="mt-3 shrink-0 rounded-[12px] border border-[#e5e5ea] px-4 py-3 text-[15px]">
+          <div className={wide ? "min-h-0 flex-1" : "min-h-[170px] flex-1"}><BestByRisk f={f} data={data} /></div>
+          <div className={`shrink-0 rounded-[12px] border border-[#e5e5ea] text-[15px] ${wide ? "mt-3 px-4 py-3" : "mt-2 px-3 py-2"}`}>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="min-w-0 truncate"><span className="text-[13px] text-[#6b6b72]">{f.ratingStep} {b.level} · </span><span className="font-semibold">{b.issuer}</span>{b.name !== b.issuer && <span className="text-[13px] text-[#6b6b72]"> · {b.name}</span>}</span>
-              <span className="shrink-0 text-[26px] font-semibold tabular-nums">{num(b.ytm, 2)}% <span className="text-[13px] font-normal text-[#6b6b72]">{f.yieldLower}</span></span>
+              <span className="min-w-0 truncate"><span className="font-semibold">{b.issuer}</span>{!wide && <span className="ml-2 align-middle"><RiskBadge risk={b.risk} /></span>}{wide && b.name !== b.issuer && <span className="text-[13px] text-[#6b6b72]"> · {b.name}</span>}</span>
+              <span className={`shrink-0 font-semibold tabular-nums ${wide ? "text-[26px]" : "text-[22px]"}`}>{num(b.ytm, 2)}% <span className="text-[13px] font-normal text-[#6b6b72]">{f.yieldLower}</span></span>
             </div>
-            <dl className={`mt-1 grid gap-x-6 ${wide ? "grid-cols-3" : "grid-cols-2"}`}>
-              {facts.map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-2 border-b border-[#f0f0f3] py-1 text-[14px] tabular-nums"><dt className="text-[#6b6b72]">{k}</dt><dd className="font-medium">{v}</dd></div>
+            <dl className={`mt-1 grid gap-x-5 ${wide ? "grid-cols-3" : "grid-cols-2"}`}>
+              {(wide ? facts : facts.filter(([k]) => k !== f.risk && k !== f.minInvest)).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between gap-2 whitespace-nowrap border-b border-[#f0f0f3] py-0.5 text-[13px] tabular-nums sm:text-[14px]"><dt className="text-[#6b6b72]">{k}</dt><dd className="font-medium">{v}</dd></div>
               ))}
             </dl>
-            {asOf && <div className="mt-1 text-right text-[12px] text-[#6b6b72]">{asOf}</div>}
+            {asOf && <div className="mt-0.5 text-right text-[12px] text-[#6b6b72]">{asOf}</div>}
           </div>
         </Panel>
       </Chrome>
