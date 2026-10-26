@@ -19,6 +19,15 @@ const PAGES = [
 ];
 const WIDTHS = [[1440, 900], [390, 844], [360, 780]];
 
+// Opens a page and waits for it to load. "networkidle" alone is not used as the gate: the home page keeps asking the server
+// for numbers, and on a slow runner it never goes quiet for the full half second, which failed the check for no real
+// reason. The page's own checks below wait for what they need; this only gives it a short chance to settle.
+async function open(p, url) {
+  const res = await p.goto(url, { waitUntil: "load", timeout: 60_000 });
+  await p.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
+  return res;
+}
+
 const browser = await chromium.launch(
   process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: process.env.CHROME_CHANNEL ?? "chrome" },
 );
@@ -36,7 +45,7 @@ for (const [w, h] of WIDTHS) {
     const p = await ctx.newPage();
     const errors = [];
     p.on("pageerror", (e) => errors.push(e.message));
-    const res = await p.goto(BASE + path, { waitUntil: "networkidle" });
+    const res = await open(p, BASE + path);
     const label = `${w}px ${path}`;
     ok(res?.status() === want, `${label}: HTTP ${res?.status()} (want ${want})`);
     ok((await p.title()).trim().length > 0, `${label}: has a title`);
@@ -61,7 +70,7 @@ for (const [w, h] of WIDTHS) {
 {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
-  await p.goto(BASE + "/", { waitUntil: "networkidle" });
+  await open(p, BASE + "/");
   ok(await p.locator('[data-testid="intro"]').isVisible(), "home: intro on first visit");
   await p.locator('[data-testid="cookie-settings"]').click().catch(() => {});
   await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
@@ -74,7 +83,7 @@ for (const [w, h] of WIDTHS) {
 {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
-  await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
+  await open(p, BASE + "/?intro=0");
   await p.locator('[data-testid="find-portfolio"]').click();
   ok(await p.locator('[data-testid="consent-gate"]').isVisible(), "consent: popup shows on first use");
   ok(await p.locator('[data-testid="consent-continue"]').isDisabled(), "consent: Continue disabled until ticked");
@@ -92,7 +101,7 @@ for (const [w, h] of WIDTHS) {
   const agreeVersion = (await import("node:fs")).readFileSync(new URL("../lib/consentText.ts", import.meta.url), "utf8").match(/CONSENT_VERSION = "([^"]+)"/)[1];
   await ctx.addInitScript((v) => localStorage.setItem("tb_agree", v), agreeVersion);
   const p = await ctx.newPage();
-  await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
+  await open(p, BASE + "/?intro=0");
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
   await p.locator('[data-testid="cookie-settings"]').click(); // the switches open in Settings
   await p.locator('[data-testid="cookie-necessary"]').waitFor();

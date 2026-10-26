@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "schema:update": "UPDATE_SCHEMA=1 vitest run lib/schema.db.test.ts",
     "lint": "eslint . --max-warnings 10"
   },
   "dependencies": {

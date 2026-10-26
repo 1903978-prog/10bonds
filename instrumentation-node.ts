@@ -18,7 +18,8 @@ async function warmAll() {
   }
 }
 
-if (process.env.NODE_ENV === "production") {
+// SKIP_WARMUP=1 (set only in the CI browser check) leaves the warm-up out, so the heavy solver run does not compete with the page checks on a small runner.
+if (process.env.NODE_ENV === "production" && !process.env.SKIP_WARMUP) {
   setTimeout(warm, 2_000);
   setInterval(warm, 30 * 60_000).unref();
 }
