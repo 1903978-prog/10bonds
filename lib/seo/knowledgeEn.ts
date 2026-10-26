@@ -29,10 +29,7 @@ export const KC_TEXT_EN = {
   brokersIn: { it: "Broker fees in Italy", fr: "Broker fees in France", de: "Broker fees in Germany" } satisfies Record<Locale, string>,
 };
 
-const IT = CALCULATORS.it;
-const DE = CALCULATORS.de;
-
-/** English yield calculator. Tax presets are the ones already sourced for the Italian and German calculators. */
+/** English yield calculator. No tax rates are preset: the visitor types their own. */
 export const CALCULATOR_EN: CalculatorText = {
   slug: "bond-yield-calculator",
   title: "Bond yield calculator: yield to maturity, gross and net · 10BONDS",
