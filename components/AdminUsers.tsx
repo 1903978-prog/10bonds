@@ -43,11 +43,64 @@ function csv(rows: Row[]): string {
   return [head.join(","), ...lines].join("\n");
 }
 
+type Disc = { code: string; email: string | null; percentOff: number | null; amountOffCents: number | null; months: number; mode: string | null; createdAt: string; usedAt: string | null };
+const off = (d: Disc) => (d.percentOff !== null ? `${d.percentOff}%` : `€${((d.amountOffCents ?? 0) / 100).toFixed(2)}`);
+
+/** Small button + popover (absolute, so nothing moves) that makes a Stripe discount code and copies it. */
+function DiscountButton({ row, onMade }: { row: Row; onMade: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"percent" | "amount">("percent");
+  const [value, setValue] = useState("20");
+  const [months, setMonths] = useState("3");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const make = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await fetch("/api/admin/discount-codes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: row.id, kind, value: Number(value), months: Number(months) }) });
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(b.error ?? "Failed");
+      let copied = true;
+      try { await navigator.clipboard.writeText(b.code); } catch { copied = false; }
+      setMsg({ ok: true, text: `${b.code} ${copied ? "copied" : "(copy it by hand)"}${b.via === "stripe" ? ` · Stripe ${b.mode}` : " · in-app code"}` });
+      onMade();
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    }
+    setBusy(false);
+  };
+  const inp = "w-14 rounded-lg border border-line px-2 py-1 text-xs";
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen((o) => !o)} className="rounded-full border border-line px-2.5 py-1 text-xs hover:bg-[#f5f5f7]" data-testid="discount-btn" aria-expanded={open}>Discount</button>
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-2xl bg-white p-3 text-xs shadow-[0_4px_24px_rgba(0,0,0,0.15)]">
+          <div className="flex items-center gap-1.5">
+            <input type="number" min={1} value={value} onChange={(e) => setValue(e.target.value)} className={inp} aria-label="Discount" />
+            <select value={kind} onChange={(e) => setKind(e.target.value as "percent" | "amount")} className="rounded-lg border border-line px-1 py-1" aria-label="Discount type"><option value="percent">% off</option><option value="amount">€ off</option></select>
+            <span>for</span>
+            <input type="number" min={1} max={36} value={months} onChange={(e) => setMonths(e.target.value)} className={inp} aria-label="Months" />
+            <span>mo</span>
+          </div>
+          <button onClick={make} disabled={busy} className="mt-2 w-full rounded-full bg-accent px-3 py-1.5 font-medium text-white disabled:opacity-60">{busy ? "Making…" : "Create & copy code"}</button>
+          <p className={`mt-2 min-h-[2rem] break-words ${msg && !msg.ok ? "text-red-700" : "text-mute"}`}>{msg ? msg.text : `For ${row.email}. One use, only this user.`}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminUsers() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState(false);
   const [sort, setSort] = useState<{ key: Key; desc: boolean }>({ key: "createdAt", desc: true });
   const [q, setQ] = useState("");
+  const [discs, setDiscs] = useState<Disc[]>([]);
+  const [stripeMode, setStripeMode] = useState<string | null>(null);
+  const loadDiscs = () =>
+    fetch("/api/admin/discount-codes", { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject())).then((b) => { setDiscs(b.codes); setStripeMode(b.stripe); }).catch(() => {});
+  useEffect(() => { loadDiscs(); }, []);
 
   useEffect(() => {
     fetch("/api/admin/users", { cache: "no-store" })
@@ -102,10 +155,11 @@ export default function AdminUsers() {
                   </button>
                 </th>
               ))}
+              <th className="w-24" aria-label="Discount code" />
             </tr>
           </thead>
           <tbody>
-            {rows && shown.length === 0 && <tr><td colSpan={COLS.length} className="py-3 text-mute">No users.</td></tr>}
+            {rows && shown.length === 0 && <tr><td colSpan={COLS.length + 1} className="py-3 text-mute">No users.</td></tr>}
             {shown.map((r) => (
               <tr key={r.id} className="border-t border-line">
                 <td className="py-2 pr-3">{r.email}{r.isAdmin && <span className="ml-1 text-xs text-mute">(you)</span>}</td>
@@ -118,11 +172,31 @@ export default function AdminUsers() {
                 <td className={`pr-3 ${r.secondsOnSite === null ? "text-mute" : ""}`}>{duration(r.secondsOnSite)}</td>
                 <td className={`pr-3 ${r.searches === null ? "text-mute" : ""}`}>{r.searches ?? "no stats"}</td>
                 <td className={`max-w-[10rem] truncate ${r.cameFrom === null ? "text-mute" : ""}`} title={r.cameFrom ?? undefined}>{r.cameFrom ?? "no stats"}</td>
+                <td className="w-24 text-right"><DiscountButton row={r} onMade={loadDiscs} /></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {discs.length > 0 && (
+        <div className="mt-4 border-t border-line pt-3" data-testid="discount-list">
+          <h3 className="text-sm font-semibold">Discount codes{stripeMode ? <span className="ml-2 text-xs font-normal text-mute">Stripe mode: {stripeMode}</span> : null}</h3>
+          <table className="mt-2 w-full text-left text-xs">
+            <tbody>
+              {discs.map((d) => (
+                <tr key={d.code} className="border-t border-line">
+                  <td className="py-1.5 pr-3 font-mono">{d.code}</td>
+                  <td className="pr-3">{d.email ?? "—"}</td>
+                  <td className="pr-3">{off(d)} × {d.months} mo</td>
+                  <td className="pr-3 text-mute">{day(d.createdAt)}</td>
+                  <td className="pr-3 text-mute">{d.mode ?? "in-app"}</td>
+                  <td className={d.usedAt ? "" : "text-mute"}>{d.usedAt ? `used ${day(d.usedAt)}` : "not used"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
