@@ -5,6 +5,8 @@ import ReplacementEngine from "@/components/ReplacementEngine";
 import { currentUser } from "@/lib/currentUser";
 import { PlanButton } from "@/components/PlanButton";
 import { euro, priceCents } from "@/lib/plans";
+import { activePromo } from "@/lib/promoServer";
+import { promoCents, promoEndLabel, promoLine } from "@/lib/promo";
 import { proAccess } from "@/lib/pro";
 
 export const metadata: Metadata = { title: "For wealth managers · 10BONDS", description: "Bond Replacement Engine for professional wealth managers.", alternates: { canonical: "/pro" } };
@@ -32,6 +34,7 @@ export default async function Pro() {
     return <p className="text-center text-mute">Professional access is not available right now. Please try again later.</p>;
   }
   if (status === "active") return <ReplacementEngine />;
+  const promo = status === "needs-plan" ? await activePromo() : null;
   if (status === "needs-plan")
     return (
       <div className="mx-auto max-w-md rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-9" data-testid="pro-needs-plan">
@@ -40,6 +43,7 @@ export default async function Pro() {
         <p className="mt-2 text-[15px] text-mute">
           Pro gives you client portfolio analysis and similar bonds with a higher yield, on top of everything in Premium.
           {` ${euro(priceCents("pro", "month"))} a month.`}
+          {promo && <span className="mt-1 block text-xs">{`${euro(promoCents("pro", promo.percent))} for the first month. ${promoLine("en", promo.percent, promoEndLabel(promo.endsAt, "en"))}`}</span>}
         </p>
         <PlanButton plan="pro" interval="month" highlight label="Get Pro monthly" />
       </div>
