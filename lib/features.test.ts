@@ -11,6 +11,12 @@ describe("plan features", () => {
     expect(FEATURES.length).toBeLessThanOrEqual(40);
     expect(new Set(FEATURES.map((f) => f.key)).size).toBe(FEATURES.length);
   });
+  it("ISIN search is a paid feature, apart from showing ISINs in lists", () => {
+    const m = defaultMatrix();
+    expect(featuresOf(m, "free")).not.toContain("isin_search");
+    expect(featuresOf(m, "free")).toContain("isin");
+    for (const p of ["plus", "premium", "pro"] as const) expect(featuresOf(m, p)).toContain("isin_search");
+  });
   it("free sees portfolios with ISIN; the blacklist is for paying plans", () => {
     const m = defaultMatrix();
     expect(featuresOf(m, "free")).toEqual(expect.arrayContaining(["isin", "portfolio_sim"]));
