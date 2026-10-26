@@ -26,7 +26,7 @@ export default function YieldCalculator({ locale, text }: { locale: string; text
   const f = (x: number, d = 2) => x.toLocaleString(NUM[locale], { minimumFractionDigits: d, maximumFractionDigits: d });
 
   return (
-    <div className="mt-6 rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8" data-testid="yield-calculator">
+    <div className="mt-6 rounded-lg border border-line bg-white p-5 sm:p-8" data-testid="yield-calculator">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm font-medium">{L.price}<input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className={field} data-testid="calc-price" /></label>
         <label className="text-sm font-medium">{L.coupon}<input inputMode="decimal" value={coupon} onChange={(e) => setCoupon(e.target.value)} className={field} data-testid="calc-coupon" /></label>

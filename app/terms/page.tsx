@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function Terms() {
   return (
-    <article className="mx-auto max-w-6xl rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
+    <article className="mx-auto max-w-6xl rounded-lg border border-line bg-white p-7 sm:p-10">
       <h1 className="mb-6 text-3xl font-semibold tracking-tight">Terms of Use and Risk Disclosure</h1>
       <TermsText />
     </article>

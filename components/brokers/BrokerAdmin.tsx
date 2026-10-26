@@ -20,7 +20,7 @@ type Payload = {
 
 const COUNTRY_NAMES: Record<Country, string> = { it: "Italy", fr: "France", de: "Germany" };
 const PATHS: Record<Country, string> = { it: "/it/broker-obbligazioni", fr: "/fr/courtiers-obligations", de: "/de/anleihen-broker" };
-const card = "rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
+const card = "rounded-[24px] bg-white p-6";
 const btn = "rounded-full border border-line px-3 py-1.5 text-xs font-medium hover:bg-canvas disabled:opacity-50";
 const btnMain = "rounded-full bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50";
 

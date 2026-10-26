@@ -25,7 +25,7 @@ const SECTIONS: [string, string][] = [
 
 export default function ProTerms() {
   return (
-    <article className="mx-auto max-w-3xl rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="pro-terms">
+    <article className="mx-auto max-w-3xl rounded-lg border border-line bg-white p-7 sm:p-10" data-testid="pro-terms">
       <Link href="/pro" className="text-sm text-accent">← Pro</Link>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">Business terms for Pro</h1>
       <p className="mt-1 text-sm text-mute">Version 26 October 2026.</p>

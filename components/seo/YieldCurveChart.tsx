@@ -42,7 +42,7 @@ export default function YieldCurveChart({ locale, text, curves, initial }: { loc
 
   const chip = "rounded-full px-3 py-1 text-[13px] border transition";
   return (
-    <section className="mt-6 rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8">
+    <section className="mt-6 rounded-lg border border-line bg-white p-5 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[18px] font-semibold">{text.chartTitle}</h2>
         <div className="flex gap-1">

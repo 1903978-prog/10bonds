@@ -432,7 +432,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           aria-selected={view === k}
           data-testid={`view-tab-${k}`}
           onClick={() => pickView(k)}
-          className={`whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] ${view === k ? (isAdmin && (k === "multi" || k === "heat") ? "bg-amber-100 font-medium text-amber-900 shadow-sm" : "bg-white font-medium text-ink shadow-sm") : isAdmin && (k === "multi" || k === "heat") ? "text-amber-800" : "text-mute"}`}
+          className={`whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] ${view === k ? (isAdmin && (k === "multi" || k === "heat") ? "bg-amber-100 font-medium text-amber-900 shadow-sm" : "bg-soft font-medium text-accent ring-1 ring-accent") : isAdmin && (k === "multi" || k === "heat") ? "text-amber-800" : "text-mute"}`}
         >
           {label}
         </button>
@@ -507,7 +507,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {/* Inputs */}
       {/* On phones the mode tabs sit on top so they never move; in 1-bond mode the title and the two portfolio
           sliders give way so slider, options, curve and bond name fit on one screen. */}
-      <section className={`flex flex-col rounded-[28px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] max-sm:py-4 sm:p-6 ${curveMode ? "lg:hidden" : ""}`}>
+      <section className={`flex flex-col rounded-lg border border-line bg-white p-5 max-sm:py-4 sm:p-6 ${curveMode ? "lg:hidden" : ""}`}>
         <div className={mode === "single" ? "max-lg:hidden" : "max-lg:mt-3"}>
         <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
           {t.h1}
@@ -517,14 +517,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </p>
         </div>
 
-        <div role="tablist" aria-label={t.mode} className="mt-3 grid grid-cols-2 rounded-full bg-canvas p-1 text-sm font-medium max-lg:order-first max-lg:mt-0">
+        <div role="tablist" aria-label={t.mode} className="mt-3 grid grid-cols-2 border-b border-line text-sm font-medium max-lg:order-first max-lg:mt-0">
           {([["single", t.single], ["portfolio", t.portfolio]] as const).map(([m, label]) => (
             <button
               key={m}
               role="tab"
               aria-selected={mode === m}
               onClick={() => { setTouched(true); setMode(m); }}
-              className={`rounded-full px-4 py-1.5 transition ${mode === m ? "bg-white shadow-sm" : "text-mute"}`}
+              className={`-mb-px border-b-2 px-4 py-2 transition ${mode === m ? "border-accent text-accent" : "border-transparent text-mute hover:text-ink"}`}
             >
               {label}
             </button>
@@ -701,7 +701,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {/* Results */}
       {mode === "single" ? (
         <section
-          className="flex flex-col sm:rounded-[28px] sm:bg-white sm:p-5 sm:shadow-[0_2px_20px_rgba(0,0,0,0.04)] lg:min-h-[var(--results-h)]"
+          className="flex flex-col sm:rounded-lg sm:border sm:border-line sm:bg-white sm:p-5 lg:min-h-[var(--results-h)]"
           style={resultsH ? { ["--results-h" as string]: `${resultsH}px` } : undefined}
         >
           <SingleBond duration={duration} preview={preview.current} currency={currency} size={size} />
@@ -711,12 +711,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // On phones this box gives way to the full-screen results page (PhoneResults), so the slider page never scrolls down to it.
       <section
         ref={resultsBox}
-        className={`relative hidden flex-col rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:flex sm:p-5 ${curveMode ? "lg:min-h-[var(--page-h)]" : ""}`}
+        className={`relative hidden flex-col rounded-lg border border-line bg-white p-4 sm:flex sm:p-5 ${curveMode ? "lg:min-h-[var(--page-h)]" : ""}`}
         style={pageH ? { ["--page-h" as string]: `${pageH}px` } : undefined}
       >
         {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
         {!listOn && (
-          <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
+          <div className="absolute inset-0 z-10 rounded-lg bg-white p-4 sm:p-5">
             <Frontier currency={currency} band={TERMS.find((x) => x.key === termOf(duration)) ?? { from: Math.max(0, duration - 1), to: duration + 1 }} />
           </div>
         )}
@@ -1088,7 +1088,7 @@ function TermPicker({ value, onChange }: { value: string | null; onChange: (dura
             role="radio"
             aria-checked={value === x.key}
             onClick={() => onChange(x.duration)}
-            className={`rounded-xl px-1 py-1.5 text-center leading-tight transition ${value === x.key ? "bg-white shadow-sm" : "text-mute"}`}
+            className={`rounded-xl px-1 py-1.5 text-center leading-tight transition ${value === x.key ? "bg-soft text-accent ring-1 ring-accent" : "text-mute"}`}
           >
             <span className="block truncate text-[13px] font-semibold">{names[x.key]}</span>
             <span className="block truncate text-[11px] text-mute">{t.termYears(x.from, x.to)}</span>
@@ -1113,7 +1113,7 @@ function Toggle({ label, value, options, onChange, testId, tip, disabled = [], d
             disabled={disabled.includes(v)}
             title={disabled.includes(v) ? disabledTitle : undefined}
             onClick={() => onChange(v)}
-            className={`rounded-full px-2 py-1 transition disabled:cursor-not-allowed disabled:opacity-40 ${value === v ? "bg-white shadow-sm" : "text-mute"}`}
+            className={`rounded-full px-2 py-1 transition disabled:cursor-not-allowed disabled:opacity-40 ${value === v ? "bg-soft text-accent ring-1 ring-accent" : "text-mute"}`}
           >
             {text}
           </button>

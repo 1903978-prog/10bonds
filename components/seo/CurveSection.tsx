@@ -18,7 +18,7 @@ export default async function CurveSection({ locale, text }: { locale: string; t
       {asOf && <p className="mt-3 text-sm text-mute">{text.asOf} <time dateTime={data!.asOf!}>{asOf}</time>{data!.source === "sample" ? " (sample)" : ""}</p>}
       <YieldCurveChart locale={locale} text={text} curves={curves} initial={DEFAULT_COUNTRIES} />
       {years.length > 0 && (
-        <section className="mt-8 overflow-x-auto rounded-[28px] bg-white p-5 sm:p-8">
+        <section className="mt-8 overflow-x-auto rounded-lg border border-line bg-white p-5 sm:p-8">
           <h2 className="text-[18px] font-semibold">{text.tableTitle}</h2>
           <table className="mt-3 w-full text-[14px]">
             <thead><tr className="text-left text-mute"><th scope="col" className="py-2 pr-3 font-normal">{text.yearCol}</th>{cols.map((c) => <th key={c} scope="col" className="py-2 pr-3 text-right font-normal">{countryName(c, NUM[locale])}</th>)}</tr></thead>

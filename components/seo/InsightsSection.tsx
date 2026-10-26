@@ -5,7 +5,7 @@ import { countryName } from "@/lib/seo/yieldCurves";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 const GOV_NAME: Record<string, string> = { IT: "BTP", FR: "OAT", ES: "Bonos" };
-const box = "mt-6 rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8";
+const box = "mt-6 rounded-lg border border-line bg-white p-6 sm:p-8";
 
 /** The bond market today, computed from the bond copy each time the page is read. */
 export default async function InsightsSection({ locale, text, curveHref, methodHref }: { locale: string; text: InsightsText; curveHref: string; methodHref: string }) {

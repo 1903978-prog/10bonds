@@ -16,6 +16,8 @@ export default {
         canvas: "#f5f5f7",
         // #0066cc: Apple's link blue, readable on white and on the grey canvas (contrast 4.5:1 or more, WCAG AA).
         accent: "#0066cc",
+        // Selected pill / tab fill (Schwab-style look, Oct 2026).
+        soft: "#e8f1fb",
       },
     },
   },

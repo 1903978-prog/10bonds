@@ -32,7 +32,7 @@ type Payload = {
 
 const TABS = ["Curve", "Spread rules", "Settings", "Compare", "Review", "Rejected", "Sensitivity", "History"] as const;
 type Tab = (typeof TABS)[number];
-const card = "rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
+const card = "rounded-[24px] bg-white p-5";
 const btn = "rounded-full border border-line px-3 py-1 text-xs font-medium hover:bg-canvas disabled:opacity-50";
 const btnMain = "rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50";
 const input = "rounded-lg border border-line px-2 py-1 text-sm tabular-nums";

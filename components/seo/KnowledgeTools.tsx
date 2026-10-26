@@ -22,7 +22,7 @@ const ROWS = ["AAA", "AA", "A", "BBB", "BBB−", "BB", "B", "CCC / C"];
 const COLS = [1, 5, 10];
 const IDX: Record<number, number> = { 1: 0, 3: 1, 5: 2, 7: 3, 10: 4, 15: 5 };
 
-const card = "rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6";
+const card = "rounded-[24px] bg-white p-5 sm:p-6";
 
 /** Top of the Knowledge hubs: the country yield-curve chart, the default table and the other tools, in place. */
 export default async function KnowledgeTools({ locale, defaultHref, tools }: { locale: L; defaultHref: string | null; tools: { title: string; href: string; note?: string }[] }) {
@@ -70,7 +70,7 @@ export default async function KnowledgeTools({ locale, defaultHref, tools }: { l
       <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tools.map((i) => (
           <li key={i.href}>
-            <Link href={i.href} className="block h-full rounded-2xl bg-white px-4 py-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] hover:text-accent">
+            <Link href={i.href} className="block h-full rounded-2xl bg-white px-4 py-4 hover:text-accent">
               <span className="block text-[15px] font-semibold">{i.title}</span>
               {i.note && <span className="mt-0.5 block text-xs text-mute">{i.note}</span>}
             </Link>

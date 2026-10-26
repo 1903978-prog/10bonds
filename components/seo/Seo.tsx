@@ -94,7 +94,7 @@ export async function ComparisonBody({ locale, c, asOf, source }: { locale: Loca
   // The admin also sees each bond's S&P grade next to the risk score.
   const admin = (await currentUser().catch(() => null))?.isAdmin === true;
   return (
-    <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7">
+    <div className="rounded-[24px] bg-white p-5 sm:p-7">
       <DataStamp locale={locale} asOf={asOf} source={source} />
       {c.def.kind === "bands" ? (
         c.bands.map((b) => (

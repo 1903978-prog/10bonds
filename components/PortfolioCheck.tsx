@@ -12,7 +12,7 @@ const eur = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", c
 export default function PortfolioCheck({ a }: { a: PortfolioAnalysis }) {
   const t = a.totals;
   return (
-    <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8" data-testid="pro-check">
+    <div className="rounded-lg border border-line bg-white p-6 sm:p-8" data-testid="pro-check">
       <h2 className="text-xl font-semibold tracking-tight">Portfolio check-up</h2>
       <p className="mt-1 text-sm text-mute">
         {a.positions.length} {a.positions.length === 1 ? "bond" : "bonds"} found{a.notFound.length ? ` · ${a.notFound.length} not in our data` : ""}. Averages are weighted by market value.

@@ -86,7 +86,7 @@ export default async function SectionPage({ params }: Props) {
       />
       <div className="mt-8 space-y-6">
         {KC_ORDER.map((sec) => (
-          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 sm:p-6">
             <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
             <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
             {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (
@@ -122,7 +122,7 @@ export default async function SectionPage({ params }: Props) {
       <ul className="mt-8 space-y-3">
         {guides.map((g) => (
           <li key={g.id}>
-            <Link href={pathOf(l, "guides", g.slug)} className="block rounded-[20px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
+            <Link href={pathOf(l, "guides", g.slug)} className="block rounded-[20px] bg-white p-5 hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
               <h2 className="text-lg font-semibold tracking-tight">{g.title}</h2>
               <p className="mt-1 text-[15px] text-mute">{g.metaDescription}</p>
               {g.reviewedAt && <p className="mt-2 text-xs text-mute">{t.reviewed}: {fmtDate(l, g.reviewedAt)}</p>}
@@ -168,7 +168,7 @@ export default async function SectionPage({ params }: Props) {
     body = (
       <ul className="mt-8 space-y-3">
         <li>
-          <Link href={pathOf(l, "tools", c.slug)} className="block rounded-[20px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
+          <Link href={pathOf(l, "tools", c.slug)} className="block rounded-[20px] bg-white p-5 hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
             <h2 className="text-lg font-semibold tracking-tight">{c.h1}</h2>
             <p className="mt-1 text-[15px] text-mute">{c.description}</p>
           </Link>
@@ -179,7 +179,7 @@ export default async function SectionPage({ params }: Props) {
   } else if (s === "method") {
     const m = METHOD[l];
     body = (
-      <div className="mt-6 rounded-[28px] bg-white p-6 text-[16px] leading-[1.7] shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
+      <div className="mt-6 rounded-lg border border-line bg-white p-6 text-[16px] leading-[1.7] sm:p-10">
         {m.sections.map((sec) => (
           <section key={sec.id}>
             <h2 id={sec.id} className="mt-6 text-[22px] font-semibold tracking-tight first:mt-0">{sec.h2}</h2>

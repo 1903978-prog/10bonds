@@ -30,7 +30,7 @@ export default async function WidgetPage({ searchParams }: { searchParams: Promi
         <Link href={href(lang, false)} className={pill(!dark)} scroll={false}>Light</Link>
         <Link href={href(lang, true)} className={pill(dark)} scroll={false}>Dark</Link>
       </div>
-      <section className="mt-5 rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+      <section className="mt-5 rounded-[24px] bg-white p-5 sm:p-6">
         <h2 className="text-[17px] font-semibold">Preview</h2>
         <iframe src={`/embed/yields?lang=${lang}${dark ? "&theme=dark" : ""}`} title={WIDGET_TEXT[lang].title} className="mt-3 h-[330px] w-full max-w-[520px] rounded-xl border border-line" loading="lazy" />
         <h2 className="mt-6 text-[17px] font-semibold">Copy this code into your page</h2>

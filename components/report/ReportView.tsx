@@ -146,7 +146,7 @@ export default function ReportView({ r, open, admin = false, signedIn = false, v
           {open && <ReportNav items={sectionsFor(admin)} />}
 
           {/* 01 Hero */}
-          <section id="overview" aria-label="Overview" className={`report-section bg-white px-5 pb-8 pt-[30px] md:px-6 wide:px-10 ${open ? "" : "rounded-[28px]"}`}>
+          <section id="overview" aria-label="Overview" className={`report-section bg-white px-5 pb-8 pt-[30px] md:px-6 wide:px-10 ${open ? "" : "rounded-lg border border-line"}`}>
             <div className="hidden print:block"><Logo className="mb-4 h-7 w-auto" /></div>
             <nav aria-label="Breadcrumb" className="text-[14px] text-mute print:hidden"><Link href="/risk-assessment" className="hover:text-ink">Companies in focus</Link> › Bond report</nav>
             {showView && <div className="mt-3 flex flex-wrap items-center gap-2">

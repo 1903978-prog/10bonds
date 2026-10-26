@@ -183,8 +183,8 @@ function ToolPage({ l }: { l: Locale }) {
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{land?.h1 ?? c.h1}</h1>
       {land ? <div className={`mt-4 ${prose}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(lead) }} /> : c.intro.map((p) => <p key={p.slice(0, 30)} className="mt-3 text-[17px] text-mute">{p}</p>)}
       <div id="calcolatore" className="scroll-mt-20"><YieldCalculator locale={l} text={c} /></div>
-      {land && <section className={`mt-8 rounded-[28px] bg-white p-6 sm:p-10 ${prose}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(rest) }} />}
-      <section className="mt-8 rounded-[28px] bg-white p-6 text-[16px] leading-[1.7] sm:p-10">
+      {land && <section className={`mt-8 rounded-lg border border-line bg-white p-6 sm:p-10 ${prose}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(rest) }} />}
+      <section className="mt-8 rounded-lg border border-line bg-white p-6 text-[16px] leading-[1.7] sm:p-10">
         <h2 id="metodo" className="text-[22px] font-semibold tracking-tight">{c.how.h2}</h2>
         {c.how.paras.map((p) => <p key={p.slice(0, 30)} className="mt-3">{p}</p>)}
         <p className="mt-3"><Link href={pathOf(l, "bonds")} className="text-accent">{t.bonds} ›</Link> · <Link href={pathOf(l, "guides")} className="text-accent">{t.guides} ›</Link></p>
@@ -213,7 +213,7 @@ async function ComparisonPage({ l, def }: { l: Locale; def: ComparisonDef }) {
       <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{land?.h1 ?? x.h1}</h1>
       {land ? <div className={`mt-4 ${prose}`} dangerouslySetInnerHTML={{ __html: lead }} /> : x.intro.map((p) => <p key={p.slice(0, 30)} className="mt-4 text-[16px] leading-[1.7]">{p}</p>)}
       <div id="tabella" className="mt-6 scroll-mt-20"><ComparisonBody locale={l} c={c} asOf={asOf} source={source} /></div>
-      {land && <section className={`mt-8 rounded-[28px] bg-white p-6 sm:p-10 ${prose}`} dangerouslySetInnerHTML={{ __html: rest }} />}
+      {land && <section className={`mt-8 rounded-lg border border-line bg-white p-6 sm:p-10 ${prose}`} dangerouslySetInnerHTML={{ __html: rest }} />}
       {relGuides.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t.guides}</h2>
@@ -288,7 +288,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
     <article className="mx-auto max-w-6xl">
       {g.status !== "published" && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.preview} ({g.status}{g.machineTranslated ? ", machine translation" : ""})</p>}
       <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.guides, href: pathOf(l, "guides") }, { name: g.title, href: pathOf(l, "guides", g.slug) }]} />
-      <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
+      <div className="rounded-lg border border-line bg-white p-6 sm:p-10">
         <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{g.title}</h1>
         <p className="mt-4 text-sm text-mute">
           {t.by} {author ? <Link href={`${team}#p${author.id}`} className="text-ink hover:underline">{author.name}</Link> : t.editorial}

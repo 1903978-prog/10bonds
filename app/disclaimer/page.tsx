@@ -14,7 +14,7 @@ export default async function Disclaimer({ searchParams }: { searchParams: Promi
   const lang = disclaimerLang(await pickedLang((await searchParams).lang));
   const d = DISCLAIMER[lang];
   return (
-    <article lang={lang} className="mx-auto max-w-6xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
+    <article lang={lang} className="mx-auto max-w-6xl rounded-lg border border-line bg-white p-7 text-[15px] leading-relaxed sm:p-10">
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">{d.title}</h1>
       <p className="mt-5">{d.intro}</p>
       {d.sections.map((s) => (

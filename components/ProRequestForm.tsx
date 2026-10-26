@@ -47,7 +47,7 @@ export default function ProRequestForm({ status, trialDays }: { status: "none" |
 
   return (
     <div className="space-y-6" id="verify">
-      <div className="mx-auto max-w-xl rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-9">
+      <div className="mx-auto max-w-xl rounded-lg border border-line bg-white p-7 sm:p-9">
         <h2 className="text-[22px] font-semibold tracking-tight">Verify your firm</h2>
         <p className="mt-1 text-[15px] text-mute">Three details and two ticks. We match them to your regulator’s public register by hand. Then you get {trialDays} days free, no card needed.</p>
 

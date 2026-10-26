@@ -33,7 +33,7 @@ export default function AdminTwoFactor() {
     else window.location.reload();
   }
 
-  const card = "mx-auto max-w-md rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-7";
+  const card = "mx-auto max-w-md rounded-[24px] bg-white p-6 sm:p-7";
   if (!s) return <div className={card}><p className="text-sm text-mute">Loading…</p></div>;
 
   if (backup)

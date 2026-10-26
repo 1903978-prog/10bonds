@@ -100,7 +100,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
         </div>
       </div>
 
-      <section className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+      <section className="mt-4 overflow-x-auto rounded-2xl bg-white">
         <div className="flex h-11 items-center justify-between px-4 text-[12px] font-medium text-mute">
           <span data-testid="drops-caption">{risk === null ? t.topAll(ids.length, label[sort]) : t.topRisk(risk, label[sort])}</span>
           <nav aria-label={t.pages} data-testid="drops-pages" className="flex items-center gap-1 text-[13px] text-ink tabular-nums">

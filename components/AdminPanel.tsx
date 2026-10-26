@@ -9,7 +9,7 @@ type Code = { code: string; days: number; note: string | null; createdAt: string
 type Stats = { users: number; verified: number; onTrial: number; newThisWeek: number; events30d: { kind: string; n: number }[]; topPages30d: { path: string; n: number }[] };
 
 const d = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-const card = "rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
+const card = "rounded-[24px] bg-white p-6";
 
 export default function AdminPanel() {
   const [data, setData] = useState<{ codes: Code[]; stats: Stats } | null>(null);
