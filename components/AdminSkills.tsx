@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type Key = "irbr" | "lr_gov" | "lr_corp";
 const BOXES: { key: Key; title: string; hint: string }[] = [
-  { key: "irbr", title: "1. IR / BR", hint: "Sent with every IR/BR calculation. Empty = built-in default text." },
+  { key: "irbr", title: "1. IR / BR", hint: "Sent with every IR/BR calculation. Empty = the $bonds skill below. A JSON request is added after your text on every call." },
   { key: "lr_gov", title: "2. LR governments", hint: "Pre-filled with the countries methodology (v1.0). Not used by a button yet." },
   { key: "lr_corp", title: "3. LR corporate", hint: "Pre-filled with the corporate methodology (v2.0). Not used by a button yet." },
 ];

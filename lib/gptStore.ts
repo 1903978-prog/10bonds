@@ -63,8 +63,9 @@ export async function calcGptRating(isin: string): Promise<string | null> {
   setCalc(isin, { busy: true });
   try {
     const r = await fetch("/api/admin/gpt-calc", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isin }) });
-    const j = await r.json().catch(() => null);
-    if (!r.ok || !j?.ratings) {
+    // long answers are streamed (blank keep-alive characters first, then one JSON object with its own status)
+    const j = await r.text().then((t) => JSON.parse(t.trim()) as { status?: number; ratings?: Record<string, StoredGpt>; error?: string; answer?: unknown; note?: string; missingKey?: boolean }).catch(() => null);
+    if (!r.ok || (j?.status ?? 200) >= 400 || !j?.ratings) {
       const error = j?.error ?? "Calculation failed";
       if (typeof j?.answer === "string") openPopup({ isin, answer: j.answer, error });
       setCalc(isin, { error, missingKey: !!j?.missingKey });
@@ -73,7 +74,7 @@ export async function calcGptRating(isin: string): Promise<string | null> {
     map = j.ratings;
     emit();
     setCalc(isin, null);
-    if (bulkDepth === 0) openPopup({ isin, answer: String(j.answer ?? "") });
+    if (bulkDepth === 0) openPopup({ isin, answer: String(j.answer ?? ""), note: j.note });
     return null;
   } catch {
     const error = "No answer from the server";
@@ -88,7 +89,7 @@ export function useGptCalc(): Record<string, CalcState> {
 }
 
 // The answer window: one per page, opened when a single bond's calculation returns (not during "Calculate all 10").
-export type CalcPopup = { isin: string; answer: string; error?: string };
+export type CalcPopup = { isin: string; answer: string; error?: string; note?: string };
 let popup: CalcPopup | null = null;
 let bulkDepth = 0;
 const popupListeners = new Set<() => void>();
