@@ -45,7 +45,7 @@ export function coherentBuild(src: BondSource, f: BondFilter, duration: number, 
     p = coherentFrontier(without ? src.bonds.filter((b) => !without.fn(b)) : src.bonds, duration)
       .then((r) => { if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); return r; })
       .finally(() => coherentBuilding.delete(key));
-    p.catch((e) => console.error("[coherent] build failed:", (e as Error).message));
+    p.catch((e) => console.error("[coherent] build failed:", (e as Error).stack));
     coherentBuilding.set(key, p);
   }
   return p;
