@@ -26,8 +26,7 @@ const STATS: Stat[] = [
 const fmt = (s: Stat, v: number | null) => (v === null ? "–" : s.pct ? `${num(v * 100, s.digits ?? 1)}%` : num(v, s.digits ?? 0));
 
 /** A line over the saved days; days without a figure leave a gap. Same size always, so nothing moves. */
-function Spark({ values }: { values: (number | null)[] }) {
-  const W = 140, H = 36;
+function Spark({ values, W = 140, H = 36 }: { values: (number | null)[]; W?: number; H?: number }) {
   const nums = values.filter((v): v is number => v !== null);
   if (!nums.length) return <svg width={W} height={H} aria-hidden="true" />;
   const lo = Math.min(...nums), hi = Math.max(...nums), span = hi - lo || 1;
@@ -48,12 +47,40 @@ function Spark({ values }: { values: (number | null)[] }) {
   );
 }
 
+/** A stat opened up as an overlay (nothing on the page moves): a larger chart and the exact value for every saved day. */
+function Detail({ stat, days, vals, onClose }: { stat: Stat; days: string[]; vals: (number | null)[]; onClose: () => void }) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onClose]);
+  const rows = days.map((d, i) => ({ d, v: vals[i] })).reverse();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose} data-testid="seo-stat-detail">
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div><p className="text-sm font-semibold">{stat.label}</p><p className="text-xs text-mute">Saved days since {days[0] ?? "–"}</p></div>
+          <button onClick={onClose} aria-label="Close" className="text-lg leading-none text-mute">×</button>
+        </div>
+        <div className="mt-3 overflow-hidden"><Spark values={vals} W={400} H={140} /></div>
+        <div className="mt-3 overflow-auto">
+          <table className="w-full text-left text-sm">
+            <thead><tr><th className="font-medium">Date</th><th className="text-right font-medium">Value</th></tr></thead>
+            <tbody>{rows.map((r) => <tr key={r.d} className="border-t border-line tabular-nums"><td className="py-1">{r.d}</td><td className="text-right">{fmt(stat, r.v)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** History of the headline search numbers, saved once a day: a small chart per figure and the dated table. */
 export default function History() {
   const [rows, setRows] = useState<DailyRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [table, setTable] = useState(false);
+  const [detail, setDetail] = useState<Stat | null>(null);
   useEffect(() => {
     if (!open || rows) return;
     api<{ rows: DailyRow[] }>("/api/admin/seo/history").then((r) => setRows(r.rows)).catch((e) => setError((e as Error).message));
@@ -76,11 +103,11 @@ export default function History() {
               const vals = days.map((d) => val(s, d));
               const last = [...vals].reverse().find((v) => v !== null) ?? null;
               return (
-                <div key={s.label} className="rounded-xl bg-canvas px-3 py-2">
+                <button key={s.label} onClick={() => setDetail(s)} className="rounded-xl bg-canvas px-3 py-2 text-left">
                   <p className="text-[11px] text-mute">{s.label}</p>
                   <p className="text-sm font-semibold">{fmt(s, last)}</p>
                   <Spark values={vals} />
-                </div>
+                </button>
               );
             })}
           </div>
@@ -101,6 +128,7 @@ export default function History() {
               )}
             </div>
           )}
+          {detail && <Detail stat={detail} days={days} vals={days.map((d) => val(detail, d))} onClose={() => setDetail(null)} />}
         </div>
       )}
     </section>
