@@ -1,0 +1,59 @@
+{
+  "asOf": "2026-10-26",
+  "duration": 5,
+  "points": [
+    {
+      "level": 8,
+      "ytm": null,
+      "ghost": false
+    },
+    {
+      "level": 7,
+      "ytm": 5.1,
+      "ghost": false
+    },
+    {
+      "level": 6,
+      "ytm": 4.6,
+      "ghost": false
+    },
+    {
+      "level": 5,
+      "ytm": 4.2,
+      "ghost": false
+    },
+    {
+      "level": 4,
+      "ytm": 4.0,
+      "ghost": false
+    },
+    {
+      "level": 3,
+      "ytm": 3.6,
+      "ghost": false
+    },
+    {
+      "level": 2,
+      "ytm": 3.1,
+      "ghost": false
+    },
+    {
+      "level": 1,
+      "ytm": 2.8,
+      "ghost": false
+    }
+  ],
+  "bond": {
+    "level": 4,
+    "issuer": "Sample",
+    "name": "Sample 4% 2031",
+    "isin": "XS0000000000",
+    "coupon": 4.0,
+    "maturity": "2031-01-01",
+    "ytm": 4.0,
+    "duration": 4.8,
+    "risk": 4,
+    "minInvestment": 1000,
+    "currency": "EUR"
+  }
+}
