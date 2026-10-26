@@ -19,7 +19,21 @@ export function GptRate({ isin, kind = "br" }: { isin?: string | null; kind?: "b
   const calc = useGptCalc();
   const st = isin ? calc[isin] : undefined;
   const modelTip = kind === "br" && v && g?.model ? ` · Calculated by ${g.model}, provisional GPT scenario, not validated` : "";
-  const chip = <span title={note ?? (title ? title + modelTip : undefined)} className={`inline-block min-w-[3rem] rounded px-1 text-center text-[11px] font-semibold tabular-nums ${v ? "bg-amber-100 text-amber-900" : "text-mute"}`} data-testid={kind === "ir" ? "gpt-ir" : "gpt-rate"}>{v ?? "–"}</span>;
+  // no value yet: a small icon in the empty cell runs the same calculation as the per-bond button
+  const emptyBtn = isin ? (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); void calcGptRating(isin); }}
+      disabled={st?.busy}
+      title={st?.error ?? "Calculate IR and BR with the API (provisional, admin only)"}
+      aria-label="Calculate IR and BR"
+      data-testid="gpt-calc-empty"
+      className={`inline-flex h-3 w-3 items-center justify-center rounded-full align-middle text-[9px] font-bold leading-none ${st?.error ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-900 hover:bg-amber-200"}`}
+    >
+      {st?.busy ? <span className="inline-block h-2 w-2 animate-spin rounded-full border border-amber-700 border-t-transparent" /> : st?.error ? "!" : "↻"}
+    </button>
+  ) : null;
+  const chip = <span title={note ?? (title ? title + modelTip : undefined)} className={`inline-block min-w-[3rem] rounded px-1 text-center text-[11px] font-semibold tabular-nums ${v ? "bg-amber-100 text-amber-900" : "text-mute"}`} data-testid={kind === "ir" ? "gpt-ir" : "gpt-rate"}>{v ?? (isin ? emptyBtn : "–")}</span>;
   // the calculate button sits at the left edge of the IR chip (absolute, so no cell changes width)
   const btn = kind === "ir" && isin ? (
     <button
