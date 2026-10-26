@@ -117,7 +117,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Sign-up funnel steps (consent-only usage stats; no choices or figures are sent).
   useEffect(() => { if (touched) trackOnce("finder_started"); }, [touched]);
   // The owner watches the show 3x faster.
-  const show = useScanShow(data, touched, isAdmin ? 1000 / 3 : 1000);
+  const show = useScanShow(data, touched && listOn, isAdmin ? 1000 / 3 : 1000);
 
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
@@ -485,8 +485,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, [canHeat, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
-  const waited = useWaitClock(touched && mode === "portfolio" && loading && !show);
-  const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show, waited);
+  const waited = useWaitClock(touched && listOn && mode === "portfolio" && loading && !show);
+  const reveal = useResultReveal(data, touched && listOn && mode === "portfolio", loading, show, waited);
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
   const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
