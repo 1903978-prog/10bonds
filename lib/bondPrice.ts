@@ -29,3 +29,18 @@ export function cleanPriceFromYield(coupon: number | null, maturity: string | nu
   const accrued = (coupon * (today.getTime() - lastCoupon.getTime())) / (365 * DAY);
   return Math.round((dirty - accrued) * 1000) / 1000;
 }
+
+/** Yield in % that gives the clean price (per 100 nominal): the inverse of cleanPriceFromYield, same convention. Null when out of reach. */
+export function yieldFromCleanPrice(coupon: number | null, maturity: string | null, price: number | null, today: Date = new Date()): number | null {
+  if (price === null || !(price > 0)) return null;
+  let lo = -50, hi = 100;
+  const at = (y: number) => cleanPriceFromYield(coupon, maturity, y, today);
+  const pLo = at(lo), pHi = at(hi);
+  if (pLo === null || pHi === null || price > pLo || price < pHi) return null;
+  for (let i = 0; i < 80; i++) {
+    const mid = (lo + hi) / 2;
+    const p = at(mid)!;
+    if (p > price) lo = mid; else hi = mid;
+  }
+  return Math.round(((lo + hi) / 2) * 1000) / 1000;
+}

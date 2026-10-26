@@ -9,9 +9,10 @@ import type { ShortlistRow, ShortlistSummary } from "@/lib/shortlist";
 import type { PortfolioFigures } from "@/lib/shortlistCompare";
 
 type Imported = { file_name: string; agency_rating: string | null; risk_grade: string | null; ir: string | null; br: string | null; risk_pay: string | null; ytm: number | null; duration: number | null; price: number | null; seniority: string | null; recommendation: string | null; verdict: string | null };
-type List = { id: number; name: string; isins: string[]; rows: ShortlistRow[]; summary: ShortlistSummary; imported: Record<string, Imported> };
+type List = { id: number; name: string; isins: string[]; bids: Record<string, number>; rows: ShortlistRow[]; summary: ShortlistSummary; imported: Record<string, Imported> };
 
 const pct = (v: number | null | undefined, d = 2) => (v == null ? "–" : `${v.toFixed(d)}%`);
+const comma = (v: number | null | undefined, d = 2) => (v == null ? "–" : v.toFixed(d).replace(".", ","));
 const dash = (v: unknown) => (v == null || v === "" ? "–" : String(v));
 
 function CopyIsin({ isin }: { isin: string }) {
@@ -20,6 +21,18 @@ function CopyIsin({ isin }: { isin: string }) {
     <button type="button" title="Click to copy" data-testid="copy-isin" className="w-[7.5rem] text-left font-mono text-[11px] text-amber-800 hover:text-ink" onClick={async () => { try { await navigator.clipboard.writeText(isin); setDone(true); setTimeout(() => setDone(false), 1500); } catch { setDone(false); } }}>
       {done ? "Copied ✓" : isin}
     </button>
+  );
+}
+
+/** The owner's bid price of one bond: typed with a decimal comma or point, saved when the field is left. */
+function BidInput({ value, onSave }: { value: number | null; onSave: (v: number | null) => void }) {
+  const [txt, setTxt] = useState(value == null ? "" : comma(value));
+  useEffect(() => { setTxt(value == null ? "" : comma(value)); }, [value]);
+  return (
+    <input value={txt} inputMode="decimal" placeholder="–" data-testid="bid-input" aria-label="My bid price" onChange={(e) => setTxt(e.target.value)}
+      onBlur={() => { const n = Number(txt.replace(",", ".")); const v = txt.trim() === "" || !(n > 0) ? null : n; if (v !== value) onSave(v); else setTxt(value == null ? "" : comma(value)); }}
+      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+      className="w-16 rounded border border-amber-300 bg-yellow-50 px-1 py-0.5 text-right text-[11px] font-semibold tabular-nums text-ink" />
   );
 }
 
@@ -52,6 +65,13 @@ export default function ShortlistAdmin() {
     setEdit(null);
     await load(j.list.id);
   };
+  const saveBid = async (l: List, isin: string, v: number | null) => {
+    const bids = { ...l.bids };
+    if (v == null) delete bids[isin]; else bids[isin] = v;
+    const r = await fetch("/api/admin/shortlists", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: l.id, name: l.name, isins: l.isins.join(" "), bids }) }).catch(() => null);
+    if (!r?.ok) { setErr("Could not save the bid price."); return; }
+    await load(l.id);
+  };
   const remove = async (l: List) => {
     if (!window.confirm(`Delete ${l.name}?`)) return;
     const r = await fetch(`/api/admin/shortlists?id=${l.id}`, { method: "DELETE" }).catch(() => null);
@@ -62,6 +82,7 @@ export default function ShortlistAdmin() {
   const cur = lists?.find((l) => l.id === sel) ?? null;
   const sm = cur?.summary;
   const missing = cur?.rows.filter((r) => !r.inCopy) ?? [];
+  const withBids = !!cur && (Object.keys(cur.bids).length > 0 || cur.name === "Shortlist 2");
   const flagged = cur?.rows.filter((r) => r.inCopy && r.flags.length) ?? [];
 
   return (
@@ -122,7 +143,7 @@ export default function ShortlistAdmin() {
             <table className="w-full min-w-[1500px] text-left text-[11px] tabular-nums" data-testid="shortlist-table">
               <thead className="bg-canvas text-mute">
                 <tr>
-                  {["#", "Issuer", "ISIN", "Coupon", "Maturity", "Seniority", "Return", "Duration", "Min inv.", "Risk", "Default chance", "Exp. loss (rank · LGD)", SPREAD_HEAD, RISKPAY_HEAD, "IR", "BR", "Imported (agency · grade · IR/BR · Risk Pay · YTM · price)", "Notes"].map((h) => (
+                  {["#", "Issuer", "ISIN", ...(withBids ? BID_HEAD : []), "Coupon", "Maturity", "Seniority", "Return", "Duration", "Min inv.", "Risk", "Default chance", "Exp. loss (rank · LGD)", SPREAD_HEAD, RISKPAY_HEAD, "IR", "BR", "Imported (agency · grade · IR/BR · Risk Pay · YTM · price)", "Notes"].map((h) => (
                     <th key={h} className="whitespace-nowrap px-2 py-2 font-medium">{h}</th>
                   ))}
                 </tr>
@@ -133,8 +154,9 @@ export default function ShortlistAdmin() {
                   return (
                     <tr key={r.isin} className={`border-t border-line align-top ${r.flags.length ? "bg-amber-50/50" : ""}`} title={overlap.includes(r.isin) ? "Also in the compared portfolio" : undefined} data-testid="shortlist-row">
                       <td className="px-2 py-1.5 text-mute">{i + 1}{overlap.includes(r.isin) && <span className="ml-0.5 font-bold text-green-700" title="Also in the compared portfolio">●</span>}</td>
-                      <td className="max-w-[16rem] px-2 py-1.5"><div className="font-medium text-ink">{r.issuer ?? "–"}</div><div className="truncate text-mute" title={r.name ?? undefined}>{r.name ?? "not in the copy"}</div></td>
+                      <td className="max-w-[16rem] px-2 py-1.5"><div className="font-medium text-ink">{r.issuer ?? "–"}</div><div className="truncate text-mute" title={r.name ?? undefined}>{r.name ?? "not in database"}</div></td>
                       <td className="px-2 py-1.5"><CopyIsin isin={r.isin} /></td>
+                      {withBids && <BidCells r={r} onSave={(v) => saveBid(cur, r.isin, v)} />}
                       <td className="px-2 py-1.5">{pct(r.coupon, 3)}</td>
                       <td className="whitespace-nowrap px-2 py-1.5">{dash(r.maturity)}</td>
                       <td className="px-2 py-1.5">{dash(r.seniority)}</td>
@@ -161,6 +183,25 @@ export default function ShortlistAdmin() {
         </>
       )}
     </div>
+  );
+}
+
+const BID_HEAD = ["App price", "My bid price", "YTM at app price", "YTM at my bid", "App − bid"];
+
+/** Price in the app next to the owner's bid, the return at each, and the gap (app price minus bid) with whether the app price is at or below the bid. */
+function BidCells({ r, onSave }: { r: ShortlistRow; onSave: (v: number | null) => void }) {
+  const diff = r.price != null && r.bid != null ? r.price - r.bid : null;
+  const ok = diff != null && diff <= 0.005;
+  return (
+    <>
+      <td className="whitespace-nowrap bg-yellow-50/60 px-2 py-1.5 text-right font-semibold">{r.inCopy ? comma(r.price) : <span className="font-normal text-mute">not in database</span>}</td>
+      <td className="bg-yellow-50/60 px-2 py-1.5 text-right"><BidInput value={r.bid} onSave={onSave} /></td>
+      <td className="whitespace-nowrap bg-yellow-50/60 px-2 py-1.5 text-right">{pct(r.ytm).replace(".", ",")}</td>
+      <td className="whitespace-nowrap bg-yellow-50/60 px-2 py-1.5 text-right font-semibold">{r.ytmBid == null ? "–" : `${comma(r.ytmBid)}%`}</td>
+      <td className={`w-28 whitespace-nowrap bg-yellow-50/60 px-2 py-1.5 text-right ${diff == null ? "text-mute" : ok ? "text-green-700" : "text-red-700"}`} data-testid="bid-diff">
+        {diff == null ? "–" : <>{diff > 0 ? "+" : ""}{comma(diff)} <span className="text-[10px]">{ok ? "at/below bid" : "above bid"}</span></>}
+      </td>
+    </>
   );
 }
 

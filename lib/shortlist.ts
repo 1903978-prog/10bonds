@@ -5,6 +5,7 @@ import { pdOf } from "./tiers";
 import { isExcludedRank, lgdOf, rankOf, RANK_LABEL } from "./seniority";
 import { lifeYears } from "./lifeYears";
 import { bondNote } from "./bondNotes";
+import { cleanPriceFromYield, yieldFromCleanPrice } from "./bondPrice";
 
 // Admin only: the figures of a shortlist, worked out exactly like the portfolio figures of the finder (lib/tiers.ts):
 // equal weight, average return and duration, average risk, and the expected loss on your money = the average of each
@@ -41,6 +42,10 @@ export type ShortlistRow = {
   /** Why the site would normally leave this bond out, or other things worth knowing; empty = a normal site bond. */
   flags: string[];
   note: string | null;
+  /** Indicative clean price in the app (worked out from its return), the owner's bid, and the return at that bid. */
+  price: number | null;
+  bid: number | null;
+  ytmBid: number | null;
 };
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
@@ -56,9 +61,9 @@ export function summarize(bonds: PublicBond[]): ShortlistSummary {
   };
 }
 
-export function rowOf(isin: string, found: { bond: PublicBond; why: string | null } | undefined): ShortlistRow {
+export function rowOf(isin: string, found: { bond: PublicBond; why: string | null } | undefined, bid: number | null = null): ShortlistRow {
   if (!found) {
-    return { isin, inCopy: false, issuer: null, name: null, currency: null, country: null, coupon: null, maturity: null, seniority: null, rank: "–", lgd: 0, ytm: null, duration: null, life: null, minInvestment: null, risk: null, sp: null, moodys: null, fitch: null, pd: null, el: null, counted: false, flags: ["not in the bond copy"], note: bondNote(isin) ?? null };
+    return { isin, inCopy: false, issuer: null, name: null, currency: null, country: null, coupon: null, maturity: null, seniority: null, rank: "–", lgd: 0, ytm: null, duration: null, life: null, minInvestment: null, risk: null, sp: null, moodys: null, fitch: null, pd: null, el: null, counted: false, flags: ["not in the bond copy"], note: bondNote(isin) ?? null, price: null, bid, ytmBid: null };
   }
   const { bond: b, why } = found;
   const counted = b.grossYtm != null && b.modifiedDuration != null;
@@ -94,11 +99,14 @@ export function rowOf(isin: string, found: { bond: PublicBond; why: string | nul
     counted,
     flags: [...new Set(flags)],
     note: bondNote(b.isin) ?? null,
+    price: cleanPriceFromYield(b.coupon, b.maturity, b.grossYtm),
+    bid,
+    ytmBid: bid == null ? null : yieldFromCleanPrice(b.coupon, b.maturity, bid),
   };
 }
 
 /** Rows in the shortlist's own order, and the summary of the bonds found. */
-export function detailOf(isins: string[], found: { bond: PublicBond; why: string | null }[]): { rows: ShortlistRow[]; summary: ShortlistSummary } {
+export function detailOf(isins: string[], found: { bond: PublicBond; why: string | null }[], bids: Record<string, number> = {}): { rows: ShortlistRow[]; summary: ShortlistSummary } {
   const by = new Map(found.map((f) => [f.bond.isin.trim().toUpperCase(), f]));
-  return { rows: isins.map((i) => rowOf(i, by.get(i))), summary: summarize(isins.flatMap((i) => (by.get(i) ? [by.get(i)!.bond] : []))) };
+  return { rows: isins.map((i) => rowOf(i, by.get(i), bids[i] ?? null)), summary: summarize(isins.flatMap((i) => (by.get(i) ? [by.get(i)!.bond] : []))) };
 }
