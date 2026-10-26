@@ -482,7 +482,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, [canHeat, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
-  const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show);
+  const waited = useWaitClock(touched && mode === "portfolio" && loading && !show);
+  const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show, waited);
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
   const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
@@ -825,6 +826,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <Results
             dense={false}
             show={show}
+            waited={data ? null : waited}
             lang={lang}
             data={data}
             list={list}
@@ -1200,7 +1202,7 @@ function ResultBoxes({ frac, paths, lang, ret, loss, lock }: { frac: number; pat
  * on its own, 2.5 seconds the first time and 1 second after, so the work behind each new list is visible. Instant for
  * reduced motion. 0 before the first search and while a new one loads.
  */
-function useResultReveal(data: Response | null, active: boolean, loading: boolean, show: Show | null): number {
+function useResultReveal(data: Response | null, active: boolean, loading: boolean, show: Show | null, waited: number | null = null): number {
   const [own, setOwn] = useState<number | null>(null);
   const [done, setDone] = useState<Response | null>(null);
   const runs = useRef(0);
@@ -1233,10 +1235,32 @@ function useResultReveal(data: Response | null, active: boolean, loading: boolea
       setOwn(null);
     };
   }, [active, data, show, done]);
+  // While the search runs, the counter climbs on its own towards (never reaching) the full number.
+  if (active && waited !== null) return 0.95 * (1 - Math.exp(-waited / 5000));
   if (!active || !data || loading) return 0;
   if (show) return show.sim;
   if (own !== null) return own;
   return done === data ? 1 : 0;
+}
+
+/** Milliseconds a search has been running (null when none is): drives the live counter and the rows filling in while waiting. */
+function useWaitClock(active: boolean): number | null {
+  const [ms, setMs] = useState<number | null>(null);
+  useEffect(() => {
+    if (!active) {
+      setMs(null);
+      return;
+    }
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      setMs(now - start);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active]);
+  return ms;
 }
 
 type Show = { row: number; count: number; sim: number };
@@ -1395,7 +1419,7 @@ const DENSE_HEAD_H = 24;
 const DENSE_ROW_H = 22;
 const CARD_H = 64;
 
-function Results({ data, list, setList, features, onExcluded, signedIn, currency, message, show, lang, whyQuery, dense = false, narrow = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; onExcluded: () => void; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string; dense?: boolean; narrow?: boolean }) {
+function Results({ data, list, setList, features, onExcluded, signedIn, currency, message, show, waited = null, lang, whyQuery, dense = false, narrow = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; onExcluded: () => void; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; waited?: number | null; lang: FinderLang; whyQuery: string; dense?: boolean; narrow?: boolean }) {
   // Dense: shorter rows, used beside the chart so the chart and the 10 bonds fit one screen. Narrow: half-width list
   // beside the chart, without the bond name and minimum columns (the issuer, return, duration and risk stay).
   const rowH = dense ? DENSE_ROW_H : ROW_H;
@@ -1428,6 +1452,8 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
   // While the search show runs, picks from this slot on are kept in place but not shown yet.
+  // While the first list is still being worked out, grey placeholder rows fill in one by one (same slots, nothing moves).
+  const pending = (i: number) => waited !== null && !message && i < Math.floor(waited / 700);
   const hide = (i: number) => (show && !message && i > show.row ? " invisible" : "");
   return (
     <div>
@@ -1507,7 +1533,16 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={(narrow ? 7 : 10) + (admin ? 4 : 0)} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}>
+              {pending(rows.length + locked + i) ? (
+                <>
+                  <td className="pl-2"><span className="inline-block h-3 w-4 animate-pulse rounded bg-line align-middle" /></td>
+                  <td colSpan={(narrow ? 6 : 9) + (admin ? 4 : 0)} className="pr-3"><span className="block h-3 animate-pulse rounded bg-line/70" /></td>
+                </>
+              ) : (
+                <td colSpan={(narrow ? 7 : 10) + (admin ? 4 : 0)} />
+              )}
+            </tr>
           ))}
         </tbody>
       </table>
@@ -1544,7 +1579,9 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           </li>
         ))}
         {Array.from({ length: empty }).map((_, i) => (
-          <li key={`e${i}`} aria-hidden style={{ height: CARD_H }} />
+          <li key={`e${i}`} aria-hidden style={{ height: CARD_H }} className={pending(rows.length + locked + i) ? "flex items-center gap-3 rounded-2xl border border-line/70 px-4" : undefined}>
+            {pending(rows.length + locked + i) && (<><span className="h-3 w-4 animate-pulse rounded bg-line" /><span className="h-3 flex-1 animate-pulse rounded bg-line/70" /><span className="h-3 w-12 animate-pulse rounded bg-line/70" /></>)}
+          </li>
         ))}
       </ul>
 
