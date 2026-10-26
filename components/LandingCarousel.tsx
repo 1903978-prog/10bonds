@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { FrontierScreen, OneBondScreen, ListScreen } from "@/components/LandingScreens";
+import { FrontierScreen, OneBondScreen, ListScreen, MultiYearScreen, HeatMapScreen } from "@/components/LandingScreens";
 import type { LandingText } from "@/lib/landingText";
 
 const ACMA = "DE000ACMA031";
@@ -136,4 +136,4 @@ export function ScreenSlide({ title, children }: { title: ReactNode; children: R
   return <SlideCard title={title}>{children}</SlideCard>;
 }
 
-export { FrontierScreen, OneBondScreen, ListScreen };
+export { FrontierScreen, OneBondScreen, ListScreen, MultiYearScreen, HeatMapScreen };

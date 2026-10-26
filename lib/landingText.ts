@@ -81,6 +81,8 @@ const en = {
       company: ["Check company risk", "Check company risk"],
     },
     yrs: "yrs",
+    multi: { title: ["Compare Durations. Find Better Trade-offs.", "Compare durations"] as [string, string], sub: "Risk–return curves for portfolios with horizons from 2 to 10 years.", subShort: "Compare modeled yield and expected loss across investment horizons.", insightShort: "Compare yields at the same risk level.", y: "Desired average return", x: "Expected loss on your money", insightK: "KEY INSIGHT", insight: "At similar modeled loss, different durations can offer different returns." },
+    heat: { title: ["Risk–Return Heat Map", "Risk–return heat map"] as [string, string], sub: "Discover combinations of target return and horizon with lower modeled loss.", subShort: "Compare estimated loss across target yields and investment horizons.", insightShort: "Greener cells = lower modeled loss.", insight: "The greener the cell, the lower its estimated loss for that combination." },
     countryAlt: "Brazil country risk page", companyAlt: "ACMA 2031 bond: risk rating, key data and credit assessment",
 
     locale: "en-GB", label: "What 10bonds shows", slide: "Slide", prev: "Previous", next: "Next",
@@ -166,6 +168,8 @@ const it: LandingText = {
       company: ["Verifica il rischio società", "Verifica il rischio società"],
     },
     yrs: "anni",
+    multi: { title: ["Confronta le durate. Trova compromessi migliori.", "Confronta le durate"] as [string, string], sub: "Curve rischio-rendimento per portafogli con orizzonti da 2 a 10 anni.", subShort: "Confronta rendimento stimato e perdita attesa tra orizzonti diversi.", insightShort: "Confronta i rendimenti a pari rischio.", y: "Rendimento medio desiderato", x: "Perdita attesa sul tuo capitale", insightK: "IN BREVE", insight: "A parità di perdita stimata, durate diverse possono offrire rendimenti diversi." },
+    heat: { title: ["Mappa rischio-rendimento", "Mappa rischio-rendimento"] as [string, string], sub: "Scopri le combinazioni di rendimento obiettivo e orizzonte con minore perdita stimata.", subShort: "Confronta la perdita stimata tra rendimenti obiettivo e orizzonti.", insightShort: "Celle più verdi = minore perdita stimata.", insight: "Più la cella è verde, minore è la perdita stimata per quella combinazione." },
     countryAlt: "Pagina del rischio paese: Brasile", companyAlt: "Obbligazione ACMA 2031: rating di rischio, dati chiave e valutazione del credito",
 
     locale: "it-IT", label: "Cosa mostra 10bonds", slide: "Immagine", prev: "Precedente", next: "Successiva",
@@ -250,6 +254,8 @@ const fr: LandingText = {
       company: ["Vérifier le risque entreprise", "Risque entreprise"],
     },
     yrs: "ans",
+    multi: { title: ["Comparez les durées. Trouvez de meilleurs compromis.", "Comparez les durées"] as [string, string], sub: "Courbes risque-rendement pour des portefeuilles de 2 à 10 ans.", subShort: "Comparez rendement estimé et perte attendue selon les horizons.", insightShort: "Comparez les rendements à risque égal.", y: "Rendement moyen souhaité", x: "Perte attendue sur votre capital", insightK: "À RETENIR", insight: "À perte estimée comparable, des durées différentes peuvent offrir des rendements différents." },
+    heat: { title: ["Carte risque-rendement", "Carte risque-rendement"] as [string, string], sub: "Découvrez les combinaisons de rendement cible et d'horizon avec une perte estimée plus faible.", subShort: "Comparez la perte estimée selon rendements cibles et horizons.", insightShort: "Cases plus vertes = perte estimée plus faible.", insight: "Plus la case est verte, plus la perte estimée de cette combinaison est faible." },
     countryAlt: "Page du risque pays : Brésil", companyAlt: "Obligation ACMA 2031 : notation de risque, données clés et évaluation du crédit",
 
     locale: "fr-FR", label: "Ce que montre 10bonds", slide: "Image", prev: "Précédente", next: "Suivante",
@@ -334,6 +340,8 @@ const de: LandingText = {
       company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],
     },
     yrs: "J.",
+    multi: { title: ["Laufzeiten vergleichen. Bessere Kompromisse finden.", "Laufzeiten vergleichen"] as [string, string], sub: "Rendite-Risiko-Kurven für Portfolios mit Laufzeiten von 2 bis 10 Jahren.", subShort: "Geschätzte Rendite und erwarteten Verlust über Laufzeiten vergleichen.", insightShort: "Renditen bei gleichem Risiko vergleichen.", y: "Gewünschte durchschnittliche Rendite", x: "Erwarteter Verlust auf Ihr Kapital", insightK: "KERNAUSSAGE", insight: "Bei ähnlichem modelliertem Verlust können unterschiedliche Laufzeiten unterschiedliche Renditen bieten." },
+    heat: { title: ["Rendite-Risiko-Heatmap", "Rendite-Risiko-Heatmap"] as [string, string], sub: "Kombinationen aus Zielrendite und Laufzeit mit geringerem modelliertem Verlust entdecken.", subShort: "Geschätzten Verlust über Zielrenditen und Laufzeiten vergleichen.", insightShort: "Grünere Zellen = geringerer geschätzter Verlust.", insight: "Je grüner die Zelle, desto geringer der geschätzte Verlust dieser Kombination." },
     countryAlt: "Länderrisiko-Seite: Brasilien", companyAlt: "Anleihe ACMA 2031: Risikorating, Kennzahlen und Kreditbewertung",
 
     locale: "de-DE", label: "Was 10bonds zeigt", slide: "Bild", prev: "Zurück", next: "Weiter",
