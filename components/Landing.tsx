@@ -59,8 +59,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
       <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.68fr_1.32fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
-        <div className="mb-1 flex items-baseline justify-between gap-2 sm:mb-2">
-          <p className="text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] sm:text-[12px]" style={{ color: MUTE }} data-testid="landing-eyebrow">{t.eyebrow}</p>
+        <div className="mb-1 flex items-baseline justify-end gap-2 sm:hidden">
           {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
           <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="whitespace-nowrap text-[10.5px] font-semibold leading-none underline underline-offset-2 sm:hidden" style={{ color: GREEN }}>{t.paperShort} ↓</a>
         </div>

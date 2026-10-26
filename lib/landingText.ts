@@ -6,7 +6,6 @@ import type { FinderLang } from "./finderText";
 // Compliance (23/10): impersonal wording only, no "you/your", no calls to act, no promises; "Model portfolio" vs
 // "hand-picked portfolio" is allowed.
 const en = {
-  eyebrow: "Bond investments",
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
   tagline: "Smarter bond selection. Higher potential return.",
   cardTitleBench: "Average Bond ETF vs Model portfolio",
@@ -96,7 +95,6 @@ const en = {
 export type LandingText = typeof en;
 
 const it: LandingText = {
-  eyebrow: "Investimenti obbligazionari",
   tagline: "Selezione obbligazionaria più intelligente. Rendimento potenziale più alto.",
   cardTitleBench: "ETF obbligazionario medio e portafoglio del modello",
   cardTitleBenchShort: "ETF obbligazionario medio e modello",
@@ -181,7 +179,6 @@ const it: LandingText = {
 };
 
 const fr: LandingText = {
-  eyebrow: "Investissement obligataire",
   tagline: "Une sélection obligataire plus intelligente. Un rendement potentiel plus élevé.",
   cardTitleBench: "ETF obligataire moyen et portefeuille du modèle",
   cardTitleBenchShort: "ETF obligataire moyen et modèle",
@@ -266,7 +263,6 @@ const fr: LandingText = {
 };
 
 const de: LandingText = {
-  eyebrow: "Anleihen-Investments",
   tagline: "Klügere Anleihenauswahl. Höhere potenzielle Rendite.",
   cardTitleBench: "Durchschnittlicher Anleihen-ETF und Modell-Portfolio",
   cardTitleBenchShort: "Anleihen-ETF und Modell",
