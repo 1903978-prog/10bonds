@@ -16,19 +16,18 @@ export const actionTitle = ([long, short]: readonly [string, string] | string[])
 );
 
 /** One card of the landing carousel: same white card as the comparison, filling the carousel's fixed height. */
-export function SlideCard({ title, sub, children, href }: { title: ReactNode; sub?: string; children: ReactNode; href?: string }) {
+export function SlideCard({ title, children, href }: { title: ReactNode; children: ReactNode; href?: string }) {
   const box = "flex h-full flex-col rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5";
   // With `href` the whole card opens that page (the Risk assessment pages, PR #188).
-  if (href) return <Link href={href} className={`${box} transition hover:border-[#cfe6da]`} data-testid="slide-link">{inner(title, children, sub)}</Link>;
-  return <div className={box}>{inner(title, children, sub)}</div>;
+  if (href) return <Link href={href} className={`${box} transition hover:border-[#cfe6da]`} data-testid="slide-link">{inner(title, children)}</Link>;
+  return <div className={box}>{inner(title, children)}</div>;
 }
 
-function inner(title: ReactNode, children: ReactNode, sub?: string) {
+function inner(title: ReactNode, children: ReactNode) {
   return (
     <>
       {/* The action title, headline size (the owner, 25/10/2026), one line. */}
       <h2 className="truncate text-[19px] font-bold leading-tight tracking-[-0.02em] min-[400px]:text-[21px] sm:text-[24px] lg:text-[26px]" style={{ color: NAVY }}>{title}</h2>
-      {sub && <p className="mt-1 text-[11.5px] leading-snug sm:text-[12.5px]" style={{ color: "#52666F" }}>{sub}</p>}
       <div className="mt-3 flex min-h-0 flex-1 flex-col">{children}</div>
     </>
   );
@@ -133,8 +132,8 @@ export function CompanySlide({ t }: { t: LandingText }) {
 }
 
 /** A slide made of a "real screen" (components/LandingScreens.tsx) under its action title, in the same white card. */
-export function ScreenSlide({ title, sub, children }: { title: ReactNode; sub?: string; children: ReactNode }) {
-  return <SlideCard title={title} sub={sub}>{children}</SlideCard>;
+export function ScreenSlide({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return <SlideCard title={title}>{children}</SlideCard>;
 }
 
 export { FrontierScreen, OneBondScreen, ListScreen };
