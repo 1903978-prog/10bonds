@@ -1,4 +1,4 @@
-name: Nightly accounts backup
+name: Nightly backup (accounts database + code, to Dropbox)
 # Every night: copy the accounts database (schema "app": accounts, plans, codes, stats, guides) out of Neon,
 # encrypt it, restore that encrypted copy into an empty database and check every table came back.
 # The encrypted file is kept 30 days under this run's Artifacts. A red run means no good backup tonight.
@@ -28,6 +28,8 @@ jobs:
       BACKUP_KEY: ${{ secrets.BACKUP_KEY || secrets.ACCOUNTS_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Stop if the accounts database is not connected
         run: |
           if [ -z "$ACCOUNTS_DATABASE_URL" ]; then echo "No ACCOUNTS_DATABASE_URL secret: nothing to back up."; exit 1; fi
@@ -48,3 +50,18 @@ jobs:
             ${{ env.OUT }}.sha256
           retention-days: 30
           if-no-files-found: error
+      - name: Copy code and database to Dropbox (keeps the newest 14 of each)
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$DROPBOX_REFRESH_TOKEN" ]; then
+            echo "::warning::Dropbox is not connected yet (secrets DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN). See docs/rebuild-from-zero.md."
+            exit 0
+          fi
+          stamp="$(date -u +%Y%m%d-%H%MZ)"
+          git bundle create "10bonds-history-$stamp.bundle" --all
+          git archive --format=zip -o "10bonds-code-$stamp.zip" HEAD
+          cp "$OUT" "10bonds-accounts-db-$stamp.dump.enc"
+          node scripts/dropbox-upload.mjs "10bonds-history-$stamp.bundle" "10bonds-code-$stamp.zip" "10bonds-accounts-db-$stamp.dump.enc"
