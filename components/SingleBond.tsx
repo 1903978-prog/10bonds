@@ -74,7 +74,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   const points = dropDominated(all);
   // Until a dot is tapped, show the lowest-risk bond (rightmost dot) so the card is always there.
   const shown = level ?? points.find((p) => p.ytm !== null)?.level ?? null;
-  const point = shown === null ? null : points.find((p) => p.level === shown) ?? null;
+  const point = shown === null ? null : all.find((p) => p.level === shown) ?? null;
   const bond = point?.options[index] ?? null;
 
   if (limit) return <LimitReached quota={limit} />;
@@ -165,9 +165,10 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
         </text>
       ))}
       {ghosts.map((p) => (
-        <g key={`g${p.level}`} data-testid={`ghost-${p.level}`}>
+        <g key={`g${p.level}`} data-testid={`ghost-${p.level}`} onClick={() => onPick(p.level)} style={{ cursor: "pointer" }}>
           <title>{t.ghostNote}</title>
-          <circle cx={x(p.level)} cy={y(p.ytm!)} r="4" fill="#fff" stroke="#c7c7cc" strokeWidth="2" />
+          <circle cx={x(p.level)} cy={y(p.ytm!)} r="16" fill="transparent" />
+          <circle cx={x(p.level)} cy={y(p.ytm!)} r={selected === p.level ? 6 : 4} fill={selected === p.level ? "#c7c7cc" : "#fff"} stroke="#c7c7cc" strokeWidth="2" />
           <text x={x(p.level)} y={y(p.ytm!) - 10} textAnchor="middle" fontSize="11" fill="#aeaeb2">{p.ytm!.toFixed(1)}%</text>
         </g>
       ))}
