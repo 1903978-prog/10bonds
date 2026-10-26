@@ -204,13 +204,16 @@ export function OneBondScreen({ lang }: { lang: FinderLang }) {
 }
 
 /** The 10 bonds of the portfolio, with names. */
-export function ListScreen({ lang, bonds }: { lang: FinderLang; bonds: BenchmarkBond[] | undefined }) {
+export function ListScreen({ lang, bonds, mix = 8, asOf }: { lang: FinderLang; bonds: BenchmarkBond[] | undefined; mix?: number; asOf?: string }) {
   const f = FINDER_TEXT[lang];
   return (
     <ScaledScreen render={(wide) => (
       <Chrome wide={wide} lang={lang}>
-        {wide && <Controls f={f} single={false} horizon={5} mix={8} />}
-        <Panel><BondList f={f} bonds={bonds ?? []} /></Panel>
+        {wide && <Controls f={f} single={false} horizon={5} mix={mix} />}
+        <Panel>
+          <BondList f={f} bonds={bonds ?? []} />
+          {asOf && <div className="mt-2 text-right text-[12px] text-[#6b6b72]">{asOf}</div>}
+        </Panel>
       </Chrome>
     )} />
   );
@@ -224,14 +227,13 @@ const curveAt = (end: [number, number], u: number) => {
   return [end[0] * u, k] as const;
 };
 
-export function MultiYearScreen({ sub, subShort, insightShort, yLabel, xLabel, yrs, insightK, insight }: { sub: string; subShort: string; insightShort: string; yLabel: string; xLabel: string; yrs: string; insightK: string; insight: string }) {
+export function MultiYearScreen({ sub, subShort, insightShort, yLabel, xLabel, insightK, insight }: { sub: string; subShort: string; insightShort: string; yLabel: string; xLabel: string; insightK: string; insight: string }) {
   const [box, size] = useBoxSize<HTMLDivElement>({ w: 600, h: 300 }, { w: 200, h: 120 });
   const narrow = size.w < 520;
   const F = narrow ? 11 : 12;
   const W = size.w, H = size.h, L = narrow ? (size.h >= 200 ? 58 : 44) : 60, R = narrow ? 30 : 40, T = 8, B = narrow ? 34 : 44;
   const X = (v: number) => L + (v / 4.95) * (W - L - R);
   const Y = (v: number) => T + ((6.4 - v) / 3.4) * (H - T - B);
-  const legend = !narrow;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <p className="text-[13px] text-[#52666F] sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
@@ -245,21 +247,12 @@ export function MultiYearScreen({ sub, subShort, insightShort, yLabel, xLabel, y
           {size.h >= 200 && <text transform={`translate(11 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" fill="#6b7b83" fontSize={F - 1}>{yLabel}</text>}
           {YEAR_ENDS.map((e, i) => {
             const pts = Array.from({ length: 24 }, (_, j) => curveAt(e, j / 23));
-            const [ex, ey] = pts[pts.length - 1];
-            return (
+                        return (
               <g key={i}>
                 <polyline points={pts.map(([a, b]) => `${X(a)},${Y(b)}`).join(" ")} fill="none" stroke={YEAR_COLOURS[i]} strokeWidth={2} strokeLinejoin="round" />
-                <text x={X(ex) + 5} y={Y(ey) + 4} fill={YEAR_COLOURS[i]} fontSize={F - 1}>{i + 2}y</text>
               </g>
             );
           })}
-          {legend && (
-            <g transform={`translate(${W - R - 110} ${H - B - 168})`}>
-              {YEAR_COLOURS.map((c, i) => (
-                <g key={c} transform={`translate(0 ${i * 16})`}><line x1={0} x2={20} y1={0} y2={0} stroke={c} strokeWidth={2} /><text x={26} y={4} fill="#4a5b63" fontSize={F - 1}>{i + 2} {yrs}</text></g>
-              ))}
-            </g>
-          )}
         </svg>
       </div>
       <div className="mt-2 shrink-0 rounded-[10px] bg-[#EDF6F1] px-3 py-2 text-[12px] leading-snug text-[#132D3B] sm:text-[13px]">
