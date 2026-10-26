@@ -8,9 +8,14 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 type Solution = { Status: string; ObjectiveValue: number; Columns: Record<string, { Primal: number }> };
 type Highs = { solve: (lp: string, options?: Record<string, unknown>) => Promise<Solution> };
-type Pending = { resolve: (s: Solution) => void; reject: (e: Error) => void };
+type Pending = { resolve: (s: Solution) => void; reject: (e: Error) => void; size: number };
 
 let worker: Worker | null = null;
+// The solver's WebAssembly memory only ever grows: after one big solve the worker keeps hundreds of MB for good (measured
+// over 1 GB on a universe of 13,000 bonds, on a 1 GB machine). So after a big solve the worker is replaced by a fresh one
+// (starting one takes well under 100 ms); small solves keep the same worker.
+const RECYCLE_LP_CHARS = 100_000;
+const retired = new WeakSet<Worker>();
 const pending = new Map<number, Pending>();
 let nextId = 0;
 
@@ -21,11 +26,16 @@ function start(): Worker {
     if (!p) return;
     pending.delete(m.id);
     busy = false;
-    if (pending.size === 0) w.unref();
+    if (p.size > RECYCLE_LP_CHARS) {
+      retired.add(w);
+      if (worker === w) worker = null;
+      void w.terminate();
+    } else if (pending.size === 0) w.unref();
     if (m.error !== undefined) p.reject(new Error(m.error)); else p.resolve(m.result!);
     pump();
   });
   const fail = (e: Error) => {
+    if (retired.has(w)) return; // replaced on purpose after a big solve: nothing is lost
     if (worker === w) worker = null;
     for (const p of pending.values()) p.reject(e);
     pending.clear();
@@ -60,7 +70,7 @@ function pump() {
 const solver: Highs = {
   solve: (lp, options) => new Promise<Solution>((resolve, reject) => {
     const id = nextId++;
-    pending.set(id, { resolve, reject });
+    pending.set(id, { resolve, reject, size: lp.length });
     (lowMode.getStore() ? queue.low : queue.high).push({ id, lp, options });
     pump();
   }),

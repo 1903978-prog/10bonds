@@ -12,7 +12,7 @@ async function warmAll() {
   const f = { currency: "EUR", size: "100k" } as const;
   try {
     await capsFor(f);
-    for (const t of TERMS) await sliderFor(f, t.duration);
+    for (const t of TERMS) await sliderFor(f, t.duration, "spread", true);
   } catch (e) {
     console.error("[warm] failed:", (e as Error).message);
   }
