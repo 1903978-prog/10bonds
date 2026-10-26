@@ -13,6 +13,14 @@ export const GPT_PROMPT = [
   "The ISINs:",
 ].join("\n");
 
+/** The built-in IR/BR skill, shown pre-filled on /admin/skills until the owner saves his own text. */
+export const IRBR_SKILL_DEFAULT = [
+  "Analyze the bond given by its ISIN and give it a credit rating.",
+  "IR = issuer rating, BR = rating of this specific bond (its seniority and structure).",
+  "IR and BR: S&P-style scale only (AAA, AA+, AA, AA-, A+, A, A-, BBB+, BBB, BBB-, BB+, BB, BB-, B+, B, B-, CCC+, CCC, CCC-, CC, C, D), or NR if you cannot rate it.",
+  "Give the basis of the ratings: what they rest on, in a few lines.",
+].join("\n");
+
 /** Version of the prompt used by the API button (stored with each answer). */
 export const API_PROMPT_VERSION = "v1";
 /** The same prompt for one ISIN sent through an API (there is no $bonds tool there). */

@@ -104,6 +104,7 @@ export async function mergeImportedRatings(rows: { isin: string; issuerRating: s
 // ---- API calculator (admin only): settings, daily cap and storing one answer ----
 
 export type LlmSettings = { provider: "gemini" | "openai" | "anthropic"; model: string; dailyCap: number; instructions: string };
+export const SKILL_MAX = 100_000;
 const DEFAULTS: LlmSettings = { provider: "gemini", model: "gemini-3.6-flash", dailyCap: 50, instructions: "" };
 
 export async function loadLlmSettings(): Promise<LlmSettings> {
@@ -120,7 +121,7 @@ export async function saveLlmSettings(v: Partial<LlmSettings>): Promise<void> {
     v.provider ? { key: "provider", value: v.provider } : null,
     typeof v.model === "string" && v.model.trim() ? { key: "model", value: v.model.trim().slice(0, 80) } : null,
     typeof v.dailyCap === "number" && v.dailyCap >= 0 ? { key: "daily_cap", value: String(Math.min(Math.floor(v.dailyCap), 5000)) } : null,
-    typeof v.instructions === "string" ? { key: "instructions", value: v.instructions.slice(0, 8000) } : null,
+    typeof v.instructions === "string" ? { key: "instructions", value: v.instructions.slice(0, SKILL_MAX) } : null,
   ].filter((r): r is { key: string; value: string } => !!r);
   if (!rows.length) return;
   const s = await sql();
@@ -148,4 +149,22 @@ export async function saveApiRating(isin: string, r: GptRating, model: string, p
     insert into app.gpt_ratings ${s(row, "isin", "rating", "issuer_rating", "basis", "risk_pay", "full_answer", "model", "prompt_version")}
     on conflict (isin) do update set rating = excluded.rating, issuer_rating = excluded.issuer_rating, risk_pay = excluded.risk_pay, full_answer = excluded.full_answer, detail = null, basis = excluded.basis, model = excluded.model, prompt_version = excluded.prompt_version, pasted_at = now()`;
   return true;
+}
+
+// ---- The three skill texts (admin page /admin/skills). IR/BR is the same text the calculator sends (key "instructions"). ----
+
+export type SkillKey = "irbr" | "lr_gov" | "lr_corp";
+const SKILL_DB_KEY: Record<SkillKey, string> = { irbr: "instructions", lr_gov: "skill_lr_gov", lr_corp: "skill_lr_corp" };
+
+export async function loadSkills(): Promise<Record<SkillKey, string>> {
+  const s = await sql();
+  const rows = await s<{ key: string; value: string }[]>`select key, value from app.llm_settings where key in ('instructions', 'skill_lr_gov', 'skill_lr_corp')`;
+  const m = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  return { irbr: m.instructions ?? "", lr_gov: m.skill_lr_gov ?? "", lr_corp: m.skill_lr_corp ?? "" };
+}
+
+export async function saveSkill(key: SkillKey, text: string): Promise<void> {
+  const s = await sql();
+  const value = text.slice(0, SKILL_MAX);
+  await s`insert into app.llm_settings (key, value) values (${SKILL_DB_KEY[key]}, ${value}) on conflict (key) do update set value = excluded.value`;
 }
