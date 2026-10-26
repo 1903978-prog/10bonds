@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
 import { BONDS_SKILL } from "@/lib/bondsSkill";
 import { bondsPrompt, parseBondsJson, skillVersion, systemFor, toCells } from "@/lib/bondsRun";
-import { llmCallsToday, loadGptRatings, loadLlmSettings, logLlmCall, saveBondsRun, saveLlmSettings } from "@/lib/gptRatingsDb";
+import { llmCallsLastMinute, llmCallsToday, loadGptRatings, loadLlmSettings, logLlmCall, saveBondsRun, saveLlmSettings } from "@/lib/gptRatingsDb";
 import { PROVIDERS, askModelFull, keyPresent, type Provider } from "@/lib/llmProvider";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +20,8 @@ async function admin() {
 
 async function status() {
   const settings = await loadLlmSettings();
-  const used = await llmCallsToday(settings.provider);
-  return { settings, used, keyPresent: keyPresent(settings.provider), keyName: PROVIDERS[settings.provider].keyName, secretsUrl: SECRETS_URL, keyUrl: KEY_URLS[settings.provider] };
+  const [used, perMinute] = await Promise.all([llmCallsToday(settings.provider), llmCallsLastMinute(settings.provider)]);
+  return { settings, used, perMinute, perMinuteLimit: 15, keyPresent: keyPresent(settings.provider), keyName: PROVIDERS[settings.provider].keyName, secretsUrl: SECRETS_URL, keyUrl: KEY_URLS[settings.provider] };
 }
 
 /** Admin only: calculator settings and today's usage. */
