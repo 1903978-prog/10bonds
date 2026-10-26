@@ -73,9 +73,9 @@ const en = {
   carousel: {
     // Action titles, one per slide (the owner, 24/10/2026): [desktop, phone].
     act: {
-      compare: ["Compare the Model portfolio with a bond ETF", "Model portfolio vs bond ETF"],
-      frontier: ["Efficient frontier: return and expected loss of model-selected bond sets", "Efficient frontier"],
-      curve: ["Model-selected bond for each risk level", "Selected bond per risk level"],
+      compare: ["Model portfolio vs bond ETF", "Model vs bond ETF"],
+      frontier: ["Efficient frontier of model-selected bonds", "Efficient frontier"],
+      curve: ["Model-selected bond per risk level", "Bond per risk level"],
       list: ["See the top 10 bonds", "See the top 10 bonds"],
       country: ["Check country risk", "Check country risk"],
       company: ["Check company risk", "Check company risk"],
@@ -158,9 +158,9 @@ const it: LandingText = {
   paperShort: "Metodologia (PDF)",
   carousel: {
     act: {
-      compare: ["Confronta il portafoglio del modello con un ETF", "Portafoglio del modello vs ETF"],
-      frontier: ["Frontiera efficiente: rendimento e perdita attesa dei gruppi di obbligazioni selezionati dal modello", "Frontiera efficiente"],
-      curve: ["Obbligazione selezionata dal modello per ogni livello di rischio", "Selezionata per livello di rischio"],
+      compare: ["Portafoglio del modello vs ETF", "Modello vs ETF"],
+      frontier: ["Frontiera efficiente del modello", "Frontiera efficiente"],
+      curve: ["Obbligazione scelta per rischio", "Per livello di rischio"],
       list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
       company: ["Verifica il rischio società", "Verifica il rischio società"],
@@ -242,9 +242,9 @@ const fr: LandingText = {
   paperShort: "Méthodologie (PDF)",
   carousel: {
     act: {
-      compare: ["Comparer le portefeuille du modèle à un ETF obligataire", "Portefeuille du modèle vs ETF"],
-      frontier: ["Frontière efficiente : rendement et perte attendue des ensembles d'obligations sélectionnés par le modèle", "Frontière efficiente"],
-      curve: ["Obligation sélectionnée par le modèle pour chaque niveau de risque", "Sélectionnée par niveau de risque"],
+      compare: ["Portefeuille du modèle vs ETF", "Modèle vs ETF"],
+      frontier: ["Frontière efficiente du modèle", "Frontière efficiente"],
+      curve: ["Obligation choisie par niveau de risque", "Par niveau de risque"],
       list: ["Voir les 10 obligations top", "Voir les 10 top"],
       country: ["Vérifier le risque pays", "Vérifier le risque pays"],
       company: ["Vérifier le risque entreprise", "Risque entreprise"],
@@ -326,9 +326,9 @@ const de: LandingText = {
   paperShort: "Methodik (PDF)",
   carousel: {
     act: {
-      compare: ["Modell-Portfolio mit einem Anleihe-ETF vergleichen", "Modell-Portfolio vs ETF"],
-      frontier: ["Effizienzlinie: Rendite und erwarteter Verlust der vom Modell ausgewählten Anleihegruppen", "Effizienzlinie"],
-      curve: ["Vom Modell ausgewählte Anleihe je Risikostufe", "Ausgewählt je Risikostufe"],
+      compare: ["Modell-Portfolio vs ETF", "Modell vs ETF"],
+      frontier: ["Effizienzlinie des Modells", "Effizienzlinie"],
+      curve: ["Anleihe je Risikostufe", "Je Risikostufe"],
       list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
       country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
       company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],
