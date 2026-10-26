@@ -4,9 +4,11 @@ import { bondRisk } from "./ratings";
 /** The red line (the owner, 20/10/2026): the efficient frontier of the 4-6 year bonds (shown in blue), risk 1 to 8. */
 export const FRONTIER_SEARCH = { minDuration: 4, maxDuration: 6, minRisk: 1, maxRisk: 8 };
 
+export type Dot = [number, number, number, number];
+
 export type Frontier = {
-  // Every rated bond with a yield: [risk 1..10, yield %, 1 when its duration is 4-6 years else 0], rounded so the payload stays small.
-  dots: [number, number, number][];
+  // Every rated bond with a yield: [risk 1..10, yield %, 1 when its duration is 4-6 years else 0, duration in years (-1 unknown)], rounded so the payload stays small.
+  dots: Dot[];
   // The frontier bonds, safest first, as positions in `dots`.
   picks: number[];
 };
@@ -21,22 +23,29 @@ const FRONTIER_QUANTILE = 0.95;
  * left out, so the line rises at every step.
  */
 export function frontierOf(bonds: PublicBond[]): Frontier {
-  const dots: [number, number, number][] = [];
-  const blue = new Map<number, number[]>();
+  const dots: Dot[] = [];
   for (const b of bonds) {
     const risk = bondRisk(b);
     if (risk === null || b.grossYtm === null || !Number.isFinite(b.grossYtm)) continue;
     const d = b.modifiedDuration;
     const inBracket = d !== null && d >= FRONTIER_SEARCH.minDuration && d <= FRONTIER_SEARCH.maxDuration;
-    if (inBracket) blue.set(risk, [...(blue.get(risk) ?? []), dots.length]);
-    dots.push([risk, Math.round(b.grossYtm * 100) / 100, inBracket ? 1 : 0]);
+    dots.push([risk, Math.round(b.grossYtm * 100) / 100, inBracket ? 1 : 0, d === null ? -1 : Math.round(d * 10) / 10]);
   }
+  return { dots, picks: picksFor(dots, FRONTIER_SEARCH.minDuration, FRONTIER_SEARCH.maxDuration) };
+}
+
+/** The red line for the bonds whose duration lies in [from, to]: the same rule as the landing chart, usable in the browser with any horizon. */
+export function picksFor(dots: Dot[], from: number, to: number): number[] {
+  const blue = new Map<number, number[]>();
+  dots.forEach((d, i) => {
+    if (d[3] >= from && d[3] <= to) blue.set(d[0], [...(blue.get(d[0]) ?? []), i]);
+  });
   const levels: number[] = [];
   for (let r = FRONTIER_SEARCH.minRisk; r <= FRONTIER_SEARCH.maxRisk; r++) {
     const ys = (blue.get(r) ?? []).sort((a, b) => dots[a][1] - dots[b][1]);
     if (ys.length) levels.push(ys[Math.min(ys.length - 1, Math.floor(FRONTIER_QUANTILE * ys.length))]);
   }
-  return { dots, picks: monotonicRun(levels, (i) => dots[i][1]) };
+  return monotonicRun(levels, (i) => dots[i][1]);
 }
 
 /**
