@@ -64,7 +64,7 @@ for (const [w, h] of WIDTHS) {
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="intro"]').isVisible(), "home: intro on first visit");
   await p.locator('[data-testid="cookie-settings"]').click().catch(() => {});
-  await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
+  await p.getByRole("button", { name: /deny|reject|only necessary|necessary only/i }).first().click().catch(() => {});
   await p.locator('[data-testid="intro-skip"]').click();
   ok(await p.locator('[data-testid="term-picker"]').isVisible(), "home: the intro's button opens the finder");
   await ctx.close();
@@ -96,7 +96,7 @@ for (const [w, h] of WIDTHS) {
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
   await p.locator('[data-testid="cookie-settings"]').click(); // the switches open in Settings
   await p.locator('[data-testid="cookie-necessary"]').waitFor();
-  await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
+  await p.getByRole("button", { name: /deny|reject|only necessary|necessary only/i }).first().click().catch(() => {});
   const sliders = p.locator('input[type="range"]');
   // Everyone: the short/mid/long term choice, one return slider and the Find portfolio button (admin also gets the yellow sliders).
   ok((await sliders.count()) >= 1, `${w}px home: return slider present`);

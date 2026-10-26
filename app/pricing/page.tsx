@@ -14,6 +14,7 @@ import { MAX_PLAN_LINES, planLines } from "@/lib/features";
 import { activePromo } from "@/lib/promoServer";
 import { promoCents, promoEndLabel, promoLine } from "@/lib/promo";
 import { loadFreeLimits } from "@/lib/searchLimits";
+import TrackView from "@/components/TrackView";
 
 export const metadata: Metadata = {
   title: "Plans · 10BONDS",
@@ -42,6 +43,8 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
   const sub = user?.subscription && ["active", "trialing", "past_due"].includes(user.subscription.status) ? user.subscription : null;
   return (
     <div>
+      <TrackView kind="pricing_viewed" detail={{ signed_in: Boolean(user) }} />
+      {sp.paid && <TrackView kind="paid" flush />}
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">{t.title}</h1>
         <p className="mt-1 text-sm text-mute">

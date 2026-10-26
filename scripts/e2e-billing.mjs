@@ -3,7 +3,7 @@
 import { createHmac } from "node:crypto";
 import { chromium } from "playwright-core";
 const BASE = "http://127.0.0.1:3311", MOCK = "http://127.0.0.1:3312";
-const SHOTS = "/tmp/claude-0/-home-claude/4b337658-00ee-5dac-b7d9-34aa865191b3/scratchpad";
+const SHOTS = process.env.SHOTS ?? "/tmp";
 const KEY = { Authorization: "Bearer sk_test_local" };
 let fails = 0;
 const ok = (c, m) => { console.log((c ? "PASS " : "FAIL ") + m); if (!c) fails++; };
@@ -20,7 +20,7 @@ ok(st.prices.length === 6 && st.prices.every((p) => p.currency === "eur"), "six 
 ok(st.prices.map((p) => p.unit_amount).sort((a, b) => a - b).join() === "900,1900,8640,8900,18240,85440", "amounts: 9, 19, 89 a month and 86.40, 182.40, 854.40 a year");
 ok(st.webhooks.length === 1 && st.webhooks[0].url.endsWith("/api/stripe/webhook"), "one webhook endpoint created");
 const secret = st.webhooks[0].secret;
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome" });
 for (const w of [1440, 390]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: w === 390 ? 844 : 900 } });
   const p = await ctx.newPage();

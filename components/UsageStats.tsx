@@ -8,9 +8,13 @@ import { flushNow, getCategories, getConsent, reopenCookieBanner, setCategories,
 const ROWS: { key: keyof Categories | "necessary"; name: string; text: string }[] = [
   { key: "necessary", name: "Necessary", text: "Keep you signed in and remember this choice. The site does not work without them." },
   { key: "preferences", name: "Preferences", text: "Remember settings such as your last slider values." },
-  { key: "statistics", name: "Statistics", text: "Count pages visited, searches and buttons clicked, only to improve your experience on the site. Your data is never sold or shared with third parties. Signed-in members who allow it get one free week of Premium." },
+  { key: "statistics", name: "Statistics", text: "Count pages visited, time on each page, searches and buttons clicked, with an anonymous visitor number and your country, only to improve your experience on the site. Your data is never sold or shared with third parties. If you refuse, we only add one to a daily page count, with no identifier. Signed-in members who allow it get one free week of Premium." },
   { key: "marketing", name: "Marketing", text: "We use no marketing or advertising cookies today. If that changes we will ask again." },
 ];
+
+function browserZone(): string | null {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null; } catch { return null; }
+}
 
 /** Cookie banner (by category) plus page-view and named-click tracking, which run only with Statistics allowed. */
 export default function UsageStats() {
@@ -58,12 +62,18 @@ export default function UsageStats() {
   }, []);
 
   useEffect(() => {
+    // Statistics refused: a plain count per day, page and country is still added, with no identifier and nothing stored in the browser.
+    if (consent === "no") {
+      const body = JSON.stringify({ path: window.location.pathname, tz: browserZone() });
+      fetch("/api/count", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+      return;
+    }
     if (consent !== "yes") return;
     // Allowing Statistics earns one free week of Premium, once per account (the server decides).
     if (!bonusDone.current) {
       fetch("/api/account/stats-bonus", { method: "POST" }).then((r) => { if (r.ok) bonusDone.current = true; }).catch(() => {});
     }
-    track("page_view", { referrer: document.referrer ? new URL(document.referrer).host : null });
+    track("page_view", { referrer: document.referrer ? new URL(document.referrer).host : null, tz: browserZone(), lang: navigator.language?.slice(0, 12) ?? null });
   }, [pathname, consent]);
 
   if (!open) return null;
@@ -83,24 +93,21 @@ export default function UsageStats() {
       <p className="hidden text-[15px] font-semibold sm:block">This website uses cookies</p>
       {/* Phones get one short line so the banner stays a slim bar at the bottom. */}
       <p className="leading-snug text-mute sm:hidden">
-        We use cookies to keep you signed in and, if you allow it, to count visits. Never sold.{" "}
+        We use a sign-in cookie and, if you allow it, count visits. We sell no data and use no advertising cookies.{" "}
         <Link href="/terms#privacy" className="text-accent">Privacy</Link>
       </p>
       <p className="mt-2 hidden leading-relaxed text-mute sm:block">
-        We use cookies to keep you signed in and, if you allow it, to count how the site is used, only to improve your experience. We never sell your data or share it with third parties. Accept, reject, or open Settings to choose.
+        We use a cookie to keep you signed in and, if you allow it, count how the site is used, only to improve your experience. We never sell your data to third parties and use no advertising cookies. Accept statistics, or open Customize to choose exactly what you allow.
         You can change your choice at any time with “Cookie settings” at the bottom of every page.{" "}
         <Link href="/terms#privacy" className="text-accent">Privacy details</Link>
       </p>
       {!settings ? (
-        <div className="mt-2 grid grid-cols-3 gap-2 sm:mt-4">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-4">
           <button onClick={() => setSettings(true)} data-testid="cookie-settings" className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
-            Settings
+            Customize
           </button>
-          <button onClick={() => choose({ preferences: false, statistics: false, marketing: false })} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
-            Reject
-          </button>
-          <button onClick={() => choose({ preferences: true, statistics: true, marketing: true })} className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
-            Accept all
+          <button onClick={() => choose({ preferences: true, statistics: true, marketing: false })} data-testid="cookie-accept" className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
+            Accept statistics
           </button>
         </div>
       ) : (
@@ -136,13 +143,13 @@ export default function UsageStats() {
           )}
           <div className="mt-2 grid grid-cols-3 gap-2 sm:mt-4">
             <button onClick={() => choose({ preferences: false, statistics: false, marketing: false })} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
-              Reject all
+              Necessary only
             </button>
             <button onClick={() => choose(sel)} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
               Save selection
             </button>
-            <button onClick={() => choose({ preferences: true, statistics: true, marketing: true })} className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
-              Accept all
+            <button onClick={() => choose({ preferences: true, statistics: true, marketing: false })} className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
+              Accept statistics
             </button>
           </div>
         </>
