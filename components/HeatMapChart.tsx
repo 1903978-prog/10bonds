@@ -27,14 +27,14 @@ const horizonLabel = (d: number) => (d >= 30 ? "30+" : String(d));
  * so the best horizon for a return stands out. A click on a cell with a figure picks it (outlined in blue): the finder
  * then shows that cell's 10 bonds next to the map. Fills the box it is put in; nothing in it changes size with the data.
  */
-export default function HeatMapChart({ map: got, method, onMethod, retLabel, yearsLabel, picked, onPick, blacklist, onBlacklist, shortlists }: { map: HeatMap | "unavailable" | null; method: HeatMethod; onMethod: (m: HeatMethod) => void; retLabel: string; yearsLabel: string; picked?: { ytm: number; duration: number } | null; onPick?: (cell: { ytm: number; duration: number } | null) => void; blacklist: boolean; onBlacklist: (on: boolean) => void; shortlists?: ShortlistDot[] }) {
+export default function HeatMapChart({ map: got, method, onMethod, retLabel, yearsLabel, picked, onPick, blacklist, onBlacklist, shortlists, plain }: { map: HeatMap | "unavailable" | null; method: HeatMethod; onMethod: (m: HeatMethod) => void; retLabel: string; yearsLabel: string; picked?: { ytm: number; duration: number } | null; onPick?: (cell: { ytm: number; duration: number } | null) => void; blacklist: boolean; onBlacklist: (on: boolean) => void; shortlists?: ShortlistDot[]; plain?: boolean }) {
   const map = got === "unavailable" ? null : got;
   const rows = map ? map.ytms.map((y, r) => ({ y, cells: map.cells[r] })).reverse() : [];
   const cols = map?.horizons.length ?? 18;
   return (
     <div className="flex h-full w-full flex-col text-[10px] tabular-nums leading-none" data-testid="heat-map">
       {/* Admin (yellow): which methodology the map shows; Methodology 1 is the live one. */}
-      <div className="mb-1.5 flex shrink-0 gap-2">
+      <div className={`mb-1.5 flex shrink-0 gap-2 ${plain ? "hidden" : ""}`}>
         <div role="radiogroup" aria-label="Methodology" data-testid="heat-method" className="grid h-6 w-72 grid-cols-2 rounded-full border border-amber-300 bg-amber-50 p-0.5 text-[11px] font-medium text-amber-900">
           {HEAT_METHODS.map((m) => (
             <button key={m.key} type="button" role="radio" aria-checked={method === m.key} onClick={() => onMethod(m.key)} className={`rounded-full px-2 ${method === m.key ? "bg-white shadow-sm" : ""}`}>

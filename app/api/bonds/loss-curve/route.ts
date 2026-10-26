@@ -25,7 +25,8 @@ export async function GET(req: Request) {
   if (!allow(`curve:${clientIp(req)}`, 60, 60_000))
     return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
   const user = await currentUser();
-  if (!(await featuresFor(user)).includes("loss_chart")) return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  const feats = await featuresFor(user);
+  if (!feats.includes("loss_chart")) return NextResponse.json({ error: "Paid plans only." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const risk = Math.round(clampParam(url.searchParams.get("risk"), LIMITS.risk));
@@ -48,7 +49,7 @@ export async function GET(req: Request) {
   };
   // Admin only: the exact efficient frontier (lib/exactFrontier.ts, as the slider) per horizon from 2 to 10 years, for
   // comparing them. Fast (well under a second each) and kept in memory; 60 evenly spread points per curve.
-  if (url.searchParams.get("all") === "1" && user?.isAdmin) {
+  if (url.searchParams.get("all") === "1" && (user?.isAdmin || feats.includes("multi_chart"))) {
     const curves = Array.from({ length: 9 }, (_, i) => {
       const pts = pickEven(efficientPoints(frontierFor(data, filter, i + 2).points), 60);
       const points = pts.map((p) => ({ ytm: Math.round(p.ytm * 100) / 100, loss: Math.round(p.el * 1000) / 1000 }));
