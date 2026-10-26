@@ -7,7 +7,6 @@ import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { loadMe } from "@/lib/me";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import NewsletterCta from "@/components/NewsletterCta";
 import LandingCarousel, { actionTitle, ListScreen, MultiYearScreen, HeatMapScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
@@ -93,13 +92,11 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
             {t.cta} <span aria-hidden className="hidden min-[400px]:inline">↗</span>
           </button>
         </div>
-        <NewsletterCta lang={lang} className="mt-3 block sm:hidden" />
         {/* The quant methodology paper, for everyone (the owner, 24/10/2026). One small line, so the page still fits one screen. */}
         <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="landing-paper"
           className="mt-3 hidden text-[13px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80 sm:inline-block" style={{ color: GREEN }}>
           {t.paper} ↓
         </a>
-        <NewsletterCta lang={lang} className="mt-2 hidden sm:block" />
         </div>
       </section>
     </div>
