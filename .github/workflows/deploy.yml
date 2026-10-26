@@ -156,8 +156,14 @@ jobs:
       - name: "Accounts database: login link and connection"
         if: env.ok == '1' && env.ACCOUNTS_DATABASE_URL != ''
         run: |
-          body=$(curl -sS --max-time 60 -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/accounts); echo "$body"
-          echo "$body" | grep -qE '"stage":"(connect|url)"|HTTP 5' && exit 1 || exit 0
+          # A 502 right after the restart can be the machine still settling (Fly restarts it within seconds): look up to 4
+          # times, 10 s apart. A real failure (database link wrong, or a crash that repeats) still fails and rolls back.
+          for i in 1 2 3 4; do
+            body=$(curl -sS --max-time 60 -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/accounts || true); echo "try $i: $body"
+            echo "$body" | grep -qE '"stage":"(connect|url)"|HTTP 5|HTTP 000|^ *$' || exit 0
+            sleep 10
+          done
+          exit 1
       - name: "Accounts database: tables and permissions"
         if: env.ok == '1' && env.ACCOUNTS_DATABASE_URL != ''
         run: |
