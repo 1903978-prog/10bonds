@@ -1341,62 +1341,6 @@ function useScanShow(data: Response | null, active: boolean, perMs = 1000): Show
   return show;
 }
 
-/** The Monte Carlo drawing, laid over the slots of the picks not shown yet (the bond counter is the fifth box above). */
-function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: FinderLang }) {
-  const t = useFinderText();
-  const fmt = new Intl.NumberFormat(lang);
-  const mc = data.monteCarlo;
-  const sims = mc?.paths ?? 0;
-  const samples = mc?.samples ?? [];
-  const W = 280, H = 70;
-  const all = samples.flat();
-  const vMin = Math.min(...all), vMax = Math.max(...all);
-  const yOf = (v: number) => H - 2 - ((v - vMin) / Math.max(vMax - vMin, 0.1)) * (H - 4);
-  const steps = samples[0]?.length ?? 0;
-  const left = SLOTS - show.row - 1; // slots still hidden, the space this panel has
-  return (
-    <div
-      aria-hidden="true"
-      data-testid="scan-bar"
-      className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-canvas text-center top-[var(--m)] sm:top-[var(--d)]"
-      style={{ ["--m" as string]: `${(show.row + 1) * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + (show.row + 1) * ROW_H}px` }}
-    >
-      {sims > 0 && left >= 3 && (
-        <div className="w-[280px] max-w-[85%]">
-          <svg viewBox={`0 0 ${W} ${H}`} className="block h-[70px] w-full" preserveAspectRatio="none">
-            <defs>
-              <clipPath id="mc-reveal"><rect x={0} y={0} width={W * show.sim} height={H} /></clipPath>
-            </defs>
-            {/* Real simulated paths of this list: each line is one scenario, the drops are defaults. */}
-            <g clipPath="url(#mc-reveal)">
-              {samples.map((s, k) => {
-                const fell = s.some((v, j) => j > 0 && v < s[j - 1]);
-                return (
-                  <polyline
-                    key={k}
-                    points={s.map((v, j) => `${(j / (steps - 1)) * W},${yOf(v)}`).join(" ")}
-                    fill="none"
-                    className={fell ? "stroke-amber-500" : "stroke-accent"}
-                    strokeWidth={fell ? 1.2 : 1.5}
-                    strokeOpacity={fell ? 0.8 : 0.25}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                );
-              })}
-            </g>
-          </svg>
-          <p className="mt-1 text-[10px] text-mute">{t.scanCaption}</p>
-        </div>
-      )}
-      {sims > 0 && (
-        <p className="mt-1 text-[12px] tabular-nums text-mute">
-          {t.scanSimsLabel} <span>{fmt.format(Math.round(show.sim * sims))}</span> / {fmt.format(sims)}
-        </p>
-      )}
-    </div>
-  );
-}
-
 /** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
 function MonteCarloNote({ data, lang, edited }: { data: Response | null; lang: FinderLang; edited: boolean }) {
   const t = useFinderText();
@@ -1592,7 +1536,6 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       </ul>
 
       {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
-      {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
       {panel?.kind === "swap" && data && canEdit && (
         <SwapPanel
           row={rows[panel.slot]}
