@@ -4,7 +4,7 @@ name: SEO score changes (read-only)
 on: workflow_dispatch
 jobs:
   diff:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}

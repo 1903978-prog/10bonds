@@ -7,7 +7,7 @@ on:
     paths: [".github/workflows/frontier-live-check.yml", "scripts/frontier-live-check.ts", "lib/frontierPoints.ts", "lib/sliderPortfolios.ts", "lib/frontierGuard.ts"]
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}

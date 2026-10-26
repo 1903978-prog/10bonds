@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   precompute:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}

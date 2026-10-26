@@ -7,7 +7,7 @@ on:
     paths: [".github/workflows/step-gap-live-check.yml", "scripts/step-gap-live-check.ts", "lib/stepGap.ts", "lib/exactFrontier.ts"]
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
