@@ -6,7 +6,12 @@ import { benchmarkPortfolio } from "@/lib/benchmarkPortfolio";
 import { getEtf } from "@/lib/etfBenchmark";
 
 const etf = await getEtf();
-const p = await benchmarkPortfolio(etf.position);
+// The slider lists are worked out in the background and can be empty on a cold start: try again for a few minutes.
+let p = await benchmarkPortfolio(etf.position);
+for (let i = 0; i < 20 && (!p || p.bonds.length < 10); i++) {
+  await new Promise((r) => setTimeout(r, 15000));
+  p = await benchmarkPortfolio(etf.position);
+}
 if (!p || p.bonds.length < 10) throw new Error(`No full top 10 yet (${p?.bonds.length ?? 0} bonds)`);
 if (p.bonds.some((b) => b.risk == null || b.ytm == null || b.year == null)) throw new Error("A bond is missing risk, return or maturity");
 const out = { asOf: p.asOf ?? new Date().toISOString().slice(0, 10), position: etf.position, bonds: p.bonds.slice(0, 10) };
