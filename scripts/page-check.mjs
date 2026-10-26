@@ -88,7 +88,9 @@ for (const [w, h] of WIDTHS) {
 // Home page behaviour (intro already seen): results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
 for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
-  await ctx.addInitScript(() => localStorage.setItem("tb_agree", "2026-10-25.1")); // first-use agreement already given
+  // First-use agreement already given: the version is read from lib/consentText.ts, so raising it never breaks this script.
+  const agreeVersion = (await import("node:fs")).readFileSync(new URL("../lib/consentText.ts", import.meta.url), "utf8").match(/CONSENT_VERSION = "([^"]+)"/)[1];
+  await ctx.addInitScript((v) => localStorage.setItem("tb_agree", v), agreeVersion);
   const p = await ctx.newPage();
   await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
