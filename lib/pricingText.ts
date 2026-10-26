@@ -28,9 +28,9 @@ const en = {
     plus: { name: "Plus", tagline: "The full shortlist, yours to shape.", cta: "Get Plus",
       extra: [] },
     premium: { name: "Premium", tagline: "See why, and stay on top.", cta: "Get Premium",
-      extra: ["More features as they come"] },
+      extra: ["Alerts when the top 10 changes (coming soon)", "Saved searches and portfolios (coming soon)"] },
     pro: { name: "Pro", tagline: "For professionals only.", cta: "Get Pro",
-      extra: ["Client portfolio analysis", "Similar bonds with a higher return", "Approved professionals only"] },
+      extra: ["Analysis of your own portfolio (upload)", "Alternative portfolio with similar risk and maturity (pending regulatory requirements)", "Approved professionals only"] },
   } as Record<"free" | "plus" | "premium" | "pro", PlanText>,
 };
 export type PricingText = typeof en;
@@ -58,9 +58,9 @@ const it: PricingText = {
     plus: { name: "Plus", tagline: "La selezione completa, da adattare a te.", cta: "Scegli Plus",
       extra: [] },
     premium: { name: "Premium", tagline: "Capisci il perché e resta aggiornato.", cta: "Scegli Premium",
-      extra: ["Altre funzioni in arrivo"] },
+      extra: ["Avvisi quando la top 10 cambia (in arrivo)", "Ricerche e portafogli salvati (in arrivo)"] },
     pro: { name: "Pro", tagline: "Solo per professionisti.", cta: "Scegli Pro",
-      extra: ["Analisi dei portafogli dei clienti", "Obbligazioni simili con rendimento più alto", "Solo professionisti approvati"] },
+      extra: ["Analisi del tuo portafoglio (caricamento)", "Portafoglio alternativo con rischio e scadenza simili (in attesa dei requisiti normativi)", "Solo professionisti approvati"] },
   },
 };
 
@@ -87,9 +87,9 @@ const fr: PricingText = {
     plus: { name: "Plus", tagline: "La sélection complète, à votre main.", cta: "Choisir Plus",
       extra: [] },
     premium: { name: "Premium", tagline: "Comprendre le pourquoi, rester informé.", cta: "Choisir Premium",
-      extra: ["D'autres fonctions à venir"] },
+      extra: ["Alertes quand le top 10 change (bientôt)", "Recherches et portefeuilles enregistrés (bientôt)"] },
     pro: { name: "Pro", tagline: "Réservé aux professionnels.", cta: "Choisir Pro",
-      extra: ["Analyse des portefeuilles clients", "Obligations similaires au rendement plus élevé", "Professionnels approuvés uniquement"] },
+      extra: ["Analyse de votre portefeuille (import)", "Portefeuille alternatif au risque et à l'échéance similaires (en attente des exigences réglementaires)", "Professionnels approuvés uniquement"] },
   },
 };
 
@@ -116,9 +116,9 @@ const de: PricingText = {
     plus: { name: "Plus", tagline: "Die volle Auswahl, nach Ihren Wünschen.", cta: "Plus wählen",
       extra: [] },
     premium: { name: "Premium", tagline: "Das Warum sehen, auf dem Laufenden bleiben.", cta: "Premium wählen",
-      extra: ["Weitere Funktionen folgen"] },
+      extra: ["Benachrichtigungen bei Änderungen der Top 10 (demnächst)", "Gespeicherte Suchen und Portfolios (demnächst)"] },
     pro: { name: "Pro", tagline: "Nur für Profis.", cta: "Pro wählen",
-      extra: ["Analyse von Kundenportfolios", "Ähnliche Anleihen mit höherer Rendite", "Nur zugelassene Profis"] },
+      extra: ["Analyse Ihres eigenen Portfolios (Upload)", "Alternatives Portfolio mit ähnlichem Risiko und ähnlicher Laufzeit (vorbehaltlich regulatorischer Anforderungen)", "Nur zugelassene Profis"] },
   },
 };
 
