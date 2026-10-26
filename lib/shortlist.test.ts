@@ -49,3 +49,14 @@ describe("comparison", () => {
     expect(verdictText("LM #1", fig(4.2, 0.3), "the 4-year list", fig(4.31, 0.23))).toMatch(/^the 4-year list has the higher return: 0.11 pp more than LM #1 and 0.07 pp less expected loss/);
   });
 });
+
+import { cleanPriceFromYield, yieldFromCleanPrice } from "./bondPrice";
+describe("yield at a price", () => {
+  it("inverts the price from yield", () => {
+    const today = new Date("2026-10-26T00:00:00Z");
+    const p = cleanPriceFromYield(3, "2031-05-14", 4.2, today)!;
+    expect(yieldFromCleanPrice(3, "2031-05-14", p, today)).toBeCloseTo(4.2, 2);
+    expect(yieldFromCleanPrice(3, "2031-05-14", 95, today)!).toBeGreaterThan(yieldFromCleanPrice(3, "2031-05-14", 98, today)!);
+    expect(yieldFromCleanPrice(null, "2031-05-14", 95, today)).toBeNull();
+  });
+});

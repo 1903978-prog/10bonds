@@ -1,5 +1,5 @@
 name: Landing snapshot
-# Manual: stores today's real top 10 bonds (and the data date) for the landing carousel in lib/landingBonds.json and
+# Manual: stores today's real top 10 bonds and the one-bond slide (and the data date) for the landing carousel in lib/landingBonds.json and
 # commits it to the branch it is run on. Read-only on the database.
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/landingBonds.json
+          git add lib/landingBonds.json lib/landingOneBond.json
           git diff --cached --quiet && { echo "No change"; exit 0; }
           git commit -m "Landing: store today's top 10 bonds snapshot"
           git push

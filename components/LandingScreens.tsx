@@ -157,45 +157,83 @@ export function FrontierScreen({ lang }: { lang: FinderLang }) {
   );
 }
 
-/** The one-bond chart, drawn at its box's real size. */
-function BestByRisk({ f }: { f: FinderText }) {
+export type OneBondData = {
+  asOf: string;
+  duration: number;
+  points: { level: number; ytm: number | null; ghost: boolean }[];
+  bond: { level: number; issuer: string; name: string; isin: string; coupon: number; maturity: string; ytm: number; duration: number; risk: number; minInvestment: number | null; currency: string };
+};
+
+/** The one-bond chart (the finder's, risk 8 to 1): blue line over the best step each, grey dots for the skipped ones, drawn at its box's real size. */
+function BestByRisk({ f, data }: { f: FinderText; data: OneBondData }) {
   const [box, size] = useBoxSize<HTMLDivElement>({ w: 600, h: 300 }, { w: 200, h: 120 });
-  const pts: [number, number][] = [[10, 0], [9, 0], [8, 0], [7, 5.1], [6, 4.6], [5, 4.2], [4, 4.0], [3, 3.6], [2, 3.1], [1, 2.8]];
-  const W = size.w, H = size.h, L = 56, R = 24, T = 30, B = 52;
-  const x = (r: number) => L + ((10 - r) / 9) * (W - L - R);
-  const y = (v: number) => T + ((5.6 - v) / 3.1) * (H - T - B);
-  const shown = pts.filter(([, v]) => v > 0);
+  const pts = data.points;
+  const top = Math.max(2, ...pts.map((p) => p.level));
+  const vals = pts.map((p) => p.ytm).filter((v): v is number => v !== null);
+  const lo = Math.floor(Math.min(...vals) * 2) / 2 - 0.5, hi = Math.ceil(Math.max(...vals) * 2) / 2 + 0.5;
+  const small = size.h < 200;
+  const W = size.w, H = size.h, L = 52, R = 24, T = small ? 26 : 30, B = small ? 40 : 52, PAD = 22;
+  const x = (r: number) => L + PAD + ((top - r) / (top - 1)) * (W - L - PAD - R);
+  const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
+  const step = size.h < 200 ? (hi - lo > 4 ? 2 : 1) : hi - lo > 10 ? 2 : hi - lo > 4 ? 1 : 0.5;
+  const ticks: number[] = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 10) / 10);
+  const line = pts.filter((p) => p.ytm !== null && !p.ghost).sort((a, b) => b.level - a.level);
   return (
     <div ref={box} className="h-full w-full overflow-hidden">
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" fontSize={14} role="img" aria-label={f.chartLabel}>
-        {[2.5, 3.5, 4.5, 5.5].map((v) => (
-          <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" /><text x={L - 10} y={y(v) + 5} textAnchor="end" fill="#6b6b72">{v.toFixed(1)}%</text></g>
+        {ticks.map((v) => (
+          <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e5e5ea" /><text x={L - 10} y={y(v) + 5} textAnchor="end" fill="#86868b">{v.toFixed(step < 1 ? 1 : 0)}%</text></g>
         ))}
-        <polyline points={shown.map(([r, v]) => `${x(r)},${y(v)}`).join(" ")} fill="none" stroke={BLUE} strokeWidth={3} strokeLinejoin="round" />
-        {pts.map(([r, v]) => (
-          <g key={r}>
-            <text x={x(r)} y={H - B + 22} textAnchor="middle" fill="#6b6b72">{r}</text>
-            {v > 0 && <><circle cx={x(r)} cy={y(v)} r={r === 7 ? 8 : 6} fill={r === 7 ? BLUE : "#fff"} stroke={BLUE} strokeWidth={2.5} /><text x={x(r)} y={y(v) - 14} textAnchor="middle" fontWeight={600}>{v.toFixed(1)}%</text></>}
-          </g>
+        {pts.map((p) => <text key={p.level} x={x(p.level)} y={H - B + (small ? 16 : 22)} textAnchor="middle" fill="#86868b">{p.level}</text>)}
+        <text x={(L + W - R) / 2} y={H - (small ? 2 : 8)} textAnchor="middle" fill="#86868b" fontSize={small ? 12 : 14}>{f.riskAxis}</text>
+        {pts.filter((p) => p.ghost && p.ytm !== null).map((p) => (
+          <g key={`g${p.level}`}><circle cx={x(p.level)} cy={y(p.ytm!)} r={4.5} fill="#fff" stroke="#c7c7cc" strokeWidth={2} /><text x={x(p.level)} y={y(p.ytm!) - 12} textAnchor="middle" fontSize={12} fill="#aeaeb2">{p.ytm!.toFixed(1)}%</text></g>
         ))}
-        <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fill="#6b6b72">{f.riskAxis}</text>
+        <polyline points={line.map((p) => `${x(p.level)},${y(p.ytm!)}`).join(" ")} fill="none" stroke={BLUE} strokeWidth={3} strokeLinejoin="round" />
+        {line.map((p) => {
+          const on = p.level === data.bond.level;
+          return (
+            <g key={p.level}>
+              <circle cx={x(p.level)} cy={y(p.ytm!)} r={on ? 8 : 6} fill={on ? BLUE : "#fff"} stroke={BLUE} strokeWidth={2.5} />
+              <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontWeight={600} fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
 }
 
-/** One bond: the best return for each risk level, with the chosen bond's card under it. */
-export function OneBondScreen({ lang }: { lang: FinderLang }) {
+/** One bond: the best return for each risk level, with one real bond's card under it (a stored snapshot, lib/landingOneBond.json). */
+export function OneBondScreen({ lang, data, asOf, locale }: { lang: FinderLang; data: OneBondData; asOf?: string; locale: string }) {
   const f = FINDER_TEXT[lang];
+  const b = data.bond;
+  const num = (v: number, d = 1) => v.toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const date = new Date(b.maturity.slice(0, 10) + "T12:00:00Z").toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const sym = b.currency === "USD" ? "US$" : "€";
+  const facts: [string, ReactNode][] = [
+    ["ISIN", b.isin], [f.risk, <RiskBadge key="r" risk={b.risk} />], [f.duration, `${num(b.duration)} ${f.yrs}`],
+    [f.coupon, `${num(b.coupon, 2)}%`], [f.maturity, date], [f.minInvest, b.minInvestment ? `${sym}${num(b.minInvestment / 1000, 0)}k` : "–"],
+  ];
   return (
     <ScaledScreen render={(wide) => (
       <Chrome wide={wide} lang={lang}>
-        {wide && <Controls f={f} single horizon={5} mix={8} />}
+        {wide && <Controls f={f} single horizon={data.duration} mix={8} />}
         <Panel>
-          <div className="min-h-0 flex-1"><BestByRisk f={f} /></div>
-          <div className="mt-3 flex shrink-0 items-center justify-between rounded-[12px] border border-[#e5e5ea] px-4 py-3 text-[15px]">
-            <span className="flex items-center gap-3"><RiskBadge risk={7} /><span className="font-semibold">Teva</span><span className="text-[#55555b]">Teva 4.375% 2030</span></span>
-            <span className="text-[26px] font-semibold tabular-nums">5.10%</span>
+          {wide && <div className="mb-1 text-[22px] font-semibold tracking-tight">{f.bestByRating}</div>}
+          <div className="min-h-0 flex-1"><BestByRisk f={f} data={data} /></div>
+          <div className="mt-3 shrink-0 rounded-[12px] border border-[#e5e5ea] px-4 py-3 text-[15px]">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 truncate"><span className="text-[13px] text-[#6b6b72]">{f.ratingStep} {b.level} · </span><span className="font-semibold">{b.issuer}</span>{b.name !== b.issuer && <span className="text-[13px] text-[#6b6b72]"> · {b.name}</span>}</span>
+              <span className="shrink-0 text-[26px] font-semibold tabular-nums">{num(b.ytm, 2)}% <span className="text-[13px] font-normal text-[#6b6b72]">{f.yieldLower}</span></span>
+            </div>
+            <dl className={`mt-1 grid gap-x-6 ${wide ? "grid-cols-3" : "grid-cols-2"}`}>
+              {facts.map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between gap-2 border-b border-[#f0f0f3] py-1 text-[14px] tabular-nums"><dt className="text-[#6b6b72]">{k}</dt><dd className="font-medium">{v}</dd></div>
+              ))}
+            </dl>
+            {asOf && <div className="mt-1 text-right text-[12px] text-[#6b6b72]">{asOf}</div>}
           </div>
         </Panel>
       </Chrome>

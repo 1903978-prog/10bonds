@@ -7,7 +7,7 @@ import type { FinderLang } from "./finderText";
 // "hand-picked portfolio" is allowed.
 const en = {
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
-  tagline: "Build an efficient portfolio of 10 bonds, balancing yield, duration and capital-loss risk.",
+  tagline: "Mathematics instead of guesswork. More yield for the same modeled risk. Or less risk for the same yield. Discover the power of Pareto optimization.",
   cardTitleBench: "Average Bond ETF vs Model portfolio",
   cardTitleBenchShort: "Average Bond ETF vs Model",
   bench: "Bond ETF benchmark",
@@ -32,7 +32,7 @@ const en = {
   trust: ["10 bonds", "10 issuers", "Risk-aware optimization"] as [string, string, string],
   objective: "The objective: seek a more efficient balance of yield, duration and modeled risk across 10 issuers.",
   objectiveLink: "Explore the portfolio",
-  tabs: { loss: "Yield vs. loss", multi: "Horizons", heat: "Heat map", list: "Top 10", compare: "Benchmark" },
+  tabs: { loss: "Yield vs. loss", multi: "Horizons", heat: "Heat map", list: "Top 10", compare: "Benchmark", one: "1 bond" },
   lead: "An illustration of how a model portfolio of 10 bonds can reach a higher modeled return than a hand-picked one, at the same duration and modeled risk.",
   cta: "Build a portfolio",
   signUp: "Sign up",
@@ -78,7 +78,7 @@ const en = {
     act: {
       compare: ["Model portfolio vs bond ETF", "Model vs bond ETF"],
       frontier: ["Efficient frontier of model-selected bonds", "Efficient frontier"],
-      curve: ["Model-selected bond per risk level", "Bond per risk level"],
+      curve: ["Highest return for each risk level", "Return per risk level"],
       list: ["See the top 10 bonds", "See the top 10 bonds"],
       country: ["Check country risk", "Check country risk"],
       company: ["Check company risk", "Check company risk"],
@@ -101,7 +101,7 @@ const en = {
 export type LandingText = typeof en;
 
 const it: LandingText = {
-  tagline: "Costruisci un portafoglio efficiente di 10 obbligazioni, bilanciando rendimento, durata e rischio di perdita del capitale.",
+  tagline: "La matematica al posto delle congetture. Più rendimento a parità di rischio modellato. O meno rischio a parità di rendimento. Scopri la potenza dell'ottimizzazione di Pareto.",
   cardTitleBench: "ETF obbligazionario medio e portafoglio del modello",
   cardTitleBenchShort: "ETF obbligazionario medio e modello",
   bench: "Benchmark di ETF obbligazionari",
@@ -126,7 +126,7 @@ const it: LandingText = {
   trust: ["10 obbligazioni", "10 emittenti", "Ottimizzazione attenta al rischio"] as [string, string, string],
   objective: "L'obiettivo: cercare un equilibrio più efficiente tra rendimento, durata e rischio modellato su 10 emittenti.",
   objectiveLink: "Esplora il portafoglio",
-  tabs: { loss: "Rendimento e perdita", multi: "Orizzonti", heat: "Mappa di calore", list: "Top 10", compare: "Confronto" },
+  tabs: { loss: "Rendimento e perdita", multi: "Orizzonti", heat: "Mappa di calore", list: "Top 10", compare: "Confronto", one: "1 obbligazione" },
   lead: "Un esempio di come un portafoglio del modello di 10 obbligazioni possa avere un rendimento stimato più alto di uno scelto a mano, a parità di durata e di rischio stimato.",
   cta: "Crea un portafoglio",
   signUp: "Registrati",
@@ -169,7 +169,7 @@ const it: LandingText = {
     act: {
       compare: ["Portafoglio del modello vs ETF", "Modello vs ETF"],
       frontier: ["Frontiera efficiente del modello", "Frontiera efficiente"],
-      curve: ["Obbligazione scelta per rischio", "Per livello di rischio"],
+      curve: ["Rendimento più alto per ogni livello di rischio", "Rendimento per rischio"],
       list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
       company: ["Verifica il rischio società", "Verifica il rischio società"],
@@ -191,7 +191,7 @@ const it: LandingText = {
 };
 
 const fr: LandingText = {
-  tagline: "Construisez un portefeuille efficient de 10 obligations, équilibrant rendement, duration et risque de perte en capital.",
+  tagline: "Les mathématiques plutôt que l'intuition. Plus de rendement pour le même risque modélisé. Ou moins de risque pour le même rendement. Découvrez la puissance de l'optimisation de Pareto.",
   cardTitleBench: "ETF obligataire moyen et portefeuille du modèle",
   cardTitleBenchShort: "ETF obligataire moyen et modèle",
   bench: "Référence d'ETF obligataires",
@@ -216,7 +216,7 @@ const fr: LandingText = {
   trust: ["10 obligations", "10 émetteurs", "Optimisation attentive au risque"] as [string, string, string],
   objective: "L'objectif : rechercher un équilibre plus efficient entre rendement, duration et risque modélisé sur 10 émetteurs.",
   objectiveLink: "Explorer le portefeuille",
-  tabs: { loss: "Rendement et perte", multi: "Horizons", heat: "Carte thermique", list: "Top 10", compare: "Comparaison" },
+  tabs: { loss: "Rendement et perte", multi: "Horizons", heat: "Carte thermique", list: "Top 10", compare: "Comparaison", one: "1 obligation" },
   lead: "Une illustration : un portefeuille du modèle de 10 obligations peut atteindre un rendement modélisé plus élevé qu'un portefeuille choisi à la main, à durée et risque modélisé égaux.",
   cta: "Construire un portefeuille",
   signUp: "S'inscrire",
@@ -259,7 +259,7 @@ const fr: LandingText = {
     act: {
       compare: ["Portefeuille du modèle vs ETF", "Modèle vs ETF"],
       frontier: ["Frontière efficiente du modèle", "Frontière efficiente"],
-      curve: ["Obligation choisie par niveau de risque", "Par niveau de risque"],
+      curve: ["Rendement le plus élevé par niveau de risque", "Rendement par risque"],
       list: ["Voir les 10 obligations top", "Voir les 10 top"],
       country: ["Vérifier le risque pays", "Vérifier le risque pays"],
       company: ["Vérifier le risque entreprise", "Risque entreprise"],
@@ -281,7 +281,7 @@ const fr: LandingText = {
 };
 
 const de: LandingText = {
-  tagline: "Bauen Sie ein effizientes Portfolio aus 10 Anleihen auf, das Rendite, Duration und Kapitalverlustrisiko ausbalanciert.",
+  tagline: "Mathematik statt Bauchgefühl. Mehr Rendite bei gleichem modelliertem Risiko. Oder weniger Risiko bei gleicher Rendite. Entdecken Sie die Kraft der Pareto-Optimierung.",
   cardTitleBench: "Durchschnittlicher Anleihen-ETF und Modell-Portfolio",
   cardTitleBenchShort: "Anleihen-ETF und Modell",
   bench: "Anleihen-ETF-Benchmark",
@@ -306,7 +306,7 @@ const de: LandingText = {
   trust: ["10 Anleihen", "10 Emittenten", "Risikobewusste Optimierung"] as [string, string, string],
   objective: "Das Ziel: ein effizienteres Verhältnis von Rendite, Duration und modelliertem Risiko über 10 Emittenten anstreben.",
   objectiveLink: "Portfolio erkunden",
-  tabs: { loss: "Rendite und Verlust", multi: "Horizonte", heat: "Heatmap", list: "Top 10", compare: "Vergleich" },
+  tabs: { loss: "Rendite und Verlust", multi: "Horizonte", heat: "Heatmap", list: "Top 10", compare: "Vergleich", one: "1 Anleihe" },
   lead: "Zur Illustration: Ein Modell-Portfolio aus 10 Anleihen kann bei gleicher Laufzeit und gleichem Modell-Risiko mehr modellierte Rendite erzielen als ein handverlesenes.",
   cta: "Portfolio erstellen",
   signUp: "Registrieren",
@@ -349,7 +349,7 @@ const de: LandingText = {
     act: {
       compare: ["Modell-Portfolio vs ETF", "Modell vs ETF"],
       frontier: ["Effizienzlinie des Modells", "Effizienzlinie"],
-      curve: ["Anleihe je Risikostufe", "Je Risikostufe"],
+      curve: ["Höchste Rendite je Risikostufe", "Rendite je Risiko"],
       list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
       country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
       company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],

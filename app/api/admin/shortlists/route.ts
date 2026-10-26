@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { createShortlist, deleteShortlist, loadShortlists, parseIsins, updateShortlist } from "@/lib/shortlistDb";
+import { cleanBids, createShortlist, deleteShortlist, loadShortlists, parseIsins, updateShortlist } from "@/lib/shortlistDb";
 import { shortlistDetail } from "@/lib/shortlistData";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 /** Admin only: { id?, name, isins (text) } creates a shortlist, or replaces the one with that id. */
 export async function POST(req: Request) {
   if (!(await currentUser())?.isAdmin) return notFound();
-  const body = (await req.json().catch(() => null)) as { id?: number; name?: unknown; isins?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { id?: number; name?: unknown; isins?: unknown; bids?: unknown } | null;
   const name = typeof body?.name === "string" ? body.name.trim().slice(0, 60) : "";
   const { isins, bad } = parseIsins(typeof body?.isins === "string" ? body.isins : Array.isArray(body?.isins) ? body.isins.join(" ") : "");
   if (!name) return NextResponse.json({ error: "Give the shortlist a name." }, { status: 400 });
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (!isins.length) return NextResponse.json({ error: "Add at least one ISIN." }, { status: 400 });
   if (isins.length > 200) return NextResponse.json({ error: "At most 200 ISINs." }, { status: 400 });
   try {
-    const r = typeof body?.id === "number" ? await updateShortlist(body.id, name, isins) : await createShortlist(name, isins);
+    const r = typeof body?.id === "number" ? await updateShortlist(body.id, name, isins, body.bids === undefined ? undefined : cleanBids(body.bids, isins)) : await createShortlist(name, isins);
     if (r === "exists") return NextResponse.json({ error: "A shortlist with that name exists." }, { status: 409 });
     if (!r) return notFound();
     return NextResponse.json({ list: await shortlistDetail(r) }, { headers: NO_STORE });

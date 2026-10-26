@@ -109,6 +109,37 @@ describe.skipIf(!url)("admin two-factor key on a real database", () => {
   });
 });
 
+describe.skipIf(!url)("clean-up of never-confirmed accounts on a real database", () => {
+  it("does nothing while the flag is off, and when on removes only old, unconfirmed, never-paid, non-admin accounts", async () => {
+    const sql = await buildAll();
+    const { purgeUnconfirmed } = await import("./unconfirmedPurge");
+    const tag = `purge-${Date.now()}`;
+    const add = async (name: string, extra: { verified?: boolean; stripe?: boolean; daysOld: number }) => {
+      const [u] = await sql`insert into app.users (email, password_hash, created_at, email_verified_at, stripe_customer_id)
+        values (${`${name}-${tag}@test.local`}, 'x', now() - make_interval(days => ${extra.daysOld}),
+                ${extra.verified ? sql`now()` : null}, ${extra.stripe ? "cus_test" : null}) returning id`;
+      return String(u.id);
+    };
+    const old = await add("old", { daysOld: 31 });
+    const fresh = await add("fresh", { daysOld: 5 });
+    const confirmed = await add("confirmed", { daysOld: 60, verified: true });
+    const paid = await add("paid", { daysOld: 60, stripe: true });
+    const admin = await add("admin", { daysOld: 60 });
+    const [{ email: adminEmail }] = await sql`select email from app.users where id = ${admin}`;
+    await sql`insert into app.search_usage (user_id, kind) values (${old}, 'single')`;
+    await sql`insert into app.events (visitor_id, user_id, kind) values ('v', ${old}, 'page_view')`;
+    const alive = async () => (await sql`select id from app.users where email like ${`%-${tag}@test.local`}`).map((r) => String(r.id)).sort();
+
+    expect(await purgeUnconfirmed(sql, [adminEmail], {})).toBe(0);
+    expect(await alive()).toHaveLength(5);
+
+    expect(await purgeUnconfirmed(sql, [adminEmail], { PRIVACY_PURGE_UNCONFIRMED: "on" })).toBeGreaterThanOrEqual(1);
+    expect(await alive()).toEqual([fresh, confirmed, paid, admin].sort());
+    expect((await sql`select count(*)::int n from app.events where user_id = ${old}`)[0].n).toBe(0);
+    expect((await sql`select count(*)::int n from app.search_usage where user_id = ${old}`)[0].n).toBe(0);
+  });
+});
+
 describe.skipIf(!url)("risk premium versions on a real database", () => {
   it("seeds Version 1.0 as active; a draft changes nothing until activated; recorded runs keep their version", async () => {
     const sql = await buildAll();
