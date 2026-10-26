@@ -16,7 +16,7 @@ async function buildAll() {
   await admin`create schema if not exists app`;
   await admin.end();
   process.env.ACCOUNTS_DATABASE_URL = url;
-  const { accountsSql } = await import("./accounts");
+  const { accountsSql, discountTable } = await import("./accounts");
   const { seoSql } = await import("./seo/store");
   const { brokerTablesReady } = await import("./brokers/store");
   const { proTableReady } = await import("./pro");
@@ -26,6 +26,7 @@ async function buildAll() {
   const { bondImportTablesReady } = await import("./bondImportDb");
   const { shortlistTablesReady } = await import("./shortlistDb");
   const sql = await accountsSql();
+  await discountTable();
   await seoSql();
   await brokerTablesReady();
   await proTableReady();

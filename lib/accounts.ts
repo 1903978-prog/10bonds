@@ -788,7 +788,7 @@ export async function subscriptionIdOf(userId: number): Promise<string | null> {
 
 // Created on first use, not in setup(): keeps this table off the path every account request waits for.
 let discountReady: Promise<void> | null = null;
-async function discountTable() {
+export async function discountTable() {
   const { sql, ready } = db();
   await ready;
   discountReady ??= (async () => {
