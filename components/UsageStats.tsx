@@ -3,14 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { flushNow, getCategories, getConsent, reopenCookieBanner, setCategories, track, type Categories } from "@/lib/track";
-
-const ROWS: { key: keyof Categories | "necessary"; name: string; text: string }[] = [
-  { key: "necessary", name: "Necessary", text: "Keep you signed in and remember this choice. The site does not work without them." },
-  { key: "preferences", name: "Preferences", text: "Remember settings such as your last slider values." },
-  { key: "statistics", name: "Statistics", text: "Count pages visited, time on each page, searches and buttons clicked, with an anonymous visitor number and your country, only to improve your experience on the site. Your data is never sold or shared with third parties. If you refuse, we only add one to a daily page count, with no identifier. Signed-in members who allow it get one free week of Premium." },
-  { key: "marketing", name: "Marketing", text: "We use no marketing or advertising cookies today. If that changes we will ask again." },
-];
+import { countOpposed, flushNow, getCategories, getConsent, reopenCookieBanner, setCategories, setCountOpposed, track, type Categories } from "@/lib/track";
+import { COOKIE_TEXT, cookieLang, type CookieLang } from "@/lib/cookieText";
 
 function browserZone(): string | null {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null; } catch { return null; }
@@ -22,9 +16,10 @@ export default function UsageStats() {
   const [consent, setC] = useState<string | null | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState<Categories>({ preferences: false, statistics: false, marketing: false });
-  const [details, setDetails] = useState(false);
+  const [lang, setLang] = useState<CookieLang>("en");
+  const [opposed, setOpposed] = useState(false);
   const bonusDone = useRef(false);
-  const [settings, setSettings] = useState(false); // the switches live in a second view; the first one is a short notice
+  const [settings, setSettings] = useState(false); // Details: the purposes and the opt-out; the first view is a short notice
 
   useEffect(() => {
     const read = () => {
@@ -34,10 +29,11 @@ export default function UsageStats() {
       setOpen(c === null);
     };
     read();
+    setLang(cookieLang());
+    setOpposed(countOpposed());
     const reopen = () => {
       const c = getCategories();
       if (c) setSel(c);
-      setDetails(true);
       setSettings(true);
       setOpen(true);
     };
@@ -64,6 +60,7 @@ export default function UsageStats() {
   useEffect(() => {
     // Statistics refused: a plain count per day, page and country is still added, with no identifier and nothing stored in the browser.
     if (consent === "no") {
+      if (countOpposed()) return;
       const body = JSON.stringify({ path: window.location.pathname, tz: browserZone() });
       fetch("/api/count", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
       return;
@@ -77,80 +74,70 @@ export default function UsageStats() {
   }, [pathname, consent]);
 
   if (!open) return null;
+  const t = COOKIE_TEXT[lang];
   const choose = (c: Categories) => {
     setCategories(c);
     setOpen(false);
     setSettings(false);
   };
+  // "I understand" keeps the anonymous basics only; visitor statistics need the switch (or Accept) inside Details.
+  const understand = () => choose(settings ? sel : { preferences: false, statistics: false, marketing: false });
+  const oppose = () => {
+    const v = !opposed;
+    setCountOpposed(v);
+    setOpposed(v);
+    if (v) choose({ preferences: false, statistics: false, marketing: false });
+  };
+  const policy = lang === "en" ? "/cookies" : `/cookies?lang=${lang}`;
+  const btn = "rounded-full px-4 py-2 font-medium";
   return (
     <div
       data-cookie-banner
       data-testid="cookie-banner"
       role="dialog"
-      aria-label="Cookie settings"
-      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl bg-white px-3 py-2.5 text-[12px] sm:text-[13px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:p-6"
+      aria-label={t.label}
+      className="fixed inset-x-2 bottom-2 z-40 mx-auto max-h-[85vh] max-w-5xl overflow-y-auto rounded-2xl bg-white px-4 py-3 text-[12px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:inset-x-4 sm:bottom-4 sm:text-[13px]"
     >
-      <p className="hidden text-[15px] font-semibold sm:block">This website uses cookies</p>
-      {/* Phones get one short line so the banner stays a slim bar at the bottom. */}
-      <p className="leading-snug text-mute sm:hidden">
-        We use a sign-in cookie and, if you allow it, count visits. We sell no data and use no advertising cookies.{" "}
-        <Link href="/terms#privacy" className="text-accent">Privacy</Link>
-      </p>
-      <p className="mt-2 hidden leading-relaxed text-mute sm:block">
-        We use a cookie to keep you signed in and, if you allow it, count how the site is used, only to improve your experience. We never sell your data to third parties and use no advertising cookies. Accept statistics, or open Customize to choose exactly what you allow.
-        You can change your choice at any time with “Cookie settings” at the bottom of every page.{" "}
-        <Link href="/terms#privacy" className="text-accent">Privacy details</Link>
-      </p>
       {!settings ? (
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-4">
-          <button onClick={() => setSettings(true)} data-testid="cookie-settings" className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
-            Customize
-          </button>
-          <button onClick={() => choose({ preferences: true, statistics: true, marketing: false })} data-testid="cookie-accept" className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
-            Accept statistics
-          </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+          <p className="leading-snug text-mute">
+            {t.notice} <Link href={policy} className="text-accent">{t.learn}</Link>
+          </p>
+          <div className="flex shrink-0 gap-2">
+            <button onClick={() => setSettings(true)} data-testid="cookie-settings" className={`${btn} flex-1 border border-line hover:bg-canvas`}>{t.details}</button>
+            <button onClick={understand} data-testid="cookie-accept" className={`${btn} flex-1 whitespace-nowrap bg-accent text-white hover:bg-[#0077ed]`}>{t.understand}</button>
+          </div>
         </div>
       ) : (
         <>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {ROWS.map((r) => {
-              const on = r.key === "necessary" ? true : sel[r.key];
-              return (
-                <label key={r.key} className="flex items-center justify-between gap-2 rounded-xl border border-line px-3 py-2.5">
-                  <span className="font-medium">{r.name}</span>
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    data-testid={`cookie-${r.key}`}
-                    checked={on}
-                    disabled={r.key === "necessary"}
-                    onChange={(e) => r.key !== "necessary" && setSel({ ...sel, [r.key]: e.target.checked })}
-                    className="h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-line transition before:block before:h-4 before:w-4 before:translate-x-0.5 before:rounded-full before:bg-white before:shadow before:transition checked:bg-accent checked:before:translate-x-[18px] disabled:cursor-not-allowed disabled:opacity-70"
-                  />
-                </label>
-              );
-            })}
-          </div>
-          <button onClick={() => setDetails(!details)} className="mt-3 text-accent">
-            {details ? "Hide details" : "Show details"}
-          </button>
-          {details && (
-            <ul className="mt-2 space-y-1.5 text-mute">
-              {ROWS.map((r) => (
-                <li key={r.key}><span className="font-medium text-ink">{r.name}:</span> {r.text}</li>
-              ))}
-            </ul>
-          )}
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:mt-4">
-            <button onClick={() => choose({ preferences: false, statistics: false, marketing: false })} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
-              Necessary only
-            </button>
-            <button onClick={() => choose(sel)} className="rounded-full border border-line px-2 py-1.5 font-medium hover:bg-canvas sm:px-4 sm:py-2.5">
-              Save selection
-            </button>
-            <button onClick={() => choose({ preferences: true, statistics: true, marketing: false })} className="rounded-full bg-accent px-2 py-1.5 font-medium text-white sm:px-4 sm:py-2.5 hover:bg-[#0077ed]">
-              Accept statistics
-            </button>
+          <p className="text-[15px] font-semibold">{t.title}</p>
+          <ul className="mt-3 space-y-2">
+            <li className="flex items-start justify-between gap-3 rounded-xl border border-line px-3 py-2.5">
+              <span><span className="font-medium">{t.functional}</span><br /><span className="text-mute">{t.functionalText}</span></span>
+              <label className="flex shrink-0 items-center gap-2 text-mute">{t.required}
+                <input type="checkbox" role="switch" data-testid="cookie-necessary" checked disabled readOnly className="h-5 w-9 shrink-0 appearance-none rounded-full bg-accent opacity-70 before:block before:h-4 before:w-4 before:translate-x-[18px] before:translate-y-0.5 before:rounded-full before:bg-white" />
+              </label>
+            </li>
+            <li className="flex items-start justify-between gap-3 rounded-xl border border-line px-3 py-2.5">
+              <span><span className="font-medium">{t.audience}</span><br /><span className="text-mute">{opposed ? t.opposed : t.audienceText}</span></span>
+              <button onClick={oppose} data-testid="cookie-oppose" className="shrink-0 text-accent hover:underline">{opposed ? t.allowAgain : t.oppose}</button>
+            </li>
+            <li className="flex items-start justify-between gap-3 rounded-xl border border-line px-3 py-2.5">
+              <span><span className="font-medium">{t.visitor}</span><br /><span className="text-mute">{t.visitorText}</span></span>
+              <input
+                type="checkbox"
+                role="switch"
+                data-testid="cookie-statistics"
+                aria-label={t.visitor}
+                checked={sel.statistics}
+                onChange={(e) => setSel({ ...sel, statistics: e.target.checked, preferences: e.target.checked })}
+                className="h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-line transition before:block before:h-4 before:w-4 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-white before:shadow before:transition checked:bg-accent checked:before:translate-x-[18px]"
+              />
+            </li>
+          </ul>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <Link href={policy} className="text-accent">{t.policy}</Link>
+            <button onClick={understand} data-testid="cookie-accept" className={`${btn} bg-accent text-white hover:bg-[#0077ed]`}>{t.understand}</button>
           </div>
         </>
       )}
