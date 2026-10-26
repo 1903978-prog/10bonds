@@ -104,6 +104,19 @@ table app.correction_requests
   requested_at timestamp with time zone not null default now()
   status text not null default 'open'::text
 
+table app.discount_codes
+  code text not null
+  user_id bigint
+  percent_off numeric
+  amount_off_cents integer
+  months integer not null
+  stripe_coupon_id text
+  stripe_promo_id text
+  stripe_mode text
+  created_by bigint
+  created_at timestamp with time zone not null default now()
+  used_at timestamp with time zone
+
 table app.events
   id bigint not null default nextval(...)
   at timestamp with time zone not null default now()
@@ -450,6 +463,9 @@ constraints
   app.consents consents_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
+  app.discount_codes discount_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
+  app.discount_codes discount_codes_pkey: PRIMARY KEY (code)
+  app.discount_codes discount_codes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.events events_pkey: PRIMARY KEY (id)
   app.events events_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
   app.pro_access pro_access_pkey: PRIMARY KEY (user_id)
@@ -542,6 +558,7 @@ indexes
   CREATE INDEX consents_user_idx ON app.consents USING btree (user_id, kind, version)
   CREATE UNIQUE INDEX consents_pkey ON app.consents USING btree (id)
   CREATE UNIQUE INDEX correction_requests_pkey ON app.correction_requests USING btree (id)
+  CREATE UNIQUE INDEX discount_codes_pkey ON app.discount_codes USING btree (code)
   CREATE INDEX events_at_idx ON app.events USING btree (at)
   CREATE INDEX events_kind_at_idx ON app.events USING btree (kind, at)
   CREATE INDEX events_user_idx ON app.events USING btree (user_id) WHERE (user_id IS NOT NULL)
