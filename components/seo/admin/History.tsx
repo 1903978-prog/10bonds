@@ -64,9 +64,9 @@ export default function History() {
   const [open, setOpen] = useState(false);
   const [table, setTable] = useState(false);
   useEffect(() => {
-    if (!open || rows) return;
+    if (rows) return;
     api<{ rows: DailyRow[]; days: DayRow[]; pages: PageRow[] }>("/api/admin/seo/history").then((r) => { setRows(r.rows); setDays2(r.days ?? []); setPages(r.pages ?? []); }).catch((e) => setError((e as Error).message));
-  }, [open, rows]);
+  }, [rows]);
   const days = rows ? [...new Set(rows.map((r) => r.day))].sort() : [];
   const val = (s: Stat, day: string) => {
     const r = rows?.find((x) => x.day === day && x.source === s.source);
