@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { API_PROMPT_VERSION, RESULT_CONTRACT, apiPrompt, customPrompt, parseGptRatings, parseResultLine } from "@/lib/gptRatings";
-import { llmCallsToday, loadGptRatings, loadLlmSettings, logLlmCall, saveApiRating, saveLlmSettings } from "@/lib/gptRatingsDb";
-import { PROVIDERS, askModel, keyPresent, type Provider } from "@/lib/llmProvider";
+import { BONDS_SKILL } from "@/lib/bondsSkill";
+import { bondsPrompt, parseBondsJson, skillVersion, systemFor, toCells } from "@/lib/bondsRun";
+import { llmCallsToday, loadGptRatings, loadLlmSettings, logLlmCall, saveBondsRun, saveLlmSettings } from "@/lib/gptRatingsDb";
+import { PROVIDERS, askModelFull, keyPresent, type Provider } from "@/lib/llmProvider";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const KEY_URLS = { gemini: "https://aistudio.google.com/apikey", openai: "https://platform.openai.com/api-keys", anthropic: "https://console.anthropic.com/settings/keys" };
 const SECRETS_URL = "https://github.com/1903978-prog/10bonds/settings/secrets/actions/new";
@@ -45,26 +46,35 @@ export async function POST(req: Request) {
   if (st.used >= st.settings.dailyCap) return NextResponse.json({ error: `Daily limit of ${st.settings.dailyCap} calls reached, try tomorrow (or raise the limit in the calculator settings).`, ...st }, { status: 429 });
   if (inFlight.has(isin)) return NextResponse.json({ error: "Already calculating this bond" }, { status: 409 });
   inFlight.add(isin);
-  try {
-    const custom = st.settings.instructions.trim().length > 0;
-    let text: string;
-    try {
-      text = await askModel(st.settings.provider, st.settings.model, custom ? customPrompt(isin) : apiPrompt(isin), custom ? `${st.settings.instructions.trim()}\n\n${RESULT_CONTRACT}` : "");
-    } catch (e) {
-      await logLlmCall(isin, st.settings.provider, st.settings.model, false).catch(() => {});
-      const name = e instanceof Error && e.name === "TimeoutError" ? "The model took too long (60 s). Try again." : e instanceof Error ? e.message : "Call failed";
-      return NextResponse.json({ error: name, ...(await status().catch(() => ({}))) }, { status: /limit|quota/i.test(name) ? 429 : 502 });
-    }
-    await logLlmCall(isin, st.settings.provider, st.settings.model, true).catch(() => {});
-    const res = parseResultLine(text);
-    const table = parseGptRatings(text)[isin];
-    const parsed = { issuerRating: res?.issuerRating ?? table?.issuerRating ?? null, rating: res?.rating ?? table?.rating ?? null, riskPay: res?.riskPay ?? null, basis: table?.basis ?? null, answer: text };
-    if (!(parsed.rating || parsed.issuerRating || parsed.riskPay) || (parsed.rating === "NR" && (!parsed.issuerRating || parsed.issuerRating === "NR") && !parsed.riskPay)) {
-      return NextResponse.json({ error: "The model gave no rating for this bond", answer: text }, { status: 422 });
-    }
-    await saveApiRating(isin, parsed, `${st.settings.provider}:${st.settings.model}`, custom ? `${API_PROMPT_VERSION}+custom` : API_PROMPT_VERSION);
-    return NextResponse.json({ ok: true, isin, answer: text, ratings: await loadGptRatings(), used: st.used + 1, dailyCap: st.settings.dailyCap });
-  } finally {
-    inFlight.delete(isin);
-  }
+  // The answer is long and can take minutes: the reply is streamed (a space every few seconds keeps the connection open) and ends with one JSON object.
+  const enc = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(ctl) {
+      const beat = setInterval(() => { try { ctl.enqueue(enc.encode(" ")); } catch { /* closed */ } }, 8000);
+      const finish = (status: number, body: unknown) => { clearInterval(beat); ctl.enqueue(enc.encode(JSON.stringify({ status, ...(body as object) }))); ctl.close(); };
+      try {
+        const skill = st.settings.instructions.trim() || BONDS_SKILL;
+        let out: { text: string; grounded: boolean };
+        try {
+          out = await askModelFull(st.settings.provider, st.settings.model, bondsPrompt(isin), systemFor(skill), true);
+        } catch (e) {
+          await logLlmCall(isin, st.settings.provider, st.settings.model, false).catch(() => {});
+          const name = e instanceof Error && e.name === "TimeoutError" ? "The model took too long (4 minutes). Try again." : e instanceof Error ? e.message : "Call failed";
+          return finish(/limit|quota/i.test(name) ? 429 : 502, { error: name, ...(await status().catch(() => ({}))) });
+        }
+        await logLlmCall(isin, st.settings.provider, st.settings.model, true).catch(() => {});
+        const parsed = parseBondsJson(out.text);
+        const cells = toCells(parsed);
+        const ok = !!parsed && !!(cells.ir || cells.br || cells.riskPay);
+        await saveBondsRun({ isin, provider: st.settings.provider, model: st.settings.model, skillVersion: skillVersion(skill), grounded: out.grounded, raw: out.text, parsed, cells });
+        const note = [ok ? "" : "Not parsed: the answer had no usable JSON block, so the table was not changed. The full text is saved.", out.grounded || st.settings.provider !== "gemini" ? "" : "Google Search was not available on this key, so prices and news may be out of date."].filter(Boolean).join(" ");
+        return finish(200, { ok: true, isin, answer: out.text, parsedOk: ok, grounded: out.grounded, note, ratings: await loadGptRatings(), used: st.used + 1, dailyCap: st.settings.dailyCap });
+      } catch (e) {
+        return finish(500, { error: e instanceof Error ? e.message : "Calculation failed" });
+      } finally {
+        inFlight.delete(isin);
+      }
+    },
+  });
+  return new Response(stream, { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }

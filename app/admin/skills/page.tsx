@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import AdminSkills from "@/components/AdminSkills";
 import { currentUser } from "@/lib/currentUser";
-import { IRBR_SKILL_DEFAULT } from "@/lib/gptRatings";
+import { BONDS_SKILL } from "@/lib/bondsSkill";
 import { loadSkills } from "@/lib/gptRatingsDb";
 import { CORPORATE_MD, SOVEREIGN_MD } from "@/lib/methodologyText";
 
@@ -17,7 +17,7 @@ export default async function AdminSkillsPage() {
   if (user?.adminState && user.adminState !== "ok") redirect("/admin");
   if (!user?.isAdmin) notFound();
   const saved = await loadSkills();
-  const defaults = { irbr: IRBR_SKILL_DEFAULT, lr_gov: SOVEREIGN_MD.trim(), lr_corp: CORPORATE_MD.trim() };
+  const defaults = { irbr: BONDS_SKILL, lr_gov: SOVEREIGN_MD.trim(), lr_corp: CORPORATE_MD.trim() };
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <p className="text-sm"><Link href="/admin" className="text-accent">← Admin</Link></p>

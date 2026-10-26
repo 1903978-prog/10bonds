@@ -28,6 +28,7 @@ export default function GptCalcPopup() {
         {p.error ? <p className="mb-2 text-xs font-medium text-red-700">{p.error}</p> : (
           <div className="mb-2 flex flex-wrap items-center gap-1.5">{chip("IR", g?.issuerRating)}{chip("BR", g?.rating)}{chip("Risk Pay", g?.riskPay)}<span className="text-[11px] text-mute">saved to the database and the table</span></div>
         )}
+        {p.note && <p className="mb-2 text-xs font-medium text-amber-800" data-testid="gpt-popup-note">{p.note}</p>}
         <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded bg-canvas p-2 text-xs leading-relaxed" data-testid="gpt-popup-answer">{p.answer}</pre>
         <p className="mt-2 text-[11px] text-mute">Provisional scenario from a language model, not validated. Admin only, never used in rankings or shown to customers.{g?.model ? ` Model: ${g.model}.` : ""}</p>
       </div>

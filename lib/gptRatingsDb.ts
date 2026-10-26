@@ -26,6 +26,8 @@ async function sql() {
     await s`alter table app.gpt_ratings add column if not exists model text`;
     await s`alter table app.gpt_ratings add column if not exists prompt_version text`;
     await s`create table if not exists app.llm_calls (id bigserial primary key, isin text not null, provider text not null, model text not null, ok boolean not null, at timestamptz not null default now())`;
+    await s`create table if not exists app.bond_runs (id bigserial primary key, isin text not null, at timestamptz not null default now(), provider text not null, model text not null, skill_version text not null, grounded boolean not null default false, raw text not null, parsed jsonb, parsed_ok boolean not null default false)`;
+    await s`create index if not exists bond_runs_isin_at on app.bond_runs (isin, at desc)`;
     await s`create table if not exists app.llm_settings (key text primary key, value text not null)`;
   })().catch((e) => {
     ready = null;
@@ -167,4 +169,19 @@ export async function saveSkill(key: SkillKey, text: string): Promise<void> {
   const s = await sql();
   const value = text.slice(0, SKILL_MAX);
   await s`insert into app.llm_settings (key, value) values (${SKILL_DB_KEY[key]}, ${value}) on conflict (key) do update set value = excluded.value`;
+}
+
+// ---- $bonds runs: one row per run (history kept), plus the three table cells ----
+
+/** Saves one run (raw answer, parsed JSON, date, skill version). With parsed cells it also fills IR, BR and Risk Pay in the table. */
+export async function saveBondsRun(r: { isin: string; provider: string; model: string; skillVersion: string; grounded: boolean; raw: string; parsed: Record<string, unknown> | null; cells: { ir: string | null; br: string | null; riskPay: string | null } }): Promise<void> {
+  if (!ISIN.test(r.isin)) return;
+  const s = await sql();
+  const ok = !!r.parsed && !!(r.cells.ir || r.cells.br || r.cells.riskPay);
+  await s`insert into app.bond_runs (isin, provider, model, skill_version, grounded, raw, parsed, parsed_ok) values (${r.isin}, ${r.provider}, ${r.model.slice(0, 80)}, ${r.skillVersion}, ${r.grounded}, ${r.raw.slice(0, 200000)}, ${r.parsed ? s.json(r.parsed as never) : null}, ${ok})`;
+  if (!ok) return;
+  const row = { isin: r.isin, rating: r.cells.br, issuer_rating: r.cells.ir, risk_pay: r.cells.riskPay, basis: "$bonds skill (provisional)", full_answer: r.raw.slice(0, 200000), model: r.model.slice(0, 80), prompt_version: r.skillVersion.slice(0, 20) };
+  await s`
+    insert into app.gpt_ratings ${s(row, "isin", "rating", "issuer_rating", "risk_pay", "basis", "full_answer", "model", "prompt_version")}
+    on conflict (isin) do update set rating = coalesce(excluded.rating, app.gpt_ratings.rating), issuer_rating = coalesce(excluded.issuer_rating, app.gpt_ratings.issuer_rating), risk_pay = coalesce(excluded.risk_pay, app.gpt_ratings.risk_pay), full_answer = excluded.full_answer, detail = null, basis = excluded.basis, model = excluded.model, prompt_version = excluded.prompt_version, pasted_at = now()`;
 }
