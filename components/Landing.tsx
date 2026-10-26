@@ -78,7 +78,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
                 <Comparison t={t} num={num} bench={bench} />
               </div>
             ) }] : []),
-            { key: "frontier", node: <ScreenSlide title={actionTitle(t.carousel.act.frontier)}><FrontierScreen lang={lang} /></ScreenSlide> },
+            { key: "frontier", node: <ScreenSlide title={actionTitle(t.carousel.act.frontier)} sub={t.carousel.frontierSub}><FrontierScreen lang={lang} /></ScreenSlide> },
             { key: "curve", node: <ScreenSlide title={actionTitle(t.carousel.act.curve)}><OneBondScreen lang={lang} /></ScreenSlide> },
             { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={bonds} /></ScreenSlide> },
           ]} />
