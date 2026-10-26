@@ -11,9 +11,9 @@ import { LANG_COOKIE } from "@/lib/seo/locales";
 import { PRICING_TEXT, pricingLang } from "@/lib/pricingText";
 import { loadMatrix } from "@/lib/planFeatures";
 import { MAX_PLAN_LINES, planLines } from "@/lib/features";
-import { SEARCH_LIMITS } from "@/lib/limits";
 import { activePromo } from "@/lib/promoServer";
 import { promoCents, promoEndLabel, promoLine } from "@/lib/promo";
+import { loadFreeLimits } from "@/lib/searchLimits";
 
 export const metadata: Metadata = {
   title: "Plans · 10BONDS",
@@ -33,7 +33,8 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
   const t = PRICING_TEXT[lang];
   // Each card lists what the admin's feature table (/admin/features) ticks for that plan.
   const matrix = await loadMatrix();
-  const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], lines: [...planLines(matrix, key, lang, t, SEARCH_LIMITS.free), ...t.plans[key].extra].slice(0, MAX_PLAN_LINES), highlight: key === "plus" }));
+  const freeLimits = await loadFreeLimits();
+  const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], lines: [...planLines(matrix, key, lang, t, freeLimits), ...t.plans[key].extra].slice(0, MAX_PLAN_LINES), highlight: key === "plus" }));
   // Yearly is not sold for now (the owner, 26/10/2026): the page is always monthly, even with ?billing=year.
   const interval = "month" as Interval;
   const promo = await activePromo();

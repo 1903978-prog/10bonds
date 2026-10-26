@@ -1,3 +1,4 @@
+import { loadFreeLimits } from "./searchLimits";
 import { COMPANY } from "./legal";
 import { esc, sendEmail, siteUrl } from "./email";
 import { CALCULATORS } from "./seo/calculators";
@@ -59,7 +60,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "The plans",
     plans: [
-      ["Free", "10 one-bond and 3 portfolio searches a week, without ISINs."],
+      ["Free", "{s} one-bond and {p} portfolio searches a week, without ISINs."],
       ["Plus · €9/month", "ISINs and unlimited searches."],
       ["Premium · €19/month", "Everything in Plus, plus e-mail alerts and more features."],
       ["Pro · €89/month", "For professionals only: portfolio analysis and similar bonds to compare."],
@@ -86,7 +87,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "I piani",
     plans: [
-      ["Free", "10 ricerche di singole obbligazioni e 3 di portafoglio a settimana, senza ISIN."],
+      ["Free", "{s} ricerche di singole obbligazioni e {p} di portafoglio a settimana, senza ISIN."],
       ["Plus · 9 €/mese", "ISIN e ricerche illimitate."],
       ["Premium · 19 €/mese", "Tutto di Plus, più avvisi via e-mail e altre funzioni."],
       ["Pro · 89 €/mese", "Solo per professionisti: analisi del portafoglio e obbligazioni simili da confrontare."],
@@ -113,7 +114,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "Les offres",
     plans: [
-      ["Free", "10 recherches d'une obligation et 3 de portefeuille par semaine, sans ISIN."],
+      ["Free", "{s} recherches d'une obligation et {p} de portefeuille par semaine, sans ISIN."],
       ["Plus · 9 €/mois", "ISIN et recherches illimitées."],
       ["Premium · 19 €/mois", "Tout Plus, avec les alertes par e-mail et d'autres fonctions."],
       ["Pro · 89 €/mois", "Réservé aux professionnels : analyse de portefeuille et obligations similaires à comparer."],
@@ -140,7 +141,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "Die Pläne",
     plans: [
-      ["Free", "10 Einzelanleihen- und 3 Portfolio-Suchen pro Woche, ohne ISIN."],
+      ["Free", "{s} Einzelanleihen- und {p} Portfolio-Suchen pro Woche, ohne ISIN."],
       ["Plus · 9 €/Monat", "ISIN und unbegrenzte Suchen."],
       ["Premium · 19 €/Monat", "Alles aus Plus, dazu E-Mail-Alerts und weitere Funktionen."],
       ["Pro · 89 €/Monat", "Nur für Profis: Portfolio-Analyse und ähnliche Anleihen zum Vergleich."],
@@ -162,8 +163,8 @@ export function accessDaysLeft(premiumUntil: string | null | undefined, now = Da
 }
 
 /** trialDays: days of free full access from a promo code; null for everyone else (no trial is promised). */
-export function welcomeEmail(lang: WelcomeLang, username: string, trialDays: number | null, base = siteUrl()) {
-  const t = TEXT[lang];
+export function welcomeEmail(lang: WelcomeLang, username: string, trialDays: number | null, base = siteUrl(), free: { single: number; portfolio: number } = { single: 10, portfolio: 10 }) {
+  const t = { ...TEXT[lang], plans: TEXT[lang].plans.map(([n, w]) => [n, w.replace("{s}", String(free.single)).replace("{p}", String(free.portfolio))] as [string, string]) };
   const intro = trialDays ? t.trial(trialDays) : t.noTrial;
   const p = welcomePaths(lang);
   const u = (path: string) => `${base}${path}`;
@@ -224,6 +225,6 @@ export const LANG_NAMES: Record<WelcomeLang, string> = { en: "English", it: LOCA
 
 /** Sent once, right after the address is confirmed. Replies go to EMAIL_REPLY_TO when it is set. */
 export async function sendWelcome(email: string, username: string, lang: WelcomeLang, trialDays: number | null) {
-  const m = welcomeEmail(lang, username, trialDays);
+  const m = welcomeEmail(lang, username, trialDays, undefined, await loadFreeLimits());
   return sendEmail(email, m.subject, m.html, m.text, process.env.EMAIL_REPLY_TO || undefined);
 }
