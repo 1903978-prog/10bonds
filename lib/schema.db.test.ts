@@ -25,6 +25,7 @@ async function buildAll() {
   const { weeklyTablesReady } = await import("./weeklySend");
   const { bondImportTablesReady } = await import("./bondImportDb");
   const { shortlistTablesReady } = await import("./shortlistDb");
+  const { frontierTableReady } = await import("./frontierStore");
   const sql = await accountsSql();
   await discountTable();
   await seoSql();
@@ -35,6 +36,7 @@ async function buildAll() {
   await weeklyTablesReady();
   await bondImportTablesReady();
   await shortlistTablesReady();
+  await frontierTableReady();
   return sql;
 }
 
