@@ -83,7 +83,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
             ) }] : []),
             { key: "multi", node: <ScreenSlide title={actionTitle(t.carousel.multi.title)}><MultiYearScreen sub={t.carousel.multi.sub} subShort={t.carousel.multi.subShort} insightShort={t.carousel.multi.insightShort} yLabel={t.carousel.multi.y} xLabel={t.carousel.multi.x} insightK={t.carousel.multi.insightK} insight={t.carousel.multi.insight} /></ScreenSlide> },
             { key: "heat", node: <ScreenSlide title={actionTitle(t.carousel.heat.title)}><HeatMapScreen sub={t.carousel.heat.sub} subShort={t.carousel.heat.subShort} insightShort={t.carousel.heat.insightShort} insightK={t.carousel.multi.insightK} insight={t.carousel.heat.insight} retLabel={t.carousel.multi.y} yrs={t.carousel.yrs} /></ScreenSlide> },
-            { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={snap.bonds.length ? snap.bonds : bonds} mix={snap.position} asOf={snap.asOf ? new Date(snap.asOf + "T12:00:00Z").toLocaleDateString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : undefined} /></ScreenSlide> },
+            { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={snap.bonds.length ? snap.bonds : bonds} mix={snap.position} asOf={snap.asOf ? new Date(snap.asOf.slice(0, 10) + "T12:00:00Z").toLocaleDateString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : undefined} /></ScreenSlide> },
           ]} />
         </div>
         {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
