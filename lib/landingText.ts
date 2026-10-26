@@ -75,7 +75,7 @@ const en = {
     act: {
       compare: ["Model portfolio vs bond ETF", "Model vs bond ETF"],
       frontier: ["Efficient frontier of model-selected bonds", "Efficient frontier"],
-      curve: ["Model-selected bond per risk level", "Bond per risk level"],
+      curve: ["Highest return for each risk level", "Return per risk level"],
       list: ["See the top 10 bonds", "See the top 10 bonds"],
       country: ["Check country risk", "Check country risk"],
       company: ["Check company risk", "Check company risk"],
@@ -162,7 +162,7 @@ const it: LandingText = {
     act: {
       compare: ["Portafoglio del modello vs ETF", "Modello vs ETF"],
       frontier: ["Frontiera efficiente del modello", "Frontiera efficiente"],
-      curve: ["Obbligazione scelta per rischio", "Per livello di rischio"],
+      curve: ["Rendimento più alto per ogni livello di rischio", "Rendimento per rischio"],
       list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
       company: ["Verifica il rischio società", "Verifica il rischio società"],
@@ -248,7 +248,7 @@ const fr: LandingText = {
     act: {
       compare: ["Portefeuille du modèle vs ETF", "Modèle vs ETF"],
       frontier: ["Frontière efficiente du modèle", "Frontière efficiente"],
-      curve: ["Obligation choisie par niveau de risque", "Par niveau de risque"],
+      curve: ["Rendement le plus élevé par niveau de risque", "Rendement par risque"],
       list: ["Voir les 10 obligations top", "Voir les 10 top"],
       country: ["Vérifier le risque pays", "Vérifier le risque pays"],
       company: ["Vérifier le risque entreprise", "Risque entreprise"],
@@ -334,7 +334,7 @@ const de: LandingText = {
     act: {
       compare: ["Modell-Portfolio vs ETF", "Modell vs ETF"],
       frontier: ["Effizienzlinie des Modells", "Effizienzlinie"],
-      curve: ["Anleihe je Risikostufe", "Je Risikostufe"],
+      curve: ["Höchste Rendite je Risikostufe", "Rendite je Risiko"],
       list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
       country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
       company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],
