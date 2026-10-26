@@ -6,11 +6,11 @@ import type { FinderLang } from "@/lib/finderText";
 
 // Under the 10-bond table (the owner, 26/10/2026): allocation by industry and by country, plus one diversification score.
 // A fixed-size strip (4 bar slots per chart, "–" when empty), so nothing moves whatever the list holds.
-const TEXT: Record<FinderLang, { score: string; line: string; industry: string; country: string; other: string; none: string; lock: string }> = {
-  en: { score: "Diversification", line: "0–100: how evenly the 10 bonds spread across industries and countries (100 = every bond different).", industry: "By industry", country: "By country", other: "Other", none: "Not classified", lock: "Subscribe to a paid plan to visualize" },
-  it: { score: "Diversificazione", line: "0–100: quanto le 10 obbligazioni sono distribuite tra settori e paesi (100 = tutte diverse).", industry: "Per settore", country: "Per paese", other: "Altri", none: "Non classificato", lock: "Abbonati a un piano a pagamento per visualizzare" },
-  fr: { score: "Diversification", line: "0–100 : répartition des 10 obligations entre secteurs et pays (100 = toutes différentes).", industry: "Par secteur", country: "Par pays", other: "Autres", none: "Non classé", lock: "Passez à un forfait payant pour visualiser" },
-  de: { score: "Diversifikation", line: "0–100: wie gleichmäßig sich die 10 Anleihen auf Branchen und Länder verteilen (100 = alle verschieden).", industry: "Nach Branche", country: "Nach Land", other: "Andere", none: "Nicht klassifiziert", lock: "Bezahlten Tarif abonnieren, um es zu sehen" },
+const TEXT: Record<FinderLang, { score: string; line: string; industry: string; country: string; other: string; none: string; lock: string; signUp: string }> = {
+  en: { score: "Diversification", line: "0–100: how evenly the 10 bonds spread across industries and countries (100 = every bond different).", industry: "By industry", country: "By country", other: "Other", none: "Not classified", lock: "Subscribe to a paid plan to visualize", signUp: "Sign up for free to visualize" },
+  it: { score: "Diversificazione", line: "0–100: quanto le 10 obbligazioni sono distribuite tra settori e paesi (100 = tutte diverse).", industry: "Per settore", country: "Per paese", other: "Altri", none: "Non classificato", lock: "Abbonati a un piano a pagamento per visualizzare", signUp: "Registrati gratis per visualizzare" },
+  fr: { score: "Diversification", line: "0–100 : répartition des 10 obligations entre secteurs et pays (100 = toutes différentes).", industry: "Par secteur", country: "Par pays", other: "Autres", none: "Non classé", lock: "Passez à un forfait payant pour visualiser", signUp: "Inscrivez-vous gratuitement pour visualiser" },
+  de: { score: "Diversifikation", line: "0–100: wie gleichmäßig sich die 10 Anleihen auf Branchen und Länder verteilen (100 = alle verschieden).", industry: "Nach Branche", country: "Nach Land", other: "Andere", none: "Nicht klassifiziert", lock: "Bezahlten Tarif abonnieren, um es zu sehen", signUp: "Kostenlos registrieren zum Anzeigen" },
 };
 
 const BARS = 4;
@@ -37,7 +37,7 @@ function Bars({ title, slices, other, none }: { title: string; slices: DivSlice[
 }
 
 /** `locked`: free plans and visitors get made-up bars, blurred, and a button to the Plans page; no real data is drawn. */
-export default function Diversification({ rows, lang, locked: notAllowed }: { rows: DivInput[]; lang: FinderLang; locked: boolean }) {
+export default function Diversification({ rows, lang, locked: notAllowed, signedIn }: { rows: DivInput[]; lang: FinderLang; locked: boolean; signedIn: boolean }) {
   const t = TEXT[lang];
   const locked = notAllowed && rows.length > 0; // no list yet: the same empty strip for everyone, so nothing shifts when it arrives
   const d = locked ? null : diversification(rows);
@@ -53,7 +53,7 @@ export default function Diversification({ rows, lang, locked: notAllowed }: { ro
       <div className={locked ? "blur-[6px]" : ""} aria-hidden={locked}><Bars title={t.country} slices={locked ? decoy : d?.country ?? []} other={t.other} none={t.none} /></div>
       {locked && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <Link href="/pricing" data-testid="diversification-lock" className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white shadow-lg transition hover:opacity-90">{t.lock}</Link>
+          <Link href={signedIn ? "/pricing" : `/signup?next=${lang === "en" ? "/" : `/${lang}`}`} data-testid="diversification-lock" className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white shadow-lg transition hover:opacity-90">{signedIn ? t.lock : t.signUp}</Link>
         </div>
       )}
     </div>
