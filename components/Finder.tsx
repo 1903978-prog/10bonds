@@ -12,6 +12,7 @@ import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import { RANK_LABEL } from "@/lib/seniority";
 import LossChart, { slopeAt } from "@/components/LossChart";
+import LockedChart from "@/components/LockedChart";
 import OptimalPanel, { OptimalButton, useOptimal } from "@/components/OptimalPanel";
 import AllCurvesChart from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
@@ -182,7 +183,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [optAsked, setOptAsked] = useState(false);
   const [optShown, setOptShown] = useState(false);
   const [optSel, setOptSel] = useState<number | null>(null);
-  const heatOn = isAdmin && (showHeat || (showAll && optShown)) && heatPick !== null;
+  const features = new Set<FeatureKey>(data?.features ?? []);
+  const canHeat = isAdmin || features.has("heat_map");
+  const canMulti = isAdmin || features.has("multi_chart");
+  const heatOn = ((canHeat && showHeat) || (isAdmin && showAll && optShown)) && heatPick !== null;
   const shortlistDots = useShortlistDots(isAdmin && (showHeat || showAll));
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
@@ -380,7 +384,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, [touched, data, mode]);
   const tier = data?.tier ?? "visitor";
   // What this plan includes comes with each answer (the admin's feature table, /admin/features).
-  const features = new Set<FeatureKey>(data?.features ?? []);
   // Visitors get the two averages too (the owner, 24/10/2026); only the bond names wait for a free account.
   const paid = features.has("portfolio_sim") || tier === "visitor";
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
@@ -391,9 +394,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const chartable = (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
   // Chart mode (Livio 24/10): the chart takes the place of the controls on the left, the 10 bonds sit on the right.
   // It stays on while a new list loads, so nothing jumps between searches.
-  const curveMode = chartOn && (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data;
+  // Free plans and visitors get the same tabs with a blurred decoy chart and a button to the Plans page (components/LockedChart.tsx):
+  // the real curves are never fetched for them.
+  const chartLocked = !(features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0;
+  const curveMode = chartOn && ((features.has("loss_chart") || isAdmin) || chartLocked) && mode === "portfolio" && !!data;
   // View tabs above the results (Livio 25/10): List | Chart | Multi-year chart | Heat map. The last two are admin only (yellow).
   const view = !chartOn ? "list" : showHeat ? "heat" : showAll ? "multi" : "chart";
+  // Each view is real for the admin and for plans that have it (/admin/features); everyone else gets the blurred decoy.
+  const viewLocked = view === "heat" ? !canHeat : view === "multi" ? !canMulti : chartLocked;
   const opt = useOptimal(isAdmin && optAsked && chartOn && chartable, currency, size);
   const optReady = opt !== null && opt !== "pending" && opt !== "failed";
   const pickOpt = (years: number) => {
@@ -408,7 +416,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   };
   const viewTabs = (
     <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs">
-      {([["list", t.chartOff], ["chart", t.chartOn], ...(isAdmin ? [["multi", "Multi-year chart"], ["heat", "Heat map"]] : [])] as [string, string][]).map(([k, label]) => (
+      {([["list", t.chartOff], ["chart", t.chartOn], ["multi", isAdmin ? "Multi-year chart" : t.chartMulti], ["heat", isAdmin ? "Heat map" : t.chartHeat]] as [string, string][]).map(([k, label]) => (
         <button
           key={k}
           type="button"
@@ -416,7 +424,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           aria-selected={view === k}
           data-testid={`view-tab-${k}`}
           onClick={() => pickView(k)}
-          className={`whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] ${view === k ? (k === "multi" || k === "heat" ? "bg-amber-100 font-medium text-amber-900 shadow-sm" : "bg-white font-medium text-ink shadow-sm") : k === "multi" || k === "heat" ? "text-amber-800" : "text-mute"}`}
+          className={`whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] ${view === k ? (isAdmin && (k === "multi" || k === "heat") ? "bg-amber-100 font-medium text-amber-900 shadow-sm" : "bg-white font-medium text-ink shadow-sm") : isAdmin && (k === "multi" || k === "heat") ? "text-amber-800" : "text-mute"}`}
         >
           {label}
         </button>
@@ -439,19 +447,19 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     return () => ctrl.abort();
   }, [chartOn, chartable, duration, risk, currency, size]);
   useEffect(() => {
-    if (!chartOn || !chartable || !showAll || !isAdmin) return;
+    if (!chartOn || !chartable || !showAll || !canMulti) return;
     const ctrl = new AbortController();
     fetch(`/api/bonds/loss-curve?${new URLSearchParams({ all: "1", risk: String(risk), currency, size })}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => j?.curves && setAllCurves(j.curves))
       .catch(() => {});
     return () => ctrl.abort();
-  }, [chartOn, chartable, showAll, isAdmin, risk, currency, size]);
+  }, [chartOn, chartable, showAll, canMulti, risk, currency, size]);
   // Admin only: the risk heat map (expected loss per target return and horizon), in place of the curves. Asked for as
   // soon as the admin's page opens, so the server builds it in the background and it shows at once when switched on.
   const [heatMap, setHeatMap] = useState<HeatMap | "unavailable" | null>(null);
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canHeat) return;
     setHeatMap(null);
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -467,7 +475,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         .catch(() => {});
     ask();
     return () => { stop = true; clearTimeout(timer); };
-  }, [isAdmin, currency, size, heatMethod, heatBl]);
+  }, [canHeat, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
   const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show);
@@ -717,12 +725,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                     }}
                   />
                 )}
-                {chartable && viewTabs}
+                {(chartable || chartLocked) && viewTabs}
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
-                {showHeat && isAdmin ? (
-                  <HeatMapChart shortlists={shortlistDots} map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
-                ) : showAll && isAdmin ? (
+                {viewLocked ? (
+                  <LockedChart kind={view === "heat" ? "heat" : view === "multi" ? "multi" : "chart"} label={t.chartLock} href="/pricing" />
+                ) : showHeat && canHeat ? (
+                  <HeatMapChart plain={!isAdmin} shortlists={shortlistDots} map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
+                ) : showAll && canMulti ? (
                   allCurves && <AllCurvesChart shortlists={shortlistDots} curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={optShown ? optSel : null} onSelect={pickOpt} />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
@@ -806,7 +816,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {/* Fixed-height row above the list: the chart button is always here, drawn only when a chart can be shown. */}
           <div className="mb-1 flex h-7 items-center justify-between">
             <div>{arrows}</div>
-            {chartable && viewTabs}
+            {(chartable || chartLocked) && viewTabs}
           </div>
           <Results
             dense={false}
