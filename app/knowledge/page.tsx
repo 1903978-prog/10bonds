@@ -43,7 +43,6 @@ export default async function KnowledgePage() {
     <div>
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{k.h1}</h1>
       <p className="mt-3 max-w-3xl text-[17px] text-mute">{k.lead}</p>
-      <NewsletterCta className="mt-3 block" />
       <KnowledgeTools
         locale="en"
         defaultHref={enPath("bond-default-rates-by-rating")}
@@ -66,6 +65,7 @@ export default async function KnowledgePage() {
                     <Link href={i.href} className="block h-full rounded-2xl bg-canvas px-4 py-3 text-[15px] font-medium hover:text-accent">{i.title}</Link>
                   </li>
                 ))}
+                {sec === KC_ORDER[0] && <li><NewsletterCta className="flex h-full items-center rounded-2xl bg-canvas px-4 py-3" /></li>}
               </ul>
             )}
           </section>
