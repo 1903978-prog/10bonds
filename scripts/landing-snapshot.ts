@@ -24,9 +24,9 @@ const out = { asOf: p.asOf ?? new Date().toISOString().slice(0, 10), position: e
 writeFileSync("lib/landingBonds.json", JSON.stringify(out, null, 2) + "\n");
 console.log(JSON.stringify(out));
 
-// The "one bond" slide (the owner, 26/10/2026): the finder's chart (best return per risk level at 5 years, risk 8 to 1) and one
+// The "one bond" slide (the owner, 26/10/2026): the finder's chart (best return per risk level at the short horizon, risk 8 to 1) and one
 // real bond's card, from the same tables as /api/bonds/curve. Stored in lib/landingOneBond.json.
-const DURATION = 5;
+const DURATION = 2;
 const [data, table] = await Promise.all([loadBondsFor(DEFAULT_FILTER), bestTableFor(DEFAULT_FILTER)]);
 const curve = shapeCurve(curveAt(table, DURATION).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), "plus");
 const onLine = dropDominated(curve).filter((c) => c.ytm !== null).map((c) => c.level);
