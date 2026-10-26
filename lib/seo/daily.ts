@@ -3,6 +3,7 @@ import { syncKeywords } from "./rankings";
 import { SEO_MARKETS } from "./input";
 import { dailyVisits } from "../accounts";
 import { listKeywords, seoSql } from "./store";
+import { refreshDailyTable } from "./dailyTable";
 
 // One snapshot a day of the headline search numbers, kept so the SEO page can chart progress. Safe to run many times a day:
 // there is one row per day and source, and a source that answers nothing never overwrites a figure already saved.
@@ -46,6 +47,7 @@ export async function takeSnapshot(force = false): Promise<boolean> {
   // Every market's keyword positions are refreshed here too, so the rankings table fills even when nobody opens it.
   const site = await gscProperty().catch(() => null);
   if (site) for (const m of SEO_MARKETS) await syncKeywords(m, site).catch((e) => console.error(`Keyword sync ${m} failed:`, (e as Error).message));
+  await refreshDailyTable().catch((e) => console.error("Daily table refresh failed:", (e as Error).message));
   const [g, b, kws] = await Promise.all([google(), bing(), listKeywords().catch(() => [])]);
   await save(fromEngine(day, "google", g));
   await save(fromEngine(day, "bing", b));

@@ -132,6 +132,27 @@ export async function searchConsoleKpis(siteUrl: string, days = 28): Promise<Sea
   };
 }
 
+/**
+ * Every day Google still reports (about 16 months): clicks, impressions, CTR, average position and the number of pages
+ * that appeared in search that day. Two queries only (by date, and by date and page).
+ */
+export async function googleDailyRows(siteUrl: string): Promise<{ day: string; clicks: number; impressions: number; ctr: number; position: number; pages: number }[]> {
+  const end = new Date();
+  const start = new Date(end.getTime() - 480 * 86_400_000);
+  const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
+  const base = { startDate: ymd(start), endDate: ymd(end), type: "web", dataState: "all" };
+  type Row = { keys?: string[]; clicks: number; impressions: number; ctr: number; position: number };
+  const byDay = await googleJson(url, { ...base, dimensions: ["date"], rowLimit: 25000 });
+  const pages = new Map<string, number>();
+  for (let startRow = 0; startRow < 100_000; startRow += 25000) {
+    const j = await googleJson(url, { ...base, dimensions: ["date", "page"], rowLimit: 25000, startRow });
+    const rows: Row[] = j.rows ?? [];
+    for (const r of rows) pages.set(r.keys?.[0] ?? "", (pages.get(r.keys?.[0] ?? "") ?? 0) + 1);
+    if (rows.length < 25000) break;
+  }
+  return (byDay.rows ?? []).map((r: Row) => ({ day: r.keys?.[0] ?? "", clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, position: r.position, pages: pages.get(r.keys?.[0] ?? "") ?? 0 }));
+}
+
 export type GscData = {
   range: { start: string; end: string };
   totals: { clicks: number; impressions: number; ctr: number; position: number };
