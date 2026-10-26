@@ -1,5 +1,6 @@
 import { SEARCH_LIMITS, SEARCH_SESSION_MINUTES, type SearchKind } from "./limits";
 import type { User } from "./accounts";
+import { loadFreeLimits } from "./searchLimits";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -26,15 +27,15 @@ export function decideSearch(past: Date[], now: Date, limit: number | null, kind
 
 /** `unlimited`: what the admin's feature table says for this plan ("unlimited_single" / "unlimited_portfolio"); a plan
  * without it gets the free allowance. Left out: the plan's own allowance in SEARCH_LIMITS. */
-export function limitFor(user: Pick<User, "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean): number | null {
+export function limitFor(user: Pick<User, "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean, free: Record<SearchKind, number> = SEARCH_LIMITS.free): number | null {
   if (user.isAdmin) return null;
-  if (unlimited !== undefined) return unlimited ? null : SEARCH_LIMITS.free[kind];
+  if (unlimited !== undefined) return unlimited ? null : free[kind];
   return SEARCH_LIMITS[user.plan][kind];
 }
 
 /** Checks and, when a new search starts, records it. Fails open (allowed) if the accounts database is unreachable. */
 export async function consumeSearch(user: Pick<User, "id" | "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean): Promise<Decision> {
-  const limit = limitFor(user, kind, unlimited);
+  const limit = limitFor(user, kind, unlimited, await loadFreeLimits());
   const { accountsSql } = await import("./accounts");
   try {
     const sql = await accountsSql();
@@ -51,4 +52,20 @@ export async function consumeSearch(user: Pick<User, "id" | "plan" | "isAdmin">,
 
 export function publicQuota(d: Decision): Quota {
   return { kind: d.kind, limit: d.limit, used: d.used, resetsAt: d.resetsAt };
+}
+
+/** Where the user stands now, without counting a search (the counter shown before and between searches). */
+export async function peekSearch(user: Pick<User, "id" | "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean): Promise<Quota> {
+  const limit = limitFor(user, kind, unlimited, await loadFreeLimits());
+  if (limit === null) return { kind, limit, used: 0, resetsAt: null };
+  try {
+    const { accountsSql } = await import("./accounts");
+    const sql = await accountsSql();
+    const rows = await sql<{ at: Date }[]>`
+      select at from app.search_usage where user_id = ${user.id} and kind = ${kind} and at > now() - interval '7 days'`;
+    const week = rows.map((r) => new Date(r.at)).sort((a, b) => a.getTime() - b.getTime());
+    return { kind, limit, used: week.length, resetsAt: week.length ? new Date(week[0].getTime() + WEEK_MS).toISOString() : null };
+  } catch {
+    return { kind, limit, used: 0, resetsAt: null };
+  }
 }
