@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DailyRow } from "@/lib/seo/daily";
+import type { DayRow } from "@/lib/seo/dailyTable";
 import { api, num } from "./ui";
 
 type Stat = { label: string; source: DailyRow["source"]; key: keyof DailyRow; digits?: number; pct?: boolean; lowerIsBetter?: boolean };
@@ -55,6 +56,8 @@ function Spark({ values }: { values: (number | null)[] }) {
 /** History of the headline search numbers, saved once a day: a small chart per figure and the dated table. */
 export default function History() {
   const [rows, setRows] = useState<DailyRow[] | null>(null);
+  const [days2, setDays2] = useState<DayRow[]>([]);
+  const [busy, setBusy] = useState(false);
   const [pages, setPages] = useState<PageRow[]>([]);
   const [byPage, setByPage] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +65,7 @@ export default function History() {
   const [table, setTable] = useState(false);
   useEffect(() => {
     if (!open || rows) return;
-    api<{ rows: DailyRow[]; pages: PageRow[] }>("/api/admin/seo/history").then((r) => { setRows(r.rows); setPages(r.pages ?? []); }).catch((e) => setError((e as Error).message));
+    api<{ rows: DailyRow[]; days: DayRow[]; pages: PageRow[] }>("/api/admin/seo/history").then((r) => { setRows(r.rows); setDays2(r.days ?? []); setPages(r.pages ?? []); }).catch((e) => setError((e as Error).message));
   }, [open, rows]);
   const days = rows ? [...new Set(rows.map((r) => r.day))].sort() : [];
   const val = (s: Stat, day: string) => {
@@ -72,7 +75,7 @@ export default function History() {
   return (
     <section className="rounded-2xl bg-white px-4 py-3" data-testid="seo-history">
       <button onClick={() => setOpen(!open)} className="text-sm text-accent">{open ? "Hide history" : "History of these numbers (saved daily)"}</button>
-      {open && error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
       {open && !rows && !error && <p className="mt-2 text-xs text-mute">Loading…</p>}
       {open && rows && (
         <div className="mt-3 space-y-3">
@@ -107,23 +110,33 @@ export default function History() {
               </div>
             )}
           </div>
-          {days.length > 0 && (
-            <div>
+          <div>
+            <div className="flex items-center gap-3">
               <button onClick={() => setTable(!table)} className="text-xs text-accent">{table ? "Hide date table" : "Show date table"}</button>
-              {table && (
-                <div className="mt-2 max-h-[70vh] overflow-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead><tr><th className="pr-3 font-medium">Date</th>{STATS.map((s) => <th key={s.label} className="px-2 font-medium">{s.label}</th>)}</tr></thead>
-                    <tbody>
-                      {[...days].reverse().map((d) => (
-                        <tr key={d} className="border-t border-line"><td className="whitespace-nowrap py-1.5 pr-3">{d}</td>{STATS.map((s) => <td key={s.label} className="px-2">{fmt(s, val(s, d))}</td>)}</tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <button disabled={busy} className="text-xs text-accent disabled:opacity-60" onClick={() => {
+                setBusy(true); setError(null);
+                api<{ days: DayRow[] }>("/api/admin/seo/history", {}, "POST").then((r) => setDays2(r.days)).catch((e) => setError((e as Error).message)).finally(() => setBusy(false));
+              }}>{busy ? "Refreshing…" : "Refresh now"}</button>
             </div>
-          )}
+            {table && (
+              <div className="mt-2 max-h-[70vh] overflow-auto">
+                <table className="w-full text-left text-sm" data-testid="seo-daily-table">
+                  <thead><tr><th className="pr-3 font-medium">Date</th>{["Clicks", "Impressions", "CTR", "Avg position", "Pages in search"].map((h) => <th key={h} className="px-2 font-medium">Google {h.toLowerCase()}</th>)}{["Clicks", "Impressions", "Indexed pages"].map((h) => <th key={h} className="px-2 font-medium">Bing {h.toLowerCase()}</th>)}</tr></thead>
+                  <tbody>
+                    {days2.length === 0 && <tr><td colSpan={9} className="py-2 text-xs text-mute">No days saved yet. Press Refresh now to load the history.</td></tr>}
+                    {days2.map((d) => (
+                      <tr key={d.day} className="border-t border-line tabular-nums">
+                        <td className="whitespace-nowrap py-1.5 pr-3">{d.day}</td>
+                        <td className="px-2">{num(d.gClicks)}</td><td className="px-2">{num(d.gImpressions)}</td>
+                        <td className="px-2">{d.gCtr === null ? "–" : `${num(d.gCtr * 100, 1)}%`}</td><td className="px-2">{d.gPosition === null ? "–" : num(d.gPosition, 1)}</td><td className="px-2">{num(d.gPages)}</td>
+                        <td className="px-2">{num(d.bClicks)}</td><td className="px-2">{num(d.bImpressions)}</td><td className="px-2">{num(d.bPages)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </section>
