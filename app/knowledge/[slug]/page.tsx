@@ -111,7 +111,6 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         <section className="mt-8 rounded-[24px] bg-white p-6 text-[16px] leading-[1.7]">
           <h2 className="text-[22px] font-semibold tracking-tight">{c.how.h2}</h2>
           {c.how.paras.map((p) => <p key={p} className="mt-3">{p}</p>)}
-          <p className="mt-3 text-sm text-mute">{c.taxNote}</p>
         </section>
         <JsonLd data={{ "@context": "https://schema.org", "@type": "WebApplication", name: c.h1, url: SITE_URL + enPath(c.slug), inLanguage: "en", applicationCategory: "FinanceApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, description: c.description }} />
       </div>

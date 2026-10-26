@@ -17,9 +17,10 @@ export default function YieldCalculator({ locale, text }: { locale: string; text
   const [frequency, setFrequency] = useState<1 | 2 | 4>(2);
   const [maturity, setMaturity] = useState(inFive);
   const [settlement, setSettlement] = useState(today);
-  const [rate, setRate] = useState(String(text.defaultRate));
+  const [rate, setRate] = useState("");
   const n = (v: string) => Number(v.replace(",", "."));
-  const input: BondInput = { price: n(price), coupon: n(coupon), frequency, maturity, settlement, taxRate: n(rate) };
+  const input: BondInput = { price: n(price), coupon: n(coupon), frequency, maturity, settlement, taxRate: rate.trim() === "" ? 0 : n(rate) };
+  const hasRate = rate.trim() !== "" && Number.isFinite(n(rate));
   const error = checkBond(input);
   const r = useMemo(() => (error ? null : bondYield(input)), [error, price, coupon, frequency, maturity, settlement, rate]);
   const f = (x: number, d = 2) => x.toLocaleString(NUM[locale], { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -36,14 +37,7 @@ export default function YieldCalculator({ locale, text }: { locale: string; text
             <option value={1}>{L.annual}</option><option value={2}>{L.semi}</option><option value={4}>{L.quarterly}</option>
           </select>
         </label>
-        <div className="text-sm font-medium">{L.tax}
-          <div className="mt-1 flex flex-wrap gap-2">
-            {text.presets.map((p) => (
-              <button key={p.label} type="button" onClick={() => setRate(String(p.rate))} className={`rounded-full px-3 py-1.5 text-xs ${n(rate) === p.rate ? "bg-accent text-white" : "bg-canvas"}`}>{p.label}</button>
-            ))}
-          </div>
-          <label className="mt-2 block text-xs text-mute">{L.custom}<input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} className={field} data-testid="calc-rate" /></label>
-        </div>
+        <label className="text-sm font-medium">{L.custom}<input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="–" className={field} data-testid="calc-rate" /></label>
       </div>
       {error || !r || !Number.isFinite(r.grossYtm) ? (
         <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{L.invalid}</p>
@@ -51,7 +45,7 @@ export default function YieldCalculator({ locale, text }: { locale: string; text
         <>
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-canvas p-4"><p className="text-xs text-mute">{L.gross}</p><p className="mt-1 text-2xl font-semibold" data-testid="calc-gross">{f(r.grossYtm)}%</p></div>
-            <div className="rounded-2xl bg-canvas p-4"><p className="text-xs text-mute">{L.net} ({n(rate).toLocaleString(NUM[locale], { maximumFractionDigits: 3 })}%)</p><p className="mt-1 text-2xl font-semibold text-accent" data-testid="calc-net">{f(r.netYtm)}%</p></div>
+            <div className="rounded-2xl bg-canvas p-4"><p className="text-xs text-mute">{L.net}</p><p className="mt-1 text-2xl font-semibold text-accent" data-testid="calc-net">{hasRate ? `${f(r.netYtm)}%` : "–"}</p></div>
           </div>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
             <div><dt className="text-xs text-mute">{L.current}</dt><dd>{f(r.currentYield)}%</dd></div>
@@ -69,7 +63,6 @@ export default function YieldCalculator({ locale, text }: { locale: string; text
           </details>
         </>
       )}
-      <p className="mt-5 text-xs text-mute">{text.taxNote}</p>
     </div>
   );
 }

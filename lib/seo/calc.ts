@@ -1,6 +1,7 @@
 // Yield to maturity, gross and after tax, for a fixed-coupon bond bought today. Used by the public calculators.
 // Conventions (kept simple and stated on the page): coupons on the maturity day's anniversaries, ACT/ACT time in years,
-// accrued interest added to the clean price, annual compounding of the yield. Tax: coupons are taxed at the chosen
+// accrued interest added to the clean price. The yield is the quoted (street) convention: the yield per coupon period
+// times the coupons per year, so a bond bought at par on a coupon date yields exactly its coupon. Tax: coupons are taxed at the chosen
 // rate when paid; at maturity the gain (100 - clean price) is taxed at the same rate when positive. Losses are
 // not offset (they could be against other gains, which the calculator cannot know).
 
@@ -48,11 +49,11 @@ export function checkBond(b: BondInput): string | null {
   return null;
 }
 
-/** Annual rate r with sum(cf / (1 + r)^t) = price, by bisection (robust for any sign pattern we produce). */
-export function solveYield(price: number, flows: { t: number; amount: number }[]): number {
-  const pv = (r: number) => flows.reduce((s, f) => s + f.amount / Math.pow(1 + r, f.t), 0);
-  let lo = -0.99;
-  let hi = 10;
+/** Yield r (a year, compounded `freq` times a year) with sum(cf / (1 + r/freq)^t) = price, t in coupon periods (years when freq is 1), by bisection. */
+export function solveYield(price: number, flows: { t: number; amount: number }[], freq = 1): number {
+  const pv = (r: number) => flows.reduce((s, f) => s + f.amount / Math.pow(1 + r / freq, f.t), 0);
+  let lo = -0.99 * freq;
+  let hi = 10 * freq;
   if ((pv(lo) - price) * (pv(hi) - price) > 0) return NaN;
   for (let i = 0; i < 200; i++) {
     const mid = (lo + hi) / 2;
@@ -81,16 +82,18 @@ export function bondYield(b: BondInput): BondResult {
   const tax = b.taxRate / 100;
   const gain = Math.max(0, 100 - b.price);
   const years = (d: number) => (d - s) / (365.25 * DAY);
+  // Time in coupon periods: the part left of the current period, then whole periods.
+  const firstFrac = (next - s) / (next - prev);
   const cashflows = dates.map((d, i) => {
     const last = i === dates.length - 1;
     const gross = coupon + (last ? 100 : 0);
     const net = coupon * (1 - tax) + (last ? 100 - gain * tax : 0);
-    return { date: ymd(d), gross, net, t: years(d) };
+    return { date: ymd(d), gross, net, t: firstFrac + i };
   });
-  const grossYtm = solveYield(dirtyPrice, cashflows.map((c) => ({ t: c.t, amount: c.gross })));
+  const grossYtm = solveYield(dirtyPrice, cashflows.map((c) => ({ t: c.t, amount: c.gross })), b.frequency);
   // The buyer pays accrued interest to the seller and gets it back, taxed only on the part earned while holding:
   // keep it simple and treat accrued as cost, the first coupon net as above.
-  const netYtm = solveYield(dirtyPrice, cashflows.map((c) => ({ t: c.t, amount: c.net })));
+  const netYtm = solveYield(dirtyPrice, cashflows.map((c) => ({ t: c.t, amount: c.net })), b.frequency);
   return {
     years: years(m),
     accrued,
