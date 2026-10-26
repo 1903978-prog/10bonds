@@ -833,7 +833,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <Results
             dense={false}
             show={show}
-            waited={data ? null : waited}
             lang={lang}
             data={data}
             list={list}
@@ -1370,7 +1369,7 @@ const DENSE_HEAD_H = 24;
 const DENSE_ROW_H = 22;
 const CARD_H = 64;
 
-function Results({ data, list, setList, features, onExcluded, signedIn, currency, message, show, waited = null, lang, whyQuery, dense = false, narrow = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; onExcluded: () => void; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; waited?: number | null; lang: FinderLang; whyQuery: string; dense?: boolean; narrow?: boolean }) {
+function Results({ data, list, setList, features, onExcluded, signedIn, currency, message, show, lang, whyQuery, dense = false, narrow = false }: { data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; onExcluded: () => void; signedIn: boolean; currency: string; message: ReactNode | null; show: Show | null; lang: FinderLang; whyQuery: string; dense?: boolean; narrow?: boolean }) {
   // Dense: shorter rows, used beside the chart so the chart and the 10 bonds fit one screen. Narrow: half-width list
   // beside the chart, without the bond name and minimum columns (the issuer, return, duration and risk stay).
   const rowH = dense ? DENSE_ROW_H : ROW_H;
@@ -1403,8 +1402,6 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
   const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
   const empty = SLOTS - rows.length - locked;
   // While the search show runs, picks from this slot on are kept in place but not shown yet.
-  // While the first list is still being worked out, grey placeholder rows fill in one by one (same slots, nothing moves).
-  const pending = (i: number) => waited !== null && !message && i < Math.floor(waited / 700);
   const hide = (i: number) => (show && !message && i > show.row ? " invisible" : "");
   return (
     <div>
@@ -1485,14 +1482,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           ))}
           {Array.from({ length: empty }).map((_, i) => (
             <tr key={`e${i}`} aria-hidden style={{ height: rowH }}>
-              {pending(rows.length + locked + i) ? (
-                <>
-                  <td className="pl-2"><span className="inline-block h-3 w-4 animate-pulse rounded bg-line align-middle" /></td>
-                  <td colSpan={(narrow ? 6 : 9) + (admin ? 4 : 0)} className="pr-3"><span className="block h-3 animate-pulse rounded bg-line/70" /></td>
-                </>
-              ) : (
-                <td colSpan={(narrow ? 7 : 10) + (admin ? 4 : 0)} />
-              )}
+              <td colSpan={(narrow ? 7 : 10) + (admin ? 4 : 0)} />
             </tr>
           ))}
         </tbody>
@@ -1530,9 +1520,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           </li>
         ))}
         {Array.from({ length: empty }).map((_, i) => (
-          <li key={`e${i}`} aria-hidden style={{ height: CARD_H }} className={pending(rows.length + locked + i) ? "flex items-center gap-3 rounded-2xl border border-line/70 px-4" : undefined}>
-            {pending(rows.length + locked + i) && (<><span className="h-3 w-4 animate-pulse rounded bg-line" /><span className="h-3 flex-1 animate-pulse rounded bg-line/70" /><span className="h-3 w-12 animate-pulse rounded bg-line/70" /></>)}
-          </li>
+          <li key={`e${i}`} aria-hidden style={{ height: CARD_H }} />
         ))}
       </ul>
 
