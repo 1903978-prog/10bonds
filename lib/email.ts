@@ -70,14 +70,14 @@ export function maskEmails(text: string): string {
   return text.replace(/([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9-])[A-Za-z0-9.-]*(\.[A-Za-z]{2,})\b/g, "$1***@$2***$3");
 }
 
-export async function sendEmail(to: string, subject: string, html: string, text: string, replyTo?: string): Promise<"sent" | "not-configured" | "failed"> {
+export async function sendEmail(to: string, subject: string, html: string, text: string, replyTo?: string, headers?: Record<string, string>): Promise<"sent" | "not-configured" | "failed"> {
   // Sending needs only the key and the sender; the domain check never blocks a send (a sending-only key cannot read domains).
   if (!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)) return "not-configured";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: process.env.EMAIL_FROM, to, subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
+      body: JSON.stringify({ from: process.env.EMAIL_FROM, to, subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}), ...(headers ? { headers } : {}) }),
       signal: AbortSignal.timeout(10_000),
     });
     const body = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 300);

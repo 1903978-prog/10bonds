@@ -1,6 +1,6 @@
 import { TEST_QUESTIONS } from "./testQuestions";
 
-// Free manual citation check: Livio pastes the weekly prompt into ChatGPT and Claude, then pastes the answers
+// Free manual citation check: the owner pastes the weekly prompt into ChatGPT and Claude, then pastes the answers
 // back. Answers are split by their "Q<n>" markers and each one is checked for a link to or mention of 10bonds.com.
 
 export const MANUAL_ASSISTANTS = [

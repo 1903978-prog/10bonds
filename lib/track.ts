@@ -45,7 +45,7 @@ export function setCategories(c: Categories) {
   if (!c.statistics) {
     s?.removeItem(VISITOR_KEY);
     queue.length = 0;
-  }
+  } else if (queue.length) timer ??= setTimeout(flushNow, 1000);
   window.dispatchEvent(new Event("tb-consent"));
 }
 
@@ -67,10 +67,28 @@ function visitorId(): string | null {
 const queue: { kind: EventKind; path: string; detail: Record<string, unknown> | null }[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 
+/** phone / tablet / desktop, from the window width (no personal data). */
+export function deviceClass(): "phone" | "tablet" | "desktop" {
+  const w = window.innerWidth;
+  return w < 640 ? "phone" : w < 1024 ? "tablet" : "desktop";
+}
+
+// Before the visitor answers the cookie banner, events wait in this page's memory only: nothing is sent or stored.
+// They go out if Statistics are allowed, and are dropped if not.
 export function track(kind: EventKind, detail: Record<string, unknown> | null) {
-  if (typeof window === "undefined" || getConsent() !== "yes") return;
-  queue.push({ kind, path: window.location.pathname, detail });
-  timer ??= setTimeout(flushNow, 5000);
+  if (typeof window === "undefined") return;
+  const consent = getConsent();
+  if (consent === "no" || (consent === null && (kind === "click" || queue.length >= 30))) return;
+  queue.push({ kind, path: window.location.pathname, detail: { ...detail, device: deviceClass() } });
+  if (consent === "yes") timer ??= setTimeout(flushNow, 5000);
+}
+
+/** A funnel step, sent at most once per page load. */
+const sent = new Set<string>();
+export function trackOnce(kind: EventKind, detail: Record<string, unknown> | null = null) {
+  if (sent.has(kind)) return;
+  sent.add(kind);
+  track(kind, detail);
 }
 
 export function flushNow() {

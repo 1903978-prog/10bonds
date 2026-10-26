@@ -3,7 +3,8 @@ import { searchConsoleTotals, serviceAccount } from "@/lib/seo/google";
 import { GSC_COUNTRY, notFound, seoAdmin, seoMarketOf } from "@/lib/seo/input";
 import { contentScoreFor } from "@/lib/seo/contentScores";
 import { rankings, syncKeywords } from "@/lib/seo/rankings";
-import { getSeoSetting, keywordHistory, listKeywords } from "@/lib/seo/store";
+import { gscProperty } from "@/lib/seo/engines";
+import { keywordHistory, listKeywords } from "@/lib/seo/store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -12,7 +13,7 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   if (!(await seoAdmin())) return notFound();
   const market = seoMarketOf(new URL(req.url).searchParams.get("market"));
-  const site = await getSeoSetting("gsc_site");
+  const site = await gscProperty();
   const sa = serviceAccount();
   const state = !sa ? "not_connected" : !site ? "needs_setting" : "connected";
   let error: string | null = null;

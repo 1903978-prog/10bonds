@@ -1,0 +1,22 @@
+name: Frontier live check
+# Manual (and when this file or the script changes): the slider frontier on live data for every horizon, currency and
+# order size, against the earlier positions from main. Read-only; fails if a frontier is not monotonic.
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/frontier-live-check.yml", "scripts/frontier-live-check.ts", "lib/frontierPoints.ts", "lib/sliderPortfolios.ts", "lib/frontierGuard.ts"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: git show ea85161:lib/sliderPortfolios.ts > lib/sliderPortfoliosOld.ts
+      - run: npx vite-node -c vitest.config.ts scripts/frontier-live-check.ts

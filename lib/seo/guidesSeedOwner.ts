@@ -1,0 +1,119 @@
+import type { SeedGuide } from "./guidesSeed";
+
+// Articles the owner wrote himself for the Knowledge Center. They are his own text, approved by him, so they go in
+// published. Kept word for word; only turned into HTML. The default-rate page was built on the S&P table he sent
+// (19 Oct 2026), with our Risk 1-10 column added; since 20 Oct 2026 it shows the combined table of lib/seo/defaultRates.ts.
+
+export const SEED_GUIDES_OWNER: SeedGuide[] = [
+  {
+    locale: "it", topic: "compare", group: "compare-bonds-2026", status: "published",
+    slug: "obbligazioni-2026-come-confrontare",
+    title: "Obbligazioni 2026: come confrontare rendimenti, rating e scadenze",
+    seoTitle: "Migliori obbligazioni 2026: rendimenti, rating e scadenze",
+    metaDescription: "Come confrontare le obbligazioni nel 2026: rendimento effettivo a scadenza, rating, durata e duration, BTP e corporate, liquidità, costi e fiscalità.",
+    primaryKeyword: "migliori obbligazioni 2026",
+    relatedKeywords: ["confrontare obbligazioni", "rendimento a scadenza", "rating obbligazioni", "btp o obbligazioni corporate"],
+    relatedSlugs: ["rendimento-a-scadenza", "duration-obbligazioni", "btp-o-obbligazioni-corporate", "rischio-di-credito-obbligazioni"],
+    bodyHtml: `<p><strong>Aggiornato: 19 ottobre 2026</strong></p>
+<p>Chi va a caccia delle migliori obbligazioni del 2026 entra in un supermercato dalle corsie infinite: titoli di Stato italiani ed europei, obbligazioni societarie, emissioni a breve termine e strumenti che scadono fra più di dieci anni. L'offerta non manca; manca un ordine.</p>
+<p>Come si confrontano, allora, obbligazioni diverse in modo oggettivo?</p>
+<p>Si comincia guardando insieme, e non uno alla volta, <strong>rendimento effettivo a scadenza, rischio di credito, durata e prezzo di acquisto</strong>. Un rendimento più alto, preso da solo, non indica necessariamente condizioni più vantaggiose: spesso è il prezzo di qualcosa che non si vede.</p>
+<h2 id="rendimento-effettivo">1. Il rendimento effettivo a scadenza: il primo indicatore</h2>
+<p>Il rendimento effettivo a scadenza, o Yield to Maturity (YTM), è il tasso che rende il prezzo di acquisto equivalente al valore attuale dei flussi finanziari futuri previsti dal titolo.</p>
+<p>A differenza della cedola nominale, tiene conto anche di quanto si è pagato il titolo e di quanto verrà restituito alla fine. La cedola guarda il contratto, il rendimento anche il portafoglio.</p>
+<p>Un esempio: un'obbligazione con cedola annua del 3% comprata sotto la pari può offrire un rendimento effettivo superiore al 3%.</p>
+<p>Al contrario, se la stessa obbligazione si compra sopra la pari, il rendimento effettivo può finire sotto la cedola.</p>
+<p>Il calcolo presuppone che i flussi contrattuali vengano pagati e che il titolo sia tenuto fino alla scadenza. Non è un rendimento garantito, e nessuna formula lo rende tale.</p>
+<h2 id="rating">2. Rating obbligazionario: come interpretare il rischio</h2>
+<p>Le agenzie di rating classificano la qualità creditizia degli emittenti, un po' come una pagella.</p>
+<p>A grandi linee, le obbligazioni si dividono in due campi:</p>
+<table><thead><tr><th scope="col">Categoria</th><th scope="col">Rating S&amp;P indicativo</th><th scope="col">Caratteristiche</th></tr></thead><tbody>
+<tr><td>Investment grade</td><td>Da AAA a BBB−</td><td>Qualità creditizia relativamente più elevata</td></tr>
+<tr><td>Speculative grade</td><td>Da BB+ a D</td><td>Rischio di credito generalmente maggiore</td></tr>
+</tbody></table>
+<p>Il rating esprime una valutazione del merito creditizio, ma non elimina il rischio di insolvenza: lo descrive, non lo abolisce.</p>
+<p>Anche due obbligazioni con identico rating possono differire parecchio per rendimento, liquidità, subordinazione e scadenza.</p>
+<h2 id="durata">3. Quale durata confrontare: 3, 5, 7 o 10 anni?</h2>
+<p>La durata residua è un parametro da cui non si può prescindere.</p>
+<p>A parità di altre condizioni, le obbligazioni con scadenza più lontana tendono a reagire di più alle variazioni dei tassi d'interesse. Più lungo il viaggio, più probabile il maltempo.</p>
+<p>Questa sensibilità ha un nome e una misura: la duration.</p>
+<p>Due concetti vanno tenuti distinti:</p>
+<ul><li><strong>Scadenza residua:</strong> il tempo che manca al rimborso contrattuale.</li><li><strong>Duration:</strong> una misura della sensibilità del prezzo alle variazioni dei rendimenti di mercato.</li></ul>
+<p>Un'obbligazione con dieci anni di vita residua non ha necessariamente una duration di dieci anni.</p>
+<p>Per confrontare titoli diversi servono quindi entrambe: scadenza e duration.</p>
+<h2 id="btp-corporate">4. BTP e obbligazioni corporate: quali differenze?</h2>
+<p>I BTP sono titoli di debito emessi dallo Stato italiano.</p>
+<p>Le obbligazioni corporate sono emesse da società, che possono appartenere ai settori più diversi: industria, telecomunicazioni, energia, servizi finanziari.</p>
+<table><thead><tr><th scope="col">Caratteristica</th><th scope="col">BTP</th><th scope="col">Obbligazioni corporate</th></tr></thead><tbody>
+<tr><td>Emittente</td><td>Stato italiano</td><td>Società</td></tr>
+<tr><td>Rischio di credito</td><td>Collegato allo Stato italiano</td><td>Collegato all'emittente e alla struttura del titolo</td></tr>
+<tr><td>Cedole</td><td>Dipendono dalla tipologia di BTP</td><td>Dipendono dalle condizioni di emissione</td></tr>
+<tr><td>Tassazione italiana ordinaria</td><td>Generalmente 12,5% sui redditi rilevanti</td><td>Generalmente 26%, salvo eccezioni</td></tr>
+<tr><td>Liquidità</td><td>Varia per emissione</td><td>Varia per emissione</td></tr>
+</tbody></table>
+<p>Se un'obbligazione corporate rende di più, la ragione può essere un rischio di credito maggiore, una liquidità inferiore o altre caratteristiche contrattuali. Il sovrappiù ha quasi sempre una causa.</p>
+<h2 id="cinque-elementi">5. Cinque elementi da verificare prima di confrontare due obbligazioni</h2>
+<p>Una comparazione seria dovrebbe includere:</p>
+<ol><li><strong>Rendimento a scadenza:</strong> quanto remunera il prezzo di mercato, secondo le ipotesi del calcolo.</li><li><strong>Rating e rischio di credito:</strong> quanto è solida, sul piano creditizio, la firma dell'emittente.</li><li><strong>Scadenza e duration:</strong> quanto dura l'investimento e come potrebbe reagire il prezzo ai tassi.</li><li><strong>Liquidità:</strong> quanto può essere agevole vendere il titolo prima della scadenza.</li><li><strong>Costi e fiscalità:</strong> quanto possono pesare sul rendimento effettivamente incassato.</li></ol>
+<h2 id="confronto-semplice">6. Come confrontare le obbligazioni in modo più semplice</h2>
+<p>Invece di spulciare una per una decine di schede si può lasciare che una piattaforma di confronto ordini le informazioni con criteri omogenei.</p>
+<p>Con il nostro strumento basta scegliere due parametri:</p>
+<ul><li>Livello di rischio.</li><li>Durata desiderata.</li></ul>
+<p>Il sistema restituisce una selezione comparativa di dieci obbligazioni, con rendimenti, rating e scadenze presentati secondo una metodologia documentata. La cernita la fa la macchina, il giudizio resta a chi legge.</p>
+<p><a class="cta" href="/it">Confronta le obbligazioni</a></p>
+<h2 id="domande-frequenti">Domande frequenti</h2>
+<h3>Le obbligazioni con rendimento più alto sono anche le più convenienti?</h3>
+<p>Non per forza. Un rendimento elevato può essere il compenso per rischi maggiori: di credito, di liquidità o legati alla struttura del titolo.</p>
+<h3>È possibile perdere denaro con un'obbligazione investment grade?</h3>
+<p>Sì. Il rating non garantisce il rimborso, e nel frattempo il prezzo di mercato può scendere.</p>
+<h3>Cosa succede se vendo prima della scadenza?</h3>
+<p>Si vende al prezzo che il mercato riconosce in quel momento. Il risultato può essere una plusvalenza come una minusvalenza.</p>
+<h3>Yield to Maturity e cedola sono la stessa cosa?</h3>
+<p>No. La cedola è il pagamento periodico fissato dal contratto; il rendimento a scadenza considera anche il prezzo di acquisto e tutti i flussi previsti fino al rimborso.</p>
+<hr>
+<p><strong>Fonti:</strong> <a href="https://www.borsaitaliana.it/notizie/sotto-la-lente/btp.htm">Borsa Italiana — Guida ai BTP</a>; <a href="https://www.consob.it/ProspettiPortlet/DownloadProspetto?EmitID=217319">CONSOB — Documentazione sui rendimenti obbligazionari</a>.</p>
+<p><em>Le informazioni hanno finalità esclusivamente informative ed educative e non costituiscono una raccomandazione di investimento personalizzata. Rendimenti e rating possono cambiare nel tempo.</em></p>`,
+  },
+  {
+    locale: "it", topic: "credit", group: "default-rates", status: "published",
+    slug: "probabilita-default-rating",
+    title: "Qual è la probabilità storica di default di un rating BBB?",
+    seoTitle: "Probabilità di default per rating: BBB, A, BB e altri",
+    metaDescription: "Probabilità storica di default per rating, da AAA a CCC: un BBB è andato in default nell'1,40% dei casi a 5 anni e nel 3,40% a 10 anni (medie di lungo periodo).",
+    primaryKeyword: "probabilità default rating bbb",
+    relatedKeywords: ["probabilità di default rating", "tassi di default per rating", "default obbligazioni bbb"],
+    relatedSlugs: ["rischio-di-credito-obbligazioni", "obbligazioni-investment-grade", "obbligazioni-alto-rendimento"],
+    bodyHtml: `<p><strong>Risposta breve:</strong> secondo gli studi storici pubblici sui default, un emittente con rating BBB è andato in default nello 0,15% dei casi entro 1 anno, nell'1,40% entro 5 anni e nel 3,40% entro 10 anni. Tradotto in persone, o meglio in aziende: su 100 emittenti BBB, in media meno di 4 sono andati in default nell'arco di dieci anni.</p>
+<p>La tabella riporta i tassi di default cumulati medi per ciascun gradino di rating, da 1 a 15 anni. Il tasso cumulato è la quota di emittenti che, partiti con quel rating all'inizio del periodo, sono andati in default entro la fine del periodo. Non è la fotografia di un singolo anno, è il film dell'intero intervallo.</p>
+<h2 id="tabella">Tassi di default cumulati per rating (%)</h2>
+<table><thead><tr><th scope="col">Rating</th><th scope="col">Rischio 10BONDS</th><th scope="col">1 anno</th><th scope="col">3 anni</th><th scope="col">5 anni</th><th scope="col">7 anni</th><th scope="col">10 anni</th><th scope="col">15 anni</th></tr></thead><tbody>
+<tr><td>AAA</td><td>1</td><td>0,00%</td><td>0,01%</td><td>0,07%</td><td>0,17%</td><td>0,31%</td><td>0,51%</td></tr>
+<tr><td>AA+</td><td>2</td><td>0,00%</td><td>0,04%</td><td>0,14%</td><td>0,26%</td><td>0,46%</td><td>0,69%</td></tr>
+<tr><td>AA</td><td>2</td><td>0,01%</td><td>0,07%</td><td>0,20%</td><td>0,36%</td><td>0,60%</td><td>0,97%</td></tr>
+<tr><td>AA−</td><td>2</td><td>0,03%</td><td>0,12%</td><td>0,30%</td><td>0,49%</td><td>0,78%</td><td>1,20%</td></tr>
+<tr><td>A+</td><td>3</td><td>0,04%</td><td>0,17%</td><td>0,38%</td><td>0,62%</td><td>1,10%</td><td>1,80%</td></tr>
+<tr><td>A</td><td>3</td><td>0,05%</td><td>0,21%</td><td>0,48%</td><td>0,80%</td><td>1,40%</td><td>2,20%</td></tr>
+<tr><td>A−</td><td>3</td><td>0,07%</td><td>0,28%</td><td>0,59%</td><td>0,98%</td><td>1,70%</td><td>2,60%</td></tr>
+<tr><td>BBB+</td><td>4</td><td>0,10%</td><td>0,44%</td><td>0,93%</td><td>1,50%</td><td>2,40%</td><td>3,90%</td></tr>
+<tr><td>BBB</td><td>5</td><td>0,15%</td><td>0,65%</td><td>1,40%</td><td>2,10%</td><td>3,40%</td><td>5,30%</td></tr>
+<tr><td>BBB−</td><td>6</td><td>0,26%</td><td>1,10%</td><td>2,40%</td><td>3,70%</td><td>5,50%</td><td>8,00%</td></tr>
+<tr><td>BB+</td><td>7</td><td>0,41%</td><td>1,80%</td><td>3,60%</td><td>5,40%</td><td>7,90%</td><td>11,20%</td></tr>
+<tr><td>BB</td><td>7</td><td>0,63%</td><td>2,70%</td><td>5,20%</td><td>7,60%</td><td>10,80%</td><td>14,80%</td></tr>
+<tr><td>BB−</td><td>7</td><td>1,00%</td><td>4,30%</td><td>8,00%</td><td>11,20%</td><td>15,20%</td><td>20,10%</td></tr>
+<tr><td>B+</td><td>8</td><td>1,60%</td><td>6,00%</td><td>10,30%</td><td>14,00%</td><td>18,40%</td><td>23,80%</td></tr>
+<tr><td>B</td><td>8</td><td>2,60%</td><td>8,80%</td><td>14,00%</td><td>18,20%</td><td>23,10%</td><td>28,50%</td></tr>
+<tr><td>B−</td><td>8</td><td>4,60%</td><td>13,20%</td><td>19,70%</td><td>24,50%</td><td>29,90%</td><td>35,40%</td></tr>
+<tr><td>CCC+</td><td>9</td><td>12,00%</td><td>24,50%</td><td>32,30%</td><td>37,40%</td><td>42,60%</td><td>47,50%</td></tr>
+<tr><td>CCC / C</td><td>9–10</td><td>24,50%</td><td>38,90%</td><td>45,60%</td><td>49,80%</td><td>54,10%</td><td>58,00%</td></tr>
+</tbody></table>
+<p><em>Fonte: elaborazione 10BONDS su studi storici pubblici sui default, con i tassi di default cumulati medi delle società per gradino di rating (medie storiche di lungo periodo, combinate e arrotondate). La colonna "Rischio 10BONDS" mostra a quale punteggio di rischio da 1 a 10 corrisponde ciascun rating nel nostro strumento.</em></p>
+<h2 id="come-leggere">Come leggere la tabella</h2>
+<p>Scendendo lungo la scala dei rating, la probabilità di default sale, e non a passo regolare. A 5 anni si va dall'1,40% di BBB al 2,40% di BBB−, poi il gradino diventa uno scalone: 5,20% per BB, il primo livello pienamente speculative grade. Il confine tra investment grade (fino a BBB−) e speculative grade (da BB+ in giù) è il punto in cui il rischio cambia marcia.</p>
+<p>L'orizzonte temporale pesa quanto il rating. Una probabilità a 1 anno non si confronta con una a 10 anni, così come le previsioni del tempo per domani non dicono nulla sul clima del prossimo decennio: per un'obbligazione BBB che scade fra 5 anni, la colonna da guardare è quella dei 5 anni.</p>
+<h2 id="limiti">Cosa la tabella non dice</h2>
+<p>Una tabella onesta dichiara anche i propri limiti. Eccoli:</p>
+<ul><li>Sono medie del passato, calcolate su molti emittenti e molti cicli economici: non sono una previsione su un singolo emittente.</li><li>Default non vuol dire perdere tutto: quanto si recupera dipende dalla seniority e dalle garanzie dell'obbligazione.</li><li>I dati riguardano le società; i titoli di Stato hanno alle spalle una storia di default diversa.</li></ul>
+<p>Per vedere come rating, probabilità di default e perdita attesa lavorano insieme, c'è la guida al <a href="/it/guide/rischio-di-credito-obbligazioni">rischio di credito delle obbligazioni</a>, da leggere accanto a quella sulle <a href="/it/guide/obbligazioni-investment-grade">obbligazioni investment grade</a>.</p>
+<p><a class="cta" href="/it">Confronta obbligazioni per rischio, rendimento e durata</a></p>`,
+  },
+];

@@ -16,9 +16,33 @@ jobs:
           echo "== total / with yield as of last 24h / newest yield date"; q "select count(*), count(*) filter (where ytm_as_of > now() - interval '24 hours'), max(ytm_as_of) from public_bonds"
           echo "== with duration, by currency"; q "select currency, count(*), count(modified_duration) from public_bonds group by 1 order by 2 desc"
           echo "== min size or lot filled"; q "select currency, count(*), count(*) filter (where coalesce(min_denomination, min_lot) is not null), count(*) filter (where coalesce(min_denomination, min_lot) <= 1000) from public_bonds group by 1 order by 2 desc"
-          for c in min_denomination min_lot minimum_investment denomination; do
+          for c in min_denomination min_lot minimum_investment denomination coupon_type seniority issue_date callable; do
             if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
               echo "== $c filled"; q "select currency, count(*), count($c) from public_bonds group by 1 order by 2 desc"
               echo "== $c values"; q "select $c, count(*) from public_bonds group by 1 order by 2 desc limit 15"
+            fi
+          done
+          echo "== USD: rated / rated+yield+duration / newest yield / stale vs overall newest"
+          q "select count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null), count(*) filter (where coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null and gross_ytm is not null and modified_duration is not null), max(ytm_as_of), min(ytm_as_of) from public_bonds where currency='USD'"
+          q "select currency, max(ytm_as_of) from public_bonds group by 1"
+          echo "== USD rated with yield: structure_modelled / matured / duration buckets"
+          q "select coalesce(structure_modelled::text,'null'), count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null and gross_ytm is not null group by 1"
+          q "select floor(modified_duration) d, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null and gross_ytm is not null group by 1 order by 1"
+          echo "== USD rated: ytm_as_of days, min_denomination values"
+          q "select date_trunc('day', ytm_as_of)::date, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1 order by 1 desc limit 15"
+          q "select min_denomination, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1 order by 2 desc limit 10"
+          echo "== USD rating samples"
+          q "select rating_resolved, rating_sp, rating_moodys, rating_fitch, count(*) from public_bonds where currency='USD' and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null group by 1,2,3,4 order by 5 desc limit 15"
+          echo "== 10bonds.com rating (lr_score): bonds with / without an LR, by currency"
+          if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='lr_score'")" = 1 ]; then
+            q "select currency, count(*), count(lr_score), count(*) - count(lr_score) from public_bonds group by 1 order by 2 desc"
+          else
+            echo "no lr_score column yet"
+          fi
+          echo "== livio_rating / livio_rating_basis / lr_version filled, and samples"
+          for c in livio_rating livio_rating_basis lr_version lr_as_of; do
+            if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
+              echo "-- $c"; q "select currency, count(*), count($c) from public_bonds group by 1 order by 2 desc limit 3"
+              q "select $c::text, count(*) from public_bonds group by 1 order by 2 desc limit 12"
             fi
           done

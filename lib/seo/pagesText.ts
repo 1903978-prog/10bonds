@@ -11,9 +11,9 @@ type Home = {
 
 export const HOME: Record<Locale, Home> = {
   it: {
-    title: "10BONDS · Trova le migliori obbligazioni in pochi secondi",
-    description: "Scegli durata e rendimento obiettivo: 10BONDS confronta migliaia di obbligazioni in euro, BTP compresi, e ti mostra le 10 più adatte. Dati aggiornati ogni giorno.",
-    h1: "Trova le migliori obbligazioni in pochi secondi",
+    title: "10BONDS · Confronta le obbligazioni per rendimento e rischio",
+    description: "Scegli durata e rendimento obiettivo: 10BONDS confronta migliaia di obbligazioni in euro, BTP compresi, e ti mostra le 10 più vicine ai tuoi criteri. Dati aggiornati ogni giorno.",
+    h1: "Confronta le obbligazioni per rendimento e rischio, in pochi secondi",
     lead: "Scegli una duration e un rendimento obiettivo: 10BONDS confronta migliaia di obbligazioni in euro, BTP e corporate, e ti mostra le 10 più vicine, una per emittente.",
     points: ["Rendimento a scadenza, duration e rischio in un'unica lista.", "BTP, titoli di Stato europei e obbligazioni societarie a confronto.", "Dati aggiornati ogni giorno, con la data sempre in vista."],
     govId: "gov-it", govTitle: "I BTP oggi", compareTitle: "Confronta le obbligazioni", guidesTitle: "Guide per capire i numeri",
@@ -21,12 +21,12 @@ export const HOME: Record<Locale, Home> = {
       { name: "Gratis", price: "0 €", text: "Con un account: 10 ricerche di singole obbligazioni e 3 di portafoglio a settimana, la top 10 completa con emittente, rendimento, rischio e duration." },
       { name: "Plus", price: "9 € al mese o 86,40 € all'anno", text: "Codici ISIN visibili, ricerche illimitate, nome, cedola e scadenza di ogni obbligazione, medie della lista." },
       { name: "Premium", price: "19 € al mese o 182,40 € all'anno", text: "Tutto Plus, più avvisi via e-mail sui cambiamenti, ricerche salvate e analisi del rischio." },
-      { name: "Pro", price: "89 € al mese o 854,40 € all'anno", text: "Solo per professionisti: analisi del portafoglio dei clienti e suggerimenti di sostituzione per aumentare il rendimento." },
+      { name: "Pro", price: "89 € al mese o 854,40 € all'anno", text: "Solo per professionisti: analisi del portafoglio dei clienti e obbligazioni simili con rendimento più alto." },
     ], plansLink: "Dettagli dei piani",
   },
   fr: {
     title: "10BONDS · Comparez les obligations par rendement et risque",
-    description: "Choisissez un horizon et un rendement cible : 10BONDS compare des milliers d'obligations en euros, OAT comprises, et affiche les 10 plus adaptées. Données quotidiennes.",
+    description: "Choisissez un horizon et un rendement cible : 10BONDS compare des milliers d'obligations en euros, OAT comprises, et affiche les 10 plus proches de vos critères. Données quotidiennes.",
     h1: "Comparez les obligations selon leur rendement et leur risque",
     lead: "Choisissez une duration et un rendement cible : 10BONDS compare des milliers d'obligations en euros, OAT, emprunts d'État européens et obligations d'entreprise, et affiche les 10 plus proches, une par émetteur.",
     points: ["Rendement à l'échéance, duration et risque dans une seule liste.", "OAT, Bund, BTP et obligations d'entreprise comparés sur les mêmes critères.", "Données mises à jour chaque jour, toujours datées."],
@@ -35,12 +35,12 @@ export const HOME: Record<Locale, Home> = {
       { name: "Gratuit", price: "0 €", text: "Avec un compte : 10 recherches d'obligation et 3 recherches de portefeuille par semaine, le top 10 complet avec émetteur, rendement, risque et duration." },
       { name: "Plus", price: "9 € par mois ou 86,40 € par an", text: "Codes ISIN visibles, recherches illimitées, nom, coupon et échéance de chaque obligation, moyennes de la liste." },
       { name: "Premium", price: "19 € par mois ou 182,40 € par an", text: "Tout Plus, avec des alertes par e-mail sur les changements, des recherches enregistrées et l'analyse du risque." },
-      { name: "Pro", price: "89 € par mois ou 854,40 € par an", text: "Réservé aux professionnels : analyse des portefeuilles clients et suggestions d'échanges pour augmenter le rendement." },
+      { name: "Pro", price: "89 € par mois ou 854,40 € par an", text: "Réservé aux professionnels : analyse des portefeuilles clients et obligations similaires au rendement plus élevé." },
     ], plansLink: "Détail des offres",
   },
   de: {
     title: "10BONDS · Anleihen nach Rendite und Risiko vergleichen",
-    description: "Wählen Sie Laufzeit und Zielrendite: 10BONDS vergleicht Tausende Euro-Anleihen, Bundesanleihen eingeschlossen, und zeigt die 10 passendsten. Täglich aktualisierte Daten.",
+    description: "Wählen Sie Laufzeit und Zielrendite: 10BONDS vergleicht Tausende Euro-Anleihen, Bundesanleihen eingeschlossen, und zeigt die 10, die Ihren Kriterien am nächsten kommen. Täglich aktualisierte Daten.",
     h1: "Finden und vergleichen Sie Anleihen nach Rendite und Risiko",
     lead: "Wählen Sie eine Duration und eine Zielrendite: 10BONDS vergleicht Tausende Euro-Anleihen, Bundesanleihen, europäische Staatsanleihen und Unternehmensanleihen, und zeigt die 10 passendsten, eine je Emittent.",
     points: ["Rendite bis Fälligkeit, Duration und Risiko in einer Liste.", "Bundesanleihen, OAT, BTP und Unternehmensanleihen nach denselben Kriterien.", "Täglich aktualisierte Daten, immer mit Datum."],
@@ -49,7 +49,7 @@ export const HOME: Record<Locale, Home> = {
       { name: "Kostenlos", price: "0 €", text: "Mit Konto: 10 Einzelanleihe- und 3 Portfolio-Suchen pro Woche, die komplette Top 10 mit Emittent, Rendite, Risiko und Duration." },
       { name: "Plus", price: "9 € im Monat oder 86,40 € im Jahr", text: "ISIN sichtbar, unbegrenzte Suchen, Name, Kupon und Fälligkeit jeder Anleihe, Durchschnittswerte der Liste." },
       { name: "Premium", price: "19 € im Monat oder 182,40 € im Jahr", text: "Alles aus Plus, dazu E-Mail-Hinweise bei Änderungen, gespeicherte Suchen und Risikoanalysen." },
-      { name: "Pro", price: "89 € im Monat oder 854,40 € im Jahr", text: "Nur für Profis: Analyse von Kundenportfolios und Tauschvorschläge für mehr Rendite." },
+      { name: "Pro", price: "89 € im Monat oder 854,40 € im Jahr", text: "Nur für Profis: Analyse von Kundenportfolios und ähnliche Anleihen mit höherer Rendite." },
     ], plansLink: "Tarife im Detail",
   },
 };
@@ -81,7 +81,7 @@ export const METHOD: Record<Locale, Method> = {
     sections: [
       { id: "ranking", h2: "Come funziona la classifica", paras: [
         "Indichi due criteri: una duration e un rendimento a scadenza obiettivo. Prendiamo le obbligazioni in euro con duration entro il ±20% di quella scelta (per 13 anni: da 10,4 a 15,6), allargando la finestra di mezzo anno alla volta finché ci sono almeno 10 emittenti diversi.",
-        "Tra queste scegliamo 10 obbligazioni, una per emittente, con il rendimento più alto e il rischio più basso possibili: il rendimento medio raggiunge almeno il tuo obiettivo e la duration media resta vicina a quella scelta. Le mostriamo dalla migliore per rendimento e rischio. Con il terzo cursore scegli il rischio massimo che accetti, da 1 (più basso) a 10 (più alto).",
+        "Tra queste scegliamo 10 obbligazioni, una per emittente, con il miglior rendimento al netto delle perdite attese: il rendimento meno il tasso storico annuo di default del rating (medie di lungo periodo basate su studi storici pubblici sui default, per la stessa durata) moltiplicato per una perdita del 60% in caso di default. Sotto il massimo scegliamo la probabilità di perdita più bassa (1 meno il prodotto delle probabilità che ogni obbligazione non vada in default fino alla scadenza) che raggiunge ancora il tuo obiettivo: un obiettivo più basso dà una lista più sicura. A parità di probabilità vince il rendimento netto più alto. Il rendimento medio raggiunge almeno il tuo obiettivo e la duration media resta vicina a quella scelta. Con il terzo cursore scegli il rischio massimo che accetti, da 1 (più basso) a 10 (più alto).",
         "Il rendimento massimo che puoi chiedere per ogni duration è la media dei 10 emittenti con il rendimento più alto: oltre quel valore nessuna lista di 10 obbligazioni potrebbe raggiungerlo.",
       ] },
       { id: "sources", h2: "Fonti dei dati", paras: [
@@ -108,7 +108,7 @@ export const METHOD: Record<Locale, Method> = {
     sections: [
       { id: "ranking", h2: "Comment fonctionne le classement", paras: [
         "Vous indiquez deux critères : une duration et un rendement à l'échéance cible. Nous retenons les obligations en euros dont la duration est à ±20 % de votre choix (pour 13 ans : de 10,4 à 15,6), en élargissant la fenêtre d'une demi-année à la fois jusqu'à réunir au moins 10 émetteurs différents.",
-        "Parmi elles, nous choisissons 10 obligations, une par émetteur, au rendement le plus élevé et au risque le plus faible possibles : le rendement moyen atteint au moins votre objectif et la duration moyenne reste proche de votre choix. Nous les affichons de la meilleure en rendement et risque à la moins bonne. Le troisième curseur fixe le risque maximal accepté, de 1 (le plus faible) à 10 (le plus élevé).",
+        "Parmi elles, nous choisissons 10 obligations, une par émetteur, au meilleur rendement net des pertes attendues : le rendement moins le taux historique annuel de défaut de la note (moyennes de long terme d'après les études historiques publiques sur les défauts, pour la même durée) multiplié par une perte de 60 % en cas de défaut. Sous le maximum, nous retenons la probabilité de perte la plus faible (1 moins le produit des probabilités que chaque obligation ne fasse pas défaut jusqu'à l'échéance) qui atteint encore votre objectif : un objectif plus bas donne une liste plus sûre. À probabilité égale, le meilleur rendement net l'emporte. Le rendement moyen atteint au moins votre objectif et la duration moyenne reste proche de votre choix. Le troisième curseur fixe le risque maximal accepté, de 1 (le plus faible) à 10 (le plus élevé).",
         "Le rendement maximal que vous pouvez demander pour chaque duration est la moyenne des 10 émetteurs les mieux rémunérés : au-delà, aucune liste de 10 obligations ne pourrait l'atteindre.",
       ] },
       { id: "sources", h2: "Sources des données", paras: [
@@ -135,7 +135,7 @@ export const METHOD: Record<Locale, Method> = {
     sections: [
       { id: "ranking", h2: "So funktioniert die Auswahl", paras: [
         "Sie geben zwei Kriterien vor: eine Duration und eine Zielrendite bis Fälligkeit. Wir nehmen Euro-Anleihen mit einer Duration innerhalb von ±20 % Ihrer Wahl (bei 13 Jahren: 10,4 bis 15,6), und erweitern das Fenster in Halbjahresschritten, bis mindestens 10 verschiedene Emittenten enthalten sind.",
-        "Daraus wählen wir 10 Anleihen, eine je Emittent, mit möglichst hoher Rendite und möglichst geringem Risiko: Die Durchschnittsrendite erreicht mindestens Ihr Ziel und die durchschnittliche Duration bleibt nahe Ihrer Wahl. Wir zeigen sie von der besten Kombination aus Rendite und Risiko an. Mit dem dritten Regler wählen Sie das höchste akzeptierte Risiko, von 1 (am niedrigsten) bis 10 (am höchsten).",
+        "Daraus wählen wir 10 Anleihen, eine je Emittent, mit der besten Rendite nach erwarteten Verlusten: Rendite minus historische jährliche Ausfallrate des Ratings (langfristige Durchschnitte öffentlicher historischer Ausfallstudien für dieselbe Laufzeit) mal 60 % Verlust bei Ausfall. Unterhalb des Maximums wählen wir das geringste durchschnittliche Risiko, das Ihr Ziel noch erreicht: Ein niedrigeres Ziel ergibt eine sicherere Liste. Bei gleichem Risiko gewinnt die höhere Nettorendite. Die Durchschnittsrendite erreicht mindestens Ihr Ziel und die durchschnittliche Duration bleibt nahe Ihrer Wahl. Mit dem dritten Regler wählen Sie das höchste akzeptierte Risiko, von 1 (am niedrigsten) bis 10 (am höchsten).",
         "Die höchste wählbare Zielrendite je Duration ist der Durchschnitt der 10 renditestärksten Emittenten: Darüber könnte keine Liste aus 10 Anleihen das Ziel erreichen.",
       ] },
       { id: "sources", h2: "Datenquellen", paras: [

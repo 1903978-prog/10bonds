@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 
+import { track, flushNow } from "@/lib/track";
 import type { Interval, PaidPlan } from "@/lib/plans";
 
 type Props = { plan: PaidPlan; interval?: Interval; highlight: boolean; label: string };
@@ -13,6 +14,8 @@ export function PlanButton({ plan, interval = "month", highlight, label }: Props
   async function go() {
     setBusy(true);
     setError("");
+    track("plan_selected", { plan, interval });
+    flushNow();
     try {
       const r = await fetch("/api/billing/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, interval, startNow }) });
       const j = await r.json().catch(() => ({}));

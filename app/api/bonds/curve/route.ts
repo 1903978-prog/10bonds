@@ -9,6 +9,8 @@ import type { Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
 import { publicQuota, consumeSearch } from "@/lib/searchQuota";
+import { featuresFor } from "@/lib/planFeatures";
+import { tierFeatures } from "@/lib/tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -29,18 +31,25 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
-  const user = await currentUser();
-  if (user?.confirmBlocked) return NextResponse.json({ error: "Please confirm your e-mail address first.", confirmBlocked: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  // An account whose e-mail is still unconfirmed after the grace period searches like a visitor.
+  const signedIn = await currentUser();
+  const user = signedIn?.confirmBlocked ? null : signedIn;
   let tier: Tier = user ? user.plan : "visitor";
   const preview = url.searchParams.get("preview");
   if (data.source === "sample" && (preview === "free" || preview === "plus")) tier = preview;
 
-  // Weekly allowance per plan (Free: limited; Plus and Premium: see SEARCH_LIMITS). Visitors keep their short preview.
-  const usage = user && tier === user.plan ? await consumeSearch(user, "single") : null;
+  // What this plan includes (the admin's feature table, /admin/features); a sample preview uses the default ticks.
+  const own = !!user && tier === user.plan;
+  const features = own ? await featuresFor(user) : tierFeatures(tier);
+  // Weekly allowance per plan (Free: limited unless the table says unlimited; see SEARCH_LIMITS). Visitors keep their short preview.
+  const usage = own ? await consumeSearch(user!, "single", features.includes("unlimited_single")) : null;
   if (usage && !usage.allowed)
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
+  // How many bonds this filter has at all, and their duration span, so an empty chart can say why.
+  const durs = data.bonds.map((b) => b.modifiedDuration).filter((d): d is number => d !== null);
+  const coverage = { count: durs.length, min: durs.length ? Math.min(...durs) : null, max: durs.length ? Math.max(...durs) : null };
   return NextResponse.json(
-    { tier, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier, user?.isAdmin === true), quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
+    { tier, coverage, points: shapeCurve(curveAt(table, duration).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), tier, user?.isAdmin === true, features.includes("isin")), features, quota: usage ? publicQuota(usage) : null, source: data.source, asOf: data.asOf, inputs: { duration } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

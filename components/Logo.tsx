@@ -1,4 +1,4 @@
-// Livio's 10BONDS mark (a "1" bar and an "0" ring), cropped to its drawing so it sizes to the header.
+// The owner's 10BONDS mark (a "1" bar and an "0" ring), cropped to its drawing so it sizes to the header.
 export default function Logo({ className = "h-7 w-auto" }: { className?: string }) {
   return (
     <svg viewBox="38 24 144 172" className={className} fill="none" aria-hidden="true">

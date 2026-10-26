@@ -5,6 +5,7 @@ import { analytics, searchConsole, serviceAccount } from "@/lib/seo/google";
 import { bad, marketOf, notFound, seoAdmin, str } from "@/lib/seo/input";
 import { LOCALES } from "@/lib/seo/locales";
 import { getSeoSetting, setSeoSetting } from "@/lib/seo/store";
+import { gscProperty } from "@/lib/seo/engines";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
   const market = marketOf(new URL(req.url).searchParams.get("market"));
   const sa = serviceAccount();
   const [gscSite, ga4Property, verification, psi, funnel] = await Promise.all([
-    getSeoSetting("gsc_site"),
+    gscProperty(),
     getSeoSetting("ga4_property"),
     getSeoSetting("google_verification"),
     storedPsi(market),

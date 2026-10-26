@@ -25,14 +25,11 @@ export const KC_TEXT_EN = {
     risk: { name: "Risk & ratings", intro: "Ratings, duration and credit risk explained simply." },
     academy: { name: "Bond academy", intro: "The basics to get started, step by step." },
   } satisfies Record<KcSection, { name: string; intro: string }>,
-  finder: "Bond finder: your 10 best-matching bonds",
+  finder: "Bond finder: the 10 bonds the model selects",
   brokersIn: { it: "Broker fees in Italy", fr: "Broker fees in France", de: "Broker fees in Germany" } satisfies Record<Locale, string>,
 };
 
-const IT = CALCULATORS.it;
-const DE = CALCULATORS.de;
-
-/** English yield calculator. Tax presets are the ones already sourced for the Italian and German calculators. */
+/** English yield calculator. No tax rates are preset: the visitor types their own. */
 export const CALCULATOR_EN: CalculatorText = {
   slug: "bond-yield-calculator",
   title: "Bond yield calculator: yield to maturity, gross and net · 10BONDS",
@@ -40,15 +37,8 @@ export const CALCULATOR_EN: CalculatorText = {
   h1: "Bond yield calculator",
   intro: [
     "Enter the price, coupon and maturity: the calculator shows the yield to maturity before and after tax.",
-    "Pick a tax preset or type your own rate. Nothing you enter leaves your browser.",
+    "Type your own tax rate to see the yield after tax. Nothing you enter leaves your browser.",
   ],
-  presets: [
-    { label: "Gross 0%", rate: 0 },
-    ...IT.presets.filter((p) => p.rate > 0).map((p) => ({ label: `Italy ${p.rate.toLocaleString("en-GB")}%`, rate: p.rate })),
-    ...DE.presets.filter((p) => p.rate > 0).map((p) => ({ label: `Germany ${p.rate.toLocaleString("en-GB")}%`, rate: p.rate })),
-  ],
-  defaultRate: 0,
-  taxNote: "Italy: 12.5% on Italian and equivalent government bonds, 26% on other bond income (D.L. 66/2014). Germany: 25% withholding tax plus 5.5% solidarity surcharge on it (26.375%), without church tax or allowance. Check your own situation with a tax adviser.",
   labels: {
     price: "Price (clean, per 100)", coupon: "Annual coupon (%)", frequency: "Coupon payments", annual: "Annual", semi: "Semi-annual", quarterly: "Quarterly",
     maturity: "Maturity", settlement: "Purchase date", tax: "Tax", custom: "Tax rate (%)", gross: "Yield to maturity (gross)", net: "Yield to maturity (after tax)",
@@ -58,7 +48,7 @@ export const CALCULATOR_EN: CalculatorText = {
   how: {
     h2: "How it is calculated",
     paras: [
-      "The yield to maturity is the annual rate at which the price paid (plus accrued interest) equals the present value of all coupons and the redemption.",
+      "The yield to maturity is the quoted annual rate (the rate per coupon period times the coupons a year) at which the price paid (plus accrued interest) equals the present value of all coupons and the redemption.",
       "After tax, each coupon is reduced by the chosen rate; at maturity a gain (100 minus the purchase price) is taxed at the same rate. Losses are not offset.",
     ],
   },

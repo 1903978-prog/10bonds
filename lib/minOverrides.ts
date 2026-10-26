@@ -1,7 +1,7 @@
 /**
  * Minimum investments we know are wrong in the nightly copy, fixed on our side (the LM op model export is not ours to change).
  * The copy often has no issuer denomination and falls back to the trading venue's lot (e.g. 1,000), which is not
- * what the issuer requires. Livio, 19/10/2026: a 100k bond was listed under 1k–10k.
+ * what the issuer requires. The owner, 19/10/2026: a 100k bond was listed under 1k–10k.
  */
 
 /** By ISIN, from the issuer's terms. */

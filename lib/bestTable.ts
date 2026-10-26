@@ -1,10 +1,12 @@
 import { loadBonds, loadBondsFor, type BondSource } from "./bonds";
 import { filterKey, isDefaultFilter, type BondFilter } from "./bondFilter";
 import { accountsConfigured, accountsSql } from "./accounts";
-import { LIMITS } from "./limits";
+import { DURATION_STEPS, LIMITS, snapDuration } from "./limits";
 import { curveByLevel } from "./singleBond";
-import { ytmCapsByRisk } from "./ranking";
+import { withinRisk, ytmCaps, ytmCapsByRisk } from "./ranking";
 import type { RankedBond } from "./types";
+import { recordYields } from "./ytmHistory";
+import { recordPrices } from "./priceHistory";
 
 /**
  * The "best bonds" table: for every duration step of the slider and every risk step (1 .. 10),
@@ -21,24 +23,48 @@ export type BestTable = {
 const key = (d: number) => String(Math.round(d * 100) / 100);
 
 export function durationSteps(): number[] {
-  const out: number[] = [];
-  for (let d = LIMITS.duration.min; d <= LIMITS.duration.max + 1e-9; d += LIMITS.duration.step) out.push(Math.round(d * 100) / 100);
-  return out;
+  return [...DURATION_STEPS];
 }
 
 /** Signature of a bond copy: changes whenever the daily copy brings new yields. */
 export function signatureOf(src: BondSource): string {
   // The leading version changes when the way the table is computed changes, so a new deploy rebuilds it.
-  return `v7:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
+  return `v15:${src.source}:${src.bonds.length}:${src.asOf ?? "none"}:${src.bonds.reduce((s, b) => s + (b.grossYtm ?? 0), 0).toFixed(4)}`;
 }
 
-export function computeBestTable(src: BondSource): BestTable {
+/** The ranked bonds per duration and risk step (quick: what the one-bond chart reads). */
+export function computeGrid(src: BondSource): BestTable["grid"] {
   const grid: BestTable["grid"] = {};
   for (const d of durationSteps()) {
     grid[key(d)] = {};
     for (const p of curveByLevel(src.bonds, d)) grid[key(d)][p.level] = p.bonds;
   }
-  return { signature: signatureOf(src), grid, caps: ytmCapsByRisk(src.bonds, LIMITS.duration, LIMITS.ytm) };
+  return grid;
+}
+
+export function computeBestTable(src: BondSource): BestTable {
+  return { signature: signatureOf(src), grid: computeGrid(src), caps: ytmCapsByRisk(src.bonds, DURATION_STEPS, LIMITS.ytm) };
+}
+
+/**
+ * The same slider maximums as ytmCapsByRisk, one cell at a time with a pause between cells. They run the ranking many
+ * times per cell (seconds on a full copy), so computing them in one go held up every other request, the one-bond chart included.
+ */
+export async function capsInSteps(bonds: BondSource["bonds"], refine = true): Promise<BestTable["caps"]> {
+  const out: BestTable["caps"] = {};
+  for (let r = LIMITS.risk.min; r <= LIMITS.risk.max; r++) {
+    const pool = withinRisk(bonds, r);
+    out[String(r)] = {};
+    for (const d of DURATION_STEPS) {
+      Object.assign(out[String(r)], ytmCaps(pool, [d], LIMITS.ytm, refine));
+      await new Promise((done) => setImmediate(done));
+    }
+  }
+  return out;
+}
+
+async function fullTable(src: BondSource): Promise<BestTable> {
+  return { signature: signatureOf(src), grid: computeGrid(src), caps: await capsInSteps(src.bonds) };
 }
 
 let memo: BestTable | null = null;
@@ -54,8 +80,12 @@ export async function bestTable(): Promise<BestTable> {
 }
 
 const filtered = new Map<string, BestTable>();
+const filteredCaps = new Map<string, Promise<BestTable["caps"]>>();
 
-/** The table for one filter: the stored one for the default, otherwise computed in memory and kept until the copy changes. */
+/**
+ * The table for one filter: the stored one for the default, otherwise computed in memory and kept until the copy changes.
+ * A filtered table carries the bond grid only (its caps stay empty): the slider maximums come from capsFor.
+ */
 export async function bestTableFor(f: BondFilter): Promise<BestTable> {
   if (isDefaultFilter(f)) return bestTable();
   const src = await loadBondsFor(f);
@@ -63,19 +93,39 @@ export async function bestTableFor(f: BondFilter): Promise<BestTable> {
   let t = filtered.get(k);
   if (!t) {
     if (filtered.size > 8) filtered.clear();
-    t = computeBestTable(src);
+    t = { signature: signatureOf(src), grid: computeGrid(src), caps: {} };
     filtered.set(k, t);
   }
   return t;
 }
 
+/**
+ * The slider maximums for one filter, kept until the copy changes. Other filters than the default (USD, other minimum
+ * orders) use the quick maximum: the refined one stalled the server for every visitor, the one-bond chart included.
+ */
+export async function capsFor(f: BondFilter): Promise<BestTable["caps"]> {
+  if (isDefaultFilter(f)) return (await bestTable()).caps;
+  const src = await loadBondsFor(f);
+  const k = `${filterKey(f)}|${signatureOf(src)}`;
+  let p = filteredCaps.get(k);
+  if (!p) {
+    if (filteredCaps.size > 8) filteredCaps.clear();
+    p = capsInSteps(src.bonds, false);
+    p.catch(() => filteredCaps.delete(k));
+    filteredCaps.set(k, p);
+  }
+  return p;
+}
+
 async function load(src: BondSource, sig: string): Promise<BestTable> {
-  if (!accountsConfigured()) return (memo = computeBestTable(src));
+  if (!accountsConfigured()) return (memo = await fullTable(src));
+  // A new copy: add its prices to the price history too (for the biggest-drops page).
+  void recordPrices().catch(() => {});
   try {
     const sql = await accountsSql();
     const [stored] = await sql`select value from app.settings where key = 'best_bonds_signature'`;
     if (stored?.value !== sig) {
-      const table = computeBestTable(src);
+      const table = await fullTable(src);
       const rows = Object.entries(table.grid).flatMap(([d, levels]) =>
         Object.entries(levels).flatMap(([level, bonds]) => bonds.map((b) => ({ duration: d, level: Number(level), rank: b.rank, isin: b.isin, bond: b }))),
       );
@@ -89,6 +139,7 @@ async function load(src: BondSource, sig: string): Promise<BestTable> {
           await tx`insert into app.settings (key, value) values (${k}, ${v}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
         }
       });
+      void recordYields(src);
       return (memo = table);
     }
     const rows = await sql`select duration, level, bond from app.best_bonds order by duration, level, rank`;
@@ -108,8 +159,6 @@ async function load(src: BondSource, sig: string): Promise<BestTable> {
 
 /** The ranked bonds per risk step for the duration step nearest to `d`. */
 export function curveAt(table: BestTable, d: number) {
-  const step = LIMITS.duration.step;
-  const snapped = Math.min(LIMITS.duration.max, Math.max(LIMITS.duration.min, Math.round(d / step) * step));
-  const levels = table.grid[key(snapped)] ?? {};
+  const levels = table.grid[key(snapDuration(d))] ?? {};
   return Array.from({ length: 10 }, (_, i) => i + 1).map((level) => ({ level, bonds: levels[level] ?? [] }));
 }

@@ -17,17 +17,24 @@ const nextConfig = {
   // Lint runs as its own CI step before every deploy (npm run lint); the Fly build does not repeat it.
   eslint: { ignoreDuringBuilds: true },
   output: "standalone",
+  // The exact solver (WebAssembly) is loaded from node_modules at run time, so it and its .wasm file ship with the server.
+  serverExternalPackages: ["highs"],
+  outputFileTracingIncludes: { "/api/**/*": ["./node_modules/highs/build/**", "./lib/highsWorker.mjs"] },
   poweredByHeader: false,
   // Title, description, canonical and hreflang always in the page <head> for every visitor and crawler
   // (no streamed metadata), so every search engine and the SEO check read them without running scripts.
   htmlLimitedBots: /.*/,
-  // French guides replaced by Livio's articles on 19 Oct 2026 (lib/seo/guidesLivioFr.ts).
+  // French guides replaced by the owner's articles on 19 Oct 2026 (lib/seo/guidesOwnerFr.ts).
   async redirects() {
     return [
       ["oat-obligations-etat-francaises", "oat-obligations-etat"],
       ["rendement-a-l-echeance", "calcul-rendement-obligation"],
       ["obligations-ou-etf", "obligations-ou-etf-obligataires"],
-    ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }));
+    ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }))
+      // The menu says "Plans"; the page stays at /pricing so old links keep working.
+      .concat({ source: "/plans", destination: "/pricing", permanent: false })
+      // The sample company is fictional (ACMA GmbH); the old real-bond links keep working.
+      .concat(["risk-assessment", "report"].map((r) => ({ source: `/${r}/FR0013482841`, destination: `/${r}/DE000ACMA031`, permanent: true })));
   },
   async headers() {
     // /embed/... is shown inside other websites' frames, so it skips the "never in a frame" and same-origin rules.

@@ -14,14 +14,16 @@ for (const w of [1440, 390]) {
   await p.waitForSelector('[data-testid="cookie-banner"]');
   ok(await p.isDisabled('[data-testid="cookie-necessary"]') && await p.isChecked('[data-testid="cookie-necessary"]'), `${w} necessary always on`);
   await p.screenshot({ path: `${SHOTS}/cookie-${w}.png` });
+  await p.click('[data-testid="cookie-settings"]');
   await p.click('[data-testid="cookie-statistics"]');
-  await p.click('text=Allow selection');
+  await p.click('text=Save selection');
   ok(!(await p.isVisible('[data-testid="cookie-banner"]')), `${w} banner closes`);
   const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("tb_cookie_consent")));
   ok(stored.statistics === true && stored.marketing === false, `${w} selection stored`);
+  await p.goto(BASE + "/cookies"); // cookie settings live on the Cookies page, not in the footer
   await p.click("text=Cookie settings");
   ok(await p.isChecked('[data-testid="cookie-statistics"]'), `${w} reopened with choice`);
-  await p.click("text=Deny");
+  await p.click("text=Reject all");
   ok(await p.evaluate(() => !localStorage.getItem("tb_vid")), `${w} deny removes visitor id`);
   await noSide(p, `${w} home`);
   const signup = async (email, user) => {

@@ -1,7 +1,7 @@
 import type { PublicBond } from "./types";
 
 /**
- * Search filters (Livio, 19/10/2026): currency EUR / USD, and minimum order size.
+ * Search filters (the owner, 19/10/2026): currency EUR / USD, and minimum order size.
  * "1k" = bonds whose minimum investment is 1,000 to 10,000 (small savers); "100k" = every bond.
  * A bond whose minimum is unknown is left out of "1k" (it may well be 100,000).
  */

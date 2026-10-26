@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { loadFreeLimits } from "@/lib/searchLimits";
 import { currentUser } from "@/lib/currentUser";
 import { LANG_NAMES, WELCOME_LANGS, welcomeEmail, welcomeLang } from "@/lib/welcomeEmail";
 
@@ -16,7 +17,7 @@ export default async function WelcomeEmailPreview({ searchParams }: { searchPara
   const sp = await searchParams;
   const lang = welcomeLang(sp.lang);
   const withCode = sp.code === "1";
-  const m = welcomeEmail(lang, user.username ?? "Mario", withCode ? 30 : null);
+  const m = welcomeEmail(lang, user.username ?? "Mario", withCode ? 30 : null, undefined, await loadFreeLimits());
   const href = (l: string, c: boolean) => `/admin/welcome-email?lang=${l}${c ? "&code=1" : ""}`;
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">

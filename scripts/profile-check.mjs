@@ -30,7 +30,7 @@ for (const w of [1440, 390]) {
   // Footer and legal pages
   await p.goto(BASE + "/");
   ok(!(await p.locator("header >> text=Disclaimer").count()), `${w} no Disclaimer in the top menu`);
-  for (const t of ["Disclaimer", "Terms", "Privacy & GDPR", "Cookies", "Cookie settings"]) ok(await p.locator(`[data-testid=footer-legal] >> text="${t}"`).count() === 1, `${w} footer menu has ${t}`);
+  for (const t of ["Disclaimer", "Methodology", "Terms", "Privacy & GDPR", "Cookies"]) ok(await p.locator(`[data-testid=footer-legal] >> text="${t}"`).count() === 1, `${w} footer menu has ${t}`);
   await p.goto(BASE + "/it");
   ok(await p.locator('[data-testid=footer-legal] >> text="Privacy e GDPR"').count() === 1, `${w} footer menu in Italian`);
   ok(await p.isVisible("text=182,40 € all'anno"), `${w} Italian home shows yearly Premium`);
@@ -42,9 +42,10 @@ for (const w of [1440, 390]) {
   // Pricing
   await p.goto(BASE + "/pricing");
   ok((await p.textContent("[data-testid=price-premium]")).includes("€19") && (await p.textContent("[data-testid=price-pro]")).includes("€89"), `${w} monthly prices 19 and 89`);
-  await p.click("[data-testid=billing-year]");
-  await p.waitForURL(/billing=year/);
-  ok((await p.textContent("[data-testid=price-plus]")).includes("€86.40") && (await p.textContent("[data-testid=price-pro]")).includes("€854.40"), `${w} yearly prices`);
+  // Yearly is not sold for now (26/10/2026): the option is shown but is not a link, and the page stays monthly. The yearly purchase steps below no longer apply.
+  ok((await p.locator("a[data-testid=billing-year]").count()) === 0, `${w} yearly option is not clickable`);
+  await p.goto(BASE + "/pricing?billing=year");
+  ok((await p.textContent("[data-testid=price-plus]")).includes("€9") && !(await p.textContent("[data-testid=price-plus]")).includes("€86.40"), `${w} page stays monthly`);
   ok(await p.isVisible("text=For professionals"), `${w} Pro card marked for professionals`);
   await p.screenshot({ path: `${SHOTS}/pricing4-${w}.png`, fullPage: true });
   await noScroll("pricing");

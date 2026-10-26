@@ -1,0 +1,93 @@
+// Admin only (the owner, 24/10/2026): the ISINs of the list are copied into GPT with a prompt, and GPT's answer
+// (a table of ISIN, rating and basis) is pasted back, saved (app.gpt_ratings) and shown in the "GPT rate" column.
+// Never sent to customers.
+
+export const GPT_PROMPT = [
+  "Analyze all these bonds with $bonds and give each one a credit rating.",
+  "Reply with ONLY the table below, no other text before or after it, one row per ISIN, every ISIN listed once:",
+  "ISIN | IR | BR | Basis",
+  "IR = issuer rating, BR = rating of this specific bond (its seniority and structure).",
+  "IR and BR: S&P-style scale only (AAA, AA+, AA, AA-, A+, A, A-, BBB+, BBB, BBB-, BB+, BB, BB-, B+, B, B-, CCC+, CCC, CCC-, CC, C, D), or NR if you cannot rate it.",
+  "Basis: one short phrase (at most 10 words) on what the ratings rest on.",
+  "Example row: XS0000000000 | BBB+ | BBB | Issuer BBB+, senior subordinated bond",
+  "The ISINs:",
+].join("\n");
+
+/** The built-in IR/BR skill, shown pre-filled on /admin/skills until the owner saves his own text. */
+export const IRBR_SKILL_DEFAULT = [
+  "Analyze the bond given by its ISIN and give it a credit rating.",
+  "IR = issuer rating, BR = rating of this specific bond (its seniority and structure).",
+  "IR and BR: S&P-style scale only (AAA, AA+, AA, AA-, A+, A, A-, BBB+, BBB, BBB-, BB+, BB, BB-, B+, B, B-, CCC+, CCC, CCC-, CC, C, D), or NR if you cannot rate it.",
+  "Give the basis of the ratings: what they rest on, in a few lines.",
+].join("\n");
+
+/** Version of the prompt used by the API button (stored with each answer). */
+export const API_PROMPT_VERSION = "v1";
+/** The same prompt for one ISIN sent through an API (there is no $bonds tool there). */
+export const apiPrompt = (isin: string) => `${GPT_PROMPT.replace(" with $bonds", "")}\n${isin}`;
+
+/** Added after the owner's own rating instructions so the answer always ends with the three core values. */
+export const RESULT_CONTRACT = "Give your full analysis with all details first. Then end the answer with exactly one last line in this form, using the same scales as your instructions (write n/a for a value you cannot give):\nRESULT: IR=<issuer rating>; BR=<bond rating>; RISKPAY=<risk pay>";
+/** The prompt when the owner's own instructions are saved (they go with every call as the system text). */
+export const customPrompt = (isin: string) => `Rate this bond: ${isin}`;
+
+/** The three core values from the answer's "RESULT:" line (the last one wins); null when there is none. */
+export function parseResultLine(text: string): { issuerRating: string | null; rating: string | null; riskPay: string | null } | null {
+  const lines = text.split(/\r?\n/).filter((l) => /RESULT\s*:/i.test(l));
+  const line = lines[lines.length - 1];
+  if (!line) return null;
+  const get = (k: string) => {
+    const m = line.match(new RegExp(`${k}\\s*=\\s*([^;|]*)`, "i"));
+    const v = m ? clean(m[1]).replace(/[.]+$/, "").trim() : "";
+    return v && !/^(n\/a|na|none|-|–)$/i.test(v) ? v.slice(0, 40) : null;
+  };
+  const r = { issuerRating: get("IR"), rating: get("BR"), riskPay: get("RISKPAY") };
+  return r.issuerRating || r.rating || r.riskPay ? r : null;
+}
+
+/** The ISINs, one per line; with the prompt on top when `prompt` is set. */
+export function isinText(isins: (string | null | undefined)[], prompt = false): string {
+  const list = isins.filter((s): s is string => !!s).join("\n");
+  return prompt ? `${GPT_PROMPT}\n${list}` : list;
+}
+
+/** `rating` is the bond rating (BR); `issuerRating` the issuer rating (IR). Old 3-column pastes (ISIN | Rating | Basis) fill BR only. */
+export type GptRating = { answer?: string | null; rating: string | null; issuerRating?: string | null; riskPay?: string | null; detail?: unknown; basis: string | null };
+
+const ISIN = /\b([A-Z]{2}[A-Z0-9]{9}[0-9])\b/g;
+// S&P / Fitch style (AA-, BBB+) or Moody's style (Baa1, Aa2), plus NR. Single letters only when a whole table cell.
+const GRADE = /^(AAA|AA[+-]?|A[+-]?|BBB[+-]?|BB[+-]?|B[+-]?|CCC[+-]?|CC|C|D|SD|RD|Aaa|Aa[123]|A[123]|Baa[123]|Ba[123]|B[123]|Caa[123]|Ca|NR|WR)$/;
+const GRADE_IN_TEXT = /(?:^|[\s(:/])(AAA|AA[+-]?|A[+-]|BBB[+-]?|BB[+-]?|B[+-]|CCC[+-]?|Aaa|Aa[123]|A[123]|Baa[123]|Ba[123]|B[123]|Caa[123])(?=$|[\s),;/|])/;
+
+const clean = (s: string) => s.replace(/[*_`"]/g, "").trim();
+
+/**
+ * ISIN -> issuer rating (IR), bond rating (BR) and basis from GPT's pasted answer. The prompt asks for "ISIN | IR | BR | Basis";
+ * the older "ISIN | Rating | Basis" (one grade = BR) works too, as do markdown tables, tab or CSV rows and plain sentences:
+ * the first cell after the ISIN that is a grade (a second grade right after it is the BR), else the first clear
+ * grade in the rest of the line; the basis is the next cell. Lines without a grade (the header, the example) are skipped.
+ */
+export function parseGptRatings(text: string): Record<string, GptRating> {
+  const out: Record<string, GptRating> = {};
+  for (const line of text.split(/\r?\n/)) {
+    const hits = [...line.matchAll(ISIN)];
+    if (!hits.length) continue;
+    const isin = hits[0][1];
+    if (/^XS0{10}$/.test(isin)) continue;
+    const rest = line.slice(hits[0].index! + isin.length);
+    const cells = rest.split(/[|\t;]|,(?=\s*\S)/).map(clean).filter(Boolean);
+    const at = cells.findIndex((c) => GRADE.test(c));
+    let rating: string | null = at >= 0 ? cells[at] : null;
+    let issuerRating: string | null = null;
+    let next = at + 1;
+    if (at >= 0 && GRADE.test(cells[at + 1] ?? "")) { issuerRating = cells[at]; rating = cells[at + 1]; next = at + 2; }
+    let basis: string | null = at >= 0 && cells[next] ? cells.slice(next).join(", ") : null;
+    if (!rating) {
+      const m = clean(rest).match(GRADE_IN_TEXT);
+      rating = m ? m[1] : null;
+      basis = null;
+    }
+    if (rating && !out[isin]) out[isin] = { rating, issuerRating, basis: basis ? basis.slice(0, 200) : null };
+  }
+  return out;
+}

@@ -1,0 +1,19 @@
+name: Coherence live check
+# Manual only (about 11 minutes): the slider on live EUR data before and after the rating
+# coherence rules (lib/coherentFrontier.ts), with solver certificates. Read-only; fails if a list breaks a rule or a
+# solve is not certified.
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/coherence-live-check.ts

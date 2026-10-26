@@ -4,6 +4,8 @@ export default {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      // Desktop windows of laptop height (1366x768, 1440x900): the landing page tucks its steps in to fit one screen.
+      screens: { wide: "1200px", short: { raw: "(min-width: 1024px) and (max-height: 1100px), (min-width: 2400px) and (max-height: 1400px)" } },
       fontFamily: {
         sans: ["-apple-system", "BlinkMacSystemFont", "SF Pro Text", "Inter", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
       },

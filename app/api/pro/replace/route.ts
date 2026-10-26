@@ -31,5 +31,15 @@ export async function POST(req: Request) {
   }
   const result = runEngine(holdings, data.bonds, cleanSettings(body?.settings));
   const analysis = analysePortfolio(holdings, data.bonds);
+  if (user.isAdmin) {
+    // The admin also sees each bond's S&P grade next to the risk score (never sent to customers).
+    const sp = new Map(data.bonds.map((b) => [b.isin, b.ratingSp?.trim() || null]));
+    for (const l of result.lines) {
+      if (l.action === "unknown") continue;
+      l.sell.sp = sp.get(l.sell.isin) ?? null;
+      if (l.action === "swap") l.buy.sp = sp.get(l.buy.isin) ?? null;
+    }
+    for (const p of analysis.positions) p.sp = sp.get(p.isin) ?? null;
+  }
   return NextResponse.json({ ...result, analysis, skipped, source: data.source, asOf: data.asOf }, { headers: { "Cache-Control": "no-store" } });
 }

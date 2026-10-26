@@ -10,7 +10,7 @@ import { brokerView, countryView, type Row } from "@/lib/brokers/view";
 import CostTable, { type TableRow } from "./CostTable";
 import { formatters } from "./format";
 import { prose } from "@/components/seo/Seo";
-import { landingFor } from "@/lib/seo/landingLivio";
+import { landingFor } from "@/lib/seo/landingOwner";
 import { sanitizeHtml } from "@/lib/seo/sanitize";
 
 // Server-rendered pages of the Brokers & Trading Fees section, shared by the /it, /fr and /de routes.
@@ -274,7 +274,7 @@ export async function BrokerPage({ country, id }: { country: Country; id: string
   );
   const path = sectionPath(country);
   return (
-    <article lang={t.lang} className="mx-auto max-w-4xl space-y-6">
+    <article lang={t.lang} className="mx-auto max-w-6xl space-y-6">
       <Preview t={t} on={preview} />
       <Crumbs t={t} items={[{ name: t.sectionTitle, href: path }, { name: r.profile.name, href: brokerPath(country, id) }]} />
       <header className="space-y-2">
@@ -480,7 +480,7 @@ export async function MethodologyPage({ country }: { country: Country }) {
   const w = data.methodology.weights;
   const path = sectionPath(country);
   return (
-    <article lang={t.lang} className={`mx-auto max-w-3xl ${card}`}>
+    <article lang={t.lang} className={`mx-auto max-w-6xl ${card}`}>
       <Preview t={t} on={preview} />
       <Crumbs t={t} items={[{ name: t.sectionTitle, href: path }, { name: t.ui.methodology, href: methodologyPath(country) }]} />
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">{t.ui.methodology}</h1>

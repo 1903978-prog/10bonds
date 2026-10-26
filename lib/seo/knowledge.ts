@@ -1,6 +1,6 @@
 import type { Locale } from "./locales";
 
-// Knowledge Center plan from Livio's market research (2026-10-18): six sections, a first wave of 18 pages, and a
+// Knowledge Center plan from the owner's market research (2026-10-18): six sections, a first wave of 18 pages, and a
 // transparent Opportunity Score per keyword. Search volumes are third-party estimates with their source and date;
 // nothing here is invented, and unknown inputs stay unknown.
 
@@ -15,7 +15,7 @@ export const KC_SECTIONS = {
 export type KcSection = keyof typeof KC_SECTIONS;
 export const isKcSection = (v: unknown): v is KcSection => typeof v === "string" && v in KC_SECTIONS;
 
-/** Livio's effort split for Knowledge Management work. */
+/** The owner's effort split for Knowledge Management work. */
 export const EFFORT_SPLIT = [
   { label: "Comparison & best-bonds pages", share: 40 },
   { label: "Calculators", share: 20 },

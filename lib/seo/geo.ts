@@ -1,15 +1,16 @@
+import { notOwnerVisitor } from "@/lib/ownerExclusion";
 import type { MetadataRoute } from "next";
 import { faqFromHtml } from "./sanitize";
 import { seoSql, type Guide } from "./store";
 
 // AI Visibility (GEO / AEO): how ready the site is to be found, trusted and cited by AI assistants (ChatGPT,
-// Claude, Copilot, Google AI, Perplexity). A score out of 100 on Livio's seven weights (19 Oct 2026). The weights
+// Claude, Copilot, Google AI, Perplexity). A score out of 100 on the owner's seven weights (19 Oct 2026). The weights
 // are his management framework, not any AI provider's algorithm. Each dimension is a list of checks the site
 // can verify about itself; nothing here is estimated. Citation share needs a weekly test against the assistants'
 // APIs, which is not connected yet, so it shows "not connected" and scores zero.
 
 export const AI_CRAWLERS = ["OAI-SearchBot", "ChatGPT-User", "Claude-SearchBot", "Claude-User", "PerplexityBot", "Bingbot", "Googlebot"];
-/** Crawlers Livio named as required (search and user-directed retrieval, not model training). */
+/** Crawlers the owner named as required (search and user-directed retrieval, not model training). */
 export const REQUIRED_CRAWLERS = ["OAI-SearchBot", "Claude-SearchBot", "Claude-User"];
 
 /** Referrer hosts of AI assistants, by assistant. */
@@ -77,7 +78,7 @@ export type GeoFacts = {
   bingConnected: boolean;
 };
 
-export type Check = { label: string; done: boolean; detail?: string };
+export type Check = { label: string; done: boolean; detail?: string; notConnected?: boolean }; // notConnected: the source to check it is missing
 export type Dimension = { id: string; name: string; weight: number; score: number; checks: Check[] };
 
 const share = (n: number, of: number) => (of ? n / of : 0);
@@ -131,8 +132,8 @@ export function aiVisibility(f: GeoFacts): { score: number; dimensions: Dimensio
     ] },
     { id: "measure", name: "AI citation and referral measurement", weight: 5, checks: [
       { label: "Visitors from AI assistants are counted", done: f.aiReferralTracking },
-      { label: "Weekly citation test of the question set", done: f.citationTest, detail: f.citationTest ? undefined : "not connected" },
-      { label: "Bing Webmaster Tools AI Performance connected", done: f.bingConnected, detail: f.bingConnected ? undefined : "not connected" },
+      { label: "Weekly citation test of the question set", done: f.citationTest, detail: f.citationTest ? undefined : "not connected", notConnected: !f.citationTest },
+      { label: "Bing Webmaster Tools AI Performance connected", done: f.bingConnected, detail: f.bingConnected ? undefined : "not connected", notConnected: !f.bingConnected },
     ] },
   ];
   const dimensions = dims.map((d) => ({ ...d, score: Math.round((d.checks.filter((c) => c.done).length / d.checks.length) * 100) }));
@@ -151,10 +152,16 @@ export async function aiFunnel(days = 28): Promise<AiFunnel> {
              min(case when kind = 'page_view' and coalesce(detail->>'referrer', '') ~* ${AI_SQL} then lower(detail->>'referrer') end) source,
              bool_or(kind = 'signup') signed,
              max(user_id) user_id
-      from app.events where at > now() - make_interval(days => ${days}) group by visitor_id
+      from app.events where at > now() - make_interval(days => ${days}) and ${notOwnerVisitor(s)} group by visitor_id
     )
     select source, signed, exists (select 1 from app.users u where u.id = v.user_id and u.plan in ('plus','premium')) paid
     from v where source is not null`;
   const byAssistant = AI_SOURCES.map((a) => ({ name: a.name, visitors: rows.filter((r) => a.re.test(String(r.source))).length }));
   return { days, visitors: rows.length, signups: rows.filter((r) => r.signed).length, paid: rows.filter((r) => r.paid).length, byAssistant };
+}
+
+/** GEO share of checks that could be assessed: checks whose data source is missing do not count. */
+export function geoAssessed(dims: Dimension[]): number {
+  const all = dims.flatMap((d) => d.checks);
+  return all.length ? Math.round((all.filter((c) => !c.notConnected).length / all.length) * 100) : 0;
 }

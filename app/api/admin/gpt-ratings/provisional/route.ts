@@ -1,0 +1,38 @@
+import { NextResponse } from "next/server";
+import { currentUser } from "@/lib/currentUser";
+import { bondsForScenarios } from "@/lib/bonds";
+import { saveScenarioRatings } from "@/lib/gptRatingsDb";
+import { ALL_SCENARIOS, matchScenarios, scenarioRow } from "@/lib/provisionalScenarios";
+
+export const dynamic = "force-dynamic";
+
+async function admin() {
+  const u = await currentUser();
+  return u?.isAdmin && u.adminState === "ok" ? u : null;
+}
+
+async function match() {
+  const cands = await bondsForScenarios(ALL_SCENARIOS.flatMap((s) => (s.isin ? [s.isin] : [])), [...new Set(ALL_SCENARIOS.filter((s) => !s.isin).map((s) => s.maturity))]);
+  return matchScenarios(cands).map((m) => ({ key: m.scenario.key, label: m.scenario.label, isin: m.isin, problem: m.problem, where: m.where, note: m.note, candidates: m.candidates.slice(0, 5).map((c) => `${c.isin} ${c.issuer ?? c.name ?? ""}`) }));
+}
+
+/** Admin only: which ISIN each of the 10 provisional-scenario bonds matches (nothing is saved). */
+export async function GET() {
+  if (!(await admin())) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const table = ALL_SCENARIOS.map((s) => ({ key: s.key, label: s.label, isin: s.isin ?? null, ir: s.ir, br: s.br, riskPay: s.riskPay, detail: s.detail ?? null }));
+  return NextResponse.json({ matches: await match(), table }, { headers: { "Cache-Control": "no-store" } });
+}
+
+/** Admin only: saves the provisional IR / BR / Risk Pay values for every uniquely matched bond; the others are reported, never guessed. */
+export async function POST() {
+  if (!(await admin())) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const matches = await match();
+  const rows = matches.flatMap((m) => {
+    const s = ALL_SCENARIOS.find((x) => x.key === m.key)!;
+    if (!m.isin) return [];
+    const row = scenarioRow(s);
+    return [{ isin: m.isin, ...row, basis: m.where === "not-in-copy" ? `${row.basis} · not in copy` : row.basis }];
+  });
+  const saved = await saveScenarioRatings(rows);
+  return NextResponse.json({ saved, matches });
+}

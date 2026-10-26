@@ -1,16 +1,16 @@
 import type { PublicBond } from "../types";
-import { bondNotch } from "../ratings";
+import { bondRisk } from "../ratings";
 import { SITE_URL } from "./crawl";
 
 // The free "bond yields" widget other websites can embed (/embed/yields). A small table, rebuilt from the bond copy
-// on every read: the median gross yield of EUR bonds per rating and time to maturity. Every embed carries a plain link
+// on every read: the median gross yield of EUR bonds per 10BONDS risk group and time to maturity (never agency grades). Every embed carries a plain link
 // back to 10bonds.com next to the frame, which is what counts as a backlink.
 
 export const WIDGET_LANGS = ["en", "it", "fr", "de"] as const;
 export type WidgetLang = (typeof WIDGET_LANGS)[number];
 export const widgetLang = (v: unknown): WidgetLang => (WIDGET_LANGS.includes(v as WidgetLang) ? (v as WidgetLang) : "en");
 
-export const RATING_ROWS = ["AAA", "AA", "A", "BBB", "BB", "B"] as const;
+export const RISK_ROWS = ["1", "2", "3", "4–6", "7", "8"] as const;
 export const YEAR_COLS = [
   { lo: 0, hi: 3, label: "0–3" },
   { lo: 3, hi: 7, label: "3–7" },
@@ -26,22 +26,16 @@ const median = (xs: number[]) => {
   return Math.round((s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) * 100) / 100;
 };
 
-/** AAA..B band of a bond (AA+, AA and AA- are all "AA"); null for unrated bonds and anything below B. */
-function band(b: PublicBond): (typeof RATING_ROWS)[number] | null {
-  const n = bondNotch(b);
-  if (n === null) return null;
-  if (n === 0) return "AAA";
-  if (n <= 3) return "AA";
-  if (n <= 6) return "A";
-  if (n <= 9) return "BBB";
-  if (n <= 12) return "BB";
-  if (n <= 15) return "B";
-  return null;
+/** Risk group of a bond (risk 4, 5 and 6 share one row); null for bonds without a risk score and risk 9-10. */
+function band(b: PublicBond): (typeof RISK_ROWS)[number] | null {
+  const r = bondRisk(b);
+  if (r === null || r > 8) return null;
+  return r >= 4 && r <= 6 ? "4–6" : (String(r) as (typeof RISK_ROWS)[number]);
 }
 
-export type YieldGrid = { rows: { rating: string; cells: (number | null)[] }[]; bonds: number };
+export type YieldGrid = { rows: { risk: string; cells: (number | null)[] }[]; bonds: number };
 
-/** Median yield per rating band (rows) and years to maturity (columns). Rows with no value at all are left out. */
+/** Median yield per risk group (rows) and years to maturity (columns). Rows with no value at all are left out. */
 export function yieldGrid(bonds: PublicBond[], now = new Date()): YieldGrid {
   const cells = new Map<string, number[]>();
   let n = 0;
@@ -56,22 +50,22 @@ export function yieldGrid(bonds: PublicBond[], now = new Date()): YieldGrid {
     cells.set(k, [...(cells.get(k) ?? []), b.grossYtm]);
     n++;
   }
-  const rows = RATING_ROWS.map((rating) => ({
-    rating,
+  const rows = RISK_ROWS.map((risk) => ({
+    risk,
     cells: YEAR_COLS.map((_, i) => {
-      const ys = cells.get(`${rating}|${i}`) ?? [];
+      const ys = cells.get(`${risk}|${i}`) ?? [];
       return ys.length >= MIN_BONDS ? median(ys) : null;
     }),
   })).filter((r) => r.cells.some((c) => c !== null));
   return { rows, bonds: n };
 }
 
-type WidgetText = { title: string; years: string; rating: string; asOf: string; by: string; note: string; home: string; empty: string; numLocale: string };
+type WidgetText = { title: string; years: string; risk: string; asOf: string; by: string; note: string; home: string; empty: string; numLocale: string };
 export const WIDGET_TEXT: Record<WidgetLang, WidgetText> = {
-  en: { title: "EUR bond yields today", years: "Years to maturity", rating: "Rating", asOf: "Data as of", by: "Bond yields by 10BONDS", note: "Median gross yield to maturity. Information only, not advice.", home: "/", empty: "No data right now.", numLocale: "en-GB" },
-  it: { title: "Rendimenti delle obbligazioni in euro oggi", years: "Anni alla scadenza", rating: "Rating", asOf: "Dati al", by: "Rendimenti obbligazionari di 10BONDS", note: "Rendimento lordo a scadenza mediano. Solo informazione, non consulenza.", home: "/it", empty: "Nessun dato al momento.", numLocale: "it-IT" },
-  fr: { title: "Rendements des obligations en euros aujourd'hui", years: "Années jusqu'à l'échéance", rating: "Notation", asOf: "Données au", by: "Rendements obligataires par 10BONDS", note: "Rendement brut médian à l'échéance. Information uniquement, pas un conseil.", home: "/fr", empty: "Aucune donnée pour le moment.", numLocale: "fr-FR" },
-  de: { title: "Renditen von Euro-Anleihen heute", years: "Jahre bis Fälligkeit", rating: "Rating", asOf: "Datenstand", by: "Anleiherenditen von 10BONDS", note: "Median der Bruttorendite bis Fälligkeit. Nur Information, keine Beratung.", home: "/de", empty: "Derzeit keine Daten.", numLocale: "de-DE" },
+  en: { title: "EUR bond yields", years: "Years to maturity", risk: "10BONDS risk", asOf: "Data as of", by: "Bond yields by 10BONDS", note: "Median gross yield to maturity. Information only, not advice.", home: "/", empty: "No data right now.", numLocale: "en-GB" },
+  it: { title: "Rendimenti delle obbligazioni in euro", years: "Anni alla scadenza", risk: "Rischio 10BONDS", asOf: "Dati al", by: "Rendimenti obbligazionari di 10BONDS", note: "Rendimento lordo a scadenza mediano. Solo informazione, non consulenza.", home: "/it", empty: "Nessun dato al momento.", numLocale: "it-IT" },
+  fr: { title: "Rendements des obligations en euros", years: "Années jusqu'à l'échéance", risk: "Risque 10BONDS", asOf: "Données au", by: "Rendements obligataires par 10BONDS", note: "Rendement brut médian à l'échéance. Information uniquement, pas un conseil.", home: "/fr", empty: "Aucune donnée pour le moment.", numLocale: "fr-FR" },
+  de: { title: "Renditen von Euro-Anleihen", years: "Jahre bis Fälligkeit", risk: "10BONDS-Risiko", asOf: "Datenstand", by: "Anleiherenditen von 10BONDS", note: "Median der Bruttorendite bis Fälligkeit. Nur Information, keine Beratung.", home: "/de", empty: "Derzeit keine Daten.", numLocale: "de-DE" },
 };
 
 /** The public address of the widget for one language and theme. */
@@ -95,8 +89,8 @@ export function widgetHtml(grid: YieldGrid, asOf: string | null, lang: WidgetLan
   const c = dark ? { bg: "#1c1c1e", ink: "#f5f5f7", mute: "#a1a1a6", line: "#38383a", accent: "#2997ff" } : { bg: "#ffffff", ink: "#1d1d1f", mute: "#6e6e73", line: "#e5e5ea", accent: "#0071e3" };
   const date = asOf ? new Date(asOf).toLocaleDateString(t.numLocale, { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Rome" }) : null;
   const body = grid.rows.length
-    ? `<table><thead><tr><th>${esc(t.rating)}</th>${YEAR_COLS.map((y) => `<th>${y.label}</th>`).join("")}</tr></thead><tbody>${grid.rows
-        .map((r) => `<tr><th>${r.rating}</th>${r.cells.map((v) => `<td>${fmt(v)}</td>`).join("")}</tr>`)
+    ? `<table><thead><tr><th>${esc(t.risk)}</th>${YEAR_COLS.map((y) => `<th>${y.label}</th>`).join("")}</tr></thead><tbody>${grid.rows
+        .map((r) => `<tr><th>${r.risk}</th>${r.cells.map((v) => `<td>${fmt(v)}</td>`).join("")}</tr>`)
         .join("")}</tbody></table><p class="sub">${esc(t.years)}</p>`
     : `<p class="sub">${esc(t.empty)}</p>`;
   return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(t.title)}</title>

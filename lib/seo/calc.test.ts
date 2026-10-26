@@ -9,6 +9,13 @@ describe("bond calculator", () => {
     expect(r.netYtm).toBeCloseTo(r.grossYtm, 6);
     expect(r.cashflows).toHaveLength(5);
   });
+  it("a bond at par yields exactly its coupon for every payment frequency", () => {
+    for (const frequency of [1, 2, 4] as const) {
+      const r = bondYield({ price: 100, coupon: 3, frequency, maturity: "2031-06-01", settlement: "2026-06-01", taxRate: 0 });
+      expect(r.grossYtm).toBeCloseTo(3, 6);
+      expect(r.netYtm).toBeCloseTo(3, 6);
+    }
+  });
   it("tax at 12.5% on a par bond takes 12.5% of the yield", () => {
     const r = bondYield({ price: 100, coupon: 4, frequency: 1, maturity: "2031-06-01", settlement: "2026-06-01", taxRate: 12.5 });
     expect(r.netYtm).toBeCloseTo(3.5, 1);

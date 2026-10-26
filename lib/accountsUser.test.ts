@@ -3,7 +3,7 @@ import { toUser } from "./accounts";
 import { markEmailDomainVerified } from "./email";
 
 const row = (o: Partial<Parameters<typeof toUser>[0]> = {}) => ({
-  id: "1", email: "1903978@gmail.com", username: "livio", plan: "free" as const, premium_until: null, email_verified_at: null, ...o,
+  id: "1", email: "1903978@gmail.com", username: "owner", plan: "free" as const, premium_until: null, email_verified_at: null, ...o,
 });
 
 describe("toUser", () => {

@@ -1,5 +1,5 @@
 // Kept free of imports: the weekly citation job (scripts/ai-citations.mjs) reads it directly.
-/** The fixed question set for the weekly citation test (10 per language), from Livio's plan. */
+/** The fixed question set for the weekly citation test (10 per language), from the owner's plan. */
 export const TEST_QUESTIONS: { market: "it" | "fr" | "de"; q: string }[] = [
   { market: "it", q: "Quali titoli di Stato italiani hanno il rendimento più alto a cinque anni?" },
   { market: "it", q: "Qual è il rendimento netto di un BTP a 5 anni?" },

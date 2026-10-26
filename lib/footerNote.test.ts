@@ -14,9 +14,9 @@ describe("footer note", () => {
     for (const [l, t] of Object.entries(FOOTER_NOTE)) {
       expect(t, l).not.toMatch(/Stripe/);
       expect(t, l).toMatch(/10BONDS/);
-      expect(t.length, l).toBeLessThan(140);
+      expect(t.length, l).toBeLessThan(240); // fits one line on desktop
     }
-    expect(FOOTER_NOTE.en.match(/investment advice/g)).toHaveLength(1);
+    expect(FOOTER_NOTE.en.match(/not advice/g)).toHaveLength(1);
   });
 });
 
@@ -24,7 +24,7 @@ import { FOOTER_LINKS } from "./footerNote";
 describe("legal menu", () => {
   it("has every link in all four languages", () => {
     for (const l of ["en", "it", "fr", "de"] as const) {
-      for (const k of ["disclaimer", "terms", "privacy", "cookies", "settings", "pro"] as const) expect(FOOTER_LINKS[l][k].length).toBeGreaterThan(2);
+      for (const k of ["disclaimer", "methodology", "rating", "ranking", "terms", "privacy", "cookies", "pro"] as const) expect(FOOTER_LINKS[l][k].length).toBeGreaterThan(2);
     }
   });
 });

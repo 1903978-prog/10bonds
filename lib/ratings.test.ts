@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { averageRisk, bondRisk, maxNotchOfRisk, riskOfNotch } from "./ratings";
+import { averageRisk, bondRisk, maxNotchOfRisk, ratingSourceLabel, riskOfLr, riskOfNotch } from "./ratings";
 import { RISK_LEVELS } from "./limits";
 
 const b = (g: string | null) => ({ ratingSp: g, ratingMoodys: null, ratingFitch: null, ratingResolved: null });
 
 describe("risk score 1-10", () => {
-  it("maps grades as Livio set them", () => {
+  it("maps grades as the owner set them", () => {
     const want: [string, number | null][] = [
       ["AAA", 1], ["AA+", 2], ["AA", 2], ["AA-", 2], ["A+", 3], ["A", 3], ["A-", 3],
       ["BBB+", 4], ["BBB", 5], ["BBB-", 6], ["BB+", 7], ["BB", 7], ["BB-", 7],
@@ -21,5 +21,36 @@ describe("risk score 1-10", () => {
   it("averages to one decimal, ignoring missing scores", () => {
     expect(averageRisk([1, 2, null, 4])).toBe(2.3);
     expect(averageRisk([null])).toBeNull();
+  });
+});
+
+describe("10bonds.com rating takes over the risk score", () => {
+  const lr = (score: number | null, g: string | null = "BBB") => ({ ...b(g), lrScore: score });
+  it("maps LR 0..100 to risk 10..1 in steps of 10", () => {
+    expect([100, 95, 90, 89.9, 80, 55, 30, 10, 9.9, 0].map(riskOfLr)).toEqual([1, 1, 1, 2, 2, 5, 7, 9, 10, 10]);
+    expect(riskOfLr(null)).toBeNull();
+    expect(riskOfLr(undefined)).toBeNull();
+  });
+  it("uses LR over any agency grade, and agency grades only when LR is missing", () => {
+    expect(bondRisk(lr(92, "BB-"))).toBe(1);
+    expect(bondRisk(lr(45, "AAA"))).toBe(6);
+    expect(bondRisk(lr(null, "BBB"))).toBe(5);
+    expect(bondRisk(lr(65, null))).toBe(4); // a bond with no agency rating still shows once it has an LR
+  });
+  it("every LR risk level lands on a notch of that same level", () => {
+    for (let r = 1; r <= 10; r++) expect(bondRisk(lr(100 - r * 10 + 5, null))).toBe(r);
+  });
+  it("admin label names the 10bonds.com rating", () => {
+    expect(ratingSourceLabel(lr(72.46))).toBe("10bonds 72.5");
+    expect(ratingSourceLabel(lr(null, "BBB"))).toBe("S&P BBB");
+  });
+});
+
+describe("worst of the three agencies (owner, 24/10/2026)", () => {
+  const r = (sp: string | null, m: string | null, f: string | null) => ({ ratingSp: sp, ratingMoodys: m, ratingFitch: f, ratingResolved: null });
+  it("takes the lowest grade", () => {
+    expect(bondRisk(r("BBB", "Baa3", "BBB-"))).toBe(6);
+    expect(bondRisk(r("BBB+", "Ba1", null))).toBe(7);
+    expect(bondRisk(r(null, null, "A"))).toBe(3);
   });
 });

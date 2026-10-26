@@ -1,9 +1,15 @@
 import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { accountsConfigured } from "@/lib/accounts";
+import { currentUser } from "@/lib/currentUser";
+import { landsInPro } from "@/lib/proView";
 import Finder from "@/components/Finder";
-import { ComparisonBody, JsonLd, RiskNote } from "@/components/seo/Seo";
+import IntroGate from "@/components/IntroGate";
+import { landingFirst } from "@/lib/intro";
+import { headers } from "next/headers";
+import { ComparisonBody, JsonLd } from "@/components/seo/Seo";
 import { COMPARISONS } from "@/lib/seo/comparisons";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { CALCULATORS } from "@/lib/seo/calculators";
@@ -13,7 +19,7 @@ import { alternates, comparisonPages, publishedGuides, shown } from "@/lib/seo/s
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ lang: string }> };
+type Props = { params: Promise<{ lang: string }>; searchParams?: Promise<{ intro?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang } = await params;
@@ -22,15 +28,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: { absolute: h.title },
     description: h.description,
-    alternates: alternates(lang, (l) => `/${l}`, "/"),
+    // The English home is a language version too, so every home lists all four (each one also lists itself).
+    alternates: (({ canonical, languages }) => ({ canonical, languages: { ...languages, en: "/" } }))(alternates(lang, (l) => `/${l}`, "/")!),
     openGraph: { locale: LOCALE[lang].ogLocale, title: h.title, description: h.description, type: "website", siteName: "10BONDS" },
   };
 }
 
-export default async function LocaleHome({ params }: Props) {
+export default async function LocaleHome({ params, searchParams }: Props) {
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
+  if (accountsConfigured() && (await landsInPro(await currentUser().catch(() => null)))) redirect("/pro");
   const l: Locale = lang;
+  // Arriving from outside the site (typed address, bookmark, social link): the landing page comes before the finder.
+  const hd = await headers();
+  const intro = landingFirst((await searchParams)?.intro, hd.get("referer"), hd.get("x-forwarded-host") ?? hd.get("host"));
   const h = HOME[l];
   const t = T[l];
   const [{ pages, asOf, source }, guides] = await Promise.all([comparisonPages(), publishedGuides(l)]);
@@ -42,7 +53,9 @@ export default async function LocaleHome({ params }: Props) {
   return (
     <div className="space-y-10">
       {/* The finder comes first so it fits on one screen; the page title and intro stay on the page, below it. */}
-      <Finder lang={l} heading={false} />
+      <IntroGate show={intro} lang={l} heading={false}>
+        <Finder lang={l} heading={false} />
+      </IntroGate>
       <section className="mx-auto max-w-3xl text-center">
         <h1 className="text-[34px] font-semibold leading-tight tracking-tight sm:text-[44px]">{h.h1}</h1>
         <p className="mx-auto mt-4 max-w-2xl text-[17px] text-mute">{h.lead}</p>
@@ -91,7 +104,6 @@ export default async function LocaleHome({ params }: Props) {
         </div>
         <p className="mt-3 text-sm"><Link href="/pricing" className="text-accent">{h.plansLink} ›</Link> · <Link href={pathOf(l, "method")} className="text-accent">{t.method}</Link> · <Link href={pathOf(l, "team")} className="text-accent">{t.team}</Link></p>
       </section>
-      <div className="mx-auto max-w-3xl"><RiskNote locale={l} /></div>
       <JsonLd data={{ "@context": "https://schema.org", "@type": "WebSite", name: "10BONDS", url: `${SITE_URL}/${l}`, inLanguage: LOCALE[l].hreflang, description: h.description, publisher: ORGANIZATION }} />
       <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />
     </div>

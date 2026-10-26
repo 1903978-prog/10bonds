@@ -51,6 +51,7 @@ export type BondView = {
   name: string;
   issuer: string;
   risk: number | null; // 10BONDS risk score 1..10
+  sp?: string | null; // S&P grade: added for the admin only (app/api/pro/replace)
   ytm: number;
   duration: number;
   maturity: string | null;
@@ -237,7 +238,7 @@ export function runEngine(holdings: Holding[], universe: PublicBond[], s: Engine
 
 function keepReason(similar: number, blocked: PublicBond | null, s: EngineSettings): string {
   if (similar === 0) return `No other bond with a risk score in our data has a similar duration (within ${s.durationTolerance} years).`;
-  if (blocked) return `The best alternative (${issuerOf(blocked)}) would push that issuer above ${s.maxIssuerPct}% of the portfolio, so we do not suggest it.`;
+  if (blocked) return `The closest alternative (${issuerOf(blocked)}) would push that issuer above ${s.maxIssuerPct}% of the portfolio, so we do not suggest it.`;
   const goals =
     s.mode === "risk"
       ? "a lower risk score at a similar yield"
@@ -252,7 +253,7 @@ function rationale(kind: "yield" | "risk", sell: BondView, buy: BondView, gross:
   const out: string[] = [];
   out.push(
     kind === "yield"
-      ? `Higher yield for the same risk: ${pct(buy.ytm)} instead of ${pct(sell.ytm)} (${signedPct(gross)} a year).`
+      ? `Higher yield at the same risk level: ${pct(buy.ytm)} instead of ${pct(sell.ytm)} (${signedPct(gross)} a year).`
       : `Lower credit risk for a similar yield: risk ${buy.risk} instead of ${sell.risk}.`,
   );
   out.push(`Similar interest-rate risk: duration ${yrs(buy.duration)} vs ${yrs(sell.duration)} (${durDiff >= 0 ? "+" : "−"}${Math.abs(durDiff).toFixed(1)} yrs).`);

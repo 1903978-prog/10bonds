@@ -11,13 +11,16 @@ Two logins on one Neon Postgres project:
 
 | Table | Holds | Why | Kept |
 |---|---|---|---|
-| `users` | account: e-mail, username, scrypt password hash, plan, Stripe links, terms version, two-factor (key encrypted, backup codes hashed) | sign-in, the plan you pay for, proof of the terms accepted, admin two-factor | until the account is deleted (never-confirmed accounts: see below) |
+| `users` | account: e-mail, username, scrypt password hash, plan, Stripe links, terms version, newsletter opt-in (with consent and unsubscribe dates), two-factor (key encrypted, backup codes hashed) | sign-in, the plan you pay for, proof of the terms accepted, admin two-factor | until the account is deleted (never-confirmed accounts: see below) |
 | `search_usage` | one row per counted search (weekly allowance) | enforce the free weekly search allowance | 30 days |
 | `events` | usage statistics, only with consent, no IP | improve the site (consent) | 13 months |
 | `trial_codes` | one-month Premium codes made by the admin | give and redeem trials once | permanent (account link blanked on deletion) |
 | `pro_access` | professional access requests | check Pro users are regulated professionals | until the account is deleted |
 | `refresh_requests` | "refresh prices" requests read by lm-op-model | hand the request to the main app | permanent (small, no personal data beyond the admin name) |
 | `best_bonds` | cache of the best bonds per horizon and risk, rebuilt from `public_bonds` | fast pages | rebuilt with each copy |
+| `ytm_history` | one yield per rated EUR bond per day, recorded when a new copy loads (weekly/monthly moves) | price-move figures on the bond pages | 120 days |
+| `bond_price_weeks` | weekly lowest and highest yield of each shown bond, for the 52-week price high on the Price drops page | 52-week price high | about 60 weeks |
+| `bond_daily_prices` | daily yield and indicative price of each shown bond (admin Price drops: 1-week and 1-month moves) | admin Price drops page | about 40 days |
 | `settings` | small values the app keeps for itself (Stripe webhook key, one-time markers) | app configuration | permanent |
 | `broker_*` | broker profiles, tariffs (versioned drafts and approvals), settings | broker comparison pages | permanent |
 | `seo_*` | guides, their history, keywords, backlinks, assessments | public guides | permanent |

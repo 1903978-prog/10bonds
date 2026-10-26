@@ -57,23 +57,76 @@ for (const [w, h] of WIDTHS) {
   await ctx.close();
 }
 
-// Home page behaviour: results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
-for (const [w, h] of WIDTHS) {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+// First visit: the intro comes first and its button brings in the finder.
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
+  ok(await p.locator('[data-testid="intro"]').isVisible(), "home: intro on first visit");
+  await p.locator('[data-testid="cookie-settings"]').click().catch(() => {});
+  await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
+  await p.locator('[data-testid="intro-skip"]').click();
+  ok(await p.locator('[data-testid="term-picker"]').isVisible(), "home: the intro's button opens the finder");
+  await ctx.close();
+}
+
+// First use of the portfolio builder: the agreement popup must be ticked before it closes.
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const p = await ctx.newPage();
+  await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
+  await p.locator('[data-testid="find-portfolio"]').click();
+  ok(await p.locator('[data-testid="consent-gate"]').isVisible(), "consent: popup shows on first use");
+  ok(await p.locator('[data-testid="consent-continue"]').isDisabled(), "consent: Continue disabled until ticked");
+  await p.locator('[data-testid="consent-check"]').check();
+  await p.locator('[data-testid="consent-continue"]').click();
+  await p.locator('[data-testid="consent-gate"]').waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
+  ok(!(await p.locator('[data-testid="consent-gate"]').count()), "consent: popup closes after agreeing");
+  await ctx.close();
+}
+
+// Home page behaviour (intro already seen): results appear, the sliders work by keyboard, the cookie banner shows on a first visit.
+for (const [w, h] of WIDTHS) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  // First-use agreement already given: the version is read from lib/consentText.ts, so raising it never breaks this script.
+  const agreeVersion = (await import("node:fs")).readFileSync(new URL("../lib/consentText.ts", import.meta.url), "utf8").match(/CONSENT_VERSION = "([^"]+)"/)[1];
+  await ctx.addInitScript((v) => localStorage.setItem("tb_agree", v), agreeVersion);
+  const p = await ctx.newPage();
+  await p.goto(BASE + "/?intro=0", { waitUntil: "networkidle" });
   ok(await p.locator('[data-testid="cookie-banner"]').isVisible(), `${w}px home: cookie banner on first visit`);
+  await p.locator('[data-testid="cookie-settings"]').click(); // the switches open in Settings
   await p.locator('[data-testid="cookie-necessary"]').waitFor();
   await p.getByRole("button", { name: /deny|reject|only necessary/i }).first().click().catch(() => {});
   const sliders = p.locator('input[type="range"]');
-  ok((await sliders.count()) >= 2, `${w}px home: sliders present`);
-  ok(await p.locator('[data-testid="yields-date"]').isVisible(), `${w}px home: yields date shown`);
+  // Everyone: the short/mid/long term choice, one return slider and the Find portfolio button (admin also gets the yellow sliders).
+  ok((await sliders.count()) >= 1, `${w}px home: return slider present`);
+  ok(await p.locator('[data-testid="term-picker"]').isVisible(), `${w}px home: term choice present`);
+  ok(await p.locator('[data-testid="find-portfolio"]').isVisible(), `${w}px home: Find portfolio button present`);
+  // The date line, or the sample-data note that takes its place once sample data has loaded (CI runs on sample data).
+  // Phones show the list (and its date) on their own full-screen page, opened by the button; Back returns to the slider.
+  if (w < 640) await p.locator('[data-testid="find-portfolio"]').click();
+  ok(await p.locator('[data-testid="yields-date"], [data-testid="yields-sample"]').filter({ visible: true }).first().isVisible(), `${w}px home: yields date shown`);
+  if (w < 640) {
+    ok(await p.locator('[data-testid="phone-rows"]').isVisible(), `${w}px home: full-screen results page opens`);
+    await p.locator('[data-testid="phone-results-back"]').click();
+    ok(!(await p.locator('[data-testid="phone-results"]').count()), `${w}px home: Back closes the results page`);
+  }
   const before = await p.locator("main").innerText();
   await sliders.first().focus();
   await p.keyboard.press("ArrowRight");
   await p.keyboard.press("ArrowRight");
+  // Phones show the list on its own page, so the slider page itself must change: the far end changes the word beside it.
+  if (w < 640) await p.keyboard.press("End");
   await p.waitForTimeout(800);
-  ok((await p.locator("main").innerText()) !== before, `${w}px home: moving a slider by keyboard updates the page`);
+  let moved = (await p.locator("main").innerText()) !== before;
+  // The sample data holds so few bonds that the spread-rules methodology leaves one slider position for the middle term (by design,
+  // the rules are never relaxed): the slider then has nowhere to go, so a different term must change the page instead.
+  if (!moved && w >= 640) {
+    await p.locator('[data-testid="term-picker"] [role="radio"]').last().click();
+    await p.waitForTimeout(800);
+    moved = (await p.locator("main").innerText()) !== before;
+  }
+  ok(moved, `${w}px home: moving a slider by keyboard updates the page`);
   await ctx.close();
 }
 

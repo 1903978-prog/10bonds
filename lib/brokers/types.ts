@@ -96,7 +96,7 @@ export type BrokerProfile = {
   regulator: string | null;
   affiliate: {
     program: "available" | "unavailable" | "unverified";
-    /** Only used when status is "active" (an agreement Livio confirmed). */
+    /** Only used when status is "active" (an agreement the owner confirmed). */
     status: AffiliateStatus;
     url: string | null;
     model: "cpc" | "cpa" | "revshare" | "flat" | null;

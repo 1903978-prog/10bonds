@@ -39,7 +39,15 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists terms_version text`;
   await sql`alter table app.users add column if not exists terms_accepted_at timestamptz`;
   await sql`alter table app.users add column if not exists email_verified_at timestamptz`;
+  // Newsletter: explicit opt-in only (box unticked by default). The time and place of the consent are kept as proof.
+  await sql`alter table app.users add column if not exists newsletter_opt_in boolean not null default false`;
+  await sql`alter table app.users add column if not exists newsletter_consent_at timestamptz`;
+  await sql`alter table app.users add column if not exists newsletter_consent_source text`;
+  await sql`alter table app.users add column if not exists newsletter_unsubscribed_at timestamptz`;
+  // Language of the site the account was confirmed on: the weekly e-mail is written in it.
+  await sql`alter table app.users add column if not exists email_lang text`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
+  await sql`alter table app.users add column if not exists stats_bonus_at timestamptz`;
   // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
   await sql`alter table app.users add column if not exists stripe_customer_id text`;
   await sql`alter table app.users add column if not exists stripe_subscription_id text`;
@@ -53,6 +61,9 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists totp_backup text`;
   await sql`alter table app.users add column if not exists totp_last_step bigint`;
   await sql`alter table app.users add column if not exists totp_enabled_at timestamptz`;
+  // When a paid plan first started (for the daily "new paying users" count). Older paid accounts get their sign-up day.
+  await sql`alter table app.users add column if not exists first_paid_at timestamptz`;
+  await sql`update app.users set first_paid_at = created_at where first_paid_at is null and stripe_subscription_id is not null and plan <> 'free'`;
   // Plan 4 (Pro, for approved professionals). Widen the allowed values; existing rows are untouched.
   await sql`alter table app.users drop constraint if exists users_plan_check`;
   await sql`alter table app.users add constraint users_plan_check check (plan in ('free','plus','premium','pro'))`.catch(() => {});
@@ -82,6 +93,19 @@ async function setup(sql: ReturnType<typeof postgres>) {
       detail jsonb
     )`;
   await sql`create index if not exists events_at_idx on app.events (at)`;
+  // Proof of the first-use agreement for the portfolio builder: who (account or browser), which wording, when.
+  await sql`
+    create table if not exists app.consents (
+      id bigserial primary key,
+      user_id bigint,
+      visitor_id text,
+      kind text not null,
+      version text not null,
+      lang text not null,
+      text_shown text not null,
+      accepted_at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists consents_user_idx on app.consents (user_id, kind, version)`;
   // Best bonds by duration step and rating step, rebuilt from public_bonds each time a new copy arrives (lib/bestTable.ts).
   await sql`
     create table if not exists app.best_bonds (
@@ -92,6 +116,28 @@ async function setup(sql: ReturnType<typeof postgres>) {
       bond jsonb not null,
       primary key (duration, level, rank)
     )`;
+  // Weekly lowest and highest yield of each bond (lib/priceHistory.ts): the daily copy holds today's yield only, so the
+  // site keeps its own history for the 52-week price high (the lowest yield, repriced today). About 60 weeks are kept.
+  await sql`
+    create table if not exists app.bond_price_weeks (
+      isin text not null,
+      week date not null,
+      min_ytm real not null,
+      max_ytm real not null,
+      primary key (isin, week)
+    )`;
+  await sql`delete from app.bond_price_weeks where week < current_date - 420`;
+  // Daily yield and indicative price of each shown bond (lib/priceHistory.ts), for the 1-week and 1-month moves on the
+  // admin Price drops page. About 40 days are kept.
+  await sql`
+    create table if not exists app.bond_daily_prices (
+      as_of date not null,
+      isin text not null,
+      ytm real not null,
+      price real,
+      primary key (as_of, isin)
+    )`;
+  await sql`delete from app.bond_daily_prices where as_of < current_date - 40`;
   await sql`create index if not exists events_kind_at_idx on app.events (kind, at)`;
   // Lookups by account (data export, account deletion) and by Stripe customer (payment webhooks).
   await sql`create index if not exists events_user_idx on app.events (user_id) where user_id is not null`;
@@ -117,6 +163,29 @@ async function setup(sql: ReturnType<typeof postgres>) {
       picked_up_at timestamptz,
       finished_at timestamptz,
       note text
+    )`;
+  // Evidence for every published assessment (what was shown, from what, with which model version) and the issuers'
+  // requests to correct a factual error. Written by lib/assessments.ts, read on /admin/assessments.
+  await sql`
+    create table if not exists app.assessment_evidence (
+      id bigserial primary key,
+      isin text not null,
+      model_version text not null,
+      as_of text not null,
+      source text not null,
+      calculation jsonb not null,
+      published_at timestamptz not null default now(),
+      unique (isin, model_version, as_of)
+    )`;
+  await sql`
+    create table if not exists app.correction_requests (
+      id bigserial primary key,
+      isin text,
+      name text not null,
+      email text not null,
+      message text not null,
+      requested_at timestamptz not null default now(),
+      status text not null default 'open' check (status in ('open','done','rejected'))
     )`;
   // The main app's export login must be able to read and update this one table (nothing else in schema app).
   await sql`grant usage on schema app to public`.catch(() => {});
@@ -149,15 +218,21 @@ export type User = {
   storedPlan: StoredPlan;
   premiumUntil: string | null;
   emailVerified: boolean;
-  /** Signed up more than CONFIRM_GRACE_MS ago and the address is still not confirmed: no access until it is. */
+  /** Signed up more than CONFIRM_GRACE_MS ago and the address is still not confirmed: treated as a visitor until it is. */
   confirmBlocked: boolean;
   isAdmin: boolean;
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
   adminState?: "ok" | "setup" | "needed";
+  /** The admin chose "Admin no": the site treats them as an ordinary signed-in customer until they switch back. */
+  asUser?: boolean;
   twoFactorOn: boolean;
+  /** Opted in to the newsletter (and has not unsubscribed since). */
+  newsletter: boolean;
   stripeCustomerId: string | null;
   subscription: { status: string; renewsAt: string | null; cancelAtEnd: boolean; interval: "month" | "year" | null } | null;
 };
+
+import { OWNER_EMAILS } from "./ownerExclusion";
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
   .split(",")
@@ -168,6 +243,7 @@ type UserRow = {
   id: string; email: string; username: string | null; plan: StoredPlan; premium_until: Date | null; email_verified_at: Date | null;
   created_at?: Date | null;
   totp_enabled_at?: Date | null;
+  newsletter_opt_in?: boolean | null;
   stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null; subscription_interval?: string | null;
 };
 function isAdminRow(r: UserRow): boolean {
@@ -186,7 +262,7 @@ export const OWNER_COOKIE = "tb_owner";
 /** How long a new account may be used before its e-mail address must be confirmed. */
 export const CONFIRM_GRACE_MS = 3 * 3600_000;
 
-const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, newsletter_opt_in, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
   const admin = isAdminRow(r);
@@ -206,6 +282,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: admin,
     twoFactorOn: Boolean(r.totp_enabled_at),
+    newsletter: r.newsletter_opt_in === true,
     stripeCustomerId: r.stripe_customer_id ?? null,
     subscription: r.subscription_status
       ? { status: r.subscription_status, renewsAt: r.subscription_renews_at ? new Date(r.subscription_renews_at).toISOString() : null, cancelAtEnd: r.subscription_cancel_at_end === true, interval: r.subscription_interval === "year" ? "year" : r.subscription_interval === "month" ? "month" : null }
@@ -220,13 +297,20 @@ export function normaliseUsername(raw: unknown): string | null {
   return /^[A-Za-z0-9._-]{3,24}$/.test(u) ? u : null;
 }
 
+/** A username made from the e-mail's first part plus a short random tail, for sign-ups that do not ask for one. */
+export function generateUsername(email: string): string {
+  const base = (email.split("@")[0] ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 14) || "user";
+  const tail = Math.random().toString(36).slice(2, 8);
+  return `${base}-${tail}`.slice(0, 24).padEnd(3, "x");
+}
+
 export function normaliseEmail(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const e = raw.trim().toLowerCase();
   return e.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
 }
 
-export async function createUser(email: string, username: string, passwordHash: string, termsVersion: string): Promise<User | "email-taken" | "username-taken"> {
+export async function createUser(email: string, username: string, passwordHash: string, termsVersion: string, newsletter = false): Promise<User | "email-taken" | "username-taken"> {
   const { sql, ready } = db();
   await ready;
   const taken = await sql<{ email: string }[]>`
@@ -235,14 +319,31 @@ export async function createUser(email: string, username: string, passwordHash: 
   if (taken.length) return "username-taken";
   try {
     const rows = await sql<UserRow[]>`
-      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at)
-      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now())
+      insert into app.users (email, username, password_hash, terms_version, terms_accepted_at, newsletter_opt_in, newsletter_consent_at, newsletter_consent_source)
+      values (${email}, ${username}, ${passwordHash}, ${termsVersion}, now(), ${newsletter}, ${newsletter ? new Date() : null}, ${newsletter ? "signup" : null})
       returning ${sql.unsafe(USER_COLS)}`;
     return toUser(rows[0]);
   } catch (e) {
     if ((e as { code?: string }).code === "23505") return String((e as Error).message).includes("username") ? "username-taken" : "email-taken";
     throw e;
   }
+}
+
+/** Newsletter on or off. Switching on records a fresh consent; switching off records the unsubscribe. */
+export async function setNewsletter(userId: number, on: boolean, source: "profile" | "unsubscribe-link"): Promise<boolean> {
+  const { sql, ready } = db();
+  await ready;
+  const r = on
+    ? await sql`update app.users set newsletter_opt_in = true, newsletter_consent_at = now(), newsletter_consent_source = ${source}, newsletter_unsubscribed_at = null where id = ${userId}`
+    : await sql`update app.users set newsletter_opt_in = false, newsletter_unsubscribed_at = now() where id = ${userId}`;
+  return r.count === 1;
+}
+
+/** Remembers the site language of an account (en, it, fr, de), for the weekly e-mail. */
+export async function setEmailLang(userId: number, lang: string) {
+  const { sql, ready } = db();
+  await ready;
+  await sql`update app.users set email_lang = ${lang} where id = ${userId}`;
 }
 
 /** Sign in with either the email or the username. */
@@ -351,6 +452,58 @@ export async function redeemTrialCode(userId: number, code: string): Promise<{ p
   });
 }
 
+/** One free week of Premium, once per account, for allowing usage statistics. Returns the end date, or null when already given. */
+export async function grantStatsBonus(userId: number, days = 7): Promise<string | null> {
+  const { sql, ready } = db();
+  await ready;
+  const u = await sql<{ premium_until: Date }[]>`
+    update app.users
+    set premium_until = greatest(coalesce(premium_until, now()), now()) + make_interval(days => ${days}), stats_bonus_at = now()
+    where id = ${userId} and stats_bonus_at is null returning premium_until`;
+  return u[0] ? new Date(u[0].premium_until).toISOString() : null;
+}
+
+// Visits from usage statistics (only visitors who allowed them; the owner's browsers left out). Time is measured the same way
+// as "time on site" for accounts: the gap from each event to the visitor's next one, ignoring pauses over 30 minutes.
+// The last page of a visit has no next event, so its time is not counted.
+function visitEvents(sql: ReturnType<typeof db>["sql"], days: number) {
+  return sql`
+    select e.visitor_id, e.kind, e.path, e.at,
+           lead(e.at) over (partition by e.visitor_id order by e.at) - e.at as stay
+    from app.events e
+    where e.at > now() - ${days} * interval '1 day'
+      and e.visitor_id not in (
+        select distinct x.visitor_id from app.events x join app.users u on u.id = x.user_id where lower(u.email) in ${sql(OWNER_EMAILS)})`;
+}
+
+/** Unique visitors and average minutes per visitor for each day (UTC), oldest first. */
+export async function dailyVisits(days = 365): Promise<{ day: string; visitors: number; minutes: number }[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{ d: string; visitors: string; secs: string }[]>`
+    with ev as (${visitEvents(sql, days)})
+    select (at at time zone 'UTC')::date::text as d, count(distinct visitor_id) as visitors,
+           coalesce(sum(extract(epoch from stay)) filter (where stay < interval '30 minutes'), 0) as secs
+    from ev group by 1 order by 1`;
+  return rows.map((r) => ({ day: r.d, visitors: Number(r.visitors), minutes: Number(r.visitors) ? Number(r.secs) / 60 / Number(r.visitors) : 0 }));
+}
+
+/** Per page over the last `days`: unique visitors, views and average minutes per visitor on that page. */
+export async function pageVisits(days = 30): Promise<{ path: string; visitors: number; views: number; minutes: number }[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{ path: string; visitors: string; views: string; secs: string }[]>`
+    with ev as (${visitEvents(sql, days + 1)}), views as (
+      -- time on a page: until the visitor's next page view (clicks on the page in between do not end it)
+      select visitor_id, path, at, lead(at) over (partition by visitor_id order by at) - at as stay from ev where kind = 'page_view'
+    )
+    select path, count(distinct visitor_id) as visitors, count(*) as views,
+           coalesce(sum(extract(epoch from stay)) filter (where stay < interval '30 minutes'), 0) as secs
+    from views where path is not null and at > now() - ${days} * interval '1 day'
+    group by path order by visitors desc, views desc limit 100`;
+  return rows.map((r) => ({ path: r.path, visitors: Number(r.visitors), views: Number(r.views), minutes: Number(r.visitors) ? Number(r.secs) / 60 / Number(r.visitors) : 0 }));
+}
+
 /** Counts for the admin page. */
 export async function adminStats() {
   const { sql, ready } = db();
@@ -359,10 +512,10 @@ export async function adminStats() {
     select count(*) users, count(email_verified_at) verified,
            count(*) filter (where premium_until > now()) trial,
            count(*) filter (where created_at > now() - interval '7 days') week
-    from app.users`;
+    from app.users where lower(email) not in ${sql(OWNER_EMAILS)}`;
   // Any browser the owner ever used while signed in is left out, signed-out visits from it included.
   const notOwner = sql`visitor_id not in (
-    select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where lower(u.email) in ${sql(ADMIN_EMAILS.length ? ADMIN_EMAILS : [""])})`;
+    select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where lower(u.email) in ${sql(OWNER_EMAILS)})`;
   const events = await sql<{ kind: string; n: string }[]>`
     select kind, count(*) n from app.events where at > now() - interval '30 days' and ${notOwner} group by kind order by n desc`;
   const pages = await sql<{ path: string; n: string }[]>`
@@ -383,7 +536,12 @@ export type AdminUserRow = {
   createdAt: string; emailConfirmed: boolean; lastLoginAt: string | null; lastSeenAt: string | null;
   /** From usage statistics, so only for people who allowed them; null when nothing was recorded. */
   secondsOnSite: number | null; searches: number | null; isAdmin: boolean;
+  /** Where the first recorded visit came from (another site's host, or "direct"); null without usage statistics. */
+  cameFrom: string | null;
 };
+
+// The site's own hosts: moving between its pages is not where a visitor came from.
+const OWN_HOST = "(^|\\.)10bonds\\.(com|fly\\.dev)$";
 
 /** Every account for the admin page. Time on site and searches come only from consented usage statistics. */
 export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
@@ -391,7 +549,7 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
   await ready;
   const rows = await sql<{
     id: string; email: string; username: string | null; plan: string; premium_until: Date | null; promo: string | null; created_at: Date;
-    email_verified_at: Date | null; last_login_at: Date | null; last_seen: Date | null; secs: string | null; searches: string | null; has_stats: boolean;
+    email_verified_at: Date | null; last_login_at: Date | null; last_seen: Date | null; secs: string | null; searches: string | null; has_stats: boolean; came_from: string | null;
   }[]>`
     with owner as (
       -- a browser counts for an account once that account was signed in on it
@@ -405,11 +563,17 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
              coalesce(sum(extract(epoch from gap)) filter (where gap < interval '30 minutes'), 0) secs,
              count(*) filter (where kind = 'search') searches
       from ev group by user_id
+    ), src as (
+      -- the first page view from outside the site, per account
+      select distinct on (o.user_id) o.user_id, e.detail->>'referrer' host
+      from app.events e join owner o on o.visitor_id = e.visitor_id
+      where e.kind = 'page_view' and coalesce(e.detail->>'referrer', '') <> '' and e.detail->>'referrer' !~* ${OWN_HOST}
+      order by o.user_id, e.at
     )
     select u.id, u.email, u.username, u.plan, u.premium_until, u.created_at, u.email_verified_at, u.last_login_at,
            (select string_agg(c.code, ', ' order by c.redeemed_at) from app.trial_codes c where c.redeemed_by = u.id) promo,
-           p.last_seen, p.secs, p.searches, p.user_id is not null has_stats
-    from app.users u left join per p on p.user_id = u.id
+           p.last_seen, p.secs, p.searches, p.user_id is not null has_stats, src.host came_from
+    from app.users u left join per p on p.user_id = u.id left join src on src.user_id = u.id
     order by u.created_at desc`;
   return rows.map((r) => {
     const last = [r.last_login_at, r.last_seen].filter((x): x is Date => x !== null).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
@@ -427,6 +591,7 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
       secondsOnSite: r.has_stats ? Math.round(Number(r.secs)) : null,
       searches: r.has_stats ? Number(r.searches) : null,
       isAdmin: ADMIN_EMAILS.includes(r.email.trim().toLowerCase()),
+      cameFrom: r.has_stats ? (r.came_from ?? "direct") : null,
     };
   });
 }
@@ -438,6 +603,20 @@ export async function recordEvents(rows: { visitorId: string; userId: number | n
   await sql`insert into app.events ${sql(
     rows.map((r) => ({ visitor_id: r.visitorId, user_id: r.userId, kind: r.kind, path: r.path, detail: r.detail === null ? null : sql.json(r.detail as never) })),
   )}`;
+}
+
+/** Records that someone ticked an agreement, with the exact wording shown. */
+export async function recordConsent(c: { userId: number | null; visitorId: string | null; kind: string; version: string; lang: string; text: string }) {
+  const { sql, ready } = db();
+  await ready;
+  await sql`insert into app.consents (user_id, visitor_id, kind, version, lang, text_shown) values (${c.userId}, ${c.visitorId}, ${c.kind}, ${c.version}, ${c.lang}, ${c.text})`;
+}
+
+export async function hasConsent(userId: number, kind: string, version: string): Promise<boolean> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql`select 1 from app.consents where user_id = ${userId} and kind = ${kind} and version = ${version} limit 1`;
+  return rows.length > 0;
 }
 
 /** Where the accounts database stands, as stage + Postgres error code only (no message, no secret). */
@@ -530,7 +709,8 @@ export async function applySubscription(s: {
       subscription_renews_at = ${s.renewsAt},
       subscription_cancel_at_end = ${s.cancelAtEnd},
       subscription_interval = ${s.interval ?? null},
-      plan = ${s.plan}
+      plan = ${s.plan},
+      first_paid_at = case when ${s.plan} <> 'free' then coalesce(first_paid_at, now()) else first_paid_at end
     where (stripe_customer_id = ${s.customerId} or (${s.userId}::bigint is not null and id = ${s.userId}::bigint and stripe_customer_id is null))
       -- an old subscription ending must not cancel a newer one that is live (events can arrive out of order)
       and (${s.plan} <> 'free' or stripe_subscription_id is null or stripe_subscription_id = ${s.subscriptionId})
@@ -569,6 +749,7 @@ export async function exportUserData(userId: number) {
   const { sql, ready } = db();
   await ready;
   const [user] = await sql`select id, email, username, plan, created_at, last_login_at, terms_version, terms_accepted_at, email_verified_at, premium_until,
+    newsletter_opt_in, newsletter_consent_at, newsletter_consent_source, newsletter_unsubscribed_at,
     stripe_customer_id, subscription_status, subscription_interval, subscription_renews_at, subscription_cancel_at_end from app.users where id = ${userId}`;
   const searches = await sql`select kind, at from app.search_usage where user_id = ${userId} order by at`;
   const events = await sql`select at, kind, path, detail from app.events where user_id = ${userId} order by at`;
@@ -606,4 +787,56 @@ export async function subscriptionIdOf(userId: number): Promise<string | null> {
   await ready;
   const r = await sql<{ s: string | null }[]>`select stripe_subscription_id s from app.users where id = ${userId}`;
   return r[0]?.s ?? null;
+}
+
+// Created on first use, not in setup(): keeps this table off the path every account request waits for.
+let discountReady: Promise<void> | null = null;
+export async function discountTable() {
+  const { sql, ready } = db();
+  await ready;
+  discountReady ??= (async () => {
+    await sql`
+    create table if not exists app.discount_codes (
+      code text primary key,
+      user_id bigint references app.users(id) on delete cascade,
+      percent_off numeric,
+      amount_off_cents integer,
+      months integer not null,
+      stripe_coupon_id text,
+      stripe_promo_id text,
+      stripe_mode text,
+      created_by bigint references app.users(id) on delete set null,
+      created_at timestamptz not null default now(),
+      used_at timestamptz
+    )`;
+  })().catch((e) => {
+    discountReady = null;
+    throw e;
+  });
+  await discountReady;
+  return sql;
+}
+
+export type DiscountCode = { code: string; email: string | null; percentOff: number | null; amountOffCents: number | null; months: number; mode: string | null; createdAt: string; usedAt: string | null };
+
+export async function saveDiscountCode(c: { code: string; userId: number; percentOff: number | null; amountOffCents: number | null; months: number; couponId: string; promoId: string; mode: string; createdBy: number }) {
+  const sql = await discountTable();
+  await sql`insert into app.discount_codes (code, user_id, percent_off, amount_off_cents, months, stripe_coupon_id, stripe_promo_id, stripe_mode, created_by)
+    values (${c.code}, ${c.userId}, ${c.percentOff}, ${c.amountOffCents}, ${c.months}, ${c.couponId}, ${c.promoId}, ${c.mode}, ${c.createdBy})`;
+}
+
+export async function markDiscountUsed(code: string) {
+  const sql = await discountTable();
+  await sql`update app.discount_codes set used_at = now() where code = ${code} and used_at is null`;
+}
+
+export async function listDiscountCodes(limit = 200): Promise<(DiscountCode & { promoId: string | null })[]> {
+  const sql = await discountTable();
+  const rows = await sql<{ code: string; email: string | null; percent_off: string | null; amount_off_cents: number | null; months: number; stripe_mode: string | null; created_at: Date; used_at: Date | null; stripe_promo_id: string | null }[]>`
+    select d.code, u.email, d.percent_off, d.amount_off_cents, d.months, d.stripe_mode, d.created_at, d.used_at, d.stripe_promo_id
+    from app.discount_codes d left join app.users u on u.id = d.user_id order by d.created_at desc limit ${limit}`;
+  return rows.map((r) => ({
+    code: r.code, email: r.email, percentOff: r.percent_off === null ? null : Number(r.percent_off), amountOffCents: r.amount_off_cents, months: r.months,
+    mode: r.stripe_mode, createdAt: r.created_at.toISOString(), usedAt: r.used_at ? r.used_at.toISOString() : null, promoId: r.stripe_promo_id,
+  }));
 }

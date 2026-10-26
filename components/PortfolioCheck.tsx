@@ -58,7 +58,7 @@ export default function PortfolioCheck({ a }: { a: PortfolioAnalysis }) {
                 <td className="py-2 pr-3 text-right tabular-nums">{eur(p.value)}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{pct(p.ytm)}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{yrs(p.duration)}</td>
-                <td className="py-2 text-right"><RiskBadge risk={p.risk} /></td>
+                <td className="py-2 text-right"><RiskBadge risk={p.risk} sp={p.sp} /></td>
               </tr>
             ))}
             {a.notFound.map((isin) => (
@@ -90,7 +90,7 @@ function Verdict({ curve, risk, ytm }: { curve: PortfolioAnalysis["curve"]; risk
   return (
     <p className="mt-3 rounded-xl bg-canvas px-4 py-3 text-sm" data-testid="pro-verdict">
       At risk score {Math.round(risk)}, bonds with a similar duration yield {pct(at.typical)} typically and up to {pct(at.best)}.
-      {gap > 0.05 ? ` This portfolio yields ${pct(ytm)}: up to ${gap.toFixed(2)} points a year may be available for the same risk.` : ` This portfolio yields ${pct(ytm)}, close to the best available for its risk.`}
+      {gap > 0.05 ? ` This portfolio yields ${pct(ytm)}: bonds in our data show up to ${gap.toFixed(2)} points a year more at the same risk level.` : ` This portfolio yields ${pct(ytm)}, close to the highest in our data at its risk level.`}
     </p>
   );
 }

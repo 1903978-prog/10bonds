@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { rankBonds, averages, NOTCH_PENALTY, ytmCaps, withinRisk, ytmCapsByRisk } from "./ranking";
-import { shapeForTier, VISITOR_VISIBLE } from "./tiers";
+import { rankBonds, averages, ytmCaps, withinRisk, ytmCapsByRisk } from "./ranking";
+import { shapeForTier } from "./tiers";
 import { notchOf, bondNotch } from "./ratings";
 import { SAMPLE_BONDS } from "./sample-bonds";
 import type { PublicBond } from "./types";
+import { expectedLoss, bondLossChance, listLossChance, listLifeLoss } from "./expectedLoss";
+import { pdOf } from "./tiers";
 
 const bond = (isin: string, ytm: number, dur: number, rating: string | null): PublicBond => ({
   isin, name: isin, issuer: isin, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -46,9 +48,11 @@ describe("rankBonds", () => {
     expect(rankBonds(bonds, 5, 4).results[0].isin).toBe("AA");
   });
 
-  it("scores yield - penalty x notch, worked by hand", () => {
+  it("scores yield after expected losses, worked by hand", () => {
+    // A- over 5 years: 0.59% cumulative default -> 0.118% a year x 60% loss = 0.0708 points.
     const [r] = rankBonds([bond("X", 4.5, 5, "A-")], 5, 4).results;
-    expect(r.score).toBeCloseTo(4.5 - NOTCH_PENALTY * 6, 10);
+    expect(r.score).toBeCloseTo(4.5 - 0.0708, 10);
+    expect(expectedLoss(6, 5)).toBeCloseTo(0.0708, 10);
   });
 
   it("widens the duration band when fewer than 10 bonds are near", () => {
@@ -66,22 +70,33 @@ describe("rankBonds", () => {
 describe("shapeForTier", () => {
   const ranked = rankBonds(SAMPLE_BONDS, 5, 4).results;
 
-  it("visitors without an account get 3 rows with issuer and yield only", () => {
+  it("visitors get all 10 rows with return, years and risk, never the issuer", () => {
     const p = shapeForTier(ranked, "visitor");
-    expect(p.rows).toHaveLength(VISITOR_VISIBLE);
-    expect(p.lockedCount).toBe(7);
-    expect(p.summary).toBeNull();
-    for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["issuer", "rank", "ytm"]);
+    expect(p.rows).toHaveLength(10);
+    expect(p.lockedCount).toBe(0);
+    expect(p.summary?.avgYtm).not.toBeNull();
+    for (const r of p.rows) {
+      expect(Object.keys(r).sort()).toEqual(["duration", "hidden", "issuer", "rank", "risk", "ytm"]);
+      expect(r.issuer).toBe("");
+    }
+    for (const b of ranked) expect(JSON.stringify(p)).not.toContain(b.issuer ?? b.name);
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
   });
 
-  it("free accounts get all 10 rows, never an ISIN, bond name, coupon or maturity", () => {
-    const p = shapeForTier(ranked, "free");
+  it("a plan without the isin and portfolio_sim features gets all 10 rows, never an ISIN, bond name, coupon or maturity", () => {
+    const p = shapeForTier(ranked, "free", ["full_top10"]);
     expect(p.rows).toHaveLength(10);
     expect(p.lockedCount).toBe(0);
     expect(p.summary).toBeNull();
     for (const r of p.rows) expect(Object.keys(r).sort()).toEqual(["country", "duration", "issuer", "minInvestment", "rank", "risk", "ytm"]);
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
+  });
+
+  it("free accounts get the ISIN codes and the portfolio simulation by default (the owner, 24/10/2026)", () => {
+    const p = shapeForTier(ranked, "free");
+    expect(p.rows[0].isin).toBeTruthy();
+    expect(p.summary?.lifeLoss).not.toBeNull();
+    expect(p.rows.every((r) => r.lossAdj === undefined)).toBe(true);
   });
 
   it("Plus users get all 10 rows with ISIN and averages", () => {
@@ -120,25 +135,29 @@ describe("one bond per issuer", () => {
 describe("ytmCaps", () => {
   it("follows the yields near each duration, rounded down to 0.01", () => {
     const bonds = [bond("S", 3.04, 2, "A"), bond("L", 5.51, 10, "A")];
-    const caps = ytmCaps(bonds, { min: 2, max: 10, step: 4 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCaps(bonds, [2, 6, 10], { min: 1, max: 12, step: 0.1 });
     expect(caps).toEqual({ "2": 3.04, "6": null, "10": 5.51 });
   });
-  it("is the average of the 10 best issuers, not the single best bond (Livio's 5.8% vs 4.72% case)", () => {
+  it("is the average of the 10 best issuers, not the single best bond (the owner's 5.8% vs 4.72% case)", () => {
     const bonds = [{ ...bond("SA", 5.76, 5, "A-"), issuer: "Saudi" }, { ...bond("SA2", 5.9, 5.2, "A-"), issuer: "Saudi" }, ...Array.from({ length: 11 }, (_, i) => bond(`X${i}`, 4.6, 5, "A-"))];
-    const caps = ytmCaps(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCaps(bonds, [5], { min: 1, max: 12, step: 0.1 });
     expect(caps["5"]).toBe(4.73); // (5.9 + 9 x 4.6) / 10 = 4.73
   });
   it("never goes above the slider's own maximum", () => {
-    const caps = ytmCaps([bond("J", 40, 5, null)], { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCaps([bond("J", 40, 5, null)], [5], { min: 1, max: 12, step: 0.1 });
     expect(caps["5"]).toBe(12);
   });
 });
 
 describe("highest yield with the lowest risk", () => {
-  it("yield comes first: a riskier bond paying clearly more ranks above a safer one", () => {
-    // BBB- scores 4.8 - 0.18 = 4.62, AA 4.6 - 0.04 = 4.56, A 4.5 - 0.10 = 4.40.
-    const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
-    expect(rankBonds(bonds, 13, 3, 2).results.map((r) => r.isin)).toEqual(["BBB", "AA"]);
+  it("the target sets the risk: a low target picks the safer bond, a high one the riskier", () => {
+    const bonds = [{ ...bond("R4", 4.30, 5, "BBB+"), issuer: "Four" }, { ...bond("R5", 4.60, 5, "BBB"), issuer: "Five" }];
+    expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("R4");
+    expect(rankBonds(bonds, 5, 4.5, 1).results[0].isin).toBe("R5");
+  });
+  it("same rating: the higher yield after losses wins", () => {
+    const bonds = [{ ...bond("LO", 4.0, 5, "A"), issuer: "Lo" }, { ...bond("HI", 4.4, 5, "A"), issuer: "Hi" }];
+    expect(rankBonds(bonds, 5, 3, 1).results[0].isin).toBe("HI");
   });
   it("takes on more risk only when that is needed to reach the target yield", () => {
     const bonds = [{ ...bond("BBB", 4.8, 13, "BBB-"), issuer: "Risky" }, { ...bond("AA", 4.6, 13, "AA"), issuer: "Safe" }, { ...bond("A", 4.5, 13, "A"), issuer: "Mid" }];
@@ -169,7 +188,7 @@ describe("risk slider", () => {
     expect(rankBonds(bonds, 5, 5, 10, 5).results.map((r) => r.isin).sort()).toEqual(["A1", "AAA1"]);
   });
   it("yield caps follow the level", () => {
-    const caps = ytmCapsByRisk(bonds, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 });
+    const caps = ytmCapsByRisk(bonds, [5], { min: 1, max: 12, step: 0.1 });
     expect(caps["1"]["5"]).toBe(3.0);
     expect(caps["6"]["5"]).toBe(3.5);
     expect(caps["7"]["5"]).toBe(3.77); // (3 + 3.5 + 4 + 4.6) / 4, unrated left out
@@ -183,7 +202,7 @@ describe("the list's average matches the target and the maximum", () => {
   const many = Array.from({ length: 30 }, (_, i) => ({ ...bond(`I${i}`, 2 + i * 0.2, 4.5 + (i % 3) * 0.4, grades[i % 6]), issuer: `Issuer ${i}` }));
   const mean = (rs: { grossYtm: number | null }[]) => rs.reduce((s, r) => s + r.grossYtm!, 0) / rs.length;
   it("at the slider maximum the 10 shown are the 10 the maximum is computed from", () => {
-    const cap = ytmCaps(many, { min: 5, max: 5, step: 1 }, { min: 1, max: 12, step: 0.1 })["5"]!;
+    const cap = ytmCaps(many, [5], { min: 1, max: 12, step: 0.1 })["5"]!;
     const { results } = rankBonds(many, 5, cap);
     const top10 = [...many].sort((a, b) => b.grossYtm! - a.grossYtm!).slice(0, 10).map((b) => b.isin).sort();
     expect(results.map((r) => r.isin).sort()).toEqual(top10);
@@ -195,6 +214,83 @@ describe("the list's average matches the target and the maximum", () => {
       expect(results).toHaveLength(10);
       expect(mean(results)).toBeGreaterThanOrEqual(t - 1e-9);
       expect(new Set(results.map((r) => r.issuer)).size).toBe(10);
+    }
+  });
+});
+
+describe("chance of a loss, not average risk (the owner 20/10)", () => {
+  it("prefers mid-risk bonds to a barbell of very safe and limit-risk bonds with the same average yield", () => {
+    const safe = Array.from({ length: 5 }, (_, i) => ({ ...bond(`S${i}`, 3.0, 5, "AAA"), issuer: `Safe ${i}` }));
+    const risky = Array.from({ length: 5 }, (_, i) => ({ ...bond(`R${i}`, 5.0, 5, "BBB-"), issuer: `Risky ${i}` }));
+    const mid = Array.from({ length: 10 }, (_, i) => ({ ...bond(`M${i}`, 4.0, 5, i < 5 ? "A" : "BBB+"), issuer: `Mid ${i}` }));
+    const isins = rankBonds([...safe, ...risky, ...mid], 5, 4.0).results.map((r) => r.isin);
+    expect(isins.filter((x) => x.startsWith("M"))).toHaveLength(10);
+  });
+  it("accepting more risk never gives a list with a higher chance of a loss for the same target", () => {
+    const pool = [
+      ...Array.from({ length: 6 }, (_, i) => ({ ...bond(`S${i}`, 3.5, 5, "AAA"), issuer: `Safe ${i}` })),
+      ...Array.from({ length: 6 }, (_, i) => ({ ...bond(`M${i}`, 5.3 + i * 0.05, 5, "A"), issuer: `Mid ${i}` })),
+      ...Array.from({ length: 6 }, (_, i) => ({ ...bond(`R${i}`, 6.0, 5, "BBB-"), issuer: `Risky ${i}` })),
+    ];
+    const loss = (risk: number) => listLossChance(rankBonds(pool, 5, 4.4, 10, risk).results.map((r) => bondLossChance(bondNotch(r)!, r.modifiedDuration!)));
+    expect(loss(6)).toBeLessThanOrEqual(loss(3) + 1e-9);
+  });
+});
+
+describe("listLossChance", () => {
+  it("is 1 minus the chance every bond survives", () => {
+    expect(listLossChance([0, 0])).toBe(0);
+    expect(listLossChance([10, 10])).toBeCloseTo(19, 9);
+    expect(listLossChance([100, 0])).toBe(100);
+  });
+});
+
+describe("listLifeLoss", () => {
+  it("is the average default chance times the 60% loss", async () => {
+    const { listLifeLoss } = await import("./expectedLoss");
+    expect(listLifeLoss([1, 0.5, 0.5, 0])).toBeCloseTo(0.3, 9);
+    expect(listLifeLoss([])).toBe(0);
+  });
+});
+
+describe("the list has the lowest expected loss at its target (the owner's safeguard)", () => {
+  // A fixed, seeded universe of 80 rated bonds from 40 issuers, so the test is the same on every run.
+  let seed = 7;
+  const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const RATINGS = ["AAA", "AA", "A", "BBB", "BBB-", "BB", "B", "CCC"];
+  const universe: PublicBond[] = Array.from({ length: 80 }, (_, i) => ({
+    ...bond(`U${i}`, 2 + rand() * 5, 3 + rand() * 5, RATINGS[Math.floor(rand() * RATINGS.length)]),
+    issuer: `Issuer ${i % 40}`,
+  }));
+  const meetsRules = (results: { grossYtm: number | null; modifiedDuration: number | null }[], target: number) => {
+    if (results.length < 10) return false;
+    const avgYtm = results.reduce((s, r) => s + r.grossYtm!, 0) / results.length;
+    const avgDuration = results.reduce((s, r) => s + r.modifiedDuration!, 0) / results.length;
+    return avgYtm >= target - 1e-9 && Math.abs(avgDuration - 5) <= 0.05 * 5;
+  };
+  const loss = (results: { isin: string }[]) => listLifeLoss(results.map((r) => pdOf(universe.find((b) => b.isin === r.isin)!)));
+
+  it("never gives a higher expected loss when the risk limit goes up, at the same target", () => {
+    for (const target of [2.5, 3, 3.5]) {
+      for (let risk = 1; risk < 10; risk++) {
+        const lower = rankBonds(universe, 5, target, 10, risk).results;
+        const higher = rankBonds(universe, 5, target, 10, risk + 1).results;
+        // Only lists that meet the rules (10 bonds, the target yield, the average duration within 5%) are compared.
+        if (!meetsRules(lower, target) || !meetsRules(higher, target)) continue;
+        expect(loss(higher), `target ${target}, risk ${risk} to ${risk + 1}`).toBeLessThanOrEqual(loss(lower) + 0.005);
+      }
+    }
+  });
+
+  it("never gives a lower expected loss for a higher target, at the same risk limit", () => {
+    for (const risk of [4, 7, 10]) {
+      let previous = 0;
+      for (const target of [2.5, 2.75, 3, 3.25, 3.5]) {
+        const results = rankBonds(universe, 5, target, 10, risk).results;
+        if (!meetsRules(results, target)) continue;
+        expect(loss(results), `risk ${risk}, target ${target}`).toBeGreaterThanOrEqual(previous - 0.005);
+        previous = loss(results);
+      }
     }
   });
 });

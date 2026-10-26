@@ -1,0 +1,19 @@
+name: SEO & GEO refresh (weekly)
+# Every Monday, after the phone speed check: asks the site to re-crawl itself and refresh the SEO and GEO scores
+# shown at /admin/seo. Uses the ACCOUNTS_DATABASE_URL secret only to sign the request (never sent).
+on:
+  schedule:
+    - cron: "40 5 * * 1"
+  workflow_dispatch:
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - name: Ask the site to refresh
+        run: |
+          if [ -z "$ACCOUNTS_DATABASE_URL" ]; then echo "No ACCOUNTS_DATABASE_URL: nothing to refresh."; exit 0; fi
+          token=$(printf 'seo-weekly' | openssl dgst -sha256 -hmac "$ACCOUNTS_DATABASE_URL" -hex | awk '{print $NF}')
+          curl -fsS --retry 3 --max-time 60 -X POST -H "Authorization: Bearer $token" https://10bonds.com/api/seo/weekly
