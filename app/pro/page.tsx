@@ -39,10 +39,9 @@ export default async function Pro() {
         <h1 className="mt-1 text-[28px] font-semibold tracking-tight">Subscribe to Pro</h1>
         <p className="mt-2 text-[15px] text-mute">
           Pro gives you client portfolio analysis and similar bonds with a higher yield, on top of everything in Premium.
-          {` ${euro(priceCents("pro", "month"))} a month, or ${euro(priceCents("pro", "year"))} a year (20% less).`}
+          {` ${euro(priceCents("pro", "month"))} a month.`}
         </p>
         <PlanButton plan="pro" interval="month" highlight label="Get Pro monthly" />
-        <p className="mt-3 text-center text-sm"><Link href="/pricing?billing=year" className="text-accent">Pay yearly instead</Link></p>
       </div>
     );
   return <ProRequestForm status={status === "approved" ? "none" : status} />;

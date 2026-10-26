@@ -32,7 +32,8 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
   // Each card lists what the admin's feature table (/admin/features) ticks for that plan.
   const matrix = await loadMatrix();
   const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], lines: [...planLines(matrix, key, lang, t, SEARCH_LIMITS.free), ...t.plans[key].extra].slice(0, MAX_PLAN_LINES), highlight: key === "plus" }));
-  const interval: Interval = sp.billing === "year" ? "year" : "month";
+  // Yearly is not sold for now (the owner, 26/10/2026): the page is always monthly, even with ?billing=year.
+  const interval = "month" as Interval;
   const proApproved = user ? user.isAdmin || (await proStatus(user).catch(() => "none")) === "approved" : false;
   const sub = user?.subscription && ["active", "trialing", "past_due"].includes(user.subscription.status) ? user.subscription : null;
   return (
@@ -59,9 +60,9 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
       <div className="mt-3 flex justify-center">
         <div className="inline-flex rounded-full bg-canvas p-1 text-sm" data-testid="billing-toggle">
           <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "month" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-month">{t.monthly}</Link>
-          <Link href="/pricing?billing=year" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "year" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-year">
+          <span className="cursor-default select-none rounded-full px-4 py-1 font-medium text-mute opacity-60" aria-disabled="true" data-testid="billing-year">
             {t.yearly} <span className="text-accent">−{Math.round(YEARLY_DISCOUNT * 100)}%</span>
-          </Link>
+          </span>
         </div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -107,11 +108,11 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
               </button>
             ) : p.key === "pro" && !proApproved ? (
               <Link href="/pro" className="mt-4 rounded-full bg-ink px-4 py-2 text-center text-sm font-medium text-white hover:opacity-90" data-testid="pro-request">
-                {user ? t.proRequest : t.learnMore}
+                {user ? t.proRequest : t.subscribe}
               </Link>
             ) : !user ? (
               <Link href="/signup" className={`mt-4 rounded-full px-4 py-2 text-center text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-ink text-white"} hover:opacity-90`}>
-                {t.freeFirst}
+                {t.subscribe}
               </Link>
             ) : sub ? (
               <>
