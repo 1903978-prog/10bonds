@@ -68,19 +68,21 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   const tryW = user?.isAdmin ? parseWeight(url.searchParams.get("rw")) : null;
   // The bonds and issuers this customer excluded never enter the list.
-  const skip = own && has("blacklist") && !(user?.isAdmin && url.searchParams.get("bl") === "0") ? excludedBy(await exclusionsOrNone(user!.id)) : null;
+  const excl = own && has("blacklist") && !(user?.isAdmin && url.searchParams.get("bl") === "0") ? await exclusionsOrNone(user!.id) : [];
+  const skip = excludedBy(excl);
   // A slider position (guard=1): the exact frontier's list for this target (lib/exactFrontier.ts), the one on the chart.
   const filter = parseFilter(url.searchParams);
-  // Admin only: m=spread searches the Methodology with spread rules (lib/stepGap.ts); everyone else Methodology 1.
+  const exclusionKey = skip ? `u${user!.id}:${excl.map((e) => `${e.kind}:${e.value}`).sort().join(",")}` : "";
+  // Everyone searches the Methodology with spread rules; the admin can add m=m1 to compare with Methodology 1.
   const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
   // The spread-rules methodology is the coherent optimiser (lib/coherentFrontier.ts): built in the background, 202 until ready.
-  // It ignores a customer's exclusions (admin test only): a list that skipped bonds would not be the certified optimum.
+  // A customer's exclusions get their own coherent frontier (built in the background, keyed by the excluded set).
   let coherent: CoherentFrontier | null = null;
   let frontierResults: RankedBond[] | null = null;
   // Spread rules always use the coherent frontier, never the plain ranking below (which knows none of the rules), whether or not the page asked for guard=1.
   if (url.searchParams.get("guard") === "1" || method === "spread") {
     try {
-      const fr = method === "spread" ? frontierFor(data, filter, duration, "spread") : skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method);
+      const fr = method === "spread" ? frontierFor(data, filter, duration, "spread", skip ? { key: exclusionKey, fn: skip } : null) : skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method);
       if (method === "spread") coherent = fr as CoherentFrontier;
       frontierResults = fr.at(ytm)?.rows ?? [];
     } catch (e) {

@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import path from "node:path";
 
 // The exact solver (HiGHS, branch and cut, compiled to WebAssembly) for the coherent portfolio optimiser
@@ -6,14 +5,17 @@ import path from "node:path";
 // problem per turn of the event loop.
 
 type Solution = { Status: string; ObjectiveValue: number; Columns: Record<string, { Primal: number }> };
+type HighsFactory = (o?: { locateFile?: (f: string) => string }) => Promise<Highs>;
 type Highs = { solve: (lp: string, options?: Record<string, unknown>) => Solution };
 
 let loading: Promise<Highs> | null = null;
 export function loadSolver(): Promise<Highs> {
   loading ??= (async () => {
-    const req = createRequire(path.join(process.cwd(), "package.json"));
-    const factory = req("highs") as (o?: { locateFile?: (f: string) => string }) => Promise<Highs>;
-    const dir = path.dirname(req.resolve("highs"));
+    // A plain import: the package is external to the server bundle (next.config.mjs), so Node loads it as is. (createRequire
+    // is replaced by a stub inside the bundle, which made every solve fail with "a is not a function".)
+    const mod = (await import("highs")) as unknown as { default?: HighsFactory } & HighsFactory;
+    const factory = typeof mod.default === "function" ? mod.default : mod;
+    const dir = path.join(process.cwd(), "node_modules", "highs", "build");
     return factory({ locateFile: (f) => path.join(dir, f) });
   })();
   return loading;

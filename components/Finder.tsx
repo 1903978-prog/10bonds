@@ -169,9 +169,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Simple search (everyone): a term and one "Return & risk" slider of up to 30 positions along the efficient frontier,
   // worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
   const [adv, setAdv] = useState(false);
-  // Admin only (yellow): Methodology 1 (what customers get) or the Methodology with spread rules (lib/stepGap.ts).
-  const [spread, setSpread] = useState(false);
-  const method = isAdmin && spread ? "spread" : "m1";
+  // Admin only (yellow): the Methodology with spread rules (what everyone gets) or Methodology 1 (lib/stepGap.ts).
+  const [spread, setSpread] = useState(true);
+  const method = isAdmin && !spread ? "m1" : "spread";
   // Admin only: the risk heat map in chart mode, its methodology, and the cell clicked on it (that return and horizon);
   // while a cell is picked the list on the right is that cell's 10 bonds. Moving any control lets go of it.
   const [showHeat, setShowHeat] = useState(false);
@@ -243,7 +243,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     let timer: ReturnType<typeof setTimeout> | undefined;
     setPositions(null);
     const load = (tries: number) =>
-      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "spread" ? { m: method } : {}) })}`)
+      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
           if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
@@ -317,13 +317,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
-        if (method === "spread") qs.set("m", method);
+        if (method === "m1") qs.set("m", method);
         if (heatOn) {
           // The heat map cell's list: the same exact frontier the map is built from, with the map's methodology.
           qs.set("duration", String(heatPick.duration));
           qs.set("ytm", String(heatPick.ytm));
           qs.set("guard", "1");
-          if (showHeat && heatMethod === "spread") qs.set("m", "spread");
+          if (showHeat && heatMethod === "m1") qs.set("m", "m1");
           else qs.delete("m");
           qs.set("bl", showHeat && heatBl ? "1" : "0");
         }
@@ -553,7 +553,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
                   {/* Two-option switch, fixed width: the active methodology is the filled side. */}
-                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Method 1 = what customers get; Spread rules = minimum extra return per rating step (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
+                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Spread rules = what everyone gets (minimum extra return per rating step); Method 1 = old method, for comparing (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
                     {([["m1", "Method 1"], ["spread", "Spread rules"]] as const).map(([k, label]) => (
                       <button key={k} type="button" role="radio" aria-checked={method === k} data-testid={`admin-method-${k}`} onClick={() => setSpread(k === "spread")} className={`flex-1 whitespace-nowrap rounded-full px-1 ${method === k ? "bg-amber-500 text-white" : "text-amber-900"}`}>
                         {label}
