@@ -1,59 +1,49 @@
 {
-  "asOf": "2026-10-26",
+  "asOf": "2026-10-26T06:09:09.733Z",
   "duration": 5,
   "points": [
     {
-      "level": 8,
-      "ytm": null,
-      "ghost": false
-    },
-    {
-      "level": 7,
-      "ytm": 5.1,
-      "ghost": false
-    },
-    {
-      "level": 6,
-      "ytm": 4.6,
-      "ghost": false
-    },
-    {
-      "level": 5,
-      "ytm": 4.2,
-      "ghost": false
-    },
-    {
-      "level": 4,
-      "ytm": 4.0,
-      "ghost": false
-    },
-    {
-      "level": 3,
-      "ytm": 3.6,
+      "level": 1,
+      "ytm": 3.71,
       "ghost": false
     },
     {
       "level": 2,
-      "ytm": 3.1,
+      "ytm": 4.49,
       "ghost": false
     },
     {
-      "level": 1,
-      "ytm": 2.8,
+      "level": 3,
+      "ytm": 4.71,
+      "ghost": false
+    },
+    {
+      "level": 4,
+      "ytm": 4.88,
+      "ghost": false
+    },
+    {
+      "level": 5,
+      "ytm": 5.17,
+      "ghost": false
+    },
+    {
+      "level": 6,
+      "ytm": 6.36,
       "ghost": false
     }
   ],
   "bond": {
     "level": 4,
-    "issuer": "Sample",
-    "name": "Sample 4% 2031",
-    "isin": "XS0000000000",
-    "coupon": 4.0,
-    "maturity": "2031-01-01",
-    "ytm": 4.0,
-    "duration": 4.8,
+    "issuer": "Fluvius System",
+    "name": "Fluvius System 0.81% Apr 2033",
+    "isin": "BE0002786672",
+    "coupon": 0.81,
+    "maturity": "2033-04-08",
+    "ytm": 4.88,
+    "duration": 6,
     "risk": 4,
-    "minInvestment": 1000,
+    "minInvestment": 100000,
     "currency": "EUR"
   }
 }
