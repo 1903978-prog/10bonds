@@ -41,6 +41,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Selection", "minimise P such that average return ≥ target"],
       ["Expected loss on your money (shown)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd}%, over the bonds' life"],
       ["Return after expected losses", "y − PD(D) ÷ D × {lgd}%, D = duration (used for ties and for the 1-bond view)"],
+      ["Diversification score (0–100)", "per industry and per country: H = Σ wᵢ² (wᵢ = share of the 10 bonds), score = (1 ÷ H − 1) ÷ 9 × 100; overall = average of the two. 100 = every bond in a different group, 0 = all in one; bonds with no industry or country on record count as one group"],
     ],
     mcHead: "Monte Carlo stress test",
     mc: [
@@ -86,6 +87,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Selezione", "minimizzare P con rendimento medio ≥ obiettivo"],
       ["Perdita attesa sul capitale (mostrata)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd}%, sulla vita delle obbligazioni"],
       ["Rendimento al netto delle perdite attese", "y − PD(D) ÷ D × {lgd}%, D = duration (per i pareggi e la vista 1 obbligazione)"],
+      ["Punteggio di diversificazione (0–100)", "per settore e per paese: H = Σ wᵢ² (wᵢ = quota delle 10 obbligazioni), punteggio = (1 ÷ H − 1) ÷ 9 × 100; totale = media dei due. 100 = ogni obbligazione in un gruppo diverso, 0 = tutte in uno; senza settore o paese noto contano come un solo gruppo"],
     ],
     mcHead: "Stress test Monte Carlo",
     mc: [
@@ -131,6 +133,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Sélection", "minimiser P avec rendement moyen ≥ cible"],
       ["Perte attendue sur votre capital (affichée)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd} %, sur la durée des obligations"],
       ["Rendement net des pertes attendues", "y − PD(D) ÷ D × {lgd} %, D = duration (pour départager et pour la vue 1 obligation)"],
+      ["Score de diversification (0–100)", "par secteur et par pays : H = Σ wᵢ² (wᵢ = part des 10 obligations), score = (1 ÷ H − 1) ÷ 9 × 100 ; total = moyenne des deux. 100 = chaque obligation dans un groupe différent, 0 = toutes dans un seul ; sans secteur ou pays connu, elles comptent comme un seul groupe"],
     ],
     mcHead: "Test de résistance Monte Carlo",
     mc: [
@@ -176,6 +179,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Auswahl", "P minimieren mit Durchschnittsrendite ≥ Ziel"],
       ["Erwarteter Verlust auf Ihr Geld (angezeigt)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd} %, über die Laufzeit der Anleihen"],
       ["Rendite nach erwarteten Verlusten", "y − PD(D) ÷ D × {lgd} %, D = Duration (für Gleichstände und die 1-Anleihe-Ansicht)"],
+      ["Diversifikationswert (0–100)", "je Branche und je Land: H = Σ wᵢ² (wᵢ = Anteil der 10 Anleihen), Wert = (1 ÷ H − 1) ÷ 9 × 100; gesamt = Mittel beider. 100 = jede Anleihe in einer anderen Gruppe, 0 = alle in einer; ohne bekannte Branche oder Land zählen sie als eine Gruppe"],
     ],
     mcHead: "Monte-Carlo-Stresstest",
     mc: [

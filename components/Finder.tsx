@@ -13,6 +13,7 @@ import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expected
 import { RANK_LABEL } from "@/lib/seniority";
 import LossChart, { slopeAt } from "@/components/LossChart";
 import LockedChart from "@/components/LockedChart";
+import Diversification from "@/components/Diversification";
 import OptimalPanel, { OptimalButton, useOptimal } from "@/components/OptimalPanel";
 import AllCurvesChart from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
@@ -1609,6 +1610,11 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
         </div>
       )}
       </div>
+
+      {/* Allocation by industry and country plus the diversification score: a fixed strip under the full-width table (not beside the chart). */}
+      {!dense && !narrow && (
+        <Diversification rows={show || message ? [] : rows} lang={lang} locked={!(features.has("loss_chart") || admin)} />
+      )}
 
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
       <div className="mt-2 flex h-7 items-center gap-2 overflow-hidden whitespace-nowrap">

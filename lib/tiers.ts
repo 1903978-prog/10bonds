@@ -4,6 +4,7 @@ import { averageRisk, bondNotch, bondRisk } from "./ratings";
 import { bondLossChance, listLifeLoss, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
 import { lgdOf, rankOf, RANK_LABEL, type Rank } from "./seniority";
 import { lifeYears } from "./lifeYears";
+import { sectorOf } from "./sectors";
 import { defaultMatrix, featuresOf, type FeatureKey } from "./features";
 
 
@@ -17,6 +18,8 @@ export type ResultRow = {
   duration?: number;
   risk?: number | null; // 10BONDS risk score 1..10, never an agency grade
   country?: string | null;
+  // With "portfolio_sim": the major sector of the issuer's group (lib/sectors.ts), for the diversification charts.
+  sector?: string | null;
   minInvestment?: number | null;
   // Plans with the "isin" feature only (lib/features.ts): never sent to the others.
   name?: string;
@@ -102,7 +105,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
       country: b.country,
       minInvestment: b.minInvestment ?? null,
       ...(has.has("isin") ? { name: b.name, isin: b.isin, coupon: b.coupon, maturity: b.maturity, ...(whyOf(b) ? { why: whyOf(b) } : {}) } : {}),
-      ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100, debtRank: rankOf(b), lgd: lgdOf(b) } : {}),
+      ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100, debtRank: rankOf(b), lgd: lgdOf(b), sector: b.issuer ? sectorOf(b) : null } : {}),
       // Admin only (the owner, 24/10/2026): the bond terms on the details line under each bond (data as held, else "–").
       ...(admin ? { sp: b.ratingSp?.trim() || null, maturity: b.maturity, couponType: b.couponType ?? null, seniority: b.seniority ?? null } : {}),
       ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!, lgdOf(b)) * 100) / 100 } : {}),
