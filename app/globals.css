@@ -123,7 +123,7 @@ html:has(.report) body { overflow-x: clip; }
 
 /* Landing carousel, phones: the heat map is a small picture, without figures or legend text. */
 @media (max-width: 639px) {
-  .heat-mini > div { font-size: 7px !important; }
+  .heat-mini > div { font-size: 9px !important; }
   .heat-mini [data-testid="heat-cell"] { font-size: 0 !important; }
   .heat-mini > div > div:last-child { display: none; }
 }

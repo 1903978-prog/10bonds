@@ -38,7 +38,7 @@ export function ScaledScreen({ render }: { render: (wide: boolean) => ReactNode 
 }
 
 /** Browser bar (PC only), the app header and the page area. */
-function Chrome({ wide, lang, children }: { wide: boolean; lang: FinderLang; children: ReactNode }) {
+function Chrome({ wide, lang, children, bare }: { wide: boolean; lang: FinderLang; children: ReactNode; bare?: boolean }) {
   const nav = NAV[lang];
   return (
     <div className="flex h-full w-full flex-col bg-[#F5F5F7] text-[#1d1d1f]">
@@ -49,7 +49,7 @@ function Chrome({ wide, lang, children }: { wide: boolean; lang: FinderLang; chi
           <span className="w-[52px]" />
         </div>
       )}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e3e5e8] bg-white px-6">
+      {!(bare && !wide) && <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e3e5e8] bg-white px-6">
         <span className="text-[28px] font-semibold leading-none tracking-tight">10</span>
         <span className="flex items-center gap-6 text-[14px] text-[#55555b]">
           {wide && nav.slice(0, 3).map((n) => <span key={n}>{n}</span>)}
@@ -57,7 +57,7 @@ function Chrome({ wide, lang, children }: { wide: boolean; lang: FinderLang; chi
           {wide && <span>{nav[3]}</span>}
           <span className="rounded-full bg-[#0071e3] px-4 py-1.5 text-[14px] font-medium text-white">{nav[4]}</span>
         </span>
-      </div>
+      </div>}
       <div className={`flex min-h-0 flex-1 gap-4 ${wide ? "p-5" : "p-3"}`}>{children}</div>
     </div>
   );
@@ -246,11 +246,11 @@ export function ListScreen({ lang, bonds, mix = 8, asOf }: { lang: FinderLang; b
   const f = FINDER_TEXT[lang];
   return (
     <ScaledScreen render={(wide) => (
-      <Chrome wide={wide} lang={lang}>
+      <Chrome wide={wide} lang={lang} bare>
         {wide && <Controls f={f} single={false} horizon={5} mix={mix} />}
         <Panel>
           <BondList f={f} bonds={bonds ?? []} />
-          {asOf && <div className="mt-2 text-right text-[12px] text-[#6b6b72]">{asOf}</div>}
+          {asOf && <div className="mt-2 shrink-0 text-right text-[12px] text-[#6b6b72]">{asOf}</div>}
         </Panel>
       </Chrome>
     )} />
@@ -268,8 +268,8 @@ const curveAt = (end: [number, number], u: number) => {
 export function MultiYearScreen({ sub, subShort, insightShort, yLabel, xLabel, insightK, insight }: { sub: string; subShort: string; insightShort: string; yLabel: string; xLabel: string; insightK: string; insight: string }) {
   const [box, size] = useBoxSize<HTMLDivElement>({ w: 600, h: 300 }, { w: 200, h: 120 });
   const narrow = size.w < 520;
-  const F = narrow ? 11 : 12;
-  const W = size.w, H = size.h, L = narrow ? (size.h >= 200 ? 58 : 44) : 60, R = narrow ? 30 : 40, T = 8, B = narrow ? 34 : 44;
+  const F = narrow ? 12 : 12;
+  const W = size.w, H = size.h, L = narrow ? (size.h >= 200 ? 58 : 48) : 60, R = narrow ? 30 : 40, T = 8, B = narrow ? 34 : 44;
   const X = (v: number) => L + (v / 4.95) * (W - L - R);
   const Y = (v: number) => T + ((6.4 - v) / 3.4) * (H - T - B);
   return (
@@ -280,7 +280,7 @@ export function MultiYearScreen({ sub, subShort, insightShort, yLabel, xLabel, i
           {[3, 3.5, 4, 4.5, 5, 5.5, 6].map((v) => (
             <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#eef2f0" /><text x={L - 8} y={Y(v) + 4} textAnchor="end" fill="#6b7b83">{v.toFixed(1)}%</text></g>
           ))}
-          {[0, 1.24, 2.48, 3.71, 4.95].map((v) => <text key={v} x={X(v)} y={H - B + 16} textAnchor="middle" fill="#6b7b83">{v.toFixed(2)}%</text>)}
+          {(narrow ? [0, 2.48, 4.95] : [0, 1.24, 2.48, 3.71, 4.95]).map((v) => <text key={v} x={X(v)} y={H - B + 16} textAnchor="middle" fill="#6b7b83">{v.toFixed(2)}%</text>)}
           <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" fill="#6b7b83" fontSize={F - 1}>{xLabel}</text>
           {size.h >= 200 && <text transform={`translate(11 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" fill="#6b7b83" fontSize={F - 1}>{yLabel}</text>}
           {YEAR_ENDS.map((e, i) => {
