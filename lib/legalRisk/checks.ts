@@ -143,8 +143,8 @@ export function contentChecks(): CheckResult[] {
 
   // Headline comparative claims: allowed only with a qualifier next to them. Warn (not fail) while the owner decides.
   {
-    const en = LANDING_TEXT.en as { h1a?: string; h1b?: string };
-    const head = `${en.h1a ?? ""} ${en.h1b ?? ""}`;
+    const en = LANDING_TEXT.en as { h1?: string };
+    const head = en.h1 ?? "";
     const claim = /higher return/i.test(head) && /lower risk/i.test(head);
     out.push(res("comparative-headline", "Comparative headline is qualified next to the claim", [6, 16], claim ? "warn" : "pass", claim ? `Headline "${head.trim()}" has no qualifier beside it (qualifiers sit on /disclaimer). Needs the owner's decision.` : "No unqualified comparative headline."));
   }

@@ -16,18 +16,20 @@ export const actionTitle = ([long, short]: readonly [string, string] | string[])
 );
 
 /** One card of the landing carousel: same white card as the comparison, filling the carousel's fixed height. */
-export function SlideCard({ title, children, href }: { title: ReactNode; children: ReactNode; href?: string }) {
-  const box = "flex h-full flex-col rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5";
+export function SlideCard({ title, children, href, sub }: { title: ReactNode; children: ReactNode; href?: string; sub?: ReactNode }) {
+  // The carousel itself is the white card (the owner's design, 26/10/2026); a slide is just its content.
+  const box = "flex h-full flex-col px-4 pb-2 pt-4 lg:px-5 lg:pt-5";
   // With `href` the whole card opens that page (the Risk assessment pages, PR #188).
-  if (href) return <Link href={href} className={`${box} transition hover:border-[#cfe6da]`} data-testid="slide-link">{inner(title, children)}</Link>;
-  return <div className={box}>{inner(title, children)}</div>;
+  if (href) return <Link href={href} className={`${box} transition hover:border-[#cfe6da]`} data-testid="slide-link">{inner(title, children, sub)}</Link>;
+  return <div className={box}>{inner(title, children, sub)}</div>;
 }
 
-function inner(title: ReactNode, children: ReactNode) {
+function inner(title: ReactNode, children: ReactNode, sub?: ReactNode) {
   return (
     <>
       {/* The action title, headline size (the owner, 25/10/2026), one line. */}
-      <h2 className="truncate text-[19px] font-bold leading-tight tracking-[-0.02em] min-[400px]:text-[21px] sm:text-[24px] lg:text-[26px]" style={{ color: NAVY }}>{title}</h2>
+      <h2 className="truncate pr-14 text-[19px] font-bold leading-tight tracking-[-0.02em] min-[400px]:text-[21px] sm:text-[24px] lg:text-[26px]" style={{ color: NAVY }}>{title}</h2>
+      {sub && <p className="mt-1 text-[13px] leading-snug text-[#52666F] sm:text-[14px]">{sub}</p>}
       <div className="mt-3 flex min-h-0 flex-1 flex-col">{children}</div>
     </>
   );
@@ -38,7 +40,7 @@ function inner(title: ReactNode, children: ReactNode) {
  * so the box always has the height of the tallest one and nothing moves when the slide changes. Turns on its own
  * until the visitor taps a dot or swipes; stops on hover; never turns when the visitor asks for reduced motion.
  */
-export default function LandingCarousel({ t, slides }: { t: LandingText; slides: { key: string; node: ReactNode }[] }) {
+export default function LandingCarousel({ t, slides }: { t: LandingText; slides: { key: string; tab: string; node: ReactNode }[] }) {
   const [at, setAt] = useState(0);
   const [held, setHeld] = useState(false);
   const touch = useRef<number | null>(null);
@@ -55,18 +57,19 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
 
   return (
     <div
-      className="relative flex min-w-0 flex-col h-[max(318px,calc(100svh_-_416px))] lg:h-[min(620px,calc(100vh_/_var(--z)_-_250px))]"
+      className="relative flex min-w-0 flex-col h-[540px] lg:h-[min(620px,calc(100vh_/_var(--z)_-_250px))] rounded-[18px] border border-[#e3ebe7] bg-white shadow-[0_8px_30px_rgba(17,45,59,0.07)]"
       role="region"
       aria-roledescription="carousel"
       aria-label={t.carousel.label}
       data-testid="landing-carousel"
       onMouseEnter={() => setHeld(true)}
       onMouseLeave={() => setHeld(false)}
-      onTouchStart={(e) => { touch.current = e.touches[0].clientX; }}
+      onTouchStart={(e) => { touch.current = e.touches[0].clientX; setHeld(true); }}
       onTouchEnd={(e) => {
         if (touch.current === null) return;
         const dx = e.changedTouches[0].clientX - touch.current;
         touch.current = null;
+        setHeld(true);
         if (Math.abs(dx) > 40) go(at + (dx < 0 ? 1 : -1));
       }}
     >
@@ -78,21 +81,25 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
         </div>
       ))}
       </div>
-      {/* Arrows on the card's sides, over its padding, so they take no room of their own. */}
-      {([-1, 1] as const).map((d) => (
-        <button key={d} type="button" onClick={() => go(at + d)} aria-label={d < 0 ? t.carousel.prev : t.carousel.next} data-testid={d < 0 ? "carousel-prev" : "carousel-next"}
-          className={`absolute top-[calc(50%-12px)] grid h-7 w-7 lg:h-8 lg:w-8 -translate-y-1/2 place-items-center rounded-full border border-[#e3ebe7] bg-white text-[18px] leading-none shadow-[0_4px_14px_rgba(17,45,59,0.14)] transition hover:bg-[#F7F9F8] ${d < 0 ? "-left-3.5 lg:-left-4" : "-right-3.5 lg:-right-4"}`}
-          style={{ color: NAVY }}>
-          <span aria-hidden className="-mt-0.5">{d < 0 ? "‹" : "›"}</span>
-        </button>
-      ))}
-      <div className="flex h-6 shrink-0 items-center justify-center pt-1">
-        {slides.map((s, i) => (
-          <button key={s.key} type="button" onClick={() => go(i)} aria-label={`${t.carousel.slide} ${i + 1} / ${n}`} aria-current={i === at}
-            data-testid={`dot-${s.key}`} className="grid h-5 w-4 place-items-center">
-            <span className={`block h-1.5 rounded-full transition-all ${i === at ? "w-3.5" : "w-1.5 bg-[#c9d6d0]"}`} style={i === at ? { background: NAVY } : undefined} />
-          </button>
-        ))}
+      <span className="absolute right-4 top-4 rounded-full bg-[#EDF6F1] px-2.5 py-1 text-[11px] font-semibold tabular-nums lg:right-5 lg:top-5" style={{ color: "#127052" }} data-testid="carousel-pill">{String(at + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}</span>
+      <div className="flex shrink-0 items-center justify-between gap-2 border-t border-[#e3ebe7] px-3 py-2 lg:px-4">
+        <div className="flex min-w-0 items-center gap-1">
+          {slides.map((s, i) => (
+            <button key={s.key} type="button" onClick={() => go(i)} aria-label={`${t.carousel.slide} ${i + 1} / ${n}`} aria-current={i === at}
+              data-testid={`dot-${s.key}`} className="flex items-center gap-1.5 rounded-full px-1.5 py-1 text-[12px] font-medium">
+              <span className={`block h-1.5 rounded-full transition-all ${i === at ? "w-3.5" : "w-1.5 bg-[#c9d6d0]"}`} style={i === at ? { background: NAVY } : undefined} />
+              <span className={`hidden sm:inline ${i === at ? "font-semibold text-[#112D3B]" : "text-[#52666F]"}`}>{s.tab}</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          {([-1, 1] as const).map((d) => (
+            <button key={d} type="button" onClick={() => go(at + d)} aria-label={d < 0 ? t.carousel.prev : t.carousel.next} data-testid={d < 0 ? "carousel-prev" : "carousel-next"}
+              className="grid h-8 w-8 place-items-center rounded-full border border-[#e3ebe7] bg-white text-[18px] leading-none transition hover:bg-[#F7F9F8]" style={{ color: NAVY }}>
+              <span aria-hidden className="-mt-0.5">{d < 0 ? "‹" : "›"}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -132,8 +139,8 @@ export function CompanySlide({ t }: { t: LandingText }) {
 }
 
 /** A slide made of a "real screen" (components/LandingScreens.tsx) under its action title, in the same white card. */
-export function ScreenSlide({ title, children }: { title: ReactNode; children: ReactNode }) {
-  return <SlideCard title={title}>{children}</SlideCard>;
+export function ScreenSlide({ title, children, sub }: { title: ReactNode; children: ReactNode; sub?: ReactNode }) {
+  return <SlideCard title={title} sub={sub}>{children}</SlideCard>;
 }
 
 export { FrontierScreen, OneBondScreen, ListScreen, MultiYearScreen, HeatMapScreen };

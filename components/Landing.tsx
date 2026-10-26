@@ -8,6 +8,7 @@ import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { loadMe } from "@/lib/me";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
+import YieldLossSlide from "@/components/YieldLossSlide";
 import LandingCarousel, { actionTitle, ListScreen, MultiYearScreen, HeatMapScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
@@ -56,49 +57,51 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
+  // Desktop (the owner's design, 26/10/2026): text left (40%), carousel card right (60%), objective strip under both.
+  // Phones: headline, sentence, button, trust line, then the card.
   return (
     <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
-      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.68fr_1.32fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
-        <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
-        <div className="mb-1 flex items-baseline justify-end gap-2 sm:hidden">
-          {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
-          <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="whitespace-nowrap text-[10.5px] font-semibold leading-none underline underline-offset-2 sm:hidden" style={{ color: GREEN }}>{t.paperShort} ↓</a>
+      <section className="w-full pt-2">
+        <div className="grid items-center gap-5 lg:grid-cols-[2fr_3fr] lg:gap-x-10">
+          <div className="min-w-0 break-words">
+            <Title className="text-[clamp(32px,9.5vw,42px)] font-bold leading-[1.04] tracking-[-0.035em] sm:text-[48px] lg:text-[52px]" style={{ color: NAVY }}>{t.h1}</Title>
+            <p className="mt-3 text-[15px] leading-snug sm:text-[16px] lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
+            {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
+            <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
+              className="mt-5 flex w-full items-center justify-between gap-6 whitespace-nowrap rounded-lg px-5 py-3.5 text-[15px] font-semibold text-white shadow-sm transition hover:opacity-90 sm:w-auto"
+              style={{ background: NAVY }}>
+              {t.cta} <span aria-hidden>↗</span>
+            </button>
+            <ul className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-medium" style={{ color: MUTE }} data-testid="landing-trust">
+              {t.trust.map((x) => <li key={x} className="flex items-center gap-1.5"><span aria-hidden style={{ color: GREEN }}>✓</span>{x}</li>)}
+            </ul>
+          </div>
+          <div className="min-w-0">
+            {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
+            <LandingCarousel t={t} slides={[
+              { key: "loss", tab: t.tabs.loss, node: <YieldLossSlide t={t} /> },
+              ...(showBench ? [{ key: "compare", tab: t.tabs.compare, node: LANDING_SNAPSHOT.verified ? <Comparison t={t} num={num} bench={bench} /> : (
+                <div className="h-full ring-2 ring-yellow-300" data-testid="bench-admin-only">
+                  <p className="bg-yellow-200 px-3 py-1 text-center text-[11px] font-medium text-ink">Admin only: hidden from customers until the benchmark is verified</p>
+                  <Comparison t={t} num={num} bench={bench} />
+                </div>
+              ) }] : []),
+              { key: "multi", tab: t.tabs.multi, node: <ScreenSlide title={actionTitle(t.carousel.multi.title)}><MultiYearScreen sub={t.carousel.multi.sub} subShort={t.carousel.multi.subShort} insightShort={t.carousel.multi.insightShort} yLabel={t.carousel.multi.y} xLabel={t.carousel.multi.x} insightK={t.carousel.multi.insightK} insight={t.carousel.multi.insight} /></ScreenSlide> },
+              { key: "heat", tab: t.tabs.heat, node: <ScreenSlide title={actionTitle(t.carousel.heat.title)}><HeatMapScreen sub={t.carousel.heat.sub} subShort={t.carousel.heat.subShort} insightShort={t.carousel.heat.insightShort} insightK={t.carousel.multi.insightK} insight={t.carousel.heat.insight} retLabel={t.carousel.multi.y} yrs={t.carousel.yrs} /></ScreenSlide> },
+              { key: "list", tab: t.tabs.list, node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={snap.bonds.length ? snap.bonds : bonds} mix={snap.position} asOf={snap.asOf ? new Date(snap.asOf.slice(0, 10) + "T12:00:00Z").toLocaleDateString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : undefined} /></ScreenSlide> },
+            ]} />
+          </div>
         </div>
-        <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[52px]">
-          <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
-          <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
-        </Title>
-        <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
+        {/* The objective strip and the quant paper (moved under the carousel, the owner, 26/10/2026). */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3 text-[13px] sm:text-[14px]">
+          <p className="min-w-0" data-testid="landing-objective">{t.objective}</p>
+          <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} className="whitespace-nowrap font-semibold underline underline-offset-2" style={{ color: GREEN }}>{t.objectiveLink} →</button>
         </div>
-        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
-          <LandingCarousel t={t} slides={[
-            ...(showBench ? [{ key: "compare", node: LANDING_SNAPSHOT.verified ? <Comparison t={t} num={num} bench={bench} /> : (
-              <div className="rounded-3xl ring-2 ring-yellow-300" data-testid="bench-admin-only">
-                <p className="rounded-t-3xl bg-yellow-200 px-3 py-1 text-center text-[11px] font-medium text-ink">Admin only: hidden from customers until the benchmark is verified</p>
-                <Comparison t={t} num={num} bench={bench} />
-              </div>
-            ) }] : []),
-            { key: "multi", node: <ScreenSlide title={actionTitle(t.carousel.multi.title)}><MultiYearScreen sub={t.carousel.multi.sub} subShort={t.carousel.multi.subShort} insightShort={t.carousel.multi.insightShort} yLabel={t.carousel.multi.y} xLabel={t.carousel.multi.x} insightK={t.carousel.multi.insightK} insight={t.carousel.multi.insight} /></ScreenSlide> },
-            { key: "heat", node: <ScreenSlide title={actionTitle(t.carousel.heat.title)}><HeatMapScreen sub={t.carousel.heat.sub} subShort={t.carousel.heat.subShort} insightShort={t.carousel.heat.insightShort} insightK={t.carousel.multi.insightK} insight={t.carousel.heat.insight} retLabel={t.carousel.multi.y} yrs={t.carousel.yrs} /></ScreenSlide> },
-            { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={snap.bonds.length ? snap.bonds : bonds} mix={snap.position} asOf={snap.asOf ? new Date(snap.asOf.slice(0, 10) + "T12:00:00Z").toLocaleDateString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : undefined} /></ScreenSlide> },
-          ]} />
-        </div>
-        {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
-        <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
-            className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-3 py-3.5 text-[13px] min-[360px]:px-4 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 font-semibold text-white shadow-sm transition hover:opacity-90"
-            style={{ background: NAVY }}>
-            {t.cta} <span aria-hidden className="hidden min-[400px]:inline">↗</span>
-          </button>
-        </div>
-        {/* The quant methodology paper, for everyone (the owner, 24/10/2026). One small line, so the page still fits one screen. */}
-        <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="landing-paper"
-          className="mt-3 hidden text-[13px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80 sm:inline-block" style={{ color: GREEN }}>
-          {t.paper} ↓
-        </a>
+        <div className="mt-3 text-center lg:text-right">
+          <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="landing-paper"
+            className="text-[13px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80" style={{ color: GREEN }}>
+            {t.paper} ↓
+          </a>
         </div>
       </section>
     </div>
