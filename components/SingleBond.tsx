@@ -83,7 +83,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   return (
     <div className={`transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
       {/* On phones the chart and the bond are two separate rounded cards on the grey page; from sm up they are one box as before. */}
-      <div className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none" data-testid="curve-card">
+      <div className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none" data-testid="curve-card" data-tip="chart">
       <div className="flex items-baseline justify-between gap-2 whitespace-nowrap">
         <h2 className="shrink-0 text-[16px] font-semibold sm:text-[17px]">{t.bestByRating}</h2>
         <span className="min-w-0 truncate text-[11px] text-mute sm:text-xs">{t.tapDot}</span>
@@ -115,7 +115,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         )
       )}
       </div>
-      <QuotaNote quota={data?.quota} />
+      <div data-tip="quota"><QuotaNote quota={data?.quota} /></div>
     </div>
   );
 }
@@ -249,7 +249,7 @@ function BondBox(props: {
       </dl>
       {/* Fixed slots: every control keeps the same place whichever bond is shown. */}
       <div className="mt-2 flex flex-wrap items-center gap-2 whitespace-nowrap">
-        <span className="inline-flex h-7 w-48 shrink-0 items-center">
+        <span className="inline-flex h-7 w-48 shrink-0 items-center" data-tip="change">
           {props.canChange ? (
             <button onClick={props.onChange} className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[#0077ed]">
               {t.change}
