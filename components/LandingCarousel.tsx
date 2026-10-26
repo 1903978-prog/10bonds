@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { FrontierScreen, OneBondScreen, ListScreen } from "@/components/LandingScreens";
+import { FrontierScreen, OneBondScreen, ListScreen, MultiYearScreen, HeatMapScreen } from "@/components/LandingScreens";
 import type { LandingText } from "@/lib/landingText";
 
 const ACMA = "DE000ACMA031";
@@ -55,7 +55,7 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
 
   return (
     <div
-      className="relative flex min-w-0 flex-col h-[max(318px,calc(100svh_-_398px))] lg:h-[min(620px,calc(100vh_/_var(--z)_-_250px))]"
+      className="relative flex min-w-0 flex-col h-[max(318px,calc(100svh_-_416px))] lg:h-[min(620px,calc(100vh_/_var(--z)_-_250px))]"
       role="region"
       aria-roledescription="carousel"
       aria-label={t.carousel.label}
@@ -136,4 +136,4 @@ export function ScreenSlide({ title, children }: { title: ReactNode; children: R
   return <SlideCard title={title}>{children}</SlideCard>;
 }
 
-export { FrontierScreen, OneBondScreen, ListScreen };
+export { FrontierScreen, OneBondScreen, ListScreen, MultiYearScreen, HeatMapScreen };

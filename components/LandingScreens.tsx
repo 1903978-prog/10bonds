@@ -2,6 +2,8 @@
 
 import { type ReactNode } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
+import HeatMapChart from "@/components/HeatMapChart";
+import type { HeatMap } from "@/lib/heatMapGrid";
 import SliderCurveChart from "@/components/SliderCurveChart";
 import { useBoxSize } from "@/components/useBoxSize";
 import { FINDER_TEXT, type FinderLang, type FinderText } from "@/lib/finderText";
@@ -211,5 +213,88 @@ export function ListScreen({ lang, bonds }: { lang: FinderLang; bonds: Benchmark
         <Panel><BondList f={f} bonds={bonds ?? []} /></Panel>
       </Chrome>
     )} />
+  );
+}
+
+// The multi-year slide (the owner's mockup, 26/10/2026): one risk-return curve per horizon, 2 to 10 years, fixed sample shapes.
+const YEAR_COLOURS = ["#2f5fc4", "#d9552b", "#4a9d6f", "#7a46b0", "#e39a2d", "#4fb59f", "#b83a26", "#5c6a74", "#b8541f"];
+const YEAR_ENDS: [number, number][] = [[0.9, 5.3], [1.0, 5.55], [3.7, 6.25], [4.5, 6.18], [4.2, 5.95], [3.65, 5.6], [4.2, 5.88], [4.3, 5.84], [4.4, 5.8]];
+const curveAt = (end: [number, number], u: number) => {
+  const k = 3.2 + (end[1] - 3.2) * (1 - Math.exp(-5 * u)) / (1 - Math.exp(-5));
+  return [end[0] * u, k] as const;
+};
+
+export function MultiYearScreen({ sub, subShort, insightShort, yLabel, xLabel, yrs, insightK, insight }: { sub: string; subShort: string; insightShort: string; yLabel: string; xLabel: string; yrs: string; insightK: string; insight: string }) {
+  const [box, size] = useBoxSize<HTMLDivElement>({ w: 600, h: 300 }, { w: 200, h: 120 });
+  const narrow = size.w < 520;
+  const F = narrow ? 11 : 12;
+  const W = size.w, H = size.h, L = narrow ? (size.h >= 200 ? 58 : 44) : 60, R = narrow ? 30 : 40, T = 8, B = narrow ? 34 : 44;
+  const X = (v: number) => L + (v / 4.95) * (W - L - R);
+  const Y = (v: number) => T + ((6.4 - v) / 3.4) * (H - T - B);
+  const legend = !narrow;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <p className="text-[13px] text-[#52666F] sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
+      <div ref={box} className="mt-2 min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7]">
+        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" fontSize={F} role="img" aria-label={sub}>
+          {[3, 3.5, 4, 4.5, 5, 5.5, 6].map((v) => (
+            <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#eef2f0" /><text x={L - 8} y={Y(v) + 4} textAnchor="end" fill="#6b7b83">{v.toFixed(1)}%</text></g>
+          ))}
+          {[0, 1.24, 2.48, 3.71, 4.95].map((v) => <text key={v} x={X(v)} y={H - B + 16} textAnchor="middle" fill="#6b7b83">{v.toFixed(2)}%</text>)}
+          <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" fill="#6b7b83" fontSize={F - 1}>{xLabel}</text>
+          {size.h >= 200 && <text transform={`translate(11 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" fill="#6b7b83" fontSize={F - 1}>{yLabel}</text>}
+          {YEAR_ENDS.map((e, i) => {
+            const pts = Array.from({ length: 24 }, (_, j) => curveAt(e, j / 23));
+            const [ex, ey] = pts[pts.length - 1];
+            return (
+              <g key={i}>
+                <polyline points={pts.map(([a, b]) => `${X(a)},${Y(b)}`).join(" ")} fill="none" stroke={YEAR_COLOURS[i]} strokeWidth={2} strokeLinejoin="round" />
+                <text x={X(ex) + 5} y={Y(ey) + 4} fill={YEAR_COLOURS[i]} fontSize={F - 1}>{i + 2}y</text>
+              </g>
+            );
+          })}
+          {legend && (
+            <g transform={`translate(${W - R - 110} ${H - B - 168})`}>
+              {YEAR_COLOURS.map((c, i) => (
+                <g key={c} transform={`translate(0 ${i * 16})`}><line x1={0} x2={20} y1={0} y2={0} stroke={c} strokeWidth={2} /><text x={26} y={4} fill="#4a5b63" fontSize={F - 1}>{i + 2} {yrs}</text></g>
+              ))}
+            </g>
+          )}
+        </svg>
+      </div>
+      <div className="mt-2 shrink-0 rounded-[10px] bg-[#EDF6F1] px-3 py-2 text-[12px] leading-snug text-[#132D3B] sm:text-[13px]">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-[#127052]">{insightK}</span>
+        <span className="sm:hidden">{insightShort}</span><span className="hidden sm:inline">{insight}</span>
+      </div>
+    </div>
+  );
+}
+
+// The heat-map slide (the owner's mockup, 26/10/2026): a fixed sample grid, target return up, horizon across.
+const HEAT_H = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30];
+const HEAT_Y = Array.from({ length: 18 }, (_, i) => Math.round((3 + i * 0.2) * 10) / 10);
+const HEAT_SAMPLE: HeatMap = {
+  horizons: HEAT_H,
+  ytms: HEAT_Y,
+  cells: HEAT_Y.map((y) => HEAT_H.map((h) => {
+    const top = h < 4 ? 4.6 + 0.4 * h : h > 14 ? 6 : 6.2;
+    if (y > top + 1e-9) return null;
+    return Math.round(Math.min(4.5, 0.03 * Math.pow(h, 0.8) * Math.exp(1.05 * (y - 3))) * 100) / 100;
+  })),
+};
+
+export function HeatMapScreen({ sub, subShort, insightShort, insightK, insight, retLabel, yrs }: { sub: string; subShort: string; insightShort: string; insightK: string; insight: string; retLabel: string; yrs: string }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <p className="text-[13px] text-[#52666F] sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
+      {/* Phones: a small picture of the map (no figures, no legend text), like the mockup. */}
+      <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7] p-2 heat-mini" aria-hidden>
+        <HeatMapChart plain map={HEAT_SAMPLE} method="m1" onMethod={() => {}} retLabel={retLabel} yearsLabel={yrs} blacklist={false} onBlacklist={() => {}} />
+      </div>
+      <div className="mt-2 shrink-0 rounded-[10px] bg-[#EDF6F1] px-3 py-2 text-[12px] leading-snug text-[#132D3B] sm:text-[13px]">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-[#127052]">{insightK}</span>
+        <span className="sm:hidden">{insightShort}</span><span className="hidden sm:inline">{insight}</span>
+      </div>
+    </div>
   );
 }

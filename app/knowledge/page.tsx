@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import NewsletterCta from "@/components/NewsletterCta";
 import { isPublished as brokersPublished } from "@/components/brokers/Pages";
 import KnowledgeTools, { FINDER } from "@/components/seo/KnowledgeTools";
 import { JsonLd } from "@/components/seo/Seo";
@@ -42,6 +43,7 @@ export default async function KnowledgePage() {
     <div>
       <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{k.h1}</h1>
       <p className="mt-3 max-w-3xl text-[17px] text-mute">{k.lead}</p>
+      <NewsletterCta className="mt-3 block" />
       <KnowledgeTools
         locale="en"
         defaultHref={enPath("bond-default-rates-by-rating")}
