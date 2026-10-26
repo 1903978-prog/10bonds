@@ -75,8 +75,25 @@ export function ensureStripeSetup(): Promise<Setup> {
   return setupPromise;
 }
 
+type PriceSetup = { prices: Record<PriceKey, string>; products: Record<PaidPlan, string> };
+let pricesPromise: Promise<PriceSetup> | null = null;
+
+/** Only the prices (and their products): all that starting a checkout needs. Portal and webhook problems must never block a sale. */
+export function ensureStripePrices(): Promise<PriceSetup> {
+  pricesPromise ??= doPrices().catch((e) => {
+    pricesPromise = null;
+    throw new Error(`prices step: ${(e as Error).message}`);
+  });
+  return pricesPromise;
+}
+
 async function doSetup(): Promise<Setup> {
   const mode = stripeMode();
+  const { prices, products } = await ensureStripePrices();
+  return doPortalAndWebhook(mode, prices, products);
+}
+
+async function doPrices(): Promise<PriceSetup> {
   // 1. Prices, found by their lookup key (Stripe takes at most 10 keys per call). One product per plan.
   const all = Object.values(PRICES);
   const found: { id: string; lookup_key: string; product: string }[] = [];
@@ -103,6 +120,10 @@ async function doSetup(): Promise<Setup> {
     });
     prices[key] = price.id;
   }
+  return { prices, products };
+}
+
+async function doPortalAndWebhook(mode: string, prices: Record<PriceKey, string>, products: Record<PaidPlan, string>): Promise<Setup> {
   // 2. Customer portal (cancel, change plan, card, invoices).
   // v2: monthly and yearly prices. Pro is left out: moving to Pro goes through the profile page, which checks approval.
   const portalKey = `stripe_portal_config_v2_${mode}`;

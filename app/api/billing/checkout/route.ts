@@ -6,7 +6,7 @@ import { allow } from "@/lib/rateLimit";
 import { isInterval, isPaidPlan } from "@/lib/plans";
 import { proStatus } from "@/lib/pro";
 import { activePromo } from "@/lib/promoServer";
-import { ensureStripeSetup, ensurePromoCoupon, priceKey, stripe, stripeConfigured } from "@/lib/stripe";
+import { ensureStripePrices, ensurePromoCoupon, priceKey, stripe, stripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   if (user.subscription && ["active", "trialing", "past_due"].includes(user.subscription.status))
     return NextResponse.json({ error: "You already have a subscription. Change plan on your profile page." }, { status: 409 });
   try {
-    const { prices } = await ensureStripeSetup();
+    const { prices } = await ensureStripePrices();
     let customer = user.stripeCustomerId;
     if (!customer) {
       const c = await stripe("POST", "/customers", { email: user.email, metadata: { user_id: user.id, app: "10bonds" } });
@@ -39,7 +39,14 @@ export async function POST(req: Request) {
     }
     // During the promo the discount is applied by Stripe itself (first period only); promo codes cannot be combined with it.
     const promo = interval === "month" ? await activePromo() : null;
-    const coupon = promo ? await ensurePromoCoupon(promo.percent, promo.endsAt, "Halloween 2026 promo") : null;
+    let coupon: string | null = null;
+    if (promo) {
+      try {
+        coupon = await ensurePromoCoupon(promo.percent, promo.endsAt, "Halloween 2026 promo");
+      } catch (e) {
+        console.error("[checkout] promo coupon failed, continuing without it:", (e as Error).message);
+      }
+    }
     const session = await stripe("POST", "/checkout/sessions", {
       mode: "subscription",
       customer,
@@ -54,7 +61,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ url: session.url });
   } catch (e) {
-    console.error("[checkout] failed:", (e as Error).message);
+    console.error("[checkout] failed:", (e as Error).message, (e as { code?: string }).code ?? "");
     return NextResponse.json({ error: "Payment could not be started. Please try again later." }, { status: 502 });
   }
 }
