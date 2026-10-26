@@ -1423,12 +1423,12 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       <table className="hidden w-full table-fixed text-sm sm:table">
         <colgroup>
           <col className="w-9" />
-          {narrow ? <col /> : <col className="w-[24%]" />}
+          {narrow ? <col /> : <col className="w-[17%]" />}
           {!narrow && <col />}
           {!narrow && <col className="w-[8.25rem]" />}
           <col className={narrow ? "w-[4.75rem]" : "w-[6.5rem]"} />
           <col className={narrow ? "w-[3.5rem]" : "w-[6.5rem]"} />
-          {!narrow && <col className="w-[9rem]" />}
+          {!narrow && <col className="w-[7rem]" />}
           <col className="w-[5rem]" />
           {admin && <><col className="w-[3.75rem]" /><col className="w-[3.75rem]" /><col className="w-[4.5rem]" /><col className="w-[4.5rem]" /></>}
           <col className="w-8" />
