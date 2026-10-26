@@ -27,6 +27,7 @@ export default function Cookies() {
       <ul className="mt-2 list-disc space-y-1.5 pl-5">
         <li><strong>Necessary:</strong> needed for the site to work, such as signing in. Always on; no consent is needed (ePrivacy Directive art. 5(3)).</li>
         <li><strong>Preferences:</strong> remember choices such as your language.</li>
+        <li><strong>Audience measurement:</strong> one anonymous count per day, page and country, with no identifier and nothing stored in your browser. It may be used without prior consent. You can oppose it at any time in Cookie settings, then nothing is counted.</li>
         <li><strong>Statistics:</strong> help us understand how the site is used. Only with your consent. Kept 13 months, without your IP address.</li>
         <li><strong>Marketing:</strong> none are used today.</li>
       </ul>

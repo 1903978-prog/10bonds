@@ -165,13 +165,13 @@ for (const w of [1440, 390]) {
   await p.goto(BASE + "/knowledge");
   await p.waitForSelector('[data-testid="cookie-banner"]');
   const txt = await p.textContent('[data-testid="cookie-banner"]');
-  ok(/Accept statistics/.test(txt) && /Customize/.test(txt) && !/Reject/.test(txt), "cookie bar: Accept statistics + Customize, no Reject");
+  ok(/I understand/.test(txt) && /Details/.test(txt), "cookie bar: Details + I understand");
   ok(/sell/i.test(txt) && /advertising cookies/.test(txt), "cookie bar: says no data sold, no advertising cookies");
   await p.screenshot({ path: `${SHOTS}/cookie-bar.png` });
   await p.click('[data-testid="cookie-settings"]');
-  ok(await p.isVisible("button:has-text(\"Necessary only\")"), "Customize shows Necessary only");
+  ok(await p.isVisible('[data-testid="cookie-oppose"]'), "Details shows one-click opt-out");
   const counted = p.waitForResponse((r) => r.url().includes("/api/count"));
-  await p.getByRole("button", { name: "Necessary only" }).click();
+  await p.locator('[data-testid="cookie-accept"]').click();
   await counted;
   ok(await p.evaluate(() => !localStorage.getItem("tb_vid")), "necessary only: no visitor id stored");
   await ctx.close();

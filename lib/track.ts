@@ -9,6 +9,7 @@ const OLD_KEY = "tb_consent";
 const VISITOR_KEY = "tb_vid";
 
 export type Categories = { preferences: boolean; statistics: boolean; marketing: boolean };
+const NOCOUNT_KEY = "tb_no_count";
 type Consent = "yes" | "no" | null;
 
 function store(): Storage | null {
@@ -47,6 +48,15 @@ export function setCategories(c: Categories) {
     queue.length = 0;
   } else if (queue.length) timer ??= setTimeout(flushNow, 1000);
   window.dispatchEvent(new Event("tb-consent"));
+}
+
+/** True when the visitor opposed even the anonymous daily page count. */
+export function countOpposed(): boolean {
+  try { return window.localStorage.getItem(NOCOUNT_KEY) === "1"; } catch { return false; }
+}
+
+export function setCountOpposed(v: boolean) {
+  try { if (v) window.localStorage.setItem(NOCOUNT_KEY, "1"); else window.localStorage.removeItem(NOCOUNT_KEY); } catch {}
 }
 
 export function reopenCookieBanner() {
