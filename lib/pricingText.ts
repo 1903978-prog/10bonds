@@ -37,7 +37,7 @@ export type PricingText = typeof en;
 
 const it: PricingText = {
   title: "Piani semplici",
-  lead: "Inizia con un account gratuito. Passa a un piano a pagamento per più strumenti. Disdici quando vuoi.",
+  lead: "Inizia con un account gratuito. Passa al piano superiore per più strumenti. Disdici quando vuoi.",
   visitor: "Senza account puoi provare la ricerca e vedere i primi 3.",
   paid: "Grazie. Il pagamento è andato a buon fine; il piano è attivo entro un minuto (ricarica la pagina se vedi ancora il piano precedente).",
   cancelled: "Pagamento annullato. Non è stato addebitato nulla.",
