@@ -57,6 +57,7 @@ type Response = ResultsPayload & {
   scanned?: number;
   issuers?: number; // Different issuers among the bonds searched
   found?: number[];
+  status?: string; // READY / UPDATING / NEAREST_POINT / INFEASIBLE (spread-rules answers)
   monteCarlo?: { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
   asOf: string | null;
   durationBand: number;
@@ -815,7 +816,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 message={
                   limit ? <LimitReached quota={limit} />
                   : error ? <p className="text-sm text-mute">{error}</p>
-                  : data && data.rows.length === 0 ? <p className="text-sm text-mute">{t.none}</p>
+                  : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? t.noOptimised : t.none}</p>
                   : null
                 }
               />
@@ -863,7 +864,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             message={
               limit ? <LimitReached quota={limit} />
               : error ? <p className="text-sm text-mute">{error}</p>
-              : data && data.rows.length === 0 ? <p className="text-sm text-mute">{t.none}</p>
+              : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? t.noOptimised : t.none}</p>
               : null
             }
           />
@@ -920,7 +921,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             message={
               limit ? <LimitReached quota={limit} />
               : error ? <p className="text-sm text-mute">{error}</p>
-              : data && data.rows.length === 0 ? <p className="text-sm text-mute">{t.none}</p>
+              : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? t.noOptimised : t.none}</p>
               : null
             }
           />

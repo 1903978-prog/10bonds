@@ -11,7 +11,7 @@ import { bondRisk } from "@/lib/ratings";
 import type { RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
-import { publicQuota, consumeSearch } from "@/lib/searchQuota";
+import { publicQuota, consumeSearch, refundSearch } from "@/lib/searchQuota";
 import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
 import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
@@ -116,8 +116,15 @@ export async function GET(req: Request) {
       frontierResults = [];
     }
   }
-  if (coherent && !frontierResults?.length && activeFallback() === "none")
-    return NextResponse.json({ status: "INFEASIBLE", results: [], inputs: { duration, ytm, risk }, source: data.source, scanned: data.bonds.length, asOf: data.asOf }, { headers: { "Cache-Control": "no-store" } });
+  if (coherent && !frontierResults?.length && activeFallback() === "none") {
+    // Paper 7.1: no optimised list means no list. Same payload shape as a normal answer, with no rows, so the page shows its "not available" state.
+    // Such an answer does not use up a search (owner decision 27/10/2026).
+    const quota = usage ? await refundSearch(user!, usage) : null;
+    return NextResponse.json(
+      { ...shapeForTier([], tier, features, user?.isAdmin === true), features: withoutListEdits(features), excluded: false, quota: quota ? publicQuota(quota) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: portfolioPool(withinRisk(data.bonds, LIMITS.risk.max), duration).band, inputs: { duration, ytm, risk }, nearest: false, status: "INFEASIBLE" },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
   const { results, band, engine } = frontierResults?.length
     ? {
         results: frontierResults,

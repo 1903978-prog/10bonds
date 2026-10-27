@@ -62,6 +62,20 @@ export async function consumeSearch(user: Pick<User, "id" | "plan" | "isAdmin">,
   }
 }
 
+/** Gives back the search `consumeSearch` just recorded (an answer with no list does not cost the daily allowance, owner decision 27/10/2026). Fails quietly. */
+export async function refundSearch(user: Pick<User, "id" | "isAdmin">, d: Decision): Promise<Decision> {
+  if (!d.record || user.isAdmin) return d;
+  try {
+    const { accountsSql } = await import("./accounts");
+    const sql = await accountsSql();
+    await sql`delete from app.search_usage where user_id = ${user.id} and kind = ${d.kind} and at = (select max(at) from app.search_usage where user_id = ${user.id} and kind = ${d.kind})`;
+  } catch (e) {
+    console.error("[searchQuota refund]", (e as Error).message);
+    return d;
+  }
+  return { ...d, used: Math.max(0, d.used - 1), record: false };
+}
+
 export function publicQuota(d: Decision): Quota {
   return { kind: d.kind, limit: d.limit, used: d.used, resetsAt: d.resetsAt };
 }

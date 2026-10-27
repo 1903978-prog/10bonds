@@ -39,6 +39,6 @@ export const engineSignature = (e: EnginePolicy = engine): string =>
 //  "none"            no list: `status: "INFEASIBLE"`. Needs the Finder page to show a "no list for this position" state first
 //                    (not built; switching it on before that is a customer-visible change that needs approval).
 export type FallbackMode = "legacy_ranking" | "none";
-let fallback: FallbackMode = "legacy_ranking";
+let fallback: FallbackMode = "none";
 export const activeFallback = () => fallback;
 export function setFallback(m: FallbackMode): void { fallback = m; }

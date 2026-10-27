@@ -41,3 +41,12 @@ describe("daily search allowance", () => {
     expect(decideSearch([ago(1)], now, null, "single")).toMatchObject({ allowed: true, record: false });
   });
 });
+
+describe("refundSearch (an answer with no list is free)", () => {
+  it("leaves a search that was never counted alone", async () => {
+    const { refundSearch } = await import("./searchQuota");
+    const d = { kind: "portfolio" as const, limit: 10, used: 3, resetsAt: null, allowed: true, record: false };
+    expect(await refundSearch({ id: 1, isAdmin: false }, d)).toBe(d);
+    expect(await refundSearch({ id: 1, isAdmin: true }, { ...d, record: true })).toEqual({ ...d, record: true });
+  });
+});
