@@ -28,7 +28,7 @@ describe("30 bands", () => {
 
   it("the solver's list per band is the true optimum: highest yield, least loss among ties, versus full enumeration", { timeout: 240000 }, async () => {
     const bonds = universe(23);
-    const { results } = await runBands(bonds, 4, { diagnose: false });
+    const { results } = await runBands(bonds, 4, { diagnose: false, endpoints: false });
     const cs = candidatesOf(bonds, 4, false);
     const P = { ...DEFAULT_POLICY, maxDispersion: 9, minCore: 0, minWorst: 0 };
     const best = new Map<number, { ytm: number; el: number }>();
@@ -66,7 +66,7 @@ describe("30 bands", () => {
   });
 
   it("flags a riskier band that pays no more, and a band beaten on both yield and expected loss; keeps the real steps", () => {
-    const mk = (k: number, risk: number, ytm: number, el: number): BandResult => ({ k, lo: 0, hi: 0, status: "feasible", avgRisk: risk, ytm, el, avgDuration: 4, isins: [], reason: null });
+    const mk = (k: number, risk: number, ytm: number, el: number): BandResult => ({ k, lo: 0, hi: 0, status: "feasible", policy: "regular", avgRisk: risk, ytm, el, avgDuration: 4, isins: [], reason: null });
     const rs = [mk(1, 1.1, 3.0, 0.1), mk(2, 1.4, 3.5, 0.3), mk(3, 1.7, 3.4, 0.5), mk(4, 2.0, 4.0, 0.2), mk(5, 2.3, 4.5, 0.9)];
     markDominated(rs);
     expect(rs.map((r) => r.status)).toEqual(["feasible", "dominated", "dominated", "feasible", "feasible"]);

@@ -5,7 +5,6 @@
 export type Bullet = { coupon: number; freq: 1 | 2 | 4; maturity: string; /** redemption per 100, default 100 */ redemption?: number };
 export type CallPoint = { date: string; price: number };
 
-const DAY = 86_400_000;
 const t = (d: string) => Date.parse(d + "T00:00:00Z");
 const addMonths = (ms: number, m: number) => { const d = new Date(ms); const day = d.getUTCDate(); d.setUTCMonth(d.getUTCMonth() + m); if (d.getUTCDate() !== day) d.setUTCDate(0); return d.getTime(); };
 
