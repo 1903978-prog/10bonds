@@ -24,7 +24,7 @@ export default async function AdminClassification() {
     <main className="mx-auto max-w-5xl px-4 py-10">
       <p className="text-sm"><Link href="/admin" className="text-accent">← Admin</Link></p>
       <h1 className="mt-3 text-2xl font-semibold">Country and industry</h1>
-      <p className="mt-2 text-sm text-mute">Every value has a source; nothing is guessed. A bond with none is shown as &quot;Not classified&quot; in the diversification bars.</p>
+      <p className="mt-2 text-sm text-mute">Every value has a source; nothing is guessed. A bond with none is shown as &quot;Not classified&quot; in the diversification bars. Supranationals (EIB, EU, ESM, EFSF, EBRD, IBRD, IDB, ADB, AfDB and similar, detected by issuer name in lib/classify.ts) are shown as &quot;Supranational&quot;, their own country group.</p>
       <div className="mt-4 rounded-lg bg-yellow-100 px-3 py-2 text-sm" data-testid="classification-summary">
         <p>{c.total.toLocaleString("en")} bonds shown: <b>country {pct(c.country, c.total)}</b> · <b>industry {pct(c.sector, c.total)}</b> · both {pct(c.both, c.total)}</p>
         <p className="mt-1">Country from: {src(c.countryBySource)}</p>

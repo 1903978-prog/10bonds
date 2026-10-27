@@ -26,6 +26,22 @@ const NAMES = new Intl.DisplayNames(["en"], { type: "region" });
 const NOT_A_COUNTRY = new Set(["XS", "EU", "XA", "XB", "XC", "XD", "XF", "XK", "QS", "QW", "QZ", "CS", "ZZ", "NA", "OO", "AA"]);
 const GOV_TYPES = /^(gov|government|sovereign|agency|municipal|regional)/i;
 
+export const SUPRANATIONAL = "Supranational";
+// Multilateral development banks and EU / euro-area institutions have no country: they form their own group (27/10/2026).
+// Matched on the issuer name; add a pattern here when a new one shows up.
+const SUPRA_NAMES = [
+  /\beuropean investment bank\b/i, /^EIB\b/i,
+  /\beuropean (union|stability mechanism|financial stability facility|bank for reconstruction|atomic energy|central bank)\b/i,
+  /^(EU|ESM|EFSF|EBRD|EURATOM)\b/i, /\beuropean investment fund\b/i,
+  /\binternational bank for reconstruction\b/i, /\bIBRD\b/i, /\binternational finance corp/i, /^IFC\b/i,
+  /\binter-?american development bank\b/i, /^IDB\b/i, /\basian development bank\b/i, /^ADB\b/i,
+  /\basian infrastructure investment bank\b/i, /\bafrican development bank\b/i, /^AfDB\b/i,
+  /\bnordic investment bank\b/i, /\bcouncil of europe development bank\b/i, /\bcorporaci[oó]n andina\b/i,
+  /\bislamic development bank\b/i, /\bnew development bank\b/i, /\beuropean bank for\b/i,
+  /\binternational development association\b/i, /\bcentral american bank\b/i, /\bnorth american development bank\b/i,
+];
+export const isSupranational = (issuer: string | null): boolean => !!issuer && SUPRA_NAMES.some((re) => re.test(issuer.trim()));
+
 /** English country name from an ISO code or a name; null when it is neither (never a guess). */
 export function countryName(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
@@ -53,8 +69,8 @@ export function classifyRow(r: Record<string, unknown>, issuer: string | null): 
   const sector = table ?? fedSector;
   const sectorSource: ClassSource = table ? "table" : fedSector ? "feed" : null;
 
-  let country = countryName(r.issuer_country);
-  let countrySource: ClassSource = country ? "feed" : null;
+  let country = isSupranational(issuer) ? SUPRANATIONAL : countryName(r.issuer_country);
+  let countrySource: ClassSource = country ? (country === SUPRANATIONAL ? "table" : "feed") : null;
   if (!country) { country = countryName(r.country); countrySource = country ? "feed-legacy" : null; }
   if (!country) { country = countryName(issuerCountryOf(issuer)); countrySource = country ? "table" : null; }
   const government = sector === "Government & agencies" || (typeof r.issuer_type === "string" && GOV_TYPES.test(r.issuer_type.trim()));
