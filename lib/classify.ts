@@ -1,4 +1,5 @@
 import { groupInfo } from "./issuerGroups";
+import { issuerCountryOf } from "./issuerCountries";
 import { SECTORS, UNCLASSIFIED } from "./sectors";
 
 // Country and industry of each bond (the owner, 27/10/2026), with the source of every value, never a guess.
@@ -6,7 +7,8 @@ import { SECTORS, UNCLASSIFIED } from "./sectors";
 // Country (first hit wins):
 //   1. "feed"        public_bonds.issuer_country: the issuer's country of risk / domicile, filled by lm-op-model (ISO 3166 code or English name).
 //   2. "feed-legacy" public_bonds.country as the copy always carried it (same cleaning).
-//   3. "isin-prefix" the first two letters of the ISIN, ONLY for government and agency bonds (sector "Government & agencies"
+//   3. "table"       the hand-made issuer table lib/issuerCountries.ts (owner-confirmed).
+//   4. "isin-prefix" the first two letters of the ISIN, ONLY for government and agency bonds (sector "Government & agencies"
 //                    by lib/issuerGroups.ts or issuer_type government/agency in the feed) and only when the prefix is a real country
 //                    (not XS/EU/other international codes). Never for companies: a company's ISIN prefix is where it was
 //                    registered for issuing, often not where it operates (a French group issuing under XS or LU).
@@ -54,6 +56,7 @@ export function classifyRow(r: Record<string, unknown>, issuer: string | null): 
   let country = countryName(r.issuer_country);
   let countrySource: ClassSource = country ? "feed" : null;
   if (!country) { country = countryName(r.country); countrySource = country ? "feed-legacy" : null; }
+  if (!country) { country = countryName(issuerCountryOf(issuer)); countrySource = country ? "table" : null; }
   const government = sector === "Government & agencies" || (typeof r.issuer_type === "string" && GOV_TYPES.test(r.issuer_type.trim()));
   if (!country && government) { country = countryName(isin.slice(0, 2)); countrySource = country ? "isin-prefix" : null; }
   return { country, countrySource, sector: sector ?? null, sectorSource };
