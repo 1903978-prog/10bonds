@@ -7,7 +7,9 @@ export const MC_RECOVERY = 0.4;
 
 /** `samples`: the first MC_SAMPLES simulated paths, as the portfolio's value (100 at the start) at MC_STEPS+1 even points of the horizon, drawn while the search runs. */
 /** `es5`: the average yield (annual, %) of the worst 5% of paths (Expected Shortfall 95%). */
-export type MonteCarloResult = { paths: number; expYield: number | null; p5: number | null; es5?: number | null; samples: number[][] };
+/** `defaults`: share of paths with at least one default, and the share with exactly k defaults (index k, 0..n). `quantiles`: annual yield (%) that this share of paths falls below. */
+export type McDefaultStats = { anyDefault: number; countShare: number[]; quantiles: { p1: number | null; p5: number | null; p25: number | null; p50: number | null } };
+export type MonteCarloResult = { paths: number; expYield: number | null; p5: number | null; es5?: number | null; samples: number[][]; defaults?: McDefaultStats };
 /** Optional stress for a run: default chances times `pdMult` (capped at 1), loss given default plus `lgdAdd` (capped at 1). */
 export type McStress = { pdMult?: number; lgdAdd?: number };
 export const MC_SAMPLES = 60;
@@ -66,19 +68,22 @@ export function simulatePortfolio(bonds: { ytm: number; risk: number | null | un
   const bins = new Uint32Array(Math.ceil(TOP / BIN));
   const last = bins.length - 1;
   const samples: number[][] = [];
+  const counts = new Uint32Array(n + 1);
   const at = new Float64Array(n); // default time per bond in the path being sampled (Infinity: no default)
   for (let p = 0; p < paths; p++) {
-    let v = 0;
+    let v = 0, nd = 0;
     for (let i = 0; i < n; i++) {
       const u = rand();
       if (u < pd[i]) {
         v += Math.pow(1 + y[i], (years * u) / pd[i]) * rec[i];
         at[i] = (years * u) / pd[i];
+        nd++;
       } else {
         v += full[i];
         at[i] = Infinity;
       }
     }
+    counts[nd]++;
     if (p < MC_SAMPLES) samples.push(samplePath(y, at, years, rec));
     const k = Math.floor(v / n / BIN);
     bins[k > last ? last : k]++;
@@ -86,14 +91,19 @@ export function simulatePortfolio(bonds: { ytm: number; risk: number | null | un
   const yieldOf = (k: number) => Math.pow((k + 0.5) * BIN, 1 / years) - 1;
   let sum = 0, seen = 0, p5: number | null = null, tail = 0;
   const tailN = paths * 0.05;
+  const qAt: Record<"p1" | "p25" | "p50", number | null> = { p1: null, p25: null, p50: null };
+  const qShare = { p1: 0.01, p25: 0.25, p50: 0.5 } as const;
   for (let k = 0; k <= last; k++) {
     if (!bins[k]) continue;
     sum += bins[k] * yieldOf(k);
     if (seen < tailN) tail += Math.min(bins[k], tailN - seen) * yieldOf(k);
     seen += bins[k];
     if (p5 === null && seen >= tailN) p5 = yieldOf(k) * 100;
+    for (const q of ["p1", "p25", "p50"] as const) if (qAt[q] === null && seen >= paths * qShare[q]) qAt[q] = yieldOf(k) * 100;
   }
-  return { paths, expYield: (sum / paths) * 100, p5, es5: (tail / tailN) * 100, samples };
+  const countShare = Array.from(counts, (c) => c / paths);
+  const defaults: McDefaultStats = { anyDefault: 1 - countShare[0], countShare, quantiles: { ...qAt, p5 } };
+  return { paths, expYield: (sum / paths) * 100, p5, es5: (tail / tailN) * 100, samples, defaults };
 }
 
 /** One simulated path as portfolio value over time: each bond grows at its yield until it defaults, then keeps MC_RECOVERY of its value. */

@@ -18,6 +18,10 @@ import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
 import { frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
 import { activeFallback } from "@/lib/enginePolicy";
+import { buildManifest } from "@/lib/runManifest";
+import { simulatePortfolio } from "@/lib/monteCarlo";
+import { listLifeLoss } from "@/lib/expectedLoss";
+import { pdOf } from "@/lib/tiers";
 import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, activePolicy } from "@/lib/coherence";
 import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
@@ -148,13 +152,25 @@ export async function GET(req: Request) {
   const paid = has("portfolio_sim");
   // Others see the drawn paths relative to the best one at each step (drops from defaults, not the growth, which would give away the average yield).
   const best = sim.samples.length ? sim.samples[0].map((_, k) => Math.max(...sim.samples.map((s) => s[k]))) : [];
-  const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null, samples: sim.samples.map((s) => s.map((v, k) => Math.round((v / best[k]) * 1000) / 10)) };
+  const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null, es5: null, defaults: undefined, samples: sim.samples.map((s) => s.map((v, k) => Math.round((v / best[k]) * 1000) / 10)) };
+  // Admin only (internal audit): complete record of this run, plus a re-test of the same list on an independent simulation (other seed).
+  const manifest = user?.isAdmin
+    ? (() => {
+        const re = simulatePortfolio(results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b) })), duration, 1_000_000, 2);
+        const avg = (f: (b: RankedBond) => number | null | undefined) => (results.length ? results.reduce((s, b) => s + (f(b) ?? 0), 0) / results.length : null);
+        return buildManifest({
+          src: data, inputs: { duration, ytm, risk, filter }, status, isins: results.map((b) => b.isin), cert: coherent?.cert, mc: sim,
+          outputs: { ytm: avg((b) => b.grossYtm), duration: avg((b) => b.modifiedDuration), expectedLossPct: listLifeLoss(results.map(pdOf), results.map(lgdOf)) },
+          revalidation: { paths: re.paths, seed: 2, expYield: re.expYield, p5: re.p5, diffExpYield: re.expYield != null && sim.expYield != null ? re.expYield - sim.expYield : null, diffP5: re.p5 != null && sim.p5 != null ? re.p5 - sim.p5 : null },
+        });
+      })()
+    : undefined;
   // With "swap": the bonds left out, to swap into the list; with "why_table" also why each one is out.
   const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, manifest, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

@@ -27,4 +27,22 @@ describe("monte carlo", () => {
     simulatePortfolio(Array.from({ length: 10 }, (_, i) => ({ ytm: 4 + i / 3, risk: 1 + (i % 8) })), 7);
     expect(performance.now() - t).toBeLessThan(1500);
   });
+
+  it("default statistics match the exact Poisson-binomial law of independent defaults", () => {
+    const bonds = [1, 3, 5, 6, 7, 8, 9, 9, 10, 4].map((risk) => ({ ytm: 5, risk }));
+    const years = 6;
+    const pd = bonds.map((b) => defaultProbability(b.risk, years));
+    let exact = [1];
+    for (const q of pd) exact = [...exact.map((x) => x * (1 - q)), 0].map((x, k) => x + (k > 0 ? exact[k - 1] * q : 0));
+    const r = simulatePortfolio(bonds, years, 400_000);
+    const d = r.defaults!;
+    expect(d.countShare).toHaveLength(bonds.length + 1);
+    expect(d.countShare.reduce((s, x) => s + x, 0)).toBeCloseTo(1, 9);
+    exact.forEach((x, k) => expect(Math.abs(d.countShare[k] - x)).toBeLessThan(0.004));
+    expect(d.anyDefault).toBeCloseTo(1 - exact[0], 2);
+    const { p1, p5, p25, p50 } = d.quantiles;
+    expect(p1!).toBeLessThanOrEqual(p5!);
+    expect(p5!).toBeLessThanOrEqual(p25!);
+    expect(p25!).toBeLessThanOrEqual(p50!);
+  });
 });

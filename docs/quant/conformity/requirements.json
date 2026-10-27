@@ -369,12 +369,12 @@
   "w": 1,
   "req": "Shortlist re-tested on separate larger sample",
   "orig": "M",
-  "live": "M",
-  "A": "M",
-  "B": "M",
-  "builtOff": "M",
+  "live": "P",
+  "A": "P",
+  "B": "P",
+  "builtOff": "P",
   "blocker": "code",
-  "next": "Wire MC revalidation of each served list"
+  "next": "Revalidation runs per admin request only; run it for every served list in the rebuild job"
  },
  {
   "id": 30,
@@ -382,12 +382,13 @@
   "w": 1,
   "req": "Any-default frequency, default count, quantiles",
   "orig": "P",
-  "live": "P",
-  "A": "P",
-  "B": "P",
-  "builtOff": "P",
-  "blocker": "code",
-  "next": "Add to Monte Carlo output"
+  "live": "I",
+  "A": "I",
+  "B": "I",
+  "builtOff": "I",
+  "blocker": "",
+  "next": "",
+  "note": "Computed for every served list; returned to paid API users and in the admin manifest; not shown on the page"
  },
  {
   "id": 31,
@@ -486,12 +487,12 @@
   "w": 2,
   "req": "House limits stored with each result",
   "orig": "I",
-  "live": "P",
-  "A": "P",
-  "B": "P",
-  "builtOff": "P",
-  "blocker": "code",
-  "next": "Complete in run manifest (row 42)"
+  "live": "I",
+  "A": "I",
+  "B": "I",
+  "builtOff": "I",
+  "blocker": "",
+  "next": ""
  },
  {
   "id": 39,
@@ -538,12 +539,13 @@
   "w": 3,
   "req": "Result tied to method version and data snapshot",
   "orig": "P",
-  "live": "P",
-  "A": "P",
-  "B": "P",
-  "builtOff": "P",
-  "blocker": "code",
-  "next": "Full live manifest"
+  "live": "I",
+  "A": "I",
+  "B": "I",
+  "builtOff": "I",
+  "blocker": "",
+  "next": "",
+  "note": "Admin response carries a full manifest (PR: run manifest); not yet stored in a table"
  },
  {
   "id": 43,
