@@ -11,10 +11,10 @@ import { fmtDate, loadMe, type Me } from "@/lib/me";
  * (bond names and ISIN codes blurred) until the address is confirmed. Admin is never blocked.
  */
 const GATE = {
-  en: { title: "Please confirm your e-mail", body: "We sent a confirmation e-mail to", after: "Click the button in it, then come back here. This page unlocks by itself.", spam: "No e-mail? Check your spam folder.", again: "Send again", sent: "Sent. Please check your inbox.", fail: "Could not send. Please try later." },
-  it: { title: "Conferma la tua e-mail", body: "Abbiamo inviato un'e-mail di conferma a", after: "Clicca il pulsante nell'e-mail e torna qui. La pagina si sblocca da sola.", spam: "Nessuna e-mail? Controlla lo spam.", again: "Invia di nuovo", sent: "Inviata. Controlla la posta in arrivo.", fail: "Invio non riuscito. Riprova più tardi." },
-  fr: { title: "Confirmez votre e-mail", body: "Nous avons envoyé un e-mail de confirmation à", after: "Cliquez sur le bouton, puis revenez ici. La page se débloque toute seule.", spam: "Pas d'e-mail ? Vérifiez vos spams.", again: "Renvoyer", sent: "Envoyé. Vérifiez votre boîte de réception.", fail: "Envoi impossible. Réessayez plus tard." },
-  de: { title: "Bitte bestätige deine E-Mail", body: "Wir haben eine Bestätigungs-E-Mail gesendet an", after: "Klicke auf den Button und komm hierher zurück. Die Seite entsperrt sich von selbst.", spam: "Keine E-Mail? Prüfe den Spam-Ordner.", again: "Erneut senden", sent: "Gesendet. Bitte Posteingang prüfen.", fail: "Senden fehlgeschlagen. Bitte später erneut versuchen." },
+  en: { failed: "We could not send the confirmation e-mail to", retry: "Press “Send again” below.", title: "Please confirm your e-mail", body: "We sent a confirmation e-mail to", after: "Click the button in it, then come back here. This page unlocks by itself.", spam: "No e-mail? Check your spam folder.", again: "Send again", sent: "Sent. Please check your inbox.", fail: "Could not send. Please try later." },
+  it: { failed: "Non siamo riusciti a inviare l'e-mail di conferma a", retry: "Premi «Invia di nuovo» qui sotto.", title: "Conferma la tua e-mail", body: "Abbiamo inviato un'e-mail di conferma a", after: "Clicca il pulsante nell'e-mail e torna qui. La pagina si sblocca da sola.", spam: "Nessuna e-mail? Controlla lo spam.", again: "Invia di nuovo", sent: "Inviata. Controlla la posta in arrivo.", fail: "Invio non riuscito. Riprova più tardi." },
+  fr: { failed: "Nous n'avons pas pu envoyer l'e-mail de confirmation à", retry: "Appuyez sur « Renvoyer » ci-dessous.", title: "Confirmez votre e-mail", body: "Nous avons envoyé un e-mail de confirmation à", after: "Cliquez sur le bouton, puis revenez ici. La page se débloque toute seule.", spam: "Pas d'e-mail ? Vérifiez vos spams.", again: "Renvoyer", sent: "Envoyé. Vérifiez votre boîte de réception.", fail: "Envoi impossible. Réessayez plus tard." },
+  de: { failed: "Wir konnten die Bestätigungs-E-Mail nicht senden an", retry: "Drücke unten auf „Erneut senden“.", title: "Bitte bestätige deine E-Mail", body: "Wir haben eine Bestätigungs-E-Mail gesendet an", after: "Klicke auf den Button und komm hierher zurück. Die Seite entsperrt sich von selbst.", spam: "Keine E-Mail? Prüfe den Spam-Ordner.", again: "Erneut senden", sent: "Gesendet. Bitte Posteingang prüfen.", fail: "Senden fehlgeschlagen. Bitte später erneut versuchen." },
 } as const;
 
 function gateLang(): keyof typeof GATE {
@@ -33,6 +33,7 @@ export default function AccountNotices() {
   const [withCode, setWithCode] = useState(false);
   const [confirmed, setConfirmed] = useState<string | null>(null);
   const [resend, setResend] = useState<string | null>(null);
+  const [mailFailed, setMailFailed] = useState(false);
   const [notYet, setNotYet] = useState(false);
   const [checking, setChecking] = useState(false);
 
@@ -40,6 +41,7 @@ export default function AccountNotices() {
     const q = new URLSearchParams(window.location.search);
     setWelcome(q.get("welcome") === "1" || q.get("welcome") === "code");
     setWithCode(q.get("welcome") === "code");
+    setMailFailed(q.get("mail") === "0");
     setConfirmed(q.get("confirmed"));
     if (q.get("confirmed") === "1") trackOnce("email_verified");
     loadMe().then(setMe);
@@ -67,6 +69,7 @@ export default function AccountNotices() {
     const url = new URL(window.location.href);
     url.searchParams.delete("welcome");
     url.searchParams.delete("confirmed");
+    url.searchParams.delete("mail");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
   };
 
@@ -84,7 +87,11 @@ export default function AccountNotices() {
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-xl">✉️</div>
             <h2 id="gate-title" className="mt-3 text-[18px] font-semibold text-ink">{g.title}</h2>
-            <p className="mt-2 text-[14px] leading-snug text-ink/80">{g.body} <span className="break-all font-medium text-ink">{me.email}</span>. {g.after}</p>
+            {mailFailed && gateMsg !== g.sent ? (
+              <p className="mt-2 text-[14px] leading-snug text-amber-800" data-testid="confirm-gate-failed">{g.failed} <span className="break-all font-medium">{me.email}</span>. {g.retry}</p>
+            ) : (
+              <p className="mt-2 text-[14px] leading-snug text-ink/80">{g.body} <span className="break-all font-medium text-ink">{me.email}</span>. {g.after}</p>
+            )}
             <p className="mt-2 text-[13px] text-mute">{g.spam}</p>
             <button
               disabled={gateBusy}
