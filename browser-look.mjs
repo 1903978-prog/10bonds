@@ -6,6 +6,10 @@ const agree = fs.readFileSync("lib/consentText.ts", "utf8").match(/CONSENT_VERSI
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 await ctx.addInitScript((v) => { localStorage.setItem("tb_agree", v); localStorage.setItem("tb_cookie_consent", JSON.stringify({ necessary: true, statistics: false, marketing: false, at: Date.now() })); }, agree);
 const p = await ctx.newPage();
+const T0 = Date.now(); const starts = new Map();
+p.on("request", (r) => starts.set(r, Date.now()));
+p.on("response", (r) => { const u = r.url(); if (u.includes("/api/")) console.log(`  net ${Date.now() - T0} ms ${r.status()} ${Date.now() - (starts.get(r.request()) ?? Date.now())} ms ${u.replace("https://10bonds.com", "").slice(0, 110)}`); });
+
 const errors = [];
 p.on("pageerror", (e) => errors.push(e.message));
 const t0 = Date.now();
