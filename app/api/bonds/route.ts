@@ -117,7 +117,11 @@ export async function GET(req: Request) {
     }
   }
   if (coherent && !frontierResults?.length && activeFallback() === "none")
-    return NextResponse.json({ status: "INFEASIBLE", results: [], inputs: { duration, ytm, risk }, source: data.source, scanned: data.bonds.length, asOf: data.asOf }, { headers: { "Cache-Control": "no-store" } });
+    // Paper 7.1: no optimised list means no list. Same payload shape as a normal answer, with no rows, so the page shows its "not available" state.
+    return NextResponse.json(
+      { ...shapeForTier([], tier, features, user?.isAdmin === true), features: withoutListEdits(features), excluded: false, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, asOf: data.asOf, durationBand: portfolioPool(withinRisk(data.bonds, LIMITS.risk.max), duration).band, inputs: { duration, ytm, risk }, nearest: false, status: "INFEASIBLE" },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   const { results, band, engine } = frontierResults?.length
     ? {
         results: frontierResults,
