@@ -132,9 +132,17 @@ export default async function EnglishKnowledgePage({ params }: Props) {
       {crumbs(g.title, enPath(g.slug))}
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
         <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{g.title}</h1>
-        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{g.published && <> · <time dateTime={g.published}>{new Date(g.published).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}</p>
+        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{g.published && <> · <time dateTime={g.published}>{new Date(g.published).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}{g.updated && g.updated !== g.published && <> · Updated <time dateTime={g.updated}>{new Date(g.updated).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}</p>
         <div className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: body }} />
       </div>
+      {g.revisions && g.revisions.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Revision log</h2>
+          <ul className="mt-3 text-[15px] text-mute">
+            {g.revisions.map((r) => <li key={r.date + r.note}><time dateTime={r.date}>{new Date(r.date).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time>: {r.note}</li>)}
+          </ul>
+        </section>
+      )}
       {compare.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Compare euro bonds</h2>

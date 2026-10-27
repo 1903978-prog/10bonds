@@ -79,7 +79,7 @@ export async function runAssessment(by: string, trigger: string, opts: { psi?: b
       crawl,
       guides: isEuMarket(m)
         ? guides.filter((g) => g.locale === m).map((g) => ({ ...g, logCount: logs[g.id] ?? 0 }))
-        : EN_GUIDES.map((g) => ({ slug: g.slug, seoTitle: g.seoTitle, metaDescription: g.metaDescription, primaryKeyword: g.primaryKeyword, relatedKeywords: [], reviewerId: null, reviewedAt: null, logCount: 0 })),
+        : EN_GUIDES.map((g) => ({ slug: g.slug, seoTitle: g.seoTitle, metaDescription: g.metaDescription, primaryKeyword: g.primaryKeyword, relatedKeywords: g.relatedKeywords ?? [], reviewerId: null, reviewedAt: null, logCount: g.revisions?.length ?? 0 })),
       people,
       dataSource: data?.source ?? null,
       backlinks,
