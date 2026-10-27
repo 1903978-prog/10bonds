@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic";
  * 202 while the positions are still being worked out.
  */
 export async function GET(req: Request) {
-  if (!allow(`slider:${clientIp(req)}`, 60, 60_000))
-    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+  if (!allow(`slider:${clientIp(req)}`, 300, 60_000))
+    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429, headers: { "Retry-After": "5" } });
   const url = new URL(req.url);
   const duration = Number(url.searchParams.get("duration"));
   if (!TERMS.some((t) => t.duration === duration)) return NextResponse.json({ error: "Unknown horizon." }, { status: 400 });

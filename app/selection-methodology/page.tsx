@@ -5,7 +5,6 @@ import { fill } from "@/lib/rankingMethod";
 import { SELECTION_TEXT } from "@/lib/selectionMethod";
 import { DURATION_WINDOW } from "@/lib/ranking";
 import { LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
-import { MC_PATHS, MC_RECOVERY } from "@/lib/monteCarlo";
 import { OUTLIER_MIN_PEERS } from "@/lib/outliers";
 import { currentOutlierSd } from "@/lib/bonds";
 import { LANDING_TEXT } from "@/lib/landingText";
@@ -30,7 +29,7 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
   const t = SELECTION_TEXT[lang];
   const sd = await currentOutlierSd();
   const num = (n: number) => new Intl.NumberFormat(lang).format(n);
-  const v = { window: DURATION_WINDOW * 100, lgd: LOSS_GIVEN_DEFAULT * 100, recovery: MC_RECOVERY * 100, paths: num(MC_PATHS), peers: OUTLIER_MIN_PEERS, sd: num(sd) };
+  const v = { window: DURATION_WINDOW * 100, lgd: LOSS_GIVEN_DEFAULT * 100, peers: OUTLIER_MIN_PEERS, sd: num(sd) };
   const card = "overflow-hidden rounded-lg border border-line bg-white";
   const head = "px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-mute";
 
@@ -69,12 +68,6 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
               </li>
             ))}
           </ol>
-        </section>
-        <section className={card}>
-          <h2 className={head}>{t.mcHead}</h2>
-          <div className="space-y-2 px-4 pb-3 text-[12px] leading-snug">
-            {t.mc.map((s) => <p key={s}>{fill(s, v)}</p>)}
-          </div>
         </section>
       </div>
 

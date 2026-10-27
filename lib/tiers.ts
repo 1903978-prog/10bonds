@@ -1,7 +1,7 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { averages, RESULT_COUNT, UNRATED_NOTCH } from "./ranking";
 import { averageRisk, bondNotch, bondRisk } from "./ratings";
-import { bondLossChance, listLifeLoss, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
+import { bondLossChance, listLifeLoss, listLossChance, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
 import { lgdOf, rankOf, RANK_LABEL, type Rank } from "./seniority";
 import { lifeYears } from "./lifeYears";
 import { sectorOf } from "./sectors";
@@ -64,7 +64,7 @@ export type ResultsPayload = {
   tier: Tier;
   rows: ResultRow[];
   lockedCount: number;
-  summary: { count: number; avgYtm: number | null; avgDuration: number | null; avgRisk: number | null; lifeLoss: number | null } | null;
+  summary: { count: number; avgYtm: number | null; avgDuration: number | null; avgRisk: number | null; lifeLoss: number | null; /** Chance in % that at least one issuer defaults before its bond matures (closed form). */ anyDefault?: number | null } | null;
 };
 
 /** Chance in % the bond defaults before it matures, rounded to 0.001. */
@@ -119,6 +119,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
           avgDuration: avg.duration,
           avgRisk: averageRisk(ranked.map(bondRisk)),
           lifeLoss: ranked.length ? listLifeLoss(ranked.map(pdOf), ranked.map(lgdOf)) : null,
+          anyDefault: ranked.length ? listLossChance(ranked.map(pdOf)) : null,
         }
       : null,
   };

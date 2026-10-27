@@ -22,10 +22,28 @@ export default function Frontier({ currency, band }: { currency: string; band?: 
   const [size, setSize] = useState({ w: 680, h: 360 });
 
   useEffect(() => {
-    fetch(`/api/bonds/frontier?${new URLSearchParams({ currency })}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((b) => b && setData({ dots: b.dots ?? [], picks: b.picks ?? [] }))
-      .catch(() => {});
+    // Last dots seen in this browser show at once; the fresh ones replace them. A failed or slow answer is asked again.
+    const key = `frontier-dots:${currency}`;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) setData(JSON.parse(saved));
+    } catch {}
+    const load = (tries: number) =>
+      fetch(`/api/bonds/frontier?${new URLSearchParams({ currency })}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((b) => {
+          if (stop) return;
+          if (b?.dots?.length) {
+            const d = { dots: b.dots, picks: b.picks ?? [] };
+            setData(d);
+            try { localStorage.setItem(key, JSON.stringify(d)); } catch {}
+          } else if (tries < 30) timer = setTimeout(() => load(tries + 1), Math.min(1000 * (tries + 1), 5000));
+        })
+        .catch(() => { if (!stop && tries < 30) timer = setTimeout(() => load(tries + 1), Math.min(1000 * (tries + 1), 5000)); });
+    load(0);
+    return () => { stop = true; clearTimeout(timer); };
   }, [currency]);
 
   useEffect(() => {

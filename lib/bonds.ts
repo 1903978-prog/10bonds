@@ -56,13 +56,33 @@ export async function loadBonds(): Promise<BondSource> {
 /** The bonds for one choice of currency and minimum order size. */
 export async function loadBondsFor(f: BondFilter, sd?: number): Promise<BondSource> {
   const all = await loadAllBonds(sd);
-  return withAsOf(applyFilter(all.bonds, f), all.source);
+  // The same filter on the same copy gives the same array (it is the key of the per-copy caches that other modules keep).
+  let byFilter = filtered.get(all.bonds);
+  if (!byFilter) filtered.set(all.bonds, (byFilter = new Map()));
+  const fk = `${f.currency}|${f.size}`;
+  let bonds = byFilter.get(fk);
+  if (!bonds) byFilter.set(fk, (bonds = applyFilter(all.bonds, f)));
+  return withAsOf(bonds, all.source);
 }
+const filtered = new WeakMap<object, Map<string, PublicBond[]>>();
 
 async function loadAllBonds(sd?: number): Promise<BondSource> {
   const k = sd ?? (await currentOutlierSd());
-  if (!cache || Date.now() - cache.at >= CACHE_MS) await reload();
+  await ensureLoaded();
   return withAsOf(outlierCut(k).bonds, cache!.source);
+}
+
+// One read at a time: before this, every request that found the copy missing (after a restart) or an hour old read and
+// processed the whole table itself, so a busy minute held a dozen copies in memory and stalled the server. Now the first
+// asker reads, the others wait for that read, and an hour-old copy keeps being served while the new one is read.
+let loading: Promise<void> | null = null;
+function startReload(): Promise<void> {
+  loading ??= reload().finally(() => { loading = null; });
+  return loading;
+}
+async function ensureLoaded(): Promise<void> {
+  if (!cache) return startReload();
+  if (Date.now() - cache.at >= CACHE_MS) startReload().catch((e) => console.error("[bonds] refresh failed:", (e as Error).message));
 }
 
 async function reload() {
@@ -214,9 +234,15 @@ export function dropStale(bonds: PublicBond[]): PublicBond[] {
   return bonds.filter((b) => !b.ytmAsOf || Date.parse(b.ytmAsOf) >= limit);
 }
 
+const asOfOf = new WeakMap<object, string | null>();
 function withAsOf(bonds: PublicBond[], source: "live" | "sample"): BondSource {
-  const dates = bonds.map((b) => b.ytmAsOf).filter((d): d is string => !!d).sort();
-  return { bonds, source, asOf: dates.at(-1) ?? null };
+  let asOf = asOfOf.get(bonds);
+  if (asOf === undefined) {
+    asOf = null;
+    for (const b of bonds) if (b.ytmAsOf && (asOf === null || b.ytmAsOf > asOf)) asOf = b.ytmAsOf;
+    asOfOf.set(bonds, asOf);
+  }
+  return { bonds, source, asOf };
 }
 
 function num(v: unknown): number | null {

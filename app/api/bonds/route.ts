@@ -5,10 +5,9 @@ import { cleanSd } from "@/lib/outliers";
 import { parseFilter } from "@/lib/bondFilter";
 import { shapeForTier, tierFeatures } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
-import { simulateCached } from "@/lib/monteCarlo";
 import { lgdOf } from "@/lib/seniority";
-import { bondNotch, bondRisk } from "@/lib/ratings";
-import type { RankedBond, Tier } from "@/lib/types";
+import { bondNotch } from "@/lib/ratings";
+import type { PublicBond, RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
 import { publicQuota, consumeSearch, refundSearch } from "@/lib/searchQuota";
@@ -19,7 +18,6 @@ import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
 import { frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
 import { activeFallback } from "@/lib/enginePolicy";
 import { buildManifest } from "@/lib/runManifest";
-import { simulatePortfolio } from "@/lib/monteCarlo";
 import { listLifeLoss } from "@/lib/expectedLoss";
 import { pdOf } from "@/lib/tiers";
 import { bundCurve } from "@/lib/riskPremium/benchmark";
@@ -39,15 +37,31 @@ function clampParam(raw: string | null, { min, max, initial }: { min: number; ma
 }
 
 /** The two ends of the slider follow the end rules (lib/coherentFrontier.ts END_POLICY), not the rating window. */
+// The alphabetical numbering is the same for every request on the same bonds: worked out once per copy of the table (a
+// sort with localeCompare on every request cost seconds on a busy small machine), with one shared collator.
+const collator = new Intl.Collator("en");
+const places = new WeakMap<object, Map<string, number>>();
+function alphabeticalPlaces(bonds: PublicBond[]): Map<string, number> {
+  let hit = places.get(bonds);
+  if (!hit) {
+    const abc = [...bonds].sort((a, b) => collator.compare(a.issuer ?? a.name, b.issuer ?? b.name) || collator.compare(a.name, b.name) || collator.compare(a.isin, b.isin));
+    hit = new Map(abc.map((b, i) => [b.isin, i + 1]));
+    places.set(bonds, hit);
+  }
+  return hit;
+}
+
 const isEnd = (pts: { end?: string; isins: string[] }[], rows: RankedBond[]) => {
   const k = rows.map((r) => r.isin).sort().join();
   return pts.some((p) => p.end && p.isins.join() === k);
 };
 
 export async function GET(req: Request) {
-  // Sliders send one request per move; 240 a minute per address (both bond routes together) is far above normal use.
-  if (!allow(`bonds:${clientIp(req)}`, 240, 60_000))
-    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+  // Sliders send one request per move and a waiting search asks again every few seconds: signed-in accounts (which have
+  // their own search allowance) are not limited here, visitors get 600 a minute per address.
+  const signedIn = await currentUser();
+  if (!signedIn && !allow(`bonds:${clientIp(req)}`, 600, 60_000))
+    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429, headers: { "Retry-After": "5" } });
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const ytm = clampParam(url.searchParams.get("ytm"), LIMITS.ytm);
@@ -55,7 +69,6 @@ export async function GET(req: Request) {
 
   // The tier comes from the signed-in account (server side). Other views can be previewed on sample data only.
   // An account whose e-mail is still unconfirmed after the grace period searches like a visitor.
-  const signedIn = await currentUser();
   const user = signedIn?.confirmBlocked ? null : signedIn;
   // Outlier rule (lib/outliers.ts): users get the saved number of standard deviations; the admin can try another (os).
   const liveSd = await currentOutlierSd();
@@ -146,27 +159,18 @@ export async function GET(req: Request) {
   const outliers = user?.isAdmin
     ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
     : undefined;
-  // A real Monte Carlo run of defaults on this top 10 over the chosen horizon. Its averages come with "portfolio_sim".
-  const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b) })), duration);
   // Every bond searched numbered 1..N in alphabetical order (issuer, then name, then ISIN); the show on the page counts up to each pick's number.
-  const abc = [...data.bonds].sort((a, b) => (a.issuer ?? a.name).localeCompare(b.issuer ?? b.name, "en") || a.name.localeCompare(b.name, "en") || a.isin.localeCompare(b.isin));
-  const place = new Map(abc.map((b, i) => [b.isin, i + 1]));
+  const place = alphabeticalPlaces(data.bonds);
   const found = results.slice(0, 10).map((b) => place.get(b.isin) ?? 0);
-  const paid = has("portfolio_sim");
-  // Others see the drawn paths relative to the best one at each step (drops from defaults, not the growth, which would give away the average yield).
-  const best = sim.samples.length ? sim.samples[0].map((_, k) => Math.max(...sim.samples.map((s) => s[k]))) : [];
-  const monteCarlo = paid ? sim : { ...sim, expYield: null, p5: null, es5: null, defaults: undefined, samples: sim.samples.map((s) => s.map((v, k) => Math.round((v / best[k]) * 1000) / 10)) };
-  // Admin only (internal audit): complete record of this run, plus a re-test of the same list on an independent simulation (other seed).
+  // Admin only (internal audit): complete record of this run.
   const manifest = user?.isAdmin
     ? (() => {
-        const re = simulatePortfolio(results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b) })), duration, 1_000_000, 2);
         const avg = (f: (b: RankedBond) => number | null | undefined) => (results.length ? results.reduce((s, b) => s + (f(b) ?? 0), 0) / results.length : null);
         const bund = bundCurve(data.bonds, data.asOf).points;
         return buildManifest({
           spreadDiagnostics: Object.fromEntries(results.map((b) => [b.isin, spreadDiagnostic({ notch: bondNotch(b), currency: b.currency, years: lifeYears(b), ytm: b.grossYtm }, bund)])),
-          src: data, inputs: { duration, ytm, risk, filter }, status, isins: results.map((b) => b.isin), cert: coherent?.cert, mc: sim,
+          src: data, inputs: { duration, ytm, risk, filter }, status, isins: results.map((b) => b.isin), cert: coherent?.cert,
           outputs: { ytm: avg((b) => b.grossYtm), duration: avg((b) => b.modifiedDuration), expectedLossPct: listLifeLoss(results.map(pdOf), results.map(lgdOf)) },
-          revalidation: { paths: re.paths, seed: 2, expYield: re.expYield, p5: re.p5, diffExpYield: re.expYield != null && sim.expYield != null ? re.expYield - sim.expYield : null, diffP5: re.p5 != null && sim.p5 != null ? re.p5 - sim.p5 : null },
         });
       })()
     : undefined;
@@ -175,7 +179,7 @@ export async function GET(req: Request) {
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, manifest, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, manifest, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

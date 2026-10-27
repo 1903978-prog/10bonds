@@ -14,7 +14,6 @@ import { RANK_LABEL } from "@/lib/seniority";
 import LossChart, { slopeAt } from "@/components/LossChart";
 import LockedChart from "@/components/LockedChart";
 import Diversification from "@/components/Diversification";
-import OptimalPanel, { OptimalButton, useOptimal } from "@/components/OptimalPanel";
 import AllCurvesChart, { type MPoint, type PickedPoint } from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
 import { useShortlistDots } from "@/lib/shortlistStore";
@@ -29,7 +28,6 @@ import Frontier from "./Frontier";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import type { BondFilter } from "@/lib/bondFilter";
 import { ageDays, isStale } from "@/lib/dataHealth";
-import { MC_PATHS } from "@/lib/monteCarlo";
 import { loadMe } from "@/lib/me";
 import ConsentGate from "./ConsentGate";
 import WhyTable from "./WhyTable";
@@ -58,7 +56,6 @@ type Response = ResultsPayload & {
   issuers?: number; // Different issuers among the bonds searched
   found?: number[];
   status?: string; // READY / UPDATING / NEAREST_POINT / INFEASIBLE (spread-rules answers)
-  monteCarlo?: { paths: number; expYield: number | null; p5: number | null; samples: number[][] };
   asOf: string | null;
   durationBand: number;
   inputs: { duration: number; ytm: number; risk: number };
@@ -184,11 +181,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [heatMethod, setHeatMethod] = useState<HeatMethod>("m1");
   const [heatPick, setHeatPick] = useState<{ ytm: number; duration: number } | null>(null);
   const [heatBl, setHeatBl] = useState(false);
-  // Admin Multi-year chart: "Find Optimal Portfolio" (lib/optimalBuild.ts). A picked maturity row shows its 10 bonds on the right through heatPick.
   const [showAll, setShowAll] = useState(false);
-  const [optAsked, setOptAsked] = useState(false);
-  const [optShown, setOptShown] = useState(false);
-  const [optSel, setOptSel] = useState<number | null>(null);
   // Multi-year chart: a curve selected by its legend year, and the real list picked on it; that list shows on the right through heatPick.
   const [selDur, setSelDur] = useState<number | null>(null);
   const [picked, setPicked] = useState<PickedPoint | null>(null);
@@ -250,15 +243,24 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     if (!TERMS.some((x) => x.duration === duration)) { setPositions(null); return; }
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    setPositions(null);
+    // The last positions seen in this browser fill the chart dots and tiles at once; fresh ones replace them.
+    const ck = `slider-pos:${duration}:${currency}:${size}:${method ?? ""}`;
+    let cached: SliderPosition[] | null = null;
+    try { const c = localStorage.getItem(ck); if (c) cached = JSON.parse(c); } catch {}
+    setPositions(cached?.length ? cached : null);
     const load = (tries: number) =>
       fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
-          if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
-          else if (r.ok) setPositions((await r.json()).positions);
+          if ((r.status === 202 || !r.ok) && tries < 60) timer = setTimeout(() => load(tries + 1), r.status === 429 ? 5000 : tries < 5 ? 1000 : 3000);
+          else if (r.ok) {
+            const ps = (await r.json()).positions;
+            if (stop) return;
+            setPositions(ps);
+            try { localStorage.setItem(ck, JSON.stringify(ps)); } catch {}
+          }
         })
-        .catch(() => {});
+        .catch(() => { if (!stop && tries < 60) timer = setTimeout(() => load(tries + 1), 3000); });
     load(0);
     return () => { stop = true; clearTimeout(timer); };
   }, [duration, currency, size, method]);
@@ -347,14 +349,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         let res: globalThis.Response | null = null;
         let body = null;
         // The spread-rules lists are built in the background (202 until ready): keep asking, up to a few minutes.
-        for (let i = 0; i < 4 || (res?.status === 202 && i < 90); i++) {
-          if (i) await new Promise((done) => setTimeout(done, res?.status === 202 ? 3000 : 1500));
+        // A busy answer (429) is waited out like a pending one, never shown as an error.
+        const wait = (r: globalThis.Response | null) => !r ? 1500 : r.status === 202 ? 3000 : r.status === 429 ? 5000 : 1500;
+        for (let i = 0; i < 4 || ((res?.status === 202 || res?.status === 429) && i < 90); i++) {
+          if (i) await new Promise((done) => setTimeout(done, wait(res)));
           res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
           body = await res.json().catch(() => null);
-          if (body && res.status < 500 && res.status !== 202) break;
+          if (body && res.status < 500 && res.status !== 202 && res.status !== 429) break;
         }
         if (!res || !body) throw new Error(errText);
-        if (res.status === 202) throw new Error("The spread-rules lists are still being calculated. Try again in a minute.");
+        if (res.status === 202 || res.status === 429) throw new Error("The lists are still being calculated. Try again in a minute.");
         // A slower, older search never replaces a newer answer already on screen.
         if (seq < appliedSeq.current) return;
         appliedSeq.current = seq;
@@ -412,18 +416,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const view = !chartOn ? "list" : showHeat ? "heat" : showAll ? "multi" : "chart";
   // Each view is real for the admin and for plans that have it (/admin/features); everyone else gets the blurred decoy.
   const viewLocked = view === "heat" ? !canHeat : view === "multi" ? !canMulti : chartLocked;
-  const opt = useOptimal(isAdmin && optAsked && chartOn && chartable, currency, size);
-  const optReady = opt !== null && opt !== "pending" && opt !== "failed";
-  const pickOpt = (years: number) => {
-    const m = optReady ? opt.maturities.find((x) => x.years === years) : null;
-    setOptSel(years);
-    setSelDur(years);
-    if (m?.optimum) {
-      setTouched(true);
-      setHeatPick({ ytm: m.optimum.target, duration: years });
-      setPicked({ duration: years, ytm: Math.round(m.optimum.ytm * 100) / 100, loss: Math.round(m.optimum.el * 1000) / 1000 });
-    }
-  };
   const selectCurve = (d: number | null) => { setSelDur(d); setPicked(null); setHeatPick(null); };
   const pickPoint = (d: number, p: MPoint) => {
     if (p.target == null) return;
@@ -502,9 +494,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const summary = list ? listSummary(list) : data?.summary;
   // Return and loss of every slider position come with the preloaded positions: the two boxes follow the thumb at once.
   const live = simple && paid && mode === "portfolio" ? tileFigures(positions?.[mix - 1]) : null;
-  // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
-  const waited = useWaitClock(touched && listOn && mode === "portfolio" && loading && !show);
-  const reveal = useResultReveal(data, touched && listOn && mode === "portfolio", loading, show, waited);
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
   const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
@@ -596,9 +585,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 </div>
               )}
               <ResultBoxes
-                frac={reveal}
-                paths={data?.monteCarlo?.paths || MC_PATHS}
-                lang={lang}
                 ret={!paid && data ? null : live ? live.ret : !data ? "—" : pct(summary?.avgYtm)}
                 loss={!paid && data ? null : live ? live.loss : !data ? "—" : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
                 lock={lockTo}
@@ -745,17 +731,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-5" data-testid="curve-mode">
             <div className="flex min-h-[340px] min-w-0 flex-col">
               <div className="mb-1 flex h-7 justify-end">
-                {isAdmin && showAll && chartable && (
-                  <OptimalButton
-                    state={opt}
-                    shown={optShown}
-                    onClick={() => {
-                      if (optReady) { if (optShown) { setHeatPick(null); setPicked(null); } setOptShown(!optShown); return; }
-                      setOptAsked(true);
-                      setOptShown(true);
-                    }}
-                  />
-                )}
                 {(chartable || chartLocked) && viewTabs}
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
@@ -764,7 +739,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 ) : showHeat && canHeat ? (
                   <HeatMapChart plain={!isAdmin} shortlists={shortlistDots} map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
                 ) : showAll && canMulti ? (
-                  allCurves && <AllCurvesChart shortlists={shortlistDots} curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={selDur} onSelect={selectCurve} picked={picked} onPickPoint={pickPoint} onPickOptimal={pickOpt} />
+                  allCurves && <AllCurvesChart shortlists={shortlistDots} curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" selected={selDur} onSelect={selectCurve} picked={picked} onPickPoint={pickPoint} />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
                     <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
@@ -776,11 +751,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                   curve && <LossChart points={curve.points} max={curve.max} current={ytm} loss={data?.summary?.lifeLoss ?? nearestLoss(curve.points, ytm)} xLabel={t.chartX} yLabel={t.chartY} slopeLabel={t.chartSlope} hoverText={t.chartHover} onPick={pickYtm} />
                 )}
               </div>
-              {isAdmin && showAll && optShown && opt && (
-                <div className="mt-2 shrink-0">
-                  <OptimalPanel res={opt} selected={optSel} onSelect={pickOpt} onView={() => pickOpt(optSel ?? (optReady ? opt.winner : null) ?? 0)} />
-                </div>
-              )}
             </div>
             <div className={`flex min-w-0 flex-col transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
               <div className="mb-1 flex h-7 items-center">
@@ -889,7 +859,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>
-          <MonteCarloNote data={data} lang={lang} edited={list !== null} />
           {isAdmin && data && (
             <details className="mt-2" data-testid="admin-calc-box">
               <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: calculation per bond</summary>
@@ -1201,97 +1170,20 @@ function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null;
   );
 }
 
-/**
- * Under the slider (the owner, 24/10/2026): the list's return and expected loss, shown as soon as the list arrives, and the
- * Monte Carlo counter running up to the real number of simulated paths beside them. Fixed sizes, "—" before the first list.
- */
-function ResultBoxes({ frac, paths, lang, ret, loss, lock }: { frac: number; paths: number; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string } }) {
+/** Under the slider (the owner, 24/10/2026): the list's return and expected loss, shown as soon as the list arrives. Fixed sizes, "—" before the first list. */
+function ResultBoxes({ ret, loss, lock }: { ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string } }) {
   const t = useFinderText();
-  const fmt = new Intl.NumberFormat(lang);
   return (
     <div className="mt-3" data-testid="result-boxes">
       <div className="grid grid-cols-2 gap-2">
         <Stat value={ret} label={t.retYear} lock={lock} h="h-[64px]" />
         <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[64px]" />
       </div>
-      <div className="mt-1.5 flex h-4 items-center gap-2 text-[11px] text-mute" data-testid="mc-counter">
-        <span className="shrink-0">{t.scanSimsLabel}</span>
-        <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-canvas">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${frac * 100}%` }} />
-        </div>
-        <span className="w-[64px] shrink-0 text-right tabular-nums">{fmt.format(Math.round(frac * paths))}</span>
-      </div>
     </div>
   );
 }
 
-/**
- * How far the analysis under the slider has run (0 to 1). It follows the search show when one runs; otherwise it counts
- * on its own, 2.5 seconds the first time and 1 second after, so the work behind each new list is visible. Instant for
- * reduced motion. 0 before the first search and while a new one loads.
- */
-function useResultReveal(data: Response | null, active: boolean, loading: boolean, show: Show | null, waited: number | null = null): number {
-  const [own, setOwn] = useState<number | null>(null);
-  const [done, setDone] = useState<Response | null>(null);
-  const runs = useRef(0);
-  const showFor = useRef<Response | null>(null);
-  useEffect(() => {
-    if (show) showFor.current = data;
-  }, [show, data]);
-  useEffect(() => {
-    if (!active || !data || show || done === data) return;
-    if (showFor.current === data || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setDone(data);
-      return;
-    }
-    const ms = runs.current++ ? 1000 : 2500;
-    const start = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      const f = Math.min(1, (now - start) / ms);
-      if (f < 1) {
-        setOwn(f);
-        raf = requestAnimationFrame(tick);
-      } else {
-        setOwn(null);
-        setDone(data);
-      }
-    };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      setOwn(null);
-    };
-  }, [active, data, show, done]);
-  // While the search runs, the counter climbs on its own towards (never reaching) the full number.
-  if (active && waited !== null) return 0.95 * (1 - Math.exp(-waited / 5000));
-  if (!active || !data || loading) return 0;
-  if (show) return show.sim;
-  if (own !== null) return own;
-  return done === data ? 1 : 0;
-}
-
-/** Milliseconds a search has been running (null when none is): drives the live counter and the rows filling in while waiting. */
-function useWaitClock(active: boolean): number | null {
-  const [ms, setMs] = useState<number | null>(null);
-  useEffect(() => {
-    if (!active) {
-      setMs(null);
-      return;
-    }
-    const start = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      setMs(now - start);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [active]);
-  return ms;
-}
-
-type Show = { row: number; count: number; sim: number };
+type Show = { row: number; count: number };
 
 /** Fifth box of the row: the bond counter while the search show runs (pick number → its A–Z place), else how many bonds were searched. Same size always. */
 function ScanBox({ data, show, lang, currency }: { data: Response | null; show: Show | null; lang: FinderLang; currency: string }) {
@@ -1315,7 +1207,7 @@ function ScanBox({ data, show, lang, currency }: { data: Response | null; show: 
 /**
  * The search, staged for the visitor. Every bond searched has a number 1..N in alphabetical order (from the server).
  * Before each of the 10 picks appears, a counter runs up to that bond's number and stops there; the row then appears
- * and the counter starts again for the next one, while the real Monte Carlo run of the list is drawn. Only for searches
+ * and the counter starts again for the next one, Only for searches
  * the visitor starts; a search that answers mid-show takes it over (the show is not restarted); about 1 second per pick;
  * skipped for reduced motion. Rows keep their places throughout (hidden rows are invisible, not removed).
  */
@@ -1348,7 +1240,7 @@ function useScanShow(data: Response | null, active: boolean, perMs = 1000): Show
       }
       const f = Math.min(1, (t - row) / 0.8);
       const count = Math.max(1, Math.round((1 - (1 - f) * (1 - f)) * found[row]));
-      setShow({ row, count, sim: Math.min(1, t / found.length) });
+      setShow({ row, count });
       r.raf = requestAnimationFrame(tick);
     };
     r.raf = requestAnimationFrame(tick);
@@ -1361,26 +1253,6 @@ function useScanShow(data: Response | null, active: boolean, perMs = 1000): Show
     [],
   );
   return show;
-}
-
-/** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
-function MonteCarloNote({ data, lang, edited }: { data: Response | null; lang: FinderLang; edited: boolean }) {
-  const t = useFinderText();
-  const mc = data?.monteCarlo;
-  const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
-  return (
-    <p className="mt-1 grid text-[11px] leading-snug text-mute" data-testid="monte-carlo">
-      {/* Both texts share one cell, so the line keeps its height when a paid user's edit hides the figures. */}
-      {mc?.expYield != null && mc.p5 != null ? (
-        <>
-          <span className={`col-start-1 row-start-1${edited ? " invisible" : ""}`}>{t.mc(n, pct(mc.expYield), pct(mc.p5))}</span>
-          <span className={`col-start-1 row-start-1${edited ? "" : " invisible"}`} aria-hidden={!edited}>{t.mcRun(n)}</span>
-        </>
-      ) : (
-        t.mcRun(n)
-      )}
-    </p>
-  );
 }
 
 // Fixed sizes of the result table: a header and always 10 row slots, so nothing under it moves when the results change.
@@ -1632,8 +1504,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
 
 /**
  * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Show AI Efficient Portfolio".
- * Top to bottom: return and expected loss, the 10 bonds with a few large columns, and one small grey Monte Carlo line
- * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
+ * Top to bottom: return and expected loss, the 10 bonds with a few large columns, over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
 function PhoneResults({ arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency }: { arrows: boolean; title: (text: string) => ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
@@ -1658,8 +1529,6 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
     setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
     setPanel(null);
   };
-  const mc = data?.monteCarlo;
-  const n = new Intl.NumberFormat(lang).format(mc?.paths || MC_PATHS);
   // The admin's risk column also holds the S&P slot (fixed width either way, so nothing moves when results arrive).
   const [admin, setAdmin] = useState(false);
   useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
@@ -1766,9 +1635,6 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
       ) : (
         <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}</p>
       )}
-      <p className="h-[25px] shrink-0 overflow-hidden text-[10px] leading-[12.5px] text-mute" data-testid="phone-mc">
-        {mc?.expYield != null && mc.p5 != null && !list ? t.mc(n, pct(mc.expYield), pct(mc.p5)) : t.mcRun(n)}
-      </p>
       <p className="mt-1 shrink-0 text-[9px] leading-tight text-mute/80" data-testid="phone-footer-note">{FOOTER_NOTE[lang]}</p>
     </div>
   );
