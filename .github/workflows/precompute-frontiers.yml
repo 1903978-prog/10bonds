@@ -25,4 +25,9 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
       - run: npx vite-node -c vitest.config.ts scripts/precompute-frontiers.ts
-      - run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts
+      - name: Risk bands
+        if: always()
+        run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts | tee bands.txt
+      - name: Table
+        if: always()
+        run: grep '^|' bands.txt >> "$GITHUB_STEP_SUMMARY" || true

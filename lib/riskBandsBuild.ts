@@ -10,7 +10,7 @@ import { configSignature, defaultConfig, nonMonotonic, pruneCandidates, statOf, 
 import { solveBand } from "./riskBandsSolve";
 
 // Works out and shapes the 30 stored band portfolios of one horizon (owner, 27/10/2026): run by the precompute job after each data copy,
-// read by the website. No simulation anywhere.
+// read by the website.
 
 export type StoredBand = {
   k: number; min: number; max: number;

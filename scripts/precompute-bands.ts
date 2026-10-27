@@ -32,5 +32,18 @@ for (const w of want) {
     }
   }
 }
+// The stored lists for EUR, all sizes: position x horizon (average risk, average return, expected loss), for the run summary.
+{
+  const f = { currency: "EUR", size: "100k" } as const;
+  const src = await loadBondsFor(f);
+  const sets = await Promise.all(TERMS.map(async (t) => (await loadStoredBands(bandsKey(src, f, t.duration, cfg)))?.data ?? null));
+  console.log("\n| Position | Band | " + TERMS.map((t) => `${t.key} risk | ${t.key} return % | ${t.key} loss %`).join(" | ") + " |");
+  console.log("|---:|---|" + TERMS.map(() => "---:|---:|---:").join("|") + "|");
+  for (const b of cfg.bands) {
+    const cells = sets.map((sb) => { const x = sb?.bands[b.k - 1]; return x && x.status === "ok" ? `${x.avgRisk?.toFixed(1)} | ${x.ytm?.toFixed(2)}${x.optimal ? "" : "*"} | ${x.el?.toFixed(3)}` : "no list | – | –"; });
+    console.log(`| ${b.k} | ${b.min.toFixed(1)}–${b.max.toFixed(1)} | ${cells.join(" | ")} |`);
+  }
+  console.log("\n* = valid list, not proven optimal by the solver within its time limit");
+}
 await new Promise((done) => setTimeout(done, 2000)); // let the saves finish
 process.exit(0);

@@ -10,7 +10,7 @@ import { solveBand } from "./riskBandsSolve";
 //   c. the exact solve runs in parallel (time-boxed); its list replaces the current one only if at least as good on yield AND expected loss,
 //      and then the list is labelled optimal;
 //   d. finished results are cached by the caller's key.
-// Nothing is simulated: every figure is analytic.
+// Every figure is analytic (closed form).
 
 export type LiveStep = {
   phase: "start" | "swap" | "exact" | "done";

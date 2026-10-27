@@ -11,7 +11,7 @@ import { statOf, type RiskBand } from "./riskBands";
 import type { BandCand } from "./coherentFrontier";
 
 // The list behind one band position for /api/bonds?band=n (owner, 27/10/2026): the stored portfolio when there is one (a few milliseconds),
-// else the progressive search (greedy start, swaps, time-boxed exact solve). Nothing is simulated.
+// else the progressive search (greedy start, swaps, time-boxed exact solve).
 
 export type BandMeta = {
   k: number; min: number; max: number;

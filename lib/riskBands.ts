@@ -5,7 +5,7 @@ import { listLifeLoss } from "./expectedLoss";
 // average yield whose average 10BONDS risk score (1-10) lies in band n, inclusive. Scores are whole numbers, so the average
 // of 10 bonds is a multiple of 0.1. Default bands: min = 1.0 + 0.3 (n-1), max = 1.2 + 0.3 (n-1); band 30 is 9.7-10.0.
 // The bands are a config table (saved in the database, edited at /admin/risk-bands), never hard-coded in a rule.
-// Nothing in this file simulates anything: every figure is analytic.
+// Every figure here is analytic (closed form).
 
 export type RiskBand = { k: number; min: number; max: number };
 export const BAND_COUNT = 30;
