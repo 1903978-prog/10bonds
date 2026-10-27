@@ -38,11 +38,19 @@ export type Without = { key: string; fn: (b: PublicBond) => boolean };
 export const frontierKey = (src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1", without?: Without | null) =>
   [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature() + engineSignature(), GROUP_TABLE_VERSION] : []), ...(without ? [`x:${without.key}`] : [])].join("|");
 
+// The web server never solves the standard lists itself (a solve needs about 340 MB for over a minute, which a small
+// machine cannot spare while serving visitors): they come from the database, saved by the "Precompute portfolio lists"
+// job (scripts/precompute-frontiers.ts sets ALLOW_LIVE_SOLVE=1). Only a customer's own exclusions are solved on the spot.
+const liveSolveAllowed = () => process.env.NODE_ENV !== "production" || process.env.ALLOW_LIVE_SOLVE === "1";
+// A list that could not be built is not tried again for 20 s, so polling visitors do not make the server retry in a loop.
+const buildFailedAt = new Map<string, number>();
+
 /** The coherent frontier for this copy, filter and horizon once built; started in the background if not. */
 export function coherentBuild(src: BondSource, f: BondFilter, duration: number, without?: Without | null): Promise<CoherentFrontier> {
   const key = frontierKey(src, f, duration, "spread", without);
   const hit = coherentMemo.get(key);
   if (hit) return Promise.resolve(hit);
+  if (Date.now() - (buildFailedAt.get(key) ?? 0) < 20_000) return Promise.reject(new Error("This list is not prepared yet."));
   let p = coherentBuilding.get(key);
   if (!p) {
     // A customer's own exclusions are worked out on the spot; everyone else's lists are saved in the database and read back after a restart.
@@ -53,7 +61,7 @@ export function coherentBuild(src: BondSource, f: BondFilter, duration: number, 
           const pts = saved.data.points;
           const hit: CoherentFrontier = { ...saved.data, at: (t: number) => pts.find((x) => x.ytm >= t - 1e-9) ?? null, ...(saved.stale ? { stale: true } : {}) };
           // Saved for slightly older prices: serve it now, and work out the exact list in the background (low priority).
-          if (saved.stale) {
+          if (saved.stale && liveSolveAllowed()) {
             void runLow(() => coherentFrontier(src.bonds, duration))
               .then(async (r) => { await saveFrontier(key, r); if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); })
               .catch((e) => console.error("[coherent] refresh failed:", (e as Error).message));
@@ -61,13 +69,14 @@ export function coherentBuild(src: BondSource, f: BondFilter, duration: number, 
           return hit;
         }
       }
+      if (!without && !liveSolveAllowed()) throw new Error("This list is not prepared yet.");
       const r = await coherentFrontier(without ? src.bonds.filter((b) => !without.fn(b)) : src.bonds, duration);
       if (!without) await saveFrontier(key, r);
       return r;
     })()
       .then((r) => { if (coherentMemo.size > 24) coherentMemo.clear(); coherentMemo.set(key, r); return r; })
       .finally(() => coherentBuilding.delete(key));
-    p.catch((e) => console.error("[coherent] build failed:", (e as Error).stack));
+    p.catch((e) => { buildFailedAt.set(key, Date.now()); if (buildFailedAt.size > 200) buildFailedAt.clear(); console.error("[coherent] build failed:", (e as Error).message); });
     coherentBuilding.set(key, p);
   }
   return p;
