@@ -10,3 +10,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node browser-look.mjs
+      - if: always()
+        run: |
+          for r in 1 2 3; do for u in /api/health / "/api/bonds?duration=2&ytm=5&risk=5&currency=EUR&size=100k&guard=1" "/api/bonds?duration=4&ytm=5&risk=5&currency=EUR&size=100k&guard=1" "/api/bonds?duration=10&ytm=5&risk=5&currency=EUR&size=100k&guard=1" "/api/bonds/slider?duration=4&currency=EUR&size=100k"; do curl -s -o /dev/null -w "$u %{http_code} %{time_total}s\n" -m 20 "https://10bonds.com$u"; done; sleep 3; done
