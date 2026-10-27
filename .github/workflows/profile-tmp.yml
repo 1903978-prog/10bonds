@@ -1,0 +1,17 @@
+name: Profile tmp
+on:
+  push:
+    branches: [claude/profile-tmp]
+jobs:
+  p:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/profile-request.ts

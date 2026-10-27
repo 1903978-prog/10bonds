@@ -1,0 +1,26 @@
+// Temporary: times the parts of a list request on real data.
+import { loadBondsFor, currentOutlierSd, loadAllShown } from "@/lib/bonds";
+import { coherentBuild, frontierFor, frontierKey } from "@/lib/frontierCache";
+import { portfolioPool, withinRisk } from "@/lib/ranking";
+import { checkList, factsOf, activePolicy } from "@/lib/coherence";
+import { sliderFor } from "@/lib/sliderCache";
+import { LIMITS } from "@/lib/limits";
+const t = async <T,>(name: string, fn: () => T | Promise<T>, n = 1) => { const s = performance.now(); let r!: T; for (let i = 0; i < n; i++) r = await fn(); console.log(`${name}: ${((performance.now() - s) / n).toFixed(1)} ms${n > 1 ? " (avg of " + n + ")" : ""}`); return r; };
+const f = { currency: "EUR", size: "100k" } as const;
+process.env.NODE_ENV = "production";
+await t("outlier sd", () => currentOutlierSd());
+await t("load all (cold)", () => loadAllShown());
+const src = await t("loadBondsFor cold", () => loadBondsFor(f));
+await t("loadBondsFor warm", () => loadBondsFor(f), 20);
+console.log("bonds", src.bonds.length);
+await t("frontierKey", () => frontierKey(src, f, 4, "spread"), 20);
+const fr = await t("coherentBuild saved read", () => coherentBuild(src, f, 4));
+await t("frontierFor warm", () => frontierFor(src, f, 4, "spread"), 20);
+await t("portfolioPool(withinRisk)", () => portfolioPool(withinRisk(src.bonds, LIMITS.risk.max), 4), 20);
+const pt = fr.points.filter((p) => p.rows.length)[5];
+await t("checkList", () => checkList(pt.rows.map((r) => factsOf(r)), fr.policy ?? activePolicy(), LIMITS.risk.max), 20);
+await t("sliderFor", () => sliderFor(f, 4, "spread"), 5);
+await t("issuers set", () => new Set(src.bonds.map((b) => b.issuer ?? b.name)).size, 20);
+const m = process.memoryUsage();
+console.log(`heap ${(m.heapUsed / 1e6).toFixed(0)} MB, rss ${(m.rss / 1e6).toFixed(0)} MB`);
+process.exit(0);
