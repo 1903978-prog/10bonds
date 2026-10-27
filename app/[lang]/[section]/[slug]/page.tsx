@@ -297,6 +297,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
         <p className="mt-1 text-sm text-mute">
           {g.publishedAt && <>{t.published} <time dateTime={g.publishedAt}>{fmtDate(l, g.publishedAt)}</time></>}
           {g.reviewedAt && <> · {t.reviewed} <time dateTime={g.reviewedAt}>{fmtDate(l, g.reviewedAt)}</time></>}
+          {g.updatedAt && <> · {t.updated} <time dateTime={g.updatedAt}>{fmtDate(l, g.updatedAt)}</time></>}
         </p>
         {body.split(EMBED).map((part, i) =>
           i % 2 === 0 ? <div key={i} className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: part }} /> : <GuideEmbed key={i} id={part} l={l} pages={live} asOf={asOf} source={source} />,
