@@ -8,7 +8,7 @@ on:
     - cron: "10 */3 * * *"
   push:
     branches: [main]
-    paths: ["lib/**", "scripts/precompute-frontiers.ts"]
+    paths: ["lib/**", "scripts/precompute-frontiers.ts", "scripts/precompute-bands.ts"]
 concurrency:
   group: precompute-frontiers
   cancel-in-progress: false
@@ -25,3 +25,9 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
       - run: npx vite-node -c vitest.config.ts scripts/precompute-frontiers.ts
+      - name: Risk bands
+        if: always()
+        run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts | tee bands.txt
+      - name: Table
+        if: always()
+        run: grep '^|' bands.txt >> "$GITHUB_STEP_SUMMARY" || true

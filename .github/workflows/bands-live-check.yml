@@ -1,0 +1,21 @@
+name: Bands live check
+# Manual: the 30 risk-band positions on the live site as an anonymous visitor (Short/Medium/Long x points 1, 3, 10, 20, 30):
+# 10 rows and both tiles inside 1 s, average risk inside the band. Prints the point x horizon table.
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - name: Check
+        env:
+          CHROME_CHANNEL: chrome
+        run: node scripts/bands-live-check.mjs | tee bands.txt
+      - name: Table
+        if: always()
+        run: grep '^|' bands.txt >> "$GITHUB_STEP_SUMMARY" || true
