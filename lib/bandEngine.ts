@@ -1,7 +1,6 @@
 import type { PublicBond } from "./types";
 import { activePolicy, END_POLICY, type CoherencePolicy } from "./coherence";
 import { bestInBand, candidatesOf, listOfCands, newCertificate, type BandCand, type Certificate } from "./coherentFrontier";
-import { LIMITS } from "./limits";
 
 // 30-BAND MODE (owner 27/10/2026): for each of 30 predefined average rating-risk intervals, the highest-YTM list of 10 bonds under the approved policies
 // (exact, HiGHS), least expected loss among equals; then economically dominated bands are flagged so a progressive slider only shows genuine steps up.
@@ -30,6 +29,7 @@ export type BandResult = {
 };
 
 const EPS = 1e-6;
+const N = 10;
 const avgOf = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 
 const RULES: { name: string; relax: (p: CoherencePolicy) => CoherencePolicy }[] = [
@@ -88,7 +88,15 @@ export async function runBands(bonds: PublicBond[], duration: number, opts: { po
         const all = RULES.reduce((p, r) => r.relax(p), usedPolicy);
         const x = await bestInBand(cands, all, duration, b, cert);
         if (x.sel.length) { ifLifted = { rule: "the three caps together", ytm: listOfCands(x.sel).ytm }; reason = "Blocked by the sector, weak-bond and loss-share caps together"; }
-        else reason = `The eligible bonds for this horizon cannot reach this average risk even with those caps lifted (${cands.filter((c) => c.cls >= Math.ceil(b.lo)).length} eligible bonds at class ${Math.ceil(b.lo)} or worse, ${new Set(cands.filter((c) => c.cls >= Math.ceil(b.lo)).map((c) => c.group)).size} issuer groups; the risk ceiling is class ${LIMITS.risk.max})`;
+        else {
+          const low = cands.filter((c) => c.cls <= Math.floor(b.hi));
+          const lowGroups = new Set(low.map((c) => c.group)).size;
+          const high = cands.filter((c) => c.cls >= Math.ceil(b.lo));
+          const highGroups = new Set(high.map((c) => c.group)).size;
+          reason = lowGroups < N
+            ? `Only ${lowGroups} issuer groups have a bond rated class ${Math.floor(b.hi)} or better for this horizon; ten different issuers are needed`
+            : `Only ${highGroups} issuer groups have a bond rated class ${Math.ceil(b.lo)} or worse for this horizon (${high.length} bonds); too few to average this risk even with the caps lifted`;
+        }
       }
     }
     results.push({ ...b, policy: endpoint ? "endpoint" : "regular", status: "unavailable", avgRisk: null, ytm: null, el: null, avgDuration: null, isins: [], reason, ifLifted });
