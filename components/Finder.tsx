@@ -554,8 +554,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 min={1}
                 max={mixMax}
                 step={1}
-                minLabel={t.lowReturn}
-                maxLabel={t.highReturn}
+                minLabel={t.highReturn}
+                maxLabel={t.lowReturn}
+                reversed
                 onChange={changeMix}
               />
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
@@ -985,9 +986,12 @@ function Slider(props: {
   step: number;
   minLabel: string;
   maxLabel: string;
+  reversed?: boolean;
   onChange: (n: number) => void;
 }) {
-  const fill = ((props.value - props.min) / (props.max - props.min)) * 100;
+  // reversed: left end = max value (shown as high return); the stored value is unchanged.
+  const flip = (n: number) => (props.reversed ? props.max + props.min - n : n);
+  const fill = ((flip(props.value) - props.min) / (props.max - props.min)) * 100;
   return (
     <div className="mt-3 sm:mt-4" data-tip={props.tip}>
       <div className="flex items-baseline justify-between">
@@ -1001,9 +1005,9 @@ function Slider(props: {
         min={props.min}
         max={props.max}
         step={props.step}
-        value={props.value}
+        value={flip(props.value)}
         style={{ ["--fill" as string]: `${fill}%` }}
-        onChange={(e) => props.onChange(Number(e.target.value))}
+        onChange={(e) => props.onChange(flip(Number(e.target.value)))}
       />
       <div className="mt-1 flex justify-between text-[11px] text-mute">
         <span>{props.minLabel}</span>

@@ -92,9 +92,9 @@ function Controls({ f, single, horizon, mix }: { f: FinderText; single: boolean;
       </div>
       {!single && (
         <div>
-          <div className="flex items-baseline justify-between"><span className="text-[15px] font-semibold">{f.mixLabel}</span><span className="text-[15px] font-semibold">{mix} / 30</span></div>
-          <Track at={(mix - 1) / 29} />
-          <div className="mt-1.5 flex justify-between text-[12px] text-[#55555b]"><span>{f.lowReturn}</span><span>{f.highReturn}</span></div>
+          <div className="flex items-baseline justify-between"><span className="text-[15px] font-semibold">{f.mixLabel}</span></div>
+          <Track at={1 - (mix - 1) / 29} />
+          <div className="mt-1.5 flex justify-between text-[12px] text-[#55555b]"><span>{f.highReturn}</span><span>{f.lowReturn}</span></div>
         </div>
       )}
     </div>
