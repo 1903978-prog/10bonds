@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { useCallback, useEffect, useState } from "react";
 import AdminData from "./AdminData";
+import EmailDomainCard from "./EmailDomainCard";
 import AdminUsers from "./AdminUsers";
 
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
@@ -77,6 +78,8 @@ export default function AdminPanel() {
           ))}
         </div>
       )}
+
+      <EmailDomainCard />
 
       <AdminUsers />
 
