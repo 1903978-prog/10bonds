@@ -76,26 +76,26 @@ export default async function LocaleHome({ params, searchParams }: Props) {
         <h2 className="text-[22px] font-semibold tracking-tight">{h.compareTitle}</h2>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {featured.map((p) => (
-            <li key={p!.def.id}><Link href={pathOf(l, "bonds", p!.def.text[l].slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{p!.def.text[l].h1}</Link></li>
+            <li key={p!.def.id}><Link href={pathOf(l, "bonds", p!.def.text[l].slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{p!.def.text[l].h1}</Link></li>
           ))}
-          <li><Link href={pathOf(l, "bonds")} className="block rounded-2xl bg-white p-4 text-[15px] text-accent">{t.bonds} ›</Link></li>
+          <li><Link href={pathOf(l, "bonds")} className="block rounded-lg border border-line bg-white p-4 text-[15px] text-accent">{t.bonds} ›</Link></li>
         </ul>
       </section>
       <section className="mx-auto max-w-3xl">
         <h2 className="text-[22px] font-semibold tracking-tight">{h.guidesTitle}</h2>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {guides.slice(0, 6).map((g) => (
-            <li key={g.id}><Link href={pathOf(l, "guides", g.slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{g.title}</Link></li>
+            <li key={g.id}><Link href={pathOf(l, "guides", g.slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{g.title}</Link></li>
           ))}
-          <li><Link href={pathOf(l, "tools", CALCULATORS[l].slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{CALCULATORS[l].h1}</Link></li>
-          <li><Link href={pathOf(l, "guides")} className="block rounded-2xl bg-white p-4 text-[15px] text-accent">{t.guides} ›</Link></li>
+          <li><Link href={pathOf(l, "tools", CALCULATORS[l].slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{CALCULATORS[l].h1}</Link></li>
+          <li><Link href={pathOf(l, "guides")} className="block rounded-lg border border-line bg-white p-4 text-[15px] text-accent">{t.guides} ›</Link></li>
         </ul>
       </section>
       <section className="mx-auto max-w-3xl">
         <h2 className="text-[22px] font-semibold tracking-tight">{h.plansTitle}</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {h.plans.map((p) => (
-            <div key={p.name} className="rounded-2xl bg-white p-5">
+            <div key={p.name} className="rounded-lg border border-line bg-white p-5">
               <p className="font-semibold">{p.name}</p>
               <p className="mt-1 font-semibold">{p.price}</p>
               <p className="mt-2 text-sm text-mute">{p.text}</p>

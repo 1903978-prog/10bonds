@@ -20,7 +20,7 @@ type Payload = {
 
 const COUNTRY_NAMES: Record<Country, string> = { it: "Italy", fr: "France", de: "Germany" };
 const PATHS: Record<Country, string> = { it: "/it/broker-obbligazioni", fr: "/fr/courtiers-obligations", de: "/de/anleihen-broker" };
-const card = "rounded-[24px] bg-white p-6";
+const card = "rounded-lg border border-line bg-white p-6";
 const btn = "rounded-full border border-line px-3 py-1.5 text-xs font-medium hover:bg-canvas disabled:opacity-50";
 const btnMain = "rounded-full bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50";
 
@@ -89,7 +89,7 @@ export default function BrokerAdmin() {
       </div>
 
       {msg && (
-        <div className="rounded-2xl bg-white px-4 py-3 text-sm shadow-sm">
+        <div className="rounded-lg border border-line bg-white px-4 py-3 text-sm shadow-sm">
           {msg}
           {problems.length > 0 && <ul className="mt-2 list-disc pl-5 text-red-700">{problems.map((p) => <li key={p}>{p}</li>)}</ul>}
         </div>
@@ -116,7 +116,7 @@ export default function BrokerAdmin() {
             {drafts.map((d) => {
               const cur = versions.find((v) => v.brokerId === d.brokerId && v.status === "published");
               return (
-                <li key={d.version} className="rounded-2xl border border-line p-4 text-sm">
+                <li key={d.version} className="rounded-lg border border-line p-4 text-sm">
                   <p className="font-semibold">{name(d.brokerId)} · in force from {d.effectiveFrom} · checked {d.verifiedAt}</p>
                   {d.note && <p className="text-mute">{d.note}</p>}
                   <Diff before={cur?.data ?? null} after={d.data} />

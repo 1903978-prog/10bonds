@@ -198,7 +198,7 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
       role="dialog"
       aria-label={step.title}
       data-testid="guide-tip"
-      className="fixed z-40 rounded-2xl bg-ink p-3.5 text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]"
+      className="fixed z-40 rounded-lg bg-ink p-3.5 text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]"
       style={{ left: pos.left, top: pos.top, width: WIDTH }}
     >
       <span

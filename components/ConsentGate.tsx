@@ -66,7 +66,7 @@ export default function ConsentGate({ active, lang, isAdmin }: { active: boolean
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" data-testid="consent-gate">
-      <div role="dialog" aria-modal="true" aria-labelledby="consent-title" onKeyDown={trap} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="consent-title" onKeyDown={trap} className="w-full max-w-sm rounded-lg border border-line bg-white p-6 shadow-xl">
         <h2 id="consent-title" className="text-[17px] font-semibold text-ink">{t.title}</h2>
         <ul className="mt-3 space-y-2 text-[14px] leading-snug text-ink/80">
           {t.points.map((p) => <li key={p}>{p}</li>)}

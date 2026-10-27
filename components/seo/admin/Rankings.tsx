@@ -109,7 +109,7 @@ export default function Rankings({ market }: { market: SeoMarket }) {
 }
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return <div className="rounded-2xl bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p><p className="text-xs text-mute">{sub}</p></div>;
+  return <div className="rounded-lg bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p><p className="text-xs text-mute">{sub}</p></div>;
 }
 
 const host = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } };

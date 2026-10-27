@@ -87,7 +87,7 @@ export default function ReplacementEngine() {
 
         <form onSubmit={run} className="mt-6 space-y-4">
           <label
-            className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line px-4 py-8 text-center hover:border-accent"
+            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-line px-4 py-8 text-center hover:border-accent"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
@@ -127,7 +127,7 @@ export default function ReplacementEngine() {
           </div>
 
           {showSettings && (
-            <div className="grid gap-4 rounded-2xl bg-canvas p-4 sm:grid-cols-2">
+            <div className="grid gap-4 rounded-lg bg-canvas p-4 sm:grid-cols-2">
               <label className="text-sm sm:col-span-2">
                 <span className="text-mute">Goal</span>
                 <select value={settings.mode} onChange={(e) => set("mode", e.target.value as EngineSettings["mode"])} className="mt-1 block w-full rounded-xl border border-line bg-white px-3 py-2">
@@ -203,7 +203,7 @@ function Results({ data }: { data: Response }) {
       {data.lines.map((l, i) => <LineCard key={i} line={l} />)}
 
       {data.skipped.length > 0 && (
-        <div className="rounded-2xl bg-white p-5 text-sm text-mute">
+        <div className="rounded-lg border border-line bg-white p-5 text-sm text-mute">
           <p className="font-medium text-ink">Lines we could not read</p>
           <ul className="mt-2 space-y-1">
             {data.skipped.slice(0, 20).map((s, i) => <li key={i}>{s.line ? `Line ${s.line}: ` : ""}{s.text} ({s.why})</li>)}
@@ -218,7 +218,7 @@ const issuer = (s: PortfolioStats) => (s.largestIssuer ? `${s.largestIssuer.pct.
 
 function Compare({ label, before, after }: { label: string; before: string; after: string }) {
   return (
-    <div className="rounded-2xl bg-canvas p-4">
+    <div className="rounded-lg bg-canvas p-4">
       <p className="text-xs text-mute">{label}</p>
       <p className="mt-1 text-[15px]">
         <span className="text-mute">{before}</span> <span className="text-mute">→</span> <strong>{after}</strong>
@@ -230,7 +230,7 @@ function Compare({ label, before, after }: { label: string; before: string; afte
 function LineCard({ line }: { line: Line }) {
   if (line.action === "unknown")
     return (
-      <div className="rounded-[24px] bg-white p-5">
+      <div className="rounded-lg border border-line bg-white p-5">
         <Badge tone="gray">Not covered</Badge>
         <p className="mt-2 font-mono text-sm">{line.isin} · {eur(line.amount)}</p>
         <p className="mt-1 text-sm text-mute">{line.reason}</p>
@@ -238,14 +238,14 @@ function LineCard({ line }: { line: Line }) {
     );
   if (line.action === "keep")
     return (
-      <div className="rounded-[24px] bg-white p-5" data-testid="pro-keep">
+      <div className="rounded-lg border border-line bg-white p-5" data-testid="pro-keep">
         <Badge tone="gray">No alternative</Badge>
         <BondRow b={line.sell} amount={line.amount} />
         <p className="mt-2 text-sm text-mute">{line.reason}</p>
       </div>
     );
   return (
-    <div className="rounded-[24px] bg-white p-5 sm:p-6" data-testid="pro-swap">
+    <div className="rounded-lg border border-line bg-white p-5 sm:p-6" data-testid="pro-swap">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={line.kind === "yield" ? "green" : "blue"}>{line.kind === "yield" ? "Higher yield" : "Lower risk"}</Badge>
         <span className="text-sm text-mute">
@@ -254,11 +254,11 @@ function LineCard({ line }: { line: Line }) {
         </span>
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl bg-red-50/60 p-4">
+        <div className="rounded-lg bg-red-50/60 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Held</p>
           <BondRow b={line.sell} amount={line.amount} />
         </div>
-        <div className="rounded-2xl bg-green-50/70 p-4">
+        <div className="rounded-lg bg-green-50/70 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Alternative</p>
           <BondRow b={line.buy} />
         </div>
@@ -290,7 +290,7 @@ function Badge({ tone, children }: { tone: "green" | "blue" | "gray"; children: 
 
 export function ProNotice() {
   return (
-    <p className="rounded-2xl bg-white px-5 py-4 text-xs leading-relaxed text-mute">
+    <p className="rounded-lg border border-line bg-white px-5 py-4 text-xs leading-relaxed text-mute">
       For professional clients and eligible counterparties only (MiFID II). Results are produced by fixed screening rules from indicative,
       end-of-day data. They are not a personal recommendation and do not take a client&apos;s objectives, tax position or restrictions into account.
       Prices, liquidity (bid/ask, issue size) and trading costs are not in our data: check them with your broker before any trade. You remain

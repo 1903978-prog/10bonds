@@ -47,7 +47,7 @@ function Row({ name, line, weight, children }: { name: string; line: string; wei
   );
 }
 
-const card = "overflow-hidden rounded-2xl bg-white";
+const card = "overflow-hidden rounded-lg border border-line bg-white";
 const head = "px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-mute";
 
 function Corporate({ lang }: { lang: MethodLang }) {

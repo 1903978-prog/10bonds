@@ -32,7 +32,7 @@ type Payload = {
 
 const TABS = ["Curve", "Spread rules", "Settings", "Compare", "Review", "Rejected", "Sensitivity", "History"] as const;
 type Tab = (typeof TABS)[number];
-const card = "rounded-[24px] bg-white p-5";
+const card = "rounded-lg border border-line bg-white p-5";
 const btn = "rounded-full border border-line px-3 py-1 text-xs font-medium hover:bg-canvas disabled:opacity-50";
 const btnMain = "rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50";
 const input = "rounded-lg border border-line px-2 py-1 text-sm tabular-nums";
@@ -107,7 +107,7 @@ export default function RiskPremiumAdmin() {
       </div>
 
       {msg && (
-        <div className="rounded-2xl bg-white px-4 py-2 text-sm shadow-sm">
+        <div className="rounded-lg border border-line bg-white px-4 py-2 text-sm shadow-sm">
           {msg}
           {problems.length > 0 && <ul className="mt-1 list-disc pl-5 text-red-700">{problems.map((p) => <li key={p}>{p}</li>)}</ul>}
         </div>

@@ -35,7 +35,7 @@ export default async function ReportPage({ params }: Props) {
   if (!built) {
     if (failed) {
       return (
-        <section className="mx-auto mt-8 max-w-md rounded-2xl border border-line bg-white p-6 text-center" data-testid="report-error">
+        <section className="mx-auto mt-8 max-w-md rounded-lg border border-line bg-white p-6 text-center" data-testid="report-error">
           <p className="text-[15px] font-medium">Bond data is temporarily unavailable</p>
           <p className="mt-1 text-[13px] text-mute">Please try again in a few minutes.</p>
         </section>

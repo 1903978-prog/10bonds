@@ -32,7 +32,7 @@ export default function SearchKpis() {
   return (
     <section className="space-y-3" aria-label="Search stats" data-testid="seo-kpis">
       <Row name="Google" engine={data.google} indexedLabel="Pages in search" indexedHint="Pages shown in Google at least once" setup={<GoogleSetup email={data.serviceAccount} state={data.google.state} />} />
-      <Row name="Bing" engine={data.bing} indexedLabel="Indexed pages" setup={<BingSetup />} extra={<a href={bing.ai} target="_blank" rel="noopener noreferrer" className="rounded-2xl bg-white px-3 py-2 hover:bg-line"><p className="text-[11px] text-mute">AI Performance</p><p className="mt-0.5 text-sm font-semibold text-accent">Open ↗</p></a>} />
+      <Row name="Bing" engine={data.bing} indexedLabel="Indexed pages" setup={<BingSetup />} extra={<a href={bing.ai} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-line bg-white px-3 py-2 hover:bg-line"><p className="text-[11px] text-mute">AI Performance</p><p className="mt-0.5 text-sm font-semibold text-accent">Open ↗</p></a>} />
     </section>
   );
 }
@@ -50,10 +50,10 @@ function Row({ name, engine, indexedLabel, indexedHint, setup, extra }: { name: 
         <Box label="CTR" value={k ? pct(k.ctr) : "—"} />
         <Box label="Avg position" value={k ? num(k.position, 1) : "—"} />
         <Box label={indexedLabel} value={k ? num(k.indexed) : "—"} hint={indexedHint} />
-        {extra ?? <div className="rounded-2xl bg-white px-3 py-2"><p className="text-[11px] text-mute">Status</p><p className={`mt-0.5 text-sm font-semibold ${k ? "text-green-700" : "text-red-700"}`}>{k ? "Connected" : "Not connected"}</p></div>}
+        {extra ?? <div className="rounded-lg border border-line bg-white px-3 py-2"><p className="text-[11px] text-mute">Status</p><p className={`mt-0.5 text-sm font-semibold ${k ? "text-green-700" : "text-red-700"}`}>{k ? "Connected" : "Not connected"}</p></div>}
       </div>
       {!k && (
-        <div className="mt-2 rounded-2xl bg-white px-4 py-3 text-sm">
+        <div className="mt-2 rounded-lg border border-line bg-white px-4 py-3 text-sm">
           <button onClick={() => setOpen(!open)} className="text-accent">{open ? "Hide steps" : `Connect ${name} (one time)`}</button>
           {open && setup}
         </div>
@@ -64,7 +64,7 @@ function Row({ name, engine, indexedLabel, indexedHint, setup, extra }: { name: 
 
 function Box({ label, value, change, hint }: { label: string; value: string; change?: string | null; hint?: string }) {
   return (
-    <div className="rounded-2xl bg-white px-3 py-2" title={hint}>
+    <div className="rounded-lg border border-line bg-white px-3 py-2" title={hint}>
       <p className="text-[11px] text-mute">{label}</p>
       <p className="mt-0.5 text-lg font-semibold leading-tight">
         {value}

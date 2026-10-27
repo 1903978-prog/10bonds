@@ -53,7 +53,7 @@ export default function AdminTuner({ state, onChange, engine, outliers, onSaved 
     : "No bond passes here (curve covers 4–6 year maturities): today's list.";
 
   return (
-    <div className="mt-2 rounded-2xl bg-yellow-100 px-3 py-2 text-[12px] text-ink ring-1 ring-yellow-300" data-testid="admin-tuner">
+    <div className="mt-2 rounded-lg bg-yellow-100 px-3 py-2 text-[12px] text-ink ring-1 ring-yellow-300" data-testid="admin-tuner">
       <div className="flex items-center gap-2 whitespace-nowrap">
         <span className="w-24 font-medium">Premium weight</span>
         <input

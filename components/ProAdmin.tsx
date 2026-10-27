@@ -38,7 +38,7 @@ export default function ProAdmin() {
       {rows?.length === 0 && <p className="text-mute">No requests yet.</p>}
       <div className="space-y-3">
         {rows?.map((r) => (
-          <div key={r.userId} className="rounded-[24px] bg-white p-5" data-testid="pro-admin-row">
+          <div key={r.userId} className="rounded-lg border border-line bg-white p-5" data-testid="pro-admin-row">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${tone[r.status]}`}>{r.status}</span>
               <span className="font-medium">{r.firm}</span>

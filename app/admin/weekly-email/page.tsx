@@ -33,7 +33,7 @@ export default async function WeeklyEmailPage({ searchParams }: { searchParams: 
       {m ? (
         <>
           <p className="mt-5 text-sm"><span className="text-mute">Subject:</span> <strong data-testid="weekly-subject">{m.subject}</strong></p>
-          <iframe title="Weekly e-mail preview" srcDoc={m.html} className="mt-3 h-[1050px] w-full rounded-2xl border border-black/10" sandbox="allow-popups allow-popups-to-escape-sandbox" />
+          <iframe title="Weekly e-mail preview" srcDoc={m.html} className="mt-3 h-[1050px] w-full rounded-lg border border-black/10" sandbox="allow-popups allow-popups-to-escape-sandbox" />
         </>
       ) : (
         <p className="mt-5 text-sm">No bond list available right now.</p>

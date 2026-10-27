@@ -54,7 +54,7 @@ export default async function EnglishComparisonPage({ params }: Props) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Guides</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {guides.map((g) => <li key={g.slug}><Link href={enPath(g.slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{g.title}</Link></li>)}
+            {guides.map((g) => <li key={g.slug}><Link href={enPath(g.slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{g.title}</Link></li>)}
           </ul>
         </section>
       )}
@@ -62,7 +62,7 @@ export default async function EnglishComparisonPage({ params }: Props) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Compare</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {related.map((p) => <li key={p!.def.id}><Link href={enBondsPath(enText(p!.def).slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{enText(p!.def).h1}</Link></li>)}
+            {related.map((p) => <li key={p!.def.id}><Link href={enBondsPath(enText(p!.def).slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{enText(p!.def).h1}</Link></li>)}
           </ul>
         </section>
       )}

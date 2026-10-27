@@ -42,7 +42,7 @@ export default async function Pro() {
     return (
       <div className="space-y-4">
         {info.trialDaysLeft !== null && (
-          <div className="mx-auto max-w-4xl rounded-2xl bg-accent/10 px-5 py-3 text-sm text-accent" data-testid="pro-trial-banner">
+          <div className="mx-auto max-w-4xl rounded-lg bg-accent/10 px-5 py-3 text-sm text-accent" data-testid="pro-trial-banner">
             Free trial: {info.trialDaysLeft} {info.trialDaysLeft === 1 ? "day" : "days"} left. Nothing is charged and nothing renews on its own.{" "}
             <Link href="/pricing" className="underline">See Pro plan</Link>
           </div>

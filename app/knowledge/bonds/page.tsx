@@ -31,7 +31,7 @@ export default async function EnglishComparisonsHub() {
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
         {live.map(({ def, page }) => (
           <li key={def.id}>
-            <Link href={enBondsPath(enText(def).slug)} className="block h-full rounded-2xl bg-white p-4 hover:text-accent">
+            <Link href={enBondsPath(enText(def).slug)} className="block h-full rounded-lg border border-line bg-white p-4 hover:text-accent">
               <span className="font-medium">{enText(def).h1}</span>
               <span className="mt-1 block text-xs text-mute">{page!.issuers} issuers · {page!.bonds} bonds</span>
             </Link>

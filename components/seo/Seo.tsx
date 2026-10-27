@@ -41,7 +41,7 @@ export function Breadcrumbs({ locale, items, siteUrl }: { locale: Locale | "en";
 export function ToolCta({ locale }: { locale: Locale | "en" }) {
   const t = T[locale];
   return (
-    <aside className="mt-10 rounded-[24px] bg-ink p-6 text-white sm:p-8">
+    <aside className="mt-10 rounded-lg bg-ink p-6 text-white sm:p-8">
       <p className="text-xl font-semibold tracking-tight">{t.ctaTitle}</p>
       <p className="mt-2 text-[15px] text-white/75">{t.ctaText}</p>
       <div className="mt-5 flex flex-wrap gap-3">
@@ -94,7 +94,7 @@ export async function ComparisonBody({ locale, c, asOf, source }: { locale: Loca
   // The admin also sees each bond's S&P grade next to the risk score.
   const admin = (await currentUser().catch(() => null))?.isAdmin === true;
   return (
-    <div className="rounded-[24px] bg-white p-5 sm:p-7">
+    <div className="rounded-lg border border-line bg-white p-5 sm:p-7">
       <DataStamp locale={locale} asOf={asOf} source={source} />
       {c.def.kind === "bands" ? (
         c.bands.map((b) => (

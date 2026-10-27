@@ -13,7 +13,7 @@ export default function BondMapGrid({ locale, text, tabs, asOf }: { locale: stri
   const pct = (v: number | null) => (v === null ? "–" : `${v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`);
   const n = (v: number) => v.toLocaleString(locale);
   return (
-    <section className="mt-3 rounded-[24px] bg-white p-4 sm:p-5" data-testid="bond-map">
+    <section className="mt-3 rounded-lg border border-line bg-white p-4 sm:p-5" data-testid="bond-map">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div role="tablist" aria-label="Currency" className="inline-flex rounded-full bg-canvas p-1 text-sm">
           {tabs.map((t) => (

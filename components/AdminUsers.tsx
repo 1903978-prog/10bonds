@@ -8,7 +8,7 @@ type Row = {
 };
 type Key = "email" | "username" | "plan" | "promoCode" | "createdAt" | "emailConfirmed" | "lastSeenAt" | "secondsOnSite" | "searches" | "cameFrom" | "country";
 
-const card = "rounded-[24px] bg-white p-6";
+const card = "rounded-lg border border-line bg-white p-6";
 const day = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const when = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 const plan = (r: Row) => (r.premiumUntil && r.plan !== "premium" && r.plan !== "pro" ? `premium (code, until ${day(r.premiumUntil)})` : r.plan);
@@ -76,7 +76,7 @@ function DiscountButton({ row, onMade }: { row: Row; onMade: () => void }) {
     <div className="relative">
       <button onClick={() => setOpen((o) => !o)} className="rounded-full border border-line px-2.5 py-1 text-xs hover:bg-[#f5f5f7]" data-testid="discount-btn" aria-expanded={open}>Discount</button>
       {open && (
-        <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-2xl bg-white p-3 text-xs shadow-[0_4px_24px_rgba(0,0,0,0.15)]">
+        <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-line bg-white p-3 text-xs shadow-[0_4px_24px_rgba(0,0,0,0.15)]">
           <div className="flex items-center gap-1.5">
             <input type="number" min={1} value={value} onChange={(e) => setValue(e.target.value)} className={inp} aria-label="Discount" />
             <select value={kind} onChange={(e) => setKind(e.target.value as "percent" | "amount")} className="rounded-lg border border-line px-1 py-1" aria-label="Discount type"><option value="percent">% off</option><option value="amount">€ off</option></select>

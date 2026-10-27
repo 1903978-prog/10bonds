@@ -13,7 +13,7 @@ export default function EmailDomainCard() {
   }, []);
   if (!s) return null;
   return (
-    <div className="rounded-[24px] bg-white p-6" data-testid="email-domain">
+    <div className="rounded-lg border border-line bg-white p-6" data-testid="email-domain">
       <h2 className="text-lg font-semibold">Confirmation e-mails</h2>
       {!s.configured ? (
         <p className="mt-2 text-sm text-mute">Off: no Resend key on the server yet.</p>

@@ -62,7 +62,7 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
     [t.risk, <RiskBadge key="r" risk={risk} sp={user?.isAdmin === true ? b.ratingSp?.trim() || null : undefined} />],
   ];
 
-  const card = "rounded-2xl bg-white p-4 sm:p-5";
+  const card = "rounded-lg border border-line bg-white p-4 sm:p-5";
   return (
     <article className="mx-auto max-w-5xl">
       <nav aria-label="Breadcrumb" className="mb-3 text-xs text-mute">

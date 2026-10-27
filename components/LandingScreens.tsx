@@ -78,7 +78,7 @@ const Track = ({ at }: { at: number }) => (
 /** The finder's left panel (PC only): mode, currency, horizon and, for portfolios, the return & risk slider. */
 function Controls({ f, single, horizon, mix }: { f: FinderText; single: boolean; horizon: number; mix: number }) {
   return (
-    <div className="flex w-[250px] shrink-0 flex-col gap-4 rounded-[20px] bg-white p-5">
+    <div className="flex w-[250px] shrink-0 flex-col gap-4 rounded-lg border border-line bg-white p-5">
       <div className="text-[22px] font-semibold leading-[1.1] tracking-tight">{f.h1}</div>
       <Seg items={[f.single, f.portfolio]} on={single ? 0 : 1} />
       <div>
@@ -102,7 +102,7 @@ function Controls({ f, single, horizon, mix }: { f: FinderText; single: boolean;
 }
 
 const Panel = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
-  <div className={`flex min-h-0 min-w-0 flex-1 flex-col rounded-[20px] bg-white p-5 ${className}`}>{children}</div>
+  <div className={`flex min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-line bg-white p-5 ${className}`}>{children}</div>
 );
 
 // Fixed sample numbers (nothing here is live).

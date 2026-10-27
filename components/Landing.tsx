@@ -76,7 +76,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
           <LandingCarousel t={t} slides={[
             ...(showBench ? [{ key: "compare", node: LANDING_SNAPSHOT.verified ? <Comparison t={t} num={num} bench={bench} /> : (
-              <div className="rounded-3xl ring-2 ring-yellow-300" data-testid="bench-admin-only">
+              <div className="rounded-lg ring-2 ring-yellow-300" data-testid="bench-admin-only">
                 <p className="rounded-t-3xl bg-yellow-200 px-3 py-1 text-center text-[11px] font-medium text-ink">Admin only: hidden from customers until the benchmark is verified</p>
                 <Comparison t={t} num={num} bench={bench} />
               </div>

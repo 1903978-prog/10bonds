@@ -44,8 +44,8 @@ export default function YieldCalculator({ locale, text }: { locale: string; text
       ) : (
         <>
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-canvas p-4"><p className="text-xs text-mute">{L.gross}</p><p className="mt-1 text-2xl font-semibold" data-testid="calc-gross">{f(r.grossYtm)}%</p></div>
-            <div className="rounded-2xl bg-canvas p-4"><p className="text-xs text-mute">{L.net}</p><p className="mt-1 text-2xl font-semibold text-accent" data-testid="calc-net">{hasRate ? `${f(r.netYtm)}%` : "–"}</p></div>
+            <div className="rounded-lg bg-canvas p-4"><p className="text-xs text-mute">{L.gross}</p><p className="mt-1 text-2xl font-semibold" data-testid="calc-gross">{f(r.grossYtm)}%</p></div>
+            <div className="rounded-lg bg-canvas p-4"><p className="text-xs text-mute">{L.net}</p><p className="mt-1 text-2xl font-semibold text-accent" data-testid="calc-net">{hasRate ? `${f(r.netYtm)}%` : "–"}</p></div>
           </div>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
             <div><dt className="text-xs text-mute">{L.current}</dt><dd>{f(r.currentYield)}%</dd></div>

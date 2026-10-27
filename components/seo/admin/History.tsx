@@ -80,7 +80,7 @@ function Detail({ stat, days, val, onClose, onStep }: { stat: Stat; days: string
   const hv = hover !== null ? values[hover] : null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3" onClick={onClose} data-testid="seo-history-detail">
-      <div role="dialog" aria-label={stat.label} className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-label={stat.label} className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-line bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-2">
           <button onClick={() => onStep(-1)} aria-label="Previous figure" className="px-2 text-lg text-accent">‹</button>
           <div className="min-w-0 flex-1 text-center">
@@ -139,7 +139,7 @@ export default function History() {
     return r ? ((r[s.key] as number | null) ?? null) : null;
   };
   return (
-    <section className="rounded-2xl bg-white px-4 py-3" data-testid="seo-history">
+    <section className="rounded-lg border border-line bg-white px-4 py-3" data-testid="seo-history">
       <button onClick={() => setOpen(!open)} className="text-sm text-accent">{open ? "Hide history" : "History of these numbers (saved daily)"}</button>
       {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
       {open && !rows && !error && <p className="mt-2 text-xs text-mute">Loading…</p>}

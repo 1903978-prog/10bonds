@@ -32,7 +32,7 @@ export default function Summary({ data }: { data: SummaryData }) {
         <h2 className="text-lg font-semibold">Connected sources</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.sources.map((s) => (
-            <div key={s.id} className="rounded-2xl bg-canvas p-4" data-testid={`seo-source-${s.id}`}>
+            <div key={s.id} className="rounded-lg bg-canvas p-4" data-testid={`seo-source-${s.id}`}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold">{s.name}</p>
                 <Badge tone={STATE[s.state][0]}>{STATE[s.state][1]}</Badge>

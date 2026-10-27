@@ -21,7 +21,7 @@ export function LimitReached({ quota }: { quota: Quota }) {
   const t = useFinderText();
   useEffect(() => trackOnce("limit_reached", { kind: quota.kind }), [quota.kind]);
   return (
-    <div className="rounded-2xl bg-canvas p-6 text-center" data-testid="limit-reached">
+    <div className="rounded-lg bg-canvas p-6 text-center" data-testid="limit-reached">
       <p className="font-semibold">{t.limitTitle}</p>
       <p className="mt-2 text-sm text-mute">{t.limitBody(quota.limit ?? 0)}</p>
       <p className="mt-3 text-sm text-mute" data-testid="limit-plus">{t.limitPlus}</p>

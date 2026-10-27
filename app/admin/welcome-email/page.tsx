@@ -36,7 +36,7 @@ export default async function WelcomeEmailPreview({ searchParams }: { searchPara
         <Link href={href(lang, true)} className={`rounded-full px-4 py-1.5 ${withCode ? "bg-ink text-white" : "bg-black/5"}`}>With promo code (30 days)</Link>
       </div>
       <p className="mt-5 text-sm"><span className="text-mute">Subject:</span> <strong data-testid="welcome-subject">{m.subject}</strong></p>
-      <iframe title="Welcome e-mail preview" srcDoc={m.html} className="mt-3 h-[1150px] w-full rounded-2xl border border-black/10" sandbox="allow-popups allow-popups-to-escape-sandbox" />
+      <iframe title="Welcome e-mail preview" srcDoc={m.html} className="mt-3 h-[1150px] w-full rounded-lg border border-black/10" sandbox="allow-popups allow-popups-to-escape-sandbox" />
     </main>
   );
 }

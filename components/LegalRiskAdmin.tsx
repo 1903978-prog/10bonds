@@ -58,7 +58,7 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
   const warns = d.checks.filter((c) => c.level === "warn").length;
 
   const tile = (label: string, value: React.ReactNode, sub: string) => (
-    <div className="rounded-3xl border border-line bg-white p-5" data-testid={`lr-tile-${label.toLowerCase().replace(/\W+/g, "-")}`}>
+    <div className="rounded-lg border border-line bg-white p-5" data-testid={`lr-tile-${label.toLowerCase().replace(/\W+/g, "-")}`}>
       <p className="text-xs text-mute">{label}</p>
       <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
       <p className="mt-1 text-xs text-mute">{sub}</p>
@@ -77,9 +77,9 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
       <section>
         <h2 className="text-lg font-semibold">Three separate statuses</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div className="rounded-3xl border border-line bg-white p-5"><p className="text-xs text-mute">1. Technical safeguards implemented</p><p className="mt-1 text-2xl font-semibold tabular-nums">{rows.filter((c) => c.technical === "implemented").length} full · {rows.filter((c) => c.technical === "partial").length} partial</p><p className="mt-1 text-xs text-mute">Code and copy only. Not a legal conclusion.</p></div>
-          <div className="rounded-3xl border border-line bg-white p-5"><p className="text-xs text-mute">2. Legal interpretation pending</p><p className="mt-1 text-2xl font-semibold tabular-nums">{rows.length - reviewed} of {rows.length}</p><p className="mt-1 text-xs text-mute">Questions only qualified counsel can answer.</p></div>
-          <div className="rounded-3xl border border-line bg-white p-5"><p className="text-xs text-mute">3. Legal review completed</p><p className="mt-1 text-2xl font-semibold tabular-nums">{reviewed} of {rows.length}</p><p className="mt-1 text-xs text-mute">Set only by a named reviewer below.</p></div>
+          <div className="rounded-lg border border-line bg-white p-5"><p className="text-xs text-mute">1. Technical safeguards implemented</p><p className="mt-1 text-2xl font-semibold tabular-nums">{rows.filter((c) => c.technical === "implemented").length} full · {rows.filter((c) => c.technical === "partial").length} partial</p><p className="mt-1 text-xs text-mute">Code and copy only. Not a legal conclusion.</p></div>
+          <div className="rounded-lg border border-line bg-white p-5"><p className="text-xs text-mute">2. Legal interpretation pending</p><p className="mt-1 text-2xl font-semibold tabular-nums">{rows.length - reviewed} of {rows.length}</p><p className="mt-1 text-xs text-mute">Questions only qualified counsel can answer.</p></div>
+          <div className="rounded-lg border border-line bg-white p-5"><p className="text-xs text-mute">3. Legal review completed</p><p className="mt-1 text-2xl font-semibold tabular-nums">{reviewed} of {rows.length}</p><p className="mt-1 text-xs text-mute">Set only by a named reviewer below.</p></div>
         </div>
       </section>
 
@@ -87,7 +87,7 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
         <section>
           <h2 className="text-lg font-semibold">Critical unresolved issues</h2>
           <p className="mt-1 text-sm text-mute">Listed regardless of score because an authorisation, registration or licence question could be open.</p>
-          <ul className="mt-3 divide-y divide-line rounded-3xl border border-line bg-white">
+          <ul className="mt-3 divide-y divide-line rounded-lg border border-line bg-white">
             {critical.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
                 <button type="button" onClick={() => setOpen(c.id)} className="text-left font-medium text-accent">{c.id}. {c.title}</button>
@@ -104,7 +104,7 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
           <button type="button" disabled={busy} onClick={() => call(undefined, "Checks re-run.")} className="rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50" data-testid="lr-run">Run technical checks</button>
         </div>
         <p className="mt-1 text-sm text-mute">{fails ? `${fails} failing, ` : "None failing, "}{warns} open warning{warns === 1 ? "" : "s"}. Checks that read the source code run in every release (npm test) and block it on failure.</p>
-        <ul className="mt-3 divide-y divide-line rounded-3xl border border-line bg-white" data-testid="lr-checks">
+        <ul className="mt-3 divide-y divide-line rounded-lg border border-line bg-white" data-testid="lr-checks">
           {d.checks.map((c) => (
             <li key={c.id} className="flex items-start gap-3 px-5 py-3 text-sm">
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${DOT[c.level]}`} aria-label={c.level} />
@@ -127,7 +127,7 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
         {d.groups.map((g) => (
           <div key={g} className="mt-5">
             <h3 className="text-sm font-semibold text-mute">{g}</h3>
-            <ul className="mt-2 divide-y divide-line rounded-3xl border border-line bg-white">
+            <ul className="mt-2 divide-y divide-line rounded-lg border border-line bg-white">
               {rows.filter((c) => c.group === g).map((c) => (
                 <li key={c.id} data-testid={`lr-row-${c.id}`}>
                   <button type="button" onClick={() => setOpen(open === c.id ? null : c.id)} aria-expanded={open === c.id} className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 text-left text-sm">
@@ -149,7 +149,7 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
 
       <section>
         <h2 className="text-lg font-semibold">Top 10 exposures by initial risk</h2>
-        <ol className="mt-3 divide-y divide-line rounded-3xl border border-line bg-white text-sm">
+        <ol className="mt-3 divide-y divide-line rounded-lg border border-line bg-white text-sm">
           {top.map((c, i) => (
             <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-2.5"><span><span className="mr-3 text-mute tabular-nums">{i + 1}</span>{c.title}</span><Bar initial={c.initial} residual={c.residual} /></li>
           ))}
@@ -159,7 +159,7 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
       <section>
         <h2 className="text-lg font-semibold">Data sources and licences</h2>
         <p className="mt-1 text-sm text-mute">Removing a supplier&apos;s name or logo does not resolve a licence restriction. &quot;Unconfirmed&quot; means no documented commercial redistribution right was found.</p>
-        <ul className="mt-3 divide-y divide-line rounded-3xl border border-line bg-white text-sm">
+        <ul className="mt-3 divide-y divide-line rounded-lg border border-line bg-white text-sm">
           {d.dataSources.map((s) => (
             <li key={s.id} className="px-5 py-3">
               <p className="font-medium">{s.what} <Chip kind={s.licence === "unconfirmed" ? "open" : "ok"}>{s.licence}</Chip></p>
@@ -171,7 +171,7 @@ export default function LegalRiskAdmin({ initial }: { initial: Dashboard }) {
 
       <section>
         <h2 className="text-lg font-semibold">Scoring model versions</h2>
-        <ul className="mt-3 divide-y divide-line rounded-3xl border border-line bg-white text-sm">
+        <ul className="mt-3 divide-y divide-line rounded-lg border border-line bg-white text-sm">
           {d.modelVersions.map((m) => (
             <li key={m.id} className="px-5 py-3"><p className="font-medium">{m.id} <span className="text-xs font-normal text-mute">v{m.version} · effective {m.effective}</span></p><p className="text-xs text-mute">{m.module} · {m.description}</p></li>
           ))}
@@ -212,7 +212,7 @@ function Detail({ c, reviewer, setReviewer, note, setNote, busy, post, tracking 
         <span className="text-xs text-mute">{c.review?.reassessedAt ? `Last reassessed ${c.review.reassessedAt}` : "Not reassessed since the audit"}</span>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-line bg-white p-4">
+      <div className="mt-4 rounded-lg border border-line bg-white p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-mute">Legal review</p>
         {c.reviewed && c.review ? (
           <p className="mt-2">Reviewed by <b>{c.review.reviewer}</b> on {c.review.reviewedAt}{c.review.reviewNote ? `: ${c.review.reviewNote}` : ""}. <button type="button" disabled={busy} onClick={() => post({ id: c.id, action: "review", clearReview: true }, "Review cleared.")} className="text-accent">Clear</button></p>

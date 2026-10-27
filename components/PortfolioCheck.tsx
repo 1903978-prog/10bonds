@@ -76,7 +76,7 @@ export default function PortfolioCheck({ a }: { a: PortfolioAnalysis }) {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-canvas p-4">
+    <div className="rounded-lg bg-canvas p-4">
       <p className="text-xs text-mute">{label}</p>
       <p className="mt-1 text-[17px] font-semibold tabular-nums">{value}</p>
     </div>

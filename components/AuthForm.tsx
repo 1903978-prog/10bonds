@@ -113,7 +113,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
 
   if (ticket)
     return (
-      <div className="mx-auto max-w-md rounded-[24px] bg-white p-6 sm:p-7" data-testid="twofa-step">
+      <div className="mx-auto max-w-md rounded-lg border border-line bg-white p-6 sm:p-7" data-testid="twofa-step">
         <h1 className="text-[24px] font-semibold tracking-tight">Enter your code</h1>
         <p className="mt-2 text-[15px] text-mute">Open your authenticator app and type the 6-digit code for 10BONDS. No phone? Use one of your backup codes.</p>
         <form onSubmit={submitCode} className="mt-4 space-y-3">
@@ -135,7 +135,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
     );
 
   return (
-    <div className="mx-auto max-w-md rounded-[24px] bg-white p-6 sm:p-7">
+    <div className="mx-auto max-w-md rounded-lg border border-line bg-white p-6 sm:p-7">
       <h1 className="text-[24px] font-semibold tracking-tight">{signup ? "Create your free account" : "Sign in"}</h1>
       <p className="mt-2 text-[15px] text-mute">
         {signup ? "Free, no card needed." : "Welcome back."}

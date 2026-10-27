@@ -60,7 +60,7 @@ export default function WhyTable({ query, lang = "en", inList, onAdd }: { query:
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label={t.title} onClick={() => setOpen(false)} data-testid="why-modal">
-          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col rounded-3xl bg-white p-5 shadow-[0_8px_40px_rgba(0,0,0,0.2)]" onClick={(e) => e.stopPropagation()}>
+          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col rounded-lg border border-line bg-white p-5 shadow-[0_8px_40px_rgba(0,0,0,0.2)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3">
               <div className="min-w-0">
                 <h2 className="text-[17px] font-semibold">{t.title}</h2>

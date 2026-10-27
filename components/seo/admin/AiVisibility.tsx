@@ -29,7 +29,7 @@ export default function AiVisibility() {
         <p className="mt-4 text-[44px] font-semibold leading-none" data-testid="geo-score">{data.score}<span className="text-xl text-mute">/100</span></p>
         <div className="mt-5 space-y-4">
           {data.dimensions.map((d) => (
-            <div key={d.id} className="rounded-2xl bg-canvas p-4">
+            <div key={d.id} className="rounded-lg bg-canvas p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium">{d.name} <span className="text-xs text-mute">· weight {d.weight}%</span></p>
                 <Badge tone={tone(d.score)}>{d.score}%</Badge>
@@ -125,7 +125,7 @@ export default function AiVisibility() {
 }
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return <div className="rounded-2xl bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p>{sub && <p className="text-xs text-mute">{sub}</p>}</div>;
+  return <div className="rounded-lg bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p>{sub && <p className="text-xs text-mute">{sub}</p>}</div>;
 }
 
 /** Free weekly check by hand: copy one prompt into ChatGPT and Claude, paste the answers back. */
