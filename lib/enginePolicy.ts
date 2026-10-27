@@ -19,16 +19,19 @@ export type LossModelId = "v1_linear" | "v2_hazard";
 export type EnginePolicy = { spread: SpreadMode; composition: CompositionMode; loss: LossModelId };
 
 export const ENGINE_POLICY_VERSION = "engine-2";
-export const DEFAULT_ENGINE: EnginePolicy = { spread: "hard_constraint", composition: "house_window", loss: "v1_linear" };
+/** The policy in force until 27/10/2026 (spread table as constraint, house rating window): kept so it can still be run and compared. */
+export const LEGACY_ENGINE: EnginePolicy = { spread: "hard_constraint", composition: "house_window", loss: "v1_linear" };
+/** In force since 27/10/2026 (Livio "1B 2B"): spread table only labels bonds, no house rating window; issuer, sector, loss-share, weak-bond and duration limits stay. */
+export const DEFAULT_ENGINE: EnginePolicy = { spread: "diagnostic_only", composition: "ceiling_only", loss: "v1_linear" };
 
 let engine: EnginePolicy = DEFAULT_ENGINE;
 export const activeEngine = () => engine;
 /** Tests and comparison scripts only; no screen or setting changes the engine policy yet (needs Livio's approval). */
 export function setEngine(e: EnginePolicy | null): void { engine = e ?? DEFAULT_ENGINE; }
 
-/** Empty for the default policy (keeps today's cache keys), otherwise names every switch moved. */
+/** Empty only for the legacy policy (its cache keys are unchanged); every other policy, the new default included, names all its switches so saved lists of the old policy are never served. */
 export const engineSignature = (e: EnginePolicy = engine): string =>
-  e.spread === DEFAULT_ENGINE.spread && e.composition === DEFAULT_ENGINE.composition && e.loss === DEFAULT_ENGINE.loss ? "" : `|${ENGINE_POLICY_VERSION}:${e.spread}:${e.composition}:${e.loss}`;
+  e.spread === LEGACY_ENGINE.spread && e.composition === LEGACY_ENGINE.composition && e.loss === LEGACY_ENGINE.loss ? "" : `|${ENGINE_POLICY_VERSION}:${e.spread}:${e.composition}:${e.loss}`;
 
 // What the API does when the optimiser has no list for the asked position (paper 7.1: report infeasibility, never force a list):
 //  "legacy_ranking"  today: the plain ranker (lib/ranking.ts, knows none of the optimiser's rules) fills in and the answer says

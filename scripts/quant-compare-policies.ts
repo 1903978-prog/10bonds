@@ -12,7 +12,7 @@ import { candidatesOf, coherentFrontier } from "@/lib/coherentFrontier";
 import { activePolicy, policySignature } from "@/lib/coherence";
 import { buildSlider } from "@/lib/sliderPortfolios";
 import { spreadVerdicts } from "@/lib/spreadDiagnostic";
-import { setEngine, DEFAULT_ENGINE, type EnginePolicy } from "@/lib/enginePolicy";
+import { setEngine, LEGACY_ENGINE, type EnginePolicy } from "@/lib/enginePolicy";
 import { TERMS } from "@/lib/limits";
 import type { BondSource } from "@/lib/bonds";
 
@@ -21,17 +21,17 @@ const out = process.env.QUANT_OUT ?? "quant-out";
 fs.mkdirSync(out, { recursive: true });
 const f2 = (x: number) => x.toFixed(2), f3 = (x: number) => x.toFixed(3);
 const CONFIGS: { name: string; e: EnginePolicy }[] = [
-  { name: "A today: hard spread + house window", e: { spread: "hard_constraint", composition: "house_window", loss: "v1_linear" } },
+  { name: "A legacy (until 27/10): hard spread + house window", e: { spread: "hard_constraint", composition: "house_window", loss: "v1_linear" } },
   { name: "B paper: diagnostic spread + house window", e: { spread: "diagnostic_only", composition: "house_window", loss: "v1_linear" } },
   { name: "C hard spread + ceiling only", e: { spread: "hard_constraint", composition: "ceiling_only", loss: "v1_linear" } },
-  { name: "D paper spread + ceiling only (no house rating rules)", e: { spread: "diagnostic_only", composition: "ceiling_only", loss: "v1_linear" } },
+  { name: "D = new default since 27/10 (Livio 1B 2B): paper spread + ceiling only", e: { spread: "diagnostic_only", composition: "ceiling_only", loss: "v1_linear" } },
   { name: "E = A with loss model v2 (hazard interpolation)", e: { spread: "hard_constraint", composition: "house_window", loss: "v2_hazard" } },
   { name: "F = B with loss model v2 (hazard interpolation)", e: { spread: "diagnostic_only", composition: "house_window", loss: "v2_hazard" } },
 ];
 const md: string[] = [`# Policy comparison on one frozen snapshot`, `data ${src.source} ${src.asOf}, ${src.bonds.length} bonds, rules ${policySignature()}\n`];
 const result: any = { asOf: src.asOf, bonds: src.bonds.length, horizons: {} };
 for (const t of TERMS) {
-  setEngine(DEFAULT_ENGINE);
+  setEngine(LEGACY_ENGINE);
   const cands = candidatesOf(src.bonds, t.duration, true);
   const sizes = cands.map((c) => c.beatenBy.size);
   const verdicts = spreadVerdicts(cands.map((c) => c.b), cands.map((c) => c.b));

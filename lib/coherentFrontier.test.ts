@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PublicBond } from "./types";
 import { candidatesOf, coherentFrontier } from "./coherentFrontier";
 import { checkList, cleanPolicy, DEFAULT_POLICY, END_POLICY, factsOf, type CoherencePolicy } from "./coherence";
 import { buildSlider } from "./sliderPortfolios";
 import { exactFrontier } from "./exactFrontier";
-import { DEFAULT_ENGINE, engineSignature, type EnginePolicy } from "./enginePolicy";
+import { DEFAULT_ENGINE, LEGACY_ENGINE, engineSignature, setEngine, type EnginePolicy } from "./enginePolicy";
+
+// The rules checked below are the legacy ones (spread table as constraint, house rating window); the new default (27/10/2026) is covered by the engine-policy block at the end.
+beforeAll(() => setEngine(LEGACY_ENGINE));
+afterAll(() => setEngine(null));
 
 const bond = (isin: string, issuer: string, ytm: number, rating: string, dur = 4): PublicBond => ({
   isin, name: isin, issuer, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -183,8 +187,10 @@ describe("infeasible and scarce universes never relax a rule", () => {
 });
 
 describe("versioned engine policy (spread mode, composition mode)", () => {
-  it("the default engine policy leaves cache keys and certificates exactly as they were", () => {
-    expect(engineSignature(DEFAULT_ENGINE)).toBe("");
+  it("the legacy policy keeps its cache keys; the default (spread label only, no rating window) has its own", () => {
+    expect(engineSignature(LEGACY_ENGINE)).toBe("");
+    expect(DEFAULT_ENGINE).toEqual({ spread: "diagnostic_only", composition: "ceiling_only", loss: "v1_linear" });
+    expect(engineSignature(DEFAULT_ENGINE)).toContain("ceiling_only");
     expect(engineSignature({ spread: "diagnostic_only", composition: "house_window", loss: "v1_linear" })).toContain("diagnostic_only");
   });
   for (const engine of [
@@ -213,7 +219,7 @@ describe("versioned engine policy (spread mode, composition mode)", () => {
   }
   it("dropping the spread rule can only widen the feasible set: never worse at any return", { timeout: 120000 }, async () => {
     const bonds = universe(17);
-    const hard = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: DEFAULT_ENGINE });
+    const hard = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: LEGACY_ENGINE });
     const diag = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: { spread: "diagnostic_only", composition: "house_window", loss: "v1_linear" } });
     for (const pt of hard.points.filter((x) => !x.end)) {
       const alt = diag.points.find((d) => d.ytm >= pt.ytm - 1e-9);
