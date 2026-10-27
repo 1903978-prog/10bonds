@@ -6,7 +6,9 @@ import type { DomainState } from "@/lib/emailDomain";
 /** Admin: whether confirmation e-mails are on, and the DNS records still to add at Namecheap. */
 export default function EmailDomainCard() {
   const [s, setS] = useState<DomainState | null>(null);
+  const [log, setLog] = useState<{ at: string; kind: string; to: string; outcome: string; detail: string }[]>([]);
   useEffect(() => {
+    fetch("/api/admin/email-log", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])).then(setLog).catch(() => {});
     fetch("/api/admin/email-domain", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then(setS).catch(() => {});
   }, []);
   if (!s) return null;
@@ -42,6 +44,22 @@ export default function EmailDomainCard() {
             </table>
           </div>
         </>
+      )}
+      <h3 className="mt-5 text-sm font-semibold">Last send attempts</h3>
+      {log.length === 0 ? <p className="mt-1 text-xs text-mute">None yet.</p> : (
+        <table className="mt-2 w-full text-left text-xs" data-testid="email-log">
+          <tbody>
+            {log.map((r, i) => (
+              <tr key={i} className="border-t border-line/60 align-top">
+                <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.at).toLocaleString()}</td>
+                <td className="py-1 pr-3">{r.kind}</td>
+                <td className="py-1 pr-3">{r.to}</td>
+                <td className={`py-1 pr-3 ${r.outcome === "sent" ? "" : "text-red-600"}`}>{r.outcome}</td>
+                <td className="py-1 break-all">{r.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
