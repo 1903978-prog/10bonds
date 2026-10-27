@@ -16,6 +16,8 @@ import { calcLangs, CALCULATOR_EN, enGuide, enPath, KC_TEXT_EN, withEnglish } fr
 import { pathOf, type Locale } from "@/lib/seo/locales";
 import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
 import { listGuides } from "@/lib/seo/store";
+import { enBondsPath, enComparisons, enText } from "@/lib/seo/comparisonsEn";
+import { comparisonPages, shown } from "@/lib/seo/site";
 
 // English Knowledge Center pages: the guides and the yield calculator.
 
@@ -122,6 +124,9 @@ export default async function EnglishKnowledgePage({ params }: Props) {
   const faq = faqFromHtml(body);
   const related = EN_GUIDES.filter((x) => x.section === g.section && x.slug !== g.slug).slice(0, 4);
   const url = SITE_URL + enPath(g.slug);
+  // Live bond comparisons to read next (only pages that have enough bonds today).
+  const { pages: livePages, source: liveSource } = await comparisonPages();
+  const compare = enComparisons().filter((d) => livePages.some((p) => p.def.id === d.id && shown(p, liveSource))).slice(0, 3);
   return (
     <article className="mx-auto max-w-6xl">
       {crumbs(g.title, enPath(g.slug))}
@@ -130,6 +135,14 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{g.published && <> · <time dateTime={g.published}>{new Date(g.published).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}</p>
         <div className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: body }} />
       </div>
+      {compare.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Compare euro bonds</h2>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+            {compare.map((d) => <li key={d.id}><Link href={enBondsPath(enText(d).slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{enText(d).h1}</Link></li>)}
+          </ul>
+        </section>
+      )}
       {related.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Related guides</h2>
