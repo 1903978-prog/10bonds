@@ -586,7 +586,8 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "code",
-  "next": "Rank stability and sensitivity report"
+  "next": "Stability study (eq. 37) written; run on frozen data, then count as Implemented if results are published",
+  "note": "scripts/quant-stability.ts, workflow Quant stability study"
  },
  {
   "id": 46,

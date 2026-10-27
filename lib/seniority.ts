@@ -34,4 +34,7 @@ export function isExcludedRank(b: { seniority?: string | null }): boolean {
   return rankOf(b) === "sub";
 }
 
-export const lgdOf = (b: { seniority?: string | null }): number => LGD_BY_RANK[rankOf(b)];
+// Sensitivity studies only (scripts/quant-stability.ts): loss given default plus this shift, capped at 1. Production never sets it (0 = unchanged).
+let lgdShift = 0;
+export const setLgdShift = (x: number) => { lgdShift = Number.isFinite(x) ? x : 0; };
+export const lgdOf = (b: { seniority?: string | null }): number => (lgdShift === 0 ? LGD_BY_RANK[rankOf(b)] : Math.min(1, LGD_BY_RANK[rankOf(b)] + lgdShift));

@@ -1,0 +1,21 @@
+name: Quant stability study
+# Read-only. Frozen-data portfolio stability under alternative calibrations (input: a "Quant baseline" run id). Read-only.
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_run_id: { description: "Run id of a 'Quant baseline' run (its artifact holds the bond data)", required: true }
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    permissions: { contents: read, actions: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - uses: actions/download-artifact@v4
+        with: { name: quant-baseline, path: frozen, run-id: "${{ inputs.baseline_run_id }}", github-token: "${{ github.token }}" }
+      - run: QUANT_SNAPSHOT=frozen/snapshot.json.gz QUANT_OUT=quant-out npx vite-node -c vitest.config.ts scripts/quant-stability-impact.ts
+      - uses: actions/upload-artifact@v4
+        with: { name: quant-stability, path: quant-out, retention-days: 90 }
