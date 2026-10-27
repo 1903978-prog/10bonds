@@ -1,27 +1,21 @@
 name: Secval probe
-# Temporary, read-only: prints the live site's headers and page load times. Removed before merge.
+# Temporary, read-only: prints the live site's headers. Removed before merge.
 on:
   push:
     branches: [claude/project-thread-xze0y9]
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 3
     steps:
       - name: Headers
         run: |
-          curl -sI https://10bonds.com/ | grep -iE '^(HTTP|server|via|cache|content-encoding|x-powered|fly-)' || true
-          curl -sI -H 'Accept-Encoding: gzip, br' https://10bonds.com/ | grep -i content-encoding || echo "no compression on /"
-          echo ---- robots; curl -s https://10bonds.com/robots.txt | head -20
-          echo ---- llms; curl -s https://10bonds.com/llms.txt | head -5
-      - name: Page timings
-        run: |
-          for p in / /pricing /knowledge /it /fr /de /methodology /selection-methodology /sitemap.xml /bonds/sitemap.xml /api/health /api/bonds/caps /risk-assessment /bonds/FR0013482841 /terms /login /nonexistent-page; do
-            for i in 1 2 3; do curl -s -o /dev/null -H 'Accept-Encoding: gzip' -w "$p  %{http_code}  ttfb=%{time_starttransfer}  total=%{time_total}  bytes=%{size_download}\n" "https://10bonds.com$p"; done
-          done
-      - name: Crawl check (links in sitemap)
+          curl -s -D - -o /dev/null -H 'Accept-Encoding: gzip, br' https://10bonds.com/ | grep -iE '^(HTTP|server|via|cache|content-encoding|content-length|fly-)' || true
+          echo ---- bond sitemap; curl -s -D - -o /dev/null -H 'Accept-Encoding: gzip' https://10bonds.com/bonds/sitemap.xml | grep -iE '^(HTTP|cache|content-encoding|content-length)'
+          echo ---- 404 page; curl -s -o /dev/null -w '%{http_code}\n' https://10bonds.com/risk-assessment
+      - name: Crawl check (parallel)
         run: |
           curl -s https://10bonds.com/sitemap.xml | grep -oE '<loc>[^<]+' | sed 's/<loc>//' > urls.txt
           wc -l urls.txt
-          head -400 urls.txt | while read u; do echo "$(curl -s -o /dev/null -w '%{http_code} %{time_total}' "$u") $u"; done | awk '$1!=200' | head -30
+          cat urls.txt | xargs -P 8 -I{} curl -s -m 20 -o /dev/null -w '%{http_code} %{time_total} {}\n' {} | awk '$1!=200' | head -30
           echo done-crawl
