@@ -1,10 +1,9 @@
 name: SEO & GEO re-score after deploy
 # After every successful release, asks the site to re-crawl itself and store new SEO and GEO scores, so /admin/seo
 # always shows the live site as it is now. Same signed request as the weekly refresh (seo-weekly.yml).
+# Manual only (27 Oct 2026): the crawl runs inside the web server and, after each of the day's many releases, kept its one
+# CPU busy for minutes (health check failed, visitors got 502/503). The weekly and daily refreshes remain.
 on:
-  workflow_run:
-    workflows: ["Deploy to Fly"]
-    types: [completed]
   workflow_dispatch:
 jobs:
   rescore:

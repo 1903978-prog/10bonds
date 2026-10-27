@@ -11,7 +11,10 @@ export const crawlBase = () => (process.env.SEO_CRAWL_BASE ?? `http://127.0.0.1:
 export const PRIVATE_PATHS = ["/admin", "/admin/seo", "/login", "/signup", "/redeem", "/account"];
 const SEEDS = ["/", "/it", "/fr", "/de", "/pricing", "/disclaimer", "/terms", "/privacy", "/cookies"];
 const MAX_PAGES = 600;
-const CONCURRENCY = 6;
+// Two at a time with a pause: the site crawls itself on its own small machine, and six at once (every page rendered in full)
+// kept its one CPU busy for minutes, so real visitors and the health check got no answer.
+const CONCURRENCY = 2;
+const PAUSE_MS = 400;
 
 export type CrawledPage = PageFacts & {
   path: string;
@@ -115,6 +118,7 @@ export async function crawlSite(base = crawlBase()): Promise<CrawlResult> {
         if (PRIVATE_PATHS.some((p) => path === p || path.startsWith(p + "/"))) continue;
         started++;
         await visit(path);
+        await new Promise((done) => setTimeout(done, PAUSE_MS));
       }
     };
     // Workers stop when the queue is momentarily empty; run rounds until nothing new was queued.

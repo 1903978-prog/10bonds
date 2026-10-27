@@ -1,10 +1,9 @@
 name: Phone speed check (Lighthouse)
 # After each deploy and weekly: measures the language home pages on a simulated phone and stores the scores
 # for the SEO dashboard (Mobile experience and performance). Needs ACCOUNTS_DATABASE_URL.
+# Not run after each deploy any more (27 Oct 2026): with the day's many releases the page loads right after a restart
+# competed with real visitors on the one small CPU. Weekly and manual only.
 on:
-  workflow_run:
-    workflows: ["Deploy to Fly"]
-    types: [completed]
   schedule:
     - cron: "17 5 * * 1"
   workflow_dispatch:
