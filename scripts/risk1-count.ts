@@ -17,3 +17,4 @@ for (const currency of ["EUR", "USD", "GBP"] as const) {
     }
   }
 }
+// run

@@ -2,6 +2,9 @@ name: Risk 1 count
 # Manual only: how many risk 1 (AAA) bonds and issuer groups each horizon has. Read-only.
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/project-thread-rucmt4]
+    paths: [scripts/risk1-count.ts]
 jobs:
   check:
     runs-on: ubuntu-24.04
