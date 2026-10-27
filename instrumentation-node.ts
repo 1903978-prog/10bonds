@@ -7,7 +7,11 @@ import { runLow } from "./lib/highsSolver";
 // worked out shortly after the server starts (45 s), so the first visitor rarely waits for them, and again every 30 minutes, so a
 // new data copy is ready before anyone asks.
 // Runs as low priority: a customer's own search jumps ahead of the warm-up in the solver's queue.
-const warm = () => runLow(warmAll);
+// Skipped while the process already uses a lot of memory (a crawler burst, a customer's own solve): it tries again on the next round.
+const warm = () => {
+  if (process.memoryUsage().rss > 650 * 1024 * 1024) return Promise.resolve();
+  return runLow(warmAll);
+};
 async function warmAll() {
   const f = { currency: "EUR", size: "100k" } as const;
   try {
