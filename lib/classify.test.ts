@@ -29,3 +29,13 @@ describe("country and industry classification", () => {
     expect(c).toMatchObject({ total: 2, country: 1, sector: 1, both: 1, countryBySource: { feed: 1 } });
   });
 });
+
+import { issuerCountryOf } from "./issuerCountries";
+describe("issuer country table", () => {
+  it("fills a missing country by issuer name, feed still wins", () => {
+    expect(issuerCountryOf("AT&T")).toBe("US");
+    expect(classifyRow({ isin: "US1" }, "Verizon").country).toBe("United States");
+    expect(classifyRow({ isin: "US1", issuer_country: "DE" }, "Verizon").country).toBe("Germany");
+    expect(issuerCountryOf("European Investment Bank")).toBeNull();
+  });
+});
