@@ -73,9 +73,13 @@ export function setPolicy(p: CoherencePolicy | null | undefined, version?: strin
 }
 export const activePolicy = () => policy;
 
+/** What the two ends of the slider are checked against (lib/coherentFrontier.ts): only one bond per issuer group, nothing else of the rating rules. */
+export const END_POLICY: CoherencePolicy = { maxDispersion: 9, minCore: 0, minWorst: 0, maxLossShare: 1, maxPerSector: 10, maxWeak: 10, maxPerIssuer: 1 };
+
+
 /** Stored with every result and part of the frontier cache key: the rules, their version, the sector taxonomy. */
 export const policySignature = (p: CoherencePolicy = policy) =>
-  `coh1:${policyVersion}:${POLICY_FIELDS.map((f) => p[f.key]).join(",")}:${SECTOR_TAXONOMY_VERSION}`;
+  `coh2:${policyVersion}:${POLICY_FIELDS.map((f) => p[f.key]).join(",")}:${SECTOR_TAXONOMY_VERSION}`;
 
 /** B+ is notch 13 on the site's scale (AAA = 0). */
 export const B_PLUS_NOTCH = 13;

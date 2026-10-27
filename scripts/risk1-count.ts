@@ -4,7 +4,7 @@ import { loadBondsFor } from "@/lib/bonds";
 import { candidatesOf } from "@/lib/coherentFrontier";
 import { TERMS } from "@/lib/limits";
 
-for (const currency of ["EUR", "USD", "GBP"] as const) {
+for (const currency of ["EUR", "USD"] as const) {
   const src = await loadBondsFor({ currency, size: "100k" });
   for (const t of TERMS) {
     for (const spread of [false, true]) {

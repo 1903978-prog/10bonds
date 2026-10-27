@@ -17,7 +17,7 @@ import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
 import { frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
-import { checkList, creditProfile, withoutListEdits, factsOf, activePolicy, policySignature } from "@/lib/coherence";
+import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, activePolicy, policySignature } from "@/lib/coherence";
 import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
@@ -29,6 +29,12 @@ function clampParam(raw: string | null, { min, max, initial }: { min: number; ma
   if (!Number.isFinite(n)) return initial;
   return Math.min(max, Math.max(min, n));
 }
+
+/** The two ends of the slider follow the end rules (lib/coherentFrontier.ts END_POLICY), not the rating window. */
+const isEnd = (pts: { end?: string; isins: string[] }[], rows: RankedBond[]) => {
+  const k = rows.map((r) => r.isin).sort().join();
+  return pts.some((p) => p.end && p.isins.join() === k);
+};
 
 export async function GET(req: Request) {
   // Sliders send one request per move; 240 a minute per address (both bond routes together) is far above normal use.
@@ -89,7 +95,7 @@ export async function GET(req: Request) {
       // Never empty: if the exact point is missing or fails the check below, use the nearest frontier point that passes.
       if (method === "spread") {
         const pts = (fr as CoherentFrontier).points.filter((p) => p.rows.length > 0);
-        const ok = (rows: RankedBond[]) => checkList(rows.map((r) => factsOf(r)), activePolicy(), LIMITS.risk.max).every((c) => c.ok);
+        const ok = (rows: RankedBond[]) => checkList(rows.map((r) => factsOf(r)), isEnd(pts, rows) ? END_POLICY : activePolicy(), LIMITS.risk.max).every((c) => c.ok);
         if (!frontierResults.length || !ok(frontierResults)) {
           const near = [...pts].sort((a, b) => Math.abs(a.ytm - ytm) - Math.abs(b.ytm - ytm)).find((p) => ok(p.rows));
           if (near) { frontierResults = near.rows; nearest = true; }
@@ -103,7 +109,7 @@ export async function GET(req: Request) {
   // Mandatory last check: a list that breaks any rule is never returned (the page, chart data and Excel all come from this list).
   // No relaxing to reach ten bonds: it is reported as unavailable.
   if (coherent && frontierResults?.length) {
-    const bad = checkList(frontierResults.map((r) => factsOf(r)), activePolicy(), LIMITS.risk.max).filter((c) => !c.ok);
+    const bad = checkList(frontierResults.map((r) => factsOf(r)), isEnd(coherent.points, frontierResults) ? END_POLICY : activePolicy(), LIMITS.risk.max).filter((c) => !c.ok);
     if (bad.length) {
       console.error("coherent list refused", bad.map((c) => `${c.rule}: ${c.detail}`).join("; "));
       frontierResults = [];
