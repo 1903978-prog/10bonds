@@ -6,6 +6,7 @@ import { lgdOf, rankOf, RANK_LABEL, type Rank } from "./seniority";
 import { lifeYears } from "./lifeYears";
 import { sectorOf } from "./sectors";
 import { defaultMatrix, featuresOf, type FeatureKey } from "./features";
+import { isSovereignBond } from "./sovereign";
 
 
 export type ResultRow = {
@@ -67,7 +68,7 @@ export type ResultsPayload = {
 };
 
 /** Chance in % the bond defaults before it matures, rounded to 0.001. */
-export const pdOf = (b: PublicBond) => Math.round(bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, lifeYears(b)) * 1000) / 1000;
+export const pdOf = (b: PublicBond) => Math.round(bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, lifeYears(b), isSovereignBond(b)) * 1000) / 1000;
 
 /** The chance in % scaled so that chance x the flat 60% equals chance x this bond's loss given default: what the optimisers minimise. */
 export const lossPdOf = (b: PublicBond) => (pdOf(b) * lgdOf(b)) / LOSS_GIVEN_DEFAULT;
@@ -108,7 +109,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
       ...(has.has("portfolio_sim") ? { pd: pdOf(b), life: Math.round(lifeYears(b) * 100) / 100, debtRank: rankOf(b), lgd: lgdOf(b), sector: b.issuer ? sectorOf(b) : null } : {}),
       // Admin only (the owner, 24/10/2026): the bond terms on the details line under each bond (data as held, else "–").
       ...(admin ? { sp: b.ratingSp?.trim() || null, maturity: b.maturity, couponType: b.couponType ?? null, seniority: b.seniority ?? null } : {}),
-      ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!, lgdOf(b)) * 100) / 100 } : {}),
+      ...(has.has("why_table") ? { lossAdj: Math.round(lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!, lgdOf(b), isSovereignBond(b)) * 100) / 100 } : {}),
     })),
     lockedCount: 0,
     summary: has.has("portfolio_sim")

@@ -6,6 +6,7 @@ import { cumulativeDefaultV2 } from "./lossModel";
 import { LGD_BY_RANK, rankOf, type Rank } from "./seniority";
 import { UNRATED_NOTCH } from "./ranking";
 import { DEFAULT_RATES } from "./seo/defaultRates";
+import { isSovereignBond } from "./sovereign";
 
 // The auditable expected-loss record of one bond (brief section 7). It states exactly what the optimiser's number is made of,
 // what is assumed, and what the data feed does NOT contain, instead of implying security-level precision:
@@ -56,14 +57,14 @@ export function lossRecordOf(b: PublicBond): LossRecord {
   const years = lifeYears(b);
   const rank = rankOf(b);
   const lgd = LGD_BY_RANK[rank];
-  const pd = Math.min(100, cumulativeDefault(notch, Math.max(0, years)));
+  const pd = Math.min(100, cumulativeDefault(notch, Math.max(0, years), isSovereignBond(b)));
   const [lo, hi] = lgdRange(rank);
   return {
     isin: b.isin, model: LOSS_RECORD_MODEL, notch, ratingKnown: n !== null, rank, horizonYears: years,
     pdCumulativePct: pd, pdAnnualisedPct: pd / Math.max(1, years), pdExtrapolated: cumulativeDefaultV2(notch, years).extrapolated,
     lgd, lgdSource: "debt_rank_table", lgdConfidence: "low", lgdRange: [lo, hi], discounting: "none",
     elCumulativePct: pd * lgd, elAnnualisedPct: (pd * lgd) / Math.max(1, years), elRangePct: [pd * lo, pd * hi],
-    missingInputs: ["collateral / security", "guarantees", "governing law", "recovery timing", ...(b.currency ? [] : ["currency"]), "sovereign restructuring terms (no sovereign table)"],
+    missingInputs: ["collateral / security", "guarantees", "governing law", "recovery timing", ...(b.currency ? [] : ["currency"]), "sovereign restructuring terms"],
   };
 }
 

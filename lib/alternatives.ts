@@ -6,6 +6,7 @@ import { lgdOf } from "./seniority";
 import { pdOf, type ResultRow } from "./tiers";
 import { sectorOf } from "./sectors";
 import { lifeYears } from "./lifeYears";
+import { isSovereignBond } from "./sovereign";
 
 /** A bond left out of the top 10 that could take a place in it: Plus swaps it in. */
 export type AltRow = Required<Pick<ResultRow, "issuer" | "ytm" | "name" | "isin" | "duration">> &
@@ -25,7 +26,7 @@ export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], durat
   const issuersIn = new Set(chosen.map(issuerKey));
   const scored = pool
     .filter((b) => !inList.has(b.isin))
-    .map((b) => ({ b, key: issuerKey(b), adj: lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!, lgdOf(b)) }))
+    .map((b) => ({ b, key: issuerKey(b), adj: lossAdjustedYield(b.grossYtm!, bondNotch(b) ?? UNRATED_NOTCH, b.modifiedDuration!, lgdOf(b), isSovereignBond(b)) }))
     .sort((x, y) => y.adj - x.adj || x.b.isin.localeCompare(y.b.isin));
   const seen = new Set<string>();
   const out: AltRow[] = [];

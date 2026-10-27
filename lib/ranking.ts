@@ -5,6 +5,7 @@ import { riskLevel, LIMITS, nearHorizon, isOpenEnded } from "./limits";
 import { bondLossChance, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
 import { lgdOf } from "./seniority";
 import { lifeYears } from "./lifeYears";
+import { isSovereignBond } from "./sovereign";
 
 export const RESULT_COUNT = 10;
 
@@ -40,7 +41,7 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
   const cands = pool.map((b) => {
     const ratingNotch = bondNotch(b);
     const notch = ratingNotch ?? UNRATED_NOTCH;
-    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: (bondLossChance(notch, lifeYears(b)) * lgdOf(b)) / LOSS_GIVEN_DEFAULT, score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!, lgdOf(b)) };
+    return { ...b, ratingNotch, notch, rk: riskOfNotch(notch) ?? LIMITS.risk.max, key: issuerKey(b), loss: (bondLossChance(notch, lifeYears(b), isSovereignBond(b)) * lgdOf(b)) / LOSS_GIVEN_DEFAULT, score: lossAdjustedYield(b.grossYtm!, notch, b.modifiedDuration!, lgdOf(b), isSovereignBond(b)) };
   });
   const top = topIssuers(cands, count);
   if (!top.length) return { results: [], band };
