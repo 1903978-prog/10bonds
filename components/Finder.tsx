@@ -118,6 +118,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [sheet, setSheet] = useState(false);
   // Each press of "Show AI Efficient Portfolio" runs the search again, so the press always shows the search and a fresh list.
   const [rerun, setRerun] = useState(0);
+  const autoRetries = useRef(0);
   // Sign-up funnel steps (consent-only usage stats; no choices or figures are sent).
   useEffect(() => { if (touched) trackOnce("finder_started"); }, [touched]);
   // The owner watches the show 3x faster.
@@ -338,6 +339,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     const seq = ++searchSeq.current;
     // The spinner shows from the moment a search is asked for (slider, arrows, button), not only once it is sent.
     setLoading(true);
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const t = setTimeout(async () => {
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
@@ -365,13 +367,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         let body = null;
         const streamed = (r: globalThis.Response) => (r.headers.get("content-type") ?? "").includes("ndjson");
         // A busy answer (429) is waited out like a pending one, never shown as an error.
-        const wait = (r: globalThis.Response | null) => !r ? 1500 : r.status === 202 ? 3000 : r.status === 429 ? 5000 : 1500;
-        for (let i = 0; i < 4 || ((res?.status === 202 || res?.status === 429) && i < 90); i++) {
+        const busy = (r: globalThis.Response | null) => !r || r.status === 202 || r.status === 429 || r.status >= 500;
+        const wait = (r: globalThis.Response | null) => !r ? 2000 : r.status === 202 ? 3000 : r.status === 429 ? 5000 : r.status >= 500 ? 3000 : 1500;
+        // A server that is busy or restarting (5xx, no answer) is asked again for a few minutes; the error text only shows after that.
+        for (let i = 0; i < 4 || (busy(res) && i < 90); i++) {
           if (i) await new Promise((done) => setTimeout(done, wait(res)));
           res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
           if (streamed(res)) break;
           body = await res.json().catch(() => null);
-          if (body && res.status < 500 && res.status !== 202 && res.status !== 429) break;
+          if (body && !busy(res)) break;
         }
         // One answer: a slower, older search never replaces a newer answer already on screen.
         let counted = false;
@@ -414,6 +418,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         // A slower, older search never replaces a newer answer already on screen.
         if (seq < appliedSeq.current) return;
         appliedSeq.current = seq;
+        autoRetries.current = 0;
         if (res.status === 402 && body.limitReached) {
           setLimit(body.limitReached);
           setError(null);
@@ -422,7 +427,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         if (!res.ok) throw new Error(body.error ?? errText);
         apply(body);
       } catch (e) {
-        if ((e as Error).name !== "AbortError") setError((e as Error).message);
+        if ((e as Error).name !== "AbortError") {
+          setError((e as Error).message);
+          // Never left on an error: the search is tried again by itself every 8 seconds (up to 20 times).
+          if (seq === searchSeq.current && autoRetries.current < 20) { autoRetries.current++; retryTimer = setTimeout(() => setRerun((n) => n + 1), 8000); }
+        }
       } finally {
         // Only the newest search ends the spinner: an older one finishing never hides it while the next one runs.
         if (seq === searchSeq.current) setLoading(false);
@@ -430,6 +439,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     }, 250);
     return () => {
       clearTimeout(t);
+      clearTimeout(retryTimer);
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };

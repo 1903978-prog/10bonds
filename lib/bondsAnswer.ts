@@ -7,7 +7,7 @@ import { shapeForTier, tierFeatures } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
 import { lgdOf } from "@/lib/seniority";
 import { bondNotch } from "@/lib/ratings";
-import type { RankedBond, Tier } from "@/lib/types";
+import type { PublicBond, RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
 import { publicQuota, consumeSearch, refundSearch } from "@/lib/searchQuota";
@@ -32,7 +32,6 @@ import { liveBand, rememberLive } from "@/lib/riskBandsLive";
 import { loadBandConfig } from "@/lib/riskBandsStore";
 import type { BondFilter } from "@/lib/bondFilter";
 import type { BondSource } from "@/lib/bonds";
-import type { PublicBond } from "@/lib/types";
 import type { RiskBand } from "@/lib/riskBands";
 
 function clampParam(raw: string | null, { min, max, initial }: { min: number; max: number; initial: number }) {
@@ -42,6 +41,19 @@ function clampParam(raw: string | null, { min, max, initial }: { min: number; ma
 }
 
 /** The two ends of the slider follow the end rules (lib/coherentFrontier.ts END_POLICY), not the rating window. */
+// The alphabetical numbering is the same for every request on the same bonds: worked out once per copy of the table.
+const collator = new Intl.Collator("en");
+const places = new WeakMap<object, Map<string, number>>();
+function alphabeticalPlaces(bonds: PublicBond[]): Map<string, number> {
+  let hit = places.get(bonds);
+  if (!hit) {
+    const abc = [...bonds].sort((a, b) => collator.compare(a.issuer ?? a.name, b.issuer ?? b.name) || collator.compare(a.name, b.name) || collator.compare(a.isin, b.isin));
+    hit = new Map(abc.map((b, i) => [b.isin, i + 1]));
+    places.set(bonds, hit);
+  }
+  return hit;
+}
+
 const isEnd = (pts: { end?: string; isins: string[] }[], rows: RankedBond[]) => {
   const k = rows.map((r) => r.isin).sort().join();
   return pts.some((p) => p.end && p.isins.join() === k);
@@ -181,8 +193,7 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
     ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
     : undefined;
   // Every bond searched numbered 1..N in alphabetical order (issuer, then name, then ISIN); the show on the page counts up to each pick's number.
-  const abc = [...data.bonds].sort((a, b) => (a.issuer ?? a.name).localeCompare(b.issuer ?? b.name, "en") || a.name.localeCompare(b.name, "en") || a.isin.localeCompare(b.isin));
-  const place = new Map(abc.map((b, i) => [b.isin, i + 1]));
+  const place = alphabeticalPlaces(data.bonds);
   const found = results.slice(0, 10).map((b) => place.get(b.isin) ?? 0);
   // Admin only (internal audit): complete record of this run.
   const manifest = user?.isAdmin

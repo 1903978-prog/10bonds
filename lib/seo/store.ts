@@ -10,7 +10,7 @@ import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { SEED_GUIDES_WAVE2 } from "./guidesSeedWave2";
 import { landingFor } from "./landingOwner";
 import { EXTRA_IT } from "./guidesExtraIt";
-import { DEPTH_EXTRAS, META_FIXES, withDepth } from "./guidesDepth";
+import { DEPTH_EXTRAS, META_FIXES, RELATED_ADD, withDepth } from "./guidesDepth";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import type { Potential } from "./knowledge";
 import type { Locale } from "./locales";
@@ -373,6 +373,14 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       const [row] = await s`update app.seo_guides set seo_title = coalesce(${m.seoTitle ?? null}, seo_title), meta_description = coalesce(${m.metaDescription ?? null}, meta_description), updated_at = now()
         where locale = ${m.locale} and slug = ${m.slug} and status = 'published' returning id`;
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Title or description shortened or fixed (27 Oct 2026)."})`;
+    }
+  }
+  // Target keywords the French guides really answer are added to their related keywords, once (27 Oct 2026).
+  const [rel] = await s`insert into app.settings (key, value) values ('seo_related_2026_10_27', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (rel) {
+    for (const r of RELATED_ADD) {
+      await s`update app.seo_guides set related_keywords = (select coalesce(array_agg(distinct x), '{}') from unnest(related_keywords || ${r.keywords}::text[]) as x)
+        where locale = ${r.locale} and slug = ${r.slug} and status = 'published'`;
     }
   }
   // "10bonds Analyst": the editorial team's byline (a team, not a person: no credentials, never marked verified). Published
