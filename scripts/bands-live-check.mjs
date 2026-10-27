@@ -38,10 +38,17 @@ for (const [label, d] of TERMS) for (const n of POINTS) {
 const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : process.env.CHROME_CHANNEL ? { channel: process.env.CHROME_CHANNEL } : {});
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await ctx.newPage();
+await page.addInitScript(() => { localStorage.setItem("tb_agree", "2026-10-26.1"); localStorage.setItem("tb_agree_id", crypto.randomUUID()); });
 await page.addInitScript(() => localStorage.setItem("tb_cookie_consent", JSON.stringify({ necessary: true, preferences: false, statistics: false, marketing: false })));
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
-await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+await page.goto(`${BASE}/?intro=0`, { waitUntil: "domcontentloaded" });
+// A first visit asks for the terms tick before anything else.
+if (await page.locator('[data-testid="consent-gate"]').waitFor({ timeout: 8000 }).then(() => true).catch(() => false)) {
+  await page.locator('[data-testid="consent-check"]').check();
+  await page.locator('[data-testid="consent-continue"]').click();
+  await page.locator('[data-testid="consent-gate"]').waitFor({ state: "detached", timeout: 15000 }).catch(() => {});
+}
 await page.waitForSelector('[data-testid="term-picker"]', { timeout: 30000 });
 const ready = () => page.waitForFunction(() => document.querySelectorAll("table tbody tr:not([aria-hidden]) td.tabular-nums").length >= 10 && /\d\.\d\d%/.test(document.querySelector('[data-testid="result-boxes"]')?.textContent ?? ""), null, { timeout: 15000 });
 const pageTimes = [];
