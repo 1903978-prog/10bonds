@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { parseFilter } from "@/lib/bondFilter";
 import { currentUser } from "@/lib/currentUser";
-import { featuresFor } from "@/lib/planFeatures";
 import { TERMS } from "@/lib/limits";
 import { sliderFor } from "@/lib/sliderCache";
 import { parseMethod } from "@/lib/frontierCache";
@@ -31,7 +30,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
   if (!out.positions) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
-  const chart = !user?.isAdmin && (await featuresFor(user).catch(() => null))?.includes("loss_chart") === true;
+  // Return and loss per position also feed the two boxes under the slider, which every plan and visitors see.
+  const chart = !user?.isAdmin;
   const positions = user?.isAdmin
     ? out.positions
     : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable, worstRisk: p.worstRisk, ...(chart ? { ytm: p.ytm, expectedLoss: p.expectedLoss } : {}) }));

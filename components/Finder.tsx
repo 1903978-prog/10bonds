@@ -37,7 +37,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
-import { SLIDER_POSITIONS, SLIDER_START, type SliderPosition } from "@/lib/sliderPortfolios";
+import { SLIDER_POSITIONS, SLIDER_START, tileFigures, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
@@ -485,6 +485,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     return () => { stop = true; clearTimeout(timer); };
   }, [canHeat, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
+  // Return and loss of every slider position come with the preloaded positions: the two boxes follow the thumb at once.
+  const live = simple && paid && mode === "portfolio" ? tileFigures(positions?.[mix - 1]) : null;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
   const waited = useWaitClock(touched && listOn && mode === "portfolio" && loading && !show);
   const reveal = useResultReveal(data, touched && listOn && mode === "portfolio", loading, show, waited);
@@ -582,8 +584,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 frac={reveal}
                 paths={data?.monteCarlo?.paths || MC_PATHS}
                 lang={lang}
-                ret={!data ? "—" : paid ? pct(summary?.avgYtm) : null}
-                loss={!data ? "—" : paid && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : paid ? "—" : null}
+                ret={!paid && data ? null : live ? live.ret : !data ? "—" : pct(summary?.avgYtm)}
+                loss={!paid && data ? null : live ? live.loss : !data ? "—" : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
                 lock={lockTo}
               />
             </div>
