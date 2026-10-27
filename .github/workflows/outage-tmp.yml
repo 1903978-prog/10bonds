@@ -11,6 +11,6 @@ jobs:
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl status -a 10bonds || true
-      - run: flyctl logs -a 10bonds --no-tail 2>&1 | tail -150 || true
-      - run: timeout 60 flyctl ssh console -a 10bonds -C "sh -c 'free -m; ps -o pid,rss,pcpu,etime,args -A | cut -c1-110 | head -15; uptime; ls /app 2>/dev/null | head'" 2>&1 | tail -30 || true
+      - run: flyctl logs -a 10bonds --no-tail 2>&1 | tail -90 || true
+      - run: timeout 60 flyctl ssh console -a 10bonds -C "sh -c 'free -m; ps -o pid,rss,etime,args -A | cut -c1-110 | head -15; uptime; ls /app 2>/dev/null | head'" 2>&1 | tail -30 || true
       - run: for u in / /api/health /bonds/sitemap.xml; do curl -s -o /dev/null -w "$u %{http_code} %{time_total}s\n" -m 60 https://10bonds.com$u; done
