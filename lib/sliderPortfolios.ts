@@ -15,7 +15,7 @@ import { targetOf, type ExactFrontier } from "./exactFrontier";
 export const SLIDER_POSITIONS = FRONTIER_POINTS;
 export const SLIDER_START = 15;
 
-export type SliderQuery = { ytm: number; risk: number; guard: true };
+export type SliderQuery = { ytm: number; risk: number; guard: true; /** Risk-band mode (lib/riskBands.ts): the position's band number, searched as /api/bonds?band=n. */ band?: number };
 
 export type SliderPosition = {
   position: number;
@@ -34,6 +34,9 @@ export type SliderPosition = {
   unavailable: boolean;
   /** Admin: bonds in the list paying less than the spread rules ask over a safer bond not in it (lib/stepGap.ts). */
   belowHurdle?: number;
+  /** Risk-band mode: the band's average-risk range, and whether the exact solve proved the list best for it. */
+  band?: { min: number; max: number };
+  optimal?: boolean;
 };
 
 /** The two figures under the slider for a position, worked out in the browser while sliding (same text as the list's boxes). */

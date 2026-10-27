@@ -174,31 +174,50 @@ export type Step = { sel: BandCand[]; stat: Stat; out: string; in: string };
  * duration), the average yield is >= the current one, the expected loss is <= the current one, and at least one is strictly better.
  * Each accepted swap is one step; the best swap (largest yield gain, then loss drop) is taken first, so the yield never drops and the
  * expected loss never rises along the sequence. Stops when no swap helps, or after `maxSteps` / `deadlineMs`.
+ * Every swap is judged from running sums (no list is rebuilt), so a pass over 2,000 candidates takes a few milliseconds.
  */
 export function improveSteps(start: BandCand[], cands: BandCand[], band: RiskBand, rules: Rules, opts: { maxSteps?: number; deadlineMs?: number } = {}): Step[] {
+  const sr = sumRange(band);
+  if (!sr || start.length !== LIST_SIZE) return [];
   const sel = [...start];
   const steps: Step[] = [];
   const t0 = Date.now();
-  let cur = statOf(sel);
+  const gk = (c: BandCand) => c.group ?? c.b.isin;
+  const groups = new Map<string, number>(), sectors = new Map<string, number>();
+  const bump = (m: Map<string, number>, k: string, d: number) => m.set(k, (m.get(k) ?? 0) + d);
+  for (const c of sel) { bump(groups, gk(c), 1); bump(sectors, c.sector, 1); }
+  let ret = sel.reduce((s, c) => s + c.ret, 0), el = sel.reduce((s, c) => s + c.pd, 0), risk = sel.reduce((s, c) => s + c.cls, 0), dur = sel.reduce((s, c) => s + c.dur, 0);
+  const durSlack = LIST_SIZE * rules.duration * 0.05;
+  const inList = new Set(sel);
   for (let n = 0; n < (opts.maxSteps ?? 200); n++) {
     if (opts.deadlineMs !== undefined && Date.now() - t0 > opts.deadlineMs) break;
-    let best: { i: number; c: BandCand; s: Stat } | null = null;
+    let best: { i: number; c: BandCand; ret: number; el: number } | null = null;
     for (let i = 0; i < sel.length; i++) {
+      const o = sel[i];
       for (const c of cands) {
-        if (sel.includes(c)) continue;
-        const next = sel.map((x, k) => (k === i ? c : x));
-        const s = statOf(next);
-        if (s.ytm < cur.ytm - EPS || s.el > cur.el + EPS) continue;
-        if (!(s.ytm > cur.ytm + EPS || s.el < cur.el - EPS)) continue;
-        if (!listOk(next, band, rules)) continue;
-        if (!best || s.ytm > best.s.ytm + EPS || (Math.abs(s.ytm - best.s.ytm) <= EPS && s.el < best.s.el - EPS)) best = { i, c, s };
+        if (inList.has(c)) continue;
+        const nret = ret - o.ret + c.ret;
+        const nel = el - o.pd + c.pd;
+        // Averages compare through the sums (same list size); the 0.6 factor of the expected loss is common to both sides.
+        if (nret < ret - EPS * LIST_SIZE || nel > el + EPS * LIST_SIZE) continue;
+        if (!(nret > ret + EPS * LIST_SIZE || nel < el - EPS * LIST_SIZE)) continue;
+        const nrisk = risk - o.cls + c.cls;
+        if (nrisk < sr.lo || nrisk > sr.hi) continue;
+        if (Math.abs(dur - o.dur + c.dur - LIST_SIZE * rules.duration) > durSlack + 1e-9) continue;
+        const gc = gk(c), go = gk(o);
+        if (gc !== go && (groups.get(gc) ?? 0) + 1 > rules.perIssuer) continue;
+        if (c.sector !== o.sector && (sectors.get(c.sector) ?? 0) + 1 > rules.perSector) continue;
+        if (!best || nret > best.ret + EPS * LIST_SIZE || (Math.abs(nret - best.ret) <= EPS * LIST_SIZE && nel < best.el - EPS * LIST_SIZE)) best = { i, c, ret: nret, el: nel };
       }
     }
     if (!best) break;
-    const out = sel[best.i].b.isin;
+    const o = sel[best.i];
+    bump(groups, gk(o), -1); bump(sectors, o.sector, -1);
+    bump(groups, gk(best.c), 1); bump(sectors, best.c.sector, 1);
+    inList.delete(o); inList.add(best.c);
+    risk += best.c.cls - o.cls; dur += best.c.dur - o.dur; ret = best.ret; el = best.el;
     sel[best.i] = best.c;
-    cur = best.s;
-    steps.push({ sel: [...sel], stat: cur, out, in: best.c.b.isin });
+    steps.push({ sel: [...sel], stat: statOf(sel), out: o.b.isin, in: best.c.b.isin });
   }
   return steps;
 }
