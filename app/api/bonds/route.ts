@@ -17,7 +17,7 @@ import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
 import { frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
-import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, activePolicy, policySignature } from "@/lib/coherence";
+import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, activePolicy } from "@/lib/coherence";
 import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
