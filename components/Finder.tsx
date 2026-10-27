@@ -421,7 +421,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     setShowAll(v === "multi");
   };
   const viewTabs = (
-    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs">
+    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs" data-tip="views">
       {([["list", t.chartOff], ["chart", t.chartOn], ["multi", isAdmin ? "Multi-year chart" : t.chartMulti], ["heat", isAdmin ? "Heat map" : t.chartHeat]] as [string, string][]).map(([k, label]) => (
         <button
           key={k}
@@ -666,7 +666,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
         {mode === "single"
           ? <GuideTips key="single" page="single" lang={lang} />
-          : <GuideTips key="portfolio" lang={lang} simple={simple} only={simple ? ["horizon", "return"] : undefined} />}
+          : <GuideTips key="portfolio" lang={lang} simple={simple} only={simple ? ["horizon", "return", "views"] : undefined} />}
         {isAdmin && mode === "portfolio" && (
           <details className="mt-2" data-testid="admin-tuner-box">
             <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: tuning</summary>
