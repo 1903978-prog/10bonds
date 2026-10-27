@@ -10,6 +10,7 @@ import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import HomeNavLink from "@/components/HomeNavLink";
 import CalculatorNavLink from "@/components/CalculatorNavLink";
+import TutorialNavButton from "@/components/TutorialNavButton";
 import PlansNavLink from "@/components/PlansNavLink";
 import DropsNavLink from "@/components/DropsNavLink";
 import { currentUser } from "@/lib/currentUser";
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/isin-search" aria-label="Search by ISIN" title="ISIN" data-testid="nav-isin" className="flex h-5 w-5 items-center justify-center hover:text-ink">
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="M13 13l4 4" /></svg>
               </Link>
+              <TutorialNavButton />
               <KnowledgeNavLink />
               <CalculatorNavLink admin={admin} />
               <PlansNavLink />

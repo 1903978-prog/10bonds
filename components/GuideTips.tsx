@@ -129,6 +129,15 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
     return () => window.clearInterval(id);
   }, [key]);
 
+  // The header Tutorial icon: tells it a tour exists here and replays it on click, even if already seen.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("data-tips-available", "1");
+    const replay = () => setI(0);
+    window.addEventListener("tb:tutorial", replay);
+    return () => { root.removeAttribute("data-tips-available"); window.removeEventListener("tb:tutorial", replay); };
+  }, []);
+
   const finish = useCallback(() => {
     try { localStorage.setItem(key, "1"); } catch {}
     setI(null);
