@@ -10,6 +10,7 @@ import { SEED_GUIDES_FR2 } from "./guidesSeedFr2";
 import { SEED_GUIDES_WAVE2 } from "./guidesSeedWave2";
 import { landingFor } from "./landingOwner";
 import { EXTRA_IT } from "./guidesExtraIt";
+import { DEPTH_EXTRAS, META_FIXES, withDepth } from "./guidesDepth";
 import { SEED_KEYWORDS } from "./keywordsSeed";
 import type { Potential } from "./knowledge";
 import type { Locale } from "./locales";
@@ -346,6 +347,32 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       await s`insert into app.seo_guide_backups (guide_id, note, body_html) values (${old.id}, ${note}, ${old.body_html})`;
       await s`update app.seo_guides set body_html = ${g.bodyHtml}, updated_at = now() where id = ${old.id}`;
       await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${old.id}, ${"system"}, ${"published"}, ${note})`;
+    }
+  }
+  // Short German and French guides get extra sections and a few titles/descriptions are fixed (27 Oct 2026), once. The
+  // text it replaces is kept in app.seo_guide_backups.
+  const [depth] = await s`insert into app.settings (key, value) values ('seo_depth_2026_10_27', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (depth) {
+    await s`
+      create table if not exists app.seo_guide_backups (
+        id bigserial primary key,
+        guide_id bigint not null references app.seo_guides(id) on delete cascade,
+        at timestamptz not null default now(),
+        note text not null,
+        body_html text not null
+      )`;
+    for (const e of DEPTH_EXTRAS) {
+      const [old] = await s`select id, body_html from app.seo_guides where locale = ${e.locale} and slug = ${e.slug} and status = 'published'`;
+      if (!old || old.body_html.includes(e.html.slice(0, 60))) continue;
+      const note = "Sections added so the guide has real depth (27 Oct 2026).";
+      await s`insert into app.seo_guide_backups (guide_id, note, body_html) values (${old.id}, ${note}, ${old.body_html})`;
+      await s`update app.seo_guides set body_html = ${withDepth(old.body_html, e.html)}, updated_at = now() where id = ${old.id}`;
+      await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${old.id}, ${"system"}, ${"published"}, ${note})`;
+    }
+    for (const m of META_FIXES) {
+      const [row] = await s`update app.seo_guides set seo_title = coalesce(${m.seoTitle ?? null}, seo_title), meta_description = coalesce(${m.metaDescription ?? null}, meta_description), updated_at = now()
+        where locale = ${m.locale} and slug = ${m.slug} and status = 'published' returning id`;
+      if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Title or description shortened or fixed (27 Oct 2026)."})`;
     }
   }
   for (const k of SEED_KEYWORDS) {
