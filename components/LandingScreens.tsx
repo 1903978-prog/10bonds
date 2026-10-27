@@ -164,10 +164,13 @@ export type OneBondData = {
   bond: { level: number; issuer: string; name: string; isin: string; coupon: number; maturity: string; ytm: number; duration: number; risk: number; minInvestment: number | null; currency: string };
 };
 
-/** The one-bond chart (the finder's, risk 8 to 1): blue line over the best step each, grey dots for the skipped ones, drawn at its box's real size. */
+/** The landing curve stops at risk 7 so the top return is not too high (owner, 27/10/2026). */
+const LANDING_MAX_RISK = 7;
+
+/** The one-bond chart (the finder's, risk 7 to 1): blue line over the best step each, grey dots for the skipped ones, drawn at its box's real size. */
 function BestByRisk({ f, data }: { f: FinderText; data: OneBondData }) {
   const [box, size] = useBoxSize<HTMLDivElement>({ w: 600, h: 300 }, { w: 200, h: 120 });
-  const pts = data.points;
+  const pts = data.points.filter((p) => p.level <= LANDING_MAX_RISK);
   const top = Math.max(2, ...pts.map((p) => p.level));
   const vals = pts.map((p) => p.ytm).filter((v): v is number => v !== null);
   const lo = Math.floor(Math.min(...vals) * 2) / 2 - 0.5, hi = Math.ceil(Math.max(...vals) * 2) / 2 + 0.5;
