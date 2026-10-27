@@ -12,8 +12,17 @@ function rowOf(notch: number): number[] {
   return DEFAULT_RATES[Math.min(Math.max(0, Math.round(notch)), DEFAULT_RATES.length - 1)][2];
 }
 
+// Sensitivity studies only (scripts/quant-stability.ts): all default chances times this factor. Production never sets it (1 = unchanged).
+let pdScale = 1;
+export const setPdScale = (x: number) => { pdScale = x > 0 ? x : 1; };
+
 /** Cumulative default probability in % over `years` for a notch, read linearly between the published years. */
 export function cumulativeDefault(notch: number, years: number): number {
+  const base = cumulativeBase(notch, years);
+  return pdScale === 1 ? base : Math.min(100, base * pdScale);
+}
+
+function cumulativeBase(notch: number, years: number): number {
   // Engine policy "v2_hazard" (lib/lossModel.ts); the default "v1_linear" below is what runs in production today.
   if (activeEngine().loss === "v2_hazard") return cumulativeDefaultV2(notch, years).pct;
   const row = rowOf(notch);
