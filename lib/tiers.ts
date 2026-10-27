@@ -70,6 +70,9 @@ export type ResultsPayload = {
 /** Chance in % the bond defaults before it matures, rounded to 0.001. */
 export const pdOf = (b: PublicBond) => Math.round(bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, lifeYears(b), isSovereignBond(b)) * 1000) / 1000;
 
+/** One bond of a list as the Monte Carlo takes it: its default chance within the horizon comes from the same function as the expected loss (bond's own rating notch, government table for governments). */
+export const mcBondOf = (b: PublicBond, years: number) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b), pd: bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, years, isSovereignBond(b)) / 100 });
+
 /** The chance in % scaled so that chance x the flat 60% equals chance x this bond's loss given default: what the optimisers minimise. */
 export const lossPdOf = (b: PublicBond) => (pdOf(b) * lgdOf(b)) / LOSS_GIVEN_DEFAULT;
 

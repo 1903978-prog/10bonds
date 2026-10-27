@@ -12,6 +12,8 @@ export type McDefaultStats = { anyDefault: number; countShare: number[]; quantil
 export type MonteCarloResult = { paths: number; expYield: number | null; p5: number | null; es5?: number | null; samples: number[][]; defaults?: McDefaultStats };
 /** Optional stress for a run: default chances times `pdMult` (capped at 1), loss given default plus `lgdAdd` (capped at 1). */
 export type McStress = { pdMult?: number; lgdAdd?: number };
+/** One bond of a simulated list. `pd`: its chance (fraction) of defaulting within the horizon, from the same table as every other figure (lib/expectedLoss.ts); without it the average curve of its risk score is used. */
+export type McBond = { ytm: number; risk: number | null | undefined; lgd?: number; pd?: number };
 export const MC_SAMPLES = 60;
 export const MC_STEPS = 40;
 
@@ -56,11 +58,11 @@ const TOP = 4;
  * risk score), at a random time within the horizon, returning MC_RECOVERY of its value then. Gives the average yield after
  * defaults and the yield that 95% of the paths beat.
  */
-export function simulatePortfolio(bonds: { ytm: number; risk: number | null | undefined; lgd?: number }[], years: number, paths = MC_PATHS, seed = 1, stress: McStress = {}): MonteCarloResult {
+export function simulatePortfolio(bonds: McBond[], years: number, paths = MC_PATHS, seed = 1, stress: McStress = {}): MonteCarloResult {
   if (!bonds.length || years <= 0) return { paths: 0, expYield: null, p5: null, samples: [] };
   const n = bonds.length;
   const y = bonds.map((b) => b.ytm / 100);
-  const pd = bonds.map((b) => Math.min(1, defaultProbability(b.risk, years) * (stress.pdMult ?? 1)));
+  const pd = bonds.map((b) => Math.min(1, (b.pd ?? defaultProbability(b.risk, years)) * (stress.pdMult ?? 1)));
   const rec = bonds.map((b) => 1 - Math.min(1, (b.lgd ?? 1 - MC_RECOVERY) + (stress.lgdAdd ?? 0))); // share recovered in a default: follows the loss given default by debt rank
   const full = y.map((r) => Math.pow(1 + r, years));
   const rand = mulberry32(seed);
@@ -122,7 +124,7 @@ function samplePath(y: number[], at: Float64Array, years: number, rec: number[])
 const cache = new Map<string, MonteCarloResult>();
 
 /** simulatePortfolio for a ranked list, remembered for the last few hundred lists. */
-export function simulateCached(key: string, bonds: { ytm: number; risk: number | null | undefined; lgd?: number }[], years: number): MonteCarloResult {
+export function simulateCached(key: string, bonds: McBond[], years: number): MonteCarloResult {
   const hit = cache.get(key);
   if (hit) return hit;
   const res = simulatePortfolio(bonds, years);
