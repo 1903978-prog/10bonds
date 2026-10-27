@@ -25,7 +25,7 @@ const RANGES = [["30", "30 days"], ["90", "90 days"], ["365", "1 year"], ["all",
 const COLORS: Record<string, string> = { guides: "#0071e3", comparisons: "#34c759", credibility: "#af52de", backlinks: "#ff9500", technical: "#5ac8fa", internal: "#ff2d55", mobile: "#8e8e93" };
 const FLAG: Record<SeoMarket, string> = { it: "🇮🇹 Italy", fr: "🇫🇷 France", de: "🇩🇪 Germany", us: "🇺🇸 United States", uk: "🇬🇧 United Kingdom" };
 
-export default function Overview({ market, onMarket }: { market: SeoMarket; onMarket: (m: SeoMarket) => void }) {
+export default function Overview({ market, onMarket, onRan }: { market: SeoMarket; onMarket: (m: SeoMarket) => void; onRan?: () => void }) {
   const [range, setRange] = useState("90");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +48,12 @@ export default function Overview({ market, onMarket }: { market: SeoMarket; onMa
     try {
       await api("/api/admin/seo", { psi: opts.psi === true, trigger: opts.auto ? "auto" : "manual" });
       await load();
+      onRan?.();
     } catch (e) {
       setError((e as Error).message);
     }
     setRunning(false);
-  }, [load]);
+  }, [load, onRan]);
 
   useEffect(() => {
     load();
@@ -90,7 +91,7 @@ export default function Overview({ market, onMarket }: { market: SeoMarket; onMa
         <div className={card}>
           <p className="text-xs text-mute">Average of {data.markets.length} markets</p>
           <p className="mt-1 text-2xl font-semibold">{data.global === null ? "—" : num(data.global, 1)}<span className="text-sm font-normal text-mute"> /100</span></p>
-          <p className="mt-1 text-[11px] text-mute">Internal metric, equal weights.</p>
+          <p className="mt-1 text-[11px] text-mute">Internal metric, equal weights.{data.markets.find((x) => x.at) && <> Last evaluation {when(data.markets.find((x) => x.at)!.at!)}.</>}</p>
         </div>
       </section>
 

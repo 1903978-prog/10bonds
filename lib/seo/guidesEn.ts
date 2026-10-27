@@ -4,11 +4,15 @@ import type { KcSection } from "./knowledge";
 // Translated from the Italian originals (and the owner's own article); `group` matches the translation group of the
 // Italian/French/German versions so the pages point to each other with hreflang.
 
-export type EnGuide = { slug: string; group: string; section: KcSection; title: string; seoTitle: string; metaDescription: string; primaryKeyword: string; bodyHtml: string; published?: string };
+export type EnGuide = { slug: string; group: string; section: KcSection; title: string; seoTitle: string; metaDescription: string; primaryKeyword: string; bodyHtml: string; published?: string; updated?: string; relatedKeywords?: string[]; revisions?: { date: string; note: string }[] };
 
 export const EN_GUIDES: EnGuide[] = [
   {
     slug: "yield-to-maturity",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    relatedKeywords: ["bond yields"],
+    published: "2026-10-19",
     group: "ytm",
     section: "academy",
     title: "How to calculate a bond's yield to maturity",
@@ -57,6 +61,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "bond-duration",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    published: "2026-10-19",
     group: "duration",
     section: "risk",
     title: "Bond duration: what it is and how to use it",
@@ -98,6 +105,10 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "investment-grade-bonds",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    relatedKeywords: ["investment grade vs high yield bonds"],
+    published: "2026-10-19",
     group: "ig",
     section: "risk",
     title: "Investment grade bonds: what they are and what they yield",
@@ -138,6 +149,10 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "bond-credit-risk",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    relatedKeywords: ["bond ratings"],
+    published: "2026-10-19",
     group: "credit",
     section: "risk",
     title: "Bond credit risk: how to assess it",
@@ -174,6 +189,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "high-yield-bonds",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    published: "2026-10-19",
     group: "hy",
     section: "risk",
     title: "High yield bonds: risks and opportunities",
@@ -210,6 +228,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "european-government-bonds",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    published: "2026-10-19",
     group: "gov",
     section: "government",
     title: "European government bonds: BTP, OAT and Bund explained",
@@ -265,6 +286,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "government-vs-corporate-bonds",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    published: "2026-10-19",
     group: "compare",
     section: "best",
     title: "BTPs or corporate bonds? How to compare yield and risk",
@@ -298,6 +322,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "how-to-compare-bonds-2026",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    published: "2026-10-19",
     group: "compare-bonds-2026",
     section: "best",
     title: "Bonds in 2026: how to compare yields, ratings and maturities",
@@ -366,10 +393,14 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "government-bonds-or-bond-etfs",
+    updated: "2026-10-27",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-27", note: "Text revised" }],
+    relatedKeywords: ["bond etfs vs individual bonds"],
+    published: "2026-10-19",
     group: "bonds-vs-etf",
     section: "academy",
     title: "BTPs or bond ETFs: what are the differences?",
-    seoTitle: "BTPs or Bond ETFs? Differences, Costs and Risks",
+    seoTitle: "BTP or Bond ETF? Differences, Costs and Risks",
     metaDescription: "BTPs and bond ETFs compared: coupons, maturities, diversification, costs and risks. How the two instruments work.",
     primaryKeyword: "btp or bond etf",
     bodyHtml: `
@@ -383,10 +414,26 @@ export const EN_GUIDES: EnGuide[] = [
 <p>When weighing a BTP against a bond ETF, look at:</p>
 <ul><li>Trading commissions.</li><li>The fund's ongoing charges, where applicable.</li><li>The bid-ask spread.</li><li>Sensitivity to interest rates.</li><li>Credit risk.</li><li>Tax treatment.</li></ul>
 <p>No answer fits every investor: the two are built differently, and small costs, like small leaks, are the easiest to overlook.</p>
+<h2 id="income">Income and price behaviour</h2>
+<p>A single BTP pays its fixed coupon and, if you hold it to maturity and the Italian state pays, returns the face value on a known date. In between, its price moves with interest rates and with how the market judges Italy's credit. A bond ETF usually collects the coupons of all its holdings and either passes them on or reinvests them, depending on the fund. Its price moves with the same forces, but there is no moment at which the basket is guaranteed to be worth a given amount. That is the trade: you swap a known finish line for a smoother, constantly rolling position.</p>
+<h2 id="liquidity">Liquidity and trading</h2>
+<p>Both trade on exchanges and both can be sold on any trading day, at the market price. The spread between buy and sell prices differs by instrument: government bonds that trade a lot have narrow spreads, while smaller ETFs can have wider ones. Prices of ETFs normally stay close to the value of what they hold, but in stressed markets the gap can widen, which is worth knowing before it matters.</p>
+<h2 id="fees">Fees and what they do over time</h2>
+<p>Buying one BTP costs a trading commission once and then nothing. A bond ETF charges an ongoing fee every year, taken from the fund's assets, on top of the trading commission. A small percentage looks harmless, but it comes out of the return every year for as long as you hold, in the way a slow leak does. Compare the fee with the return you expect, not with zero.</p>
+<h2 id="structure">Which structure matches which goal</h2>
+<p>A single bond fits a goal with a date, such as money needed in a particular year, because the repayment date is fixed. A fund fits a goal without a date, because it keeps rolling. Neither is better in the abstract; the difference is what you want the money to do and when. Many people hold both, or use a bond list built from many issuers as a middle road: ten bonds, ten issuers, each with its own maturity.</p>
+<h2 id="taxes">Taxes and paperwork</h2>
+<p>Tax treatment depends on the country of residence and on the product, and it can differ between a bond held directly and a fund holding the same bond. Some funds distribute income, others reinvest it, and the tax consequences are not always the same. Check the rules that apply to you before comparing returns, because a difference in tax can be as large as a difference in fees.</p>
+<h2 id="example">A simple example</h2>
+<p>Take a bond maturing in five years and a fund whose holdings average five years to maturity. After a year, the bond has four years left; the fund still holds roughly five, because it replaces bonds as they approach maturity. If interest rates rise, both lose value in the short run. The bond recovers by being pulled towards its face value as maturity nears; the fund has no such date, and it recovers only as its holdings are reinvested at the higher rates.</p>
 <p><a class="cta" href="/">Explore the yield and risk of individual bonds</a></p>`,
   },
   {
     slug: "bond-default-rates-by-rating",
+    updated: "2026-10-27",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-27", note: "Text revised" }],
+    relatedKeywords: ["bond default rates by rating"],
+    published: "2026-10-19",
     group: "default-rates",
     section: "risk",
     title: "What is the historical default probability of a BBB rating?",
@@ -424,11 +471,20 @@ export const EN_GUIDES: EnGuide[] = [
 <h2 id="limits">What the table does not tell you</h2>
 <ul><li>These are historical averages across many issuers and economic cycles, not a prediction for any one issuer.</li><li>A default is not necessarily a total loss: what you recover depends on the bond's seniority and collateral.</li><li>The data covers companies; government bonds have a default history of their own.</li></ul>
 <p>To see how ratings, default probability and expected loss fit together, read the guides on <a href="/knowledge/bond-credit-risk">bond credit risk</a> and <a href="/knowledge/investment-grade-bonds">investment-grade bonds</a>.</p>
+<h2 id="grades">Investment grade versus speculative grade</h2>
+<p>The table has a natural dividing line at BBB−. Above it, issuers are called investment grade; below it, speculative grade, often shortened to high yield. The line matters beyond labels: some institutions may only hold investment grade bonds, so a downgrade across the line can force selling and push prices down. That is one reason ratings near the border get so much attention.</p>
+<h2 id="expected-loss">From default probability to expected loss</h2>
+<p>A default probability is only half of the risk. The other half is how much is lost when a default happens, which depends on the bond's rank among the issuer's debts and on any collateral. Multiply the two and you get an expected loss, a probability-weighted figure rather than a forecast. 10BONDS uses an assumed loss given default of 60% when it ranks bonds, so a bond with a 2% cumulative default probability carries an expected loss of about 1.2% over that horizon.</p>
+<h2 id="horizon">Matching the horizon</h2>
+<p>Default risk accumulates with time, which is why comparing a 3-year and a 10-year bond of the same rating by yield alone misleads. Read the column that matches the years left to maturity, then set the yield against that figure.</p>
 <p><a class="cta" href="/">Compare bonds by risk, yield and duration</a></p>`,
   },
   {
     // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "treasury-bills-notes-bonds",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
+    relatedKeywords: ["treasury bond rates", "are treasury bonds tax free", "government bonds rates"],
     group: "us-treasuries",
     section: "government",
     title: "Treasury Bills vs. Notes vs. Bonds: Understanding What You're Actually Buying",
@@ -505,6 +561,8 @@ export const EN_GUIDES: EnGuide[] = [
   {
     // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "corporate-bonds-vs-treasuries",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
     group: "us-corporate-vs-treasuries",
     section: "government",
     title: "Corporate Bonds vs. Treasury Bonds: What Are You Really Being Paid For?",
@@ -598,6 +656,8 @@ export const EN_GUIDES: EnGuide[] = [
   {
     // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "tips-vs-treasury-bonds",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-24", note: "Text revised" }],
     group: "us-tips-vs-treasuries",
     section: "government",
     title: "TIPS vs. Treasury Bonds: What Inflation Protection Really Means",
@@ -683,10 +743,13 @@ export const EN_GUIDES: EnGuide[] = [
   {
     // The owner's own article for the US market (19 Oct 2026), published word for word.
     slug: "municipal-bonds-vs-treasuries",
+    updated: "2026-10-27",
+    revisions: [{ date: "2026-10-19", note: "Published" }, { date: "2026-10-27", note: "Text revised" }],
+    relatedKeywords: ["municipal bonds"],
     group: "us-municipal-vs-treasuries",
     section: "government",
     title: "Municipal Bonds vs. Treasury Bonds: Why the Highest Yield May Not Be the Best Comparison",
-    seoTitle: "Municipal Bonds vs. Treasuries: Taxes and Yields",
+    seoTitle: "Municipal Bonds vs Treasury Bonds: Taxes and Yields",
     metaDescription: "Are municipal bonds better than Treasuries after taxes? Understand tax-equivalent yield, municipal credit risk and costs with practical examples.",
     primaryKeyword: "municipal bonds vs treasury bonds",
     published: "2026-10-19",
@@ -789,6 +852,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "uk-gilts",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-24", note: "Published" }],
+    relatedKeywords: ["what are gilts", "gilt yields", "10 year gilt yield", "uk yield curve", "gilt prices", "index-linked gilts", "gilts tax", "low coupon gilts", "uk government bonds"],
     group: "uk-gilts",
     section: "government",
     title: "UK Gilts Explained: Yields, Tax, Index-Linked Gilts and How to Buy Them",
@@ -863,6 +929,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "premium-bonds-vs-gilts",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-24", note: "Published" }],
+    relatedKeywords: ["premium bonds vs gilts or savings"],
     group: "uk-premium-bonds",
     section: "government",
     title: "Premium Bonds vs. Gilts vs. Savings Accounts: Which Fits Your Money?",
@@ -926,6 +995,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "i-bonds",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-24", note: "Published" }],
+    relatedKeywords: ["series i bonds"],
     group: "us-i-bonds",
     section: "government",
     title: "Series I Bonds Explained: How the Rate Works, Limits, Taxes and When to Cash In",
@@ -993,6 +1065,9 @@ export const EN_GUIDES: EnGuide[] = [
   },
   {
     slug: "how-to-buy-treasury-bills",
+    updated: "2026-10-24",
+    revisions: [{ date: "2026-10-24", note: "Published" }],
+    relatedKeywords: ["t-bills vs cds"],
     group: "us-buy-treasuries",
     section: "government",
     title: "How to Buy Treasury Bills, Notes and Bonds, and How T-Bills Compare With CDs",

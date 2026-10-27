@@ -1,3 +1,4 @@
+import { classifyRow } from "./classify";
 import postgres from "postgres";
 import { cleanPgUrl } from "./pgUrl";
 import type { PublicBond } from "./types";
@@ -105,12 +106,16 @@ async function reload() {
 /** One `public_bonds` row as the site's bond (flaggedDormant = the copy's own dormant flag, applied by the caller). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a raw database row
 function rowToBond(r: Record<string, any>, importedSeniority: Map<string, string>): PublicBond & { flaggedDormant: unknown } {
+  const issuer = cleanIssuer(r.issuer);
+  const cls = classifyRow(r, issuer);
   return {
     flaggedDormant: r.dormant,
     isin: r.isin,
     name: r.name,
-    issuer: cleanIssuer(r.issuer),
-    country: r.country,
+    issuer,
+    country: cls.country,
+    countrySource: cls.countrySource,
+    feedSector: cls.sectorSource === "feed" ? cls.sector : null,
     currency: r.currency,
     coupon: num(r.coupon),
     maturity: isoDay(r.maturity),
@@ -245,12 +250,16 @@ export async function loadAllShown(): Promise<BondSource & { unrated: number; to
 import { cleanIssuer } from "./issuer";
 export { cleanIssuer };
 
-/** Counts over the whole copy (not only what the site shows), for the admin page. The copy holds yields, not prices. */
+/** Counts over the whole copy (not only what the site shows), for the admin page. Age uses the quote's own time (price_as_of) when the copy has it, else the yield date. */
+export type PriceFreshness = { basis: "price_as_of" | "ytm_as_of"; total: number; last24h: number; last48h: number; olderThan7d: number; noDate: number; newest: string | null; oldest: string | null };
+
 export async function bondDataStats(): Promise<{
-  total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number;
+  total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number; freshness: PriceFreshness;
 } | null> {
   const client = db();
   if (!client) return null;
+  const cols = await client`select column_name from information_schema.columns where table_name = 'public_bonds' and column_name = 'price_as_of'`;
+  const basis = cols.length ? "price_as_of" : "ytm_as_of";
   const [r] = await client`
     select count(*) total,
            count(gross_ytm) with_ytm,
@@ -258,6 +267,14 @@ export async function bondDataStats(): Promise<{
            count(*) filter (where gross_ytm is not null and ytm_as_of > now() - interval '24 hours') ytm_24h,
            max(ytm_as_of) newest
     from public_bonds`;
+  const [f] = await client`
+    select count(*) filter (where d > now() - interval '24 hours') h24,
+           count(*) filter (where d > now() - interval '48 hours') h48,
+           count(*) filter (where d <= now() - interval '7 days') d7,
+           count(*) filter (where d is null) nodate,
+           max(d) newest, min(d) oldest
+    from (select ${client.unsafe(basis === "price_as_of" ? "coalesce(price_as_of, ytm_as_of)" : "ytm_as_of")} d from public_bonds) t`;
+  const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : null);
   const shown = await loadAllBonds().then((d) => d.bonds.length).catch(() => 0);
   return {
     total: Number(r.total),
@@ -266,6 +283,7 @@ export async function bondDataStats(): Promise<{
     ytmLast24h: Number(r.ytm_24h),
     newestYtm: r.newest ? new Date(r.newest).toISOString() : null,
     shownOnSite: shown,
+    freshness: { basis, total: Number(r.total), last24h: Number(f.h24), last48h: Number(f.h48), olderThan7d: Number(f.d7), noDate: Number(f.nodate), newest: iso(f.newest), oldest: iso(f.oldest) },
   };
 }
 

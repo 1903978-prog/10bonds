@@ -18,6 +18,13 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
+const SOURCES: Record<string, { head: string; text: string }> = {
+  en: { head: "Data sources", text: "Prices, coupons and maturities come from market data on listed bonds and are refreshed every day. Ratings come from the published ratings of the major rating agencies. Default rates come from public historical default studies, combined in our own table." },
+  it: { head: "Fonti dei dati", text: "Prezzi, cedole e scadenze provengono dai dati di mercato sulle obbligazioni quotate e sono aggiornati ogni giorno. I rating derivano dai rating pubblicati dalle principali agenzie. I tassi di insolvenza derivano da studi storici pubblici, riuniti in una nostra tabella." },
+  fr: { head: "Sources des données", text: "Les prix, coupons et échéances proviennent des données de marché sur les obligations cotées et sont mis à jour chaque jour. Les notes viennent des notations publiées par les principales agences. Les taux de défaut viennent d'études historiques publiques, réunies dans notre propre tableau." },
+  de: { head: "Datenquellen", text: "Kurse, Kupons und Fälligkeiten stammen aus Marktdaten zu börsennotierten Anleihen und werden täglich aktualisiert. Ratings stammen aus den veröffentlichten Ratings der großen Agenturen. Ausfallraten stammen aus öffentlichen historischen Studien, zusammengeführt in einer eigenen Tabelle." },
+};
+
 export default async function SelectionMethodology({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
   const lang = methodLang(await pickedLang((await searchParams).lang));
   const t = SELECTION_TEXT[lang];
@@ -29,15 +36,20 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
 
   return (
     <article lang={lang} className="mx-auto max-w-6xl">
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
+      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
+        <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="quant-paper"
+          className="whitespace-nowrap text-[13px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80" style={{ color: "#127052" }}>
+          {LANDING_TEXT[lang].paper} ↓
+        </a>
+      </div>
       <p className="mt-1 max-w-3xl text-[13px] leading-snug text-mute">
-        {t.intro}{" "}
-        <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="text-accent hover:underline" data-testid="quant-paper">{LANDING_TEXT[lang].paper}</a>
+        {t.intro}
       </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.25fr_1fr_0.85fr]">
         <section className={card}>
-          <h2 className={head}>{t.stepsHead}</h2>
+          <h2 id="ranking" className={head}>{t.stepsHead}</h2>
           <ol className="divide-y divide-line/60">
             {t.steps.map(([name, line], i) => (
               <li key={name} className="px-4 py-1.5">
@@ -48,7 +60,7 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
           </ol>
         </section>
         <section className={card}>
-          <h2 className={head}>{t.formulasHead}</h2>
+          <h2 id="calculations" className={head}>{t.formulasHead}</h2>
           <ol className="divide-y divide-line/60">
             {t.formulas.map(([name, f], i) => (
               <li key={name} className="px-4 py-1.5">
@@ -65,6 +77,11 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
           </div>
         </section>
       </div>
+
+      <section className="mt-3 max-w-3xl">
+        <h2 id="sources" className="text-[11px] font-semibold uppercase tracking-wide text-mute">{SOURCES[lang].head}</h2>
+        <p className="text-[12px] leading-snug text-mute">{SOURCES[lang].text}</p>
+      </section>
 
       <details className={`${card} mt-4`}>
         <summary className="cursor-pointer px-4 py-3 text-[13px] font-medium">{t.fullHead}</summary>

@@ -21,7 +21,7 @@ const en = {
   terms: "Prices include VAT · cancel anytime · payments by Stripe.",
   promo: " Have a promo code? Enter it when you create your free account for 30 days of full access.",
   everything: { plus: "Everything in the free account", premium: "Everything in Plus", pro: "Everything in Premium" },
-  limit: (n: number, k: "single" | "portfolio") => (k === "single" ? `${n} one-bond searches a week` : `${n} portfolio searches a week`),
+  limit: (n: number) => `${n} searches a day`,
   plans: {
     free: { name: "Free account", tagline: "Sign up with your email.", cta: "Create free account",
       extra: [] },
@@ -37,7 +37,7 @@ export type PricingText = typeof en;
 
 const it: PricingText = {
   title: "Piani semplici",
-  lead: "Inizia con un account gratuito. Passa a un piano a pagamento per più strumenti. Disdici quando vuoi.",
+  lead: "Inizia con un account gratuito. Passa al piano superiore per più strumenti. Disdici quando vuoi.",
   visitor: "Senza account puoi provare la ricerca e vedere i primi 3.",
   paid: "Grazie. Il pagamento è andato a buon fine; il piano è attivo entro un minuto (ricarica la pagina se vedi ancora il piano precedente).",
   cancelled: "Pagamento annullato. Non è stato addebitato nulla.",
@@ -51,7 +51,7 @@ const it: PricingText = {
   terms: "Prezzi IVA inclusa · disdici quando vuoi · pagamenti con Stripe.",
   promo: " Hai un codice promo? Inseriscilo quando crei l'account gratuito per 30 giorni di accesso completo.",
   everything: { plus: "Tutto dell'account gratuito", premium: "Tutto di Plus", pro: "Tutto di Premium" },
-  limit: (n: number, k: "single" | "portfolio") => (k === "single" ? `${n} ricerche di singoli bond a settimana` : `${n} ricerche di portafoglio a settimana`),
+  limit: (n: number) => `${n} ricerche al giorno`,
   plans: {
     free: { name: "Account gratuito", tagline: "Registrati con la tua email.", cta: "Crea account gratuito",
       extra: [] },
@@ -80,7 +80,7 @@ const fr: PricingText = {
   terms: "Prix TTC · résiliable à tout moment · paiements par Stripe.",
   promo: " Un code promo ? Saisissez-le en créant votre compte gratuit pour 30 jours d'accès complet.",
   everything: { plus: "Tout le compte gratuit", premium: "Tout Plus", pro: "Tout Premium" },
-  limit: (n: number, k: "single" | "portfolio") => (k === "single" ? `${n} recherches d'obligation par semaine` : `${n} recherches de portefeuille par semaine`),
+  limit: (n: number) => `${n} recherches par jour`,
   plans: {
     free: { name: "Compte gratuit", tagline: "Inscrivez-vous avec votre e-mail.", cta: "Créer un compte gratuit",
       extra: [] },
@@ -109,7 +109,7 @@ const de: PricingText = {
   terms: "Preise inkl. MwSt. · jederzeit kündbar · Zahlung über Stripe.",
   promo: " Sie haben einen Aktionscode? Geben Sie ihn beim Erstellen Ihres kostenlosen Kontos ein: 30 Tage voller Zugang.",
   everything: { plus: "Alles aus dem kostenlosen Konto", premium: "Alles aus Plus", pro: "Alles aus Premium" },
-  limit: (n: number, k: "single" | "portfolio") => (k === "single" ? `${n} Einzelanleihe-Suchen pro Woche` : `${n} Portfolio-Suchen pro Woche`),
+  limit: (n: number) => `${n} Suchen pro Tag`,
   plans: {
     free: { name: "Kostenloses Konto", tagline: "Mit Ihrer E-Mail registrieren.", cta: "Kostenloses Konto erstellen",
       extra: [] },

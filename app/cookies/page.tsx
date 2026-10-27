@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CloseButton from "@/components/CloseButton";
 import { UsageStatsSetting } from "@/components/UsageStats";
 import { COMPANY } from "@/lib/legal";
 
@@ -20,13 +21,15 @@ const ROWS: [string, string, string, string, string][] = [
 
 export default function Cookies() {
   return (
-    <article className="mx-auto max-w-6xl rounded-lg border border-line bg-white p-7 text-[15px] leading-relaxed sm:p-10" data-testid="cookies-page">
-      <h1 className="text-3xl font-semibold tracking-tight">Cookie policy</h1>
+    <article className="relative mx-auto max-w-6xl rounded-lg border border-line bg-white p-7 text-[15px] leading-relaxed sm:p-10" data-testid="cookies-page">
+      <CloseButton />
+      <h1 className="pr-10 text-3xl font-semibold tracking-tight">Cookie policy</h1>
       <p className="mt-2 text-mute">Which cookies and similar storage 10BONDS uses, and how to change your choice.</p>
       <h2 className="mt-8 text-lg font-semibold">Categories</h2>
       <ul className="mt-2 list-disc space-y-1.5 pl-5">
         <li><strong>Necessary:</strong> needed for the site to work, such as signing in. Always on; no consent is needed (ePrivacy Directive art. 5(3)).</li>
         <li><strong>Preferences:</strong> remember choices such as your language.</li>
+        <li><strong>Audience measurement:</strong> one anonymous count per day, page and country, with no identifier and nothing stored in your browser. It may be used without prior consent. You can oppose it at any time in Cookie settings, then nothing is counted.</li>
         <li><strong>Statistics:</strong> help us understand how the site is used. Only with your consent. Kept 13 months, without your IP address.</li>
         <li><strong>Marketing:</strong> none are used today.</li>
       </ul>

@@ -10,6 +10,8 @@ import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import HomeNavLink from "@/components/HomeNavLink";
 import CalculatorNavLink from "@/components/CalculatorNavLink";
+import DailyCounter from "@/components/DailyCounter";
+import TutorialNavButton from "@/components/TutorialNavButton";
 import PlansNavLink from "@/components/PlansNavLink";
 import DropsNavLink from "@/components/DropsNavLink";
 import { currentUser } from "@/lib/currentUser";
@@ -51,17 +53,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={lang}>
       <body className="font-sans">
         <header className="sticky top-0 z-20 border-b border-line bg-white">
-          <nav className="header-wide mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <nav className="header-wide mx-auto flex h-14 min-w-0 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">
-              {admin && <DropsNavLink />}
-              {admin && <Link href="/admin/shortlist" data-testid="nav-shortlist" className="rounded-full bg-yellow-200 px-2 py-0.5">Shortlist</Link>}
+              {admin && <span className="hidden sm:contents"><DropsNavLink /></span>}
+              {admin && <Link href="/admin/shortlist" data-testid="nav-shortlist" className="hidden rounded-full bg-yellow-200 px-2 py-0.5 sm:inline-block">Shortlist</Link>}
               {admin && <Link href="/admin/features" data-testid="nav-features" className="hidden rounded-full bg-yellow-200 px-2 py-0.5 sm:inline-block">Plan features</Link>}
               {admin && <Link href="/risk-assessment" data-testid="nav-focus" className="hidden rounded-full bg-yellow-200 px-2 py-0.5 sm:inline-block">Risk assessment</Link>}
-              <HomeNavLink />
+              {admin ? <span className="hidden sm:contents"><HomeNavLink /></span> : <HomeNavLink />}
               <Link href="/isin-search" aria-label="Search by ISIN" title="ISIN" data-testid="nav-isin" className="flex h-5 w-5 items-center justify-center hover:text-ink">
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="M13 13l4 4" /></svg>
               </Link>
+              <TutorialNavButton />
               <KnowledgeNavLink />
               <CalculatorNavLink admin={admin} />
               <PlansNavLink />
@@ -73,6 +76,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </div>
             </div>
           </nav>
+          {/* Searches left today: for signed-in accounts on the finder pages, fixed height so nothing moves. */}
+          {hasSession && /^\/((it|fr|de)\/?)?$|^\/isin-search/.test(path) && <DailyCounter />}
         </header>
         <main className="mx-auto max-w-6xl px-4 pb-6 pt-3 sm:px-6 sm:pt-5">
           <AccountNotices />

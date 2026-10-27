@@ -1,0 +1,22 @@
+name: SEO & GEO re-score after deploy
+# After every successful release, asks the site to re-crawl itself and store new SEO and GEO scores, so /admin/seo
+# always shows the live site as it is now. Same signed request as the weekly refresh (seo-weekly.yml).
+on:
+  workflow_run:
+    workflows: ["Deploy to Fly"]
+    types: [completed]
+  workflow_dispatch:
+jobs:
+  rescore:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - name: Ask the site to re-score
+        run: |
+          if [ -z "$ACCOUNTS_DATABASE_URL" ]; then echo "No ACCOUNTS_DATABASE_URL: nothing to do."; exit 0; fi
+          sleep 45
+          token=$(printf 'seo-weekly' | openssl dgst -sha256 -hmac "$ACCOUNTS_DATABASE_URL" -hex | awk '{print $NF}')
+          curl -fsS --retry 5 --retry-delay 15 --retry-all-errors --max-time 60 -X POST -H "Authorization: Bearer $token" https://10bonds.com/api/seo/weekly

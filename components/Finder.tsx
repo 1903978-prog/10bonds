@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
-import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
+import { LimitReached, QuotaSync, type Quota } from "./SearchQuota";
 import { DURATION_STEPS, LIMITS, TERMS, isOpenEnded, termOf } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
@@ -37,7 +37,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
-import { SLIDER_POSITIONS, SLIDER_START, type SliderPosition } from "@/lib/sliderPortfolios";
+import { SLIDER_POSITIONS, SLIDER_START, tileFigures, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
@@ -84,9 +84,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState<Quota | null>(null);
   // Searches left this week, read before the first search and kept in step with every answer (nothing is counted by reading).
-  const [peek, setPeek] = useState<{ single: Quota | null; portfolio: Quota | null }>({ single: null, portfolio: null });
-  useEffect(() => { fetch("/api/search-quota", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => j && setPeek(j)).catch(() => {}); }, []);
-  const quotaOf = (kind: "single" | "portfolio") => (data?.quota?.kind === kind ? data.quota : peek[kind]);
+  // The counter itself lives in the header (components/DailyCounter.tsx); the quota of each search and of a refusal is handed to it.
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const searchSeq = useRef(0);
@@ -423,7 +421,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     setShowAll(v === "multi");
   };
   const viewTabs = (
-    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs">
+    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs" data-tip="views">
       {([["list", t.chartOff], ["chart", t.chartOn], ["multi", isAdmin ? "Multi-year chart" : t.chartMulti], ["heat", isAdmin ? "Heat map" : t.chartHeat]] as [string, string][]).map(([k, label]) => (
         <button
           key={k}
@@ -485,6 +483,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     return () => { stop = true; clearTimeout(timer); };
   }, [canHeat, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
+  // Return and loss of every slider position come with the preloaded positions: the two boxes follow the thumb at once.
+  const live = simple && paid && mode === "portfolio" ? tileFigures(positions?.[mix - 1]) : null;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
   const waited = useWaitClock(touched && listOn && mode === "portfolio" && loading && !show);
   const reveal = useResultReveal(data, touched && listOn && mode === "portfolio", loading, show, waited);
@@ -554,8 +554,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 min={1}
                 max={mixMax}
                 step={1}
-                minLabel={t.lowReturn}
-                maxLabel={t.highReturn}
+                minLabel={t.highReturn}
+                maxLabel={t.lowReturn}
+                reversed
                 onChange={changeMix}
               />
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
@@ -581,8 +582,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 frac={reveal}
                 paths={data?.monteCarlo?.paths || MC_PATHS}
                 lang={lang}
-                ret={!data ? "—" : paid ? pct(summary?.avgYtm) : null}
-                loss={!data ? "—" : paid && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : paid ? "—" : null}
+                ret={!paid && data ? null : live ? live.ret : !data ? "—" : pct(summary?.avgYtm)}
+                loss={!paid && data ? null : live ? live.loss : !data ? "—" : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
                 lock={lockTo}
               />
             </div>
@@ -667,7 +668,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
         {mode === "single"
           ? <GuideTips key="single" page="single" lang={lang} />
-          : <GuideTips key="portfolio" lang={lang} simple={simple} only={simple ? ["horizon", "return"] : undefined} />}
+          : <GuideTips key="portfolio" lang={lang} simple={simple} only={simple ? ["horizon", "return", "views"] : undefined} />}
         {isAdmin && mode === "portfolio" && (
           <details className="mt-2" data-testid="admin-tuner-box">
             <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: tuning</summary>
@@ -690,8 +691,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               if (window.matchMedia("(max-width: 639px)").matches) setSheet(true);
               else if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            className="w-full rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
           >
+            <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
             {t.findPortfolio}
           </button>
         </div>
@@ -802,7 +804,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 }
               />
               </div>
-              <div className="mt-1 h-4">{!limit && <QuotaNote quota={quotaOf("single")} className="" />}</div>
+              <QuotaSync quota={limit ?? data?.quota} />
             </div>
           </div>
         ) : (
@@ -849,7 +851,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               : null
             }
           />
-          <div className="mt-1 h-4">{!limit && <QuotaNote quota={quotaOf("portfolio")} className="" />}</div>
+          <QuotaSync quota={limit ?? data?.quota} />
           {loading && !simple && <Spinner />}
         </div>
         </>
@@ -985,9 +987,12 @@ function Slider(props: {
   step: number;
   minLabel: string;
   maxLabel: string;
+  reversed?: boolean;
   onChange: (n: number) => void;
 }) {
-  const fill = ((props.value - props.min) / (props.max - props.min)) * 100;
+  // reversed: left end = max value (shown as high return); the stored value is unchanged.
+  const flip = (n: number) => (props.reversed ? props.max + props.min - n : n);
+  const fill = ((flip(props.value) - props.min) / (props.max - props.min)) * 100;
   return (
     <div className="mt-3 sm:mt-4" data-tip={props.tip}>
       <div className="flex items-baseline justify-between">
@@ -1001,9 +1006,9 @@ function Slider(props: {
         min={props.min}
         max={props.max}
         step={props.step}
-        value={props.value}
+        value={flip(props.value)}
         style={{ ["--fill" as string]: `${fill}%` }}
-        onChange={(e) => props.onChange(Number(e.target.value))}
+        onChange={(e) => props.onChange(flip(Number(e.target.value)))}
       />
       <div className="mt-1 flex justify-between text-[11px] text-mute">
         <span>{props.minLabel}</span>
@@ -1382,6 +1387,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
   const canExclude = features.has("blacklist");
   // The swap panel for one slot, drawn over the rows so nothing moves.
   const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | { kind: "gpt" } | null>(null);
+  const [excelUp, setExcelUp] = useState(false);
   useEffect(() => setPanel(null), [data]);
   // Admin only (the owner, 24/10/2026): a details line under each bond, copy the ISINs for GPT and show GPT's ratings.
   const [admin, setAdmin] = useState(false);
@@ -1467,7 +1473,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
               {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td><td className="px-1 py-0 text-center"><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td></>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
-              <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
+              <td className="py-0 text-center">{!show && <ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
@@ -1508,7 +1514,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
             <span className="-mr-2 flex shrink-0 items-center">
               <span className="w-7 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</span>
-              <span className="w-9 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big />}</span>
+              <span className="w-9 text-center">{!show && <ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big />}</span>
             </span>
           </li>
         ))}
@@ -1549,12 +1555,12 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
 
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
       <div className="mt-2 flex h-7 items-center gap-2 overflow-hidden whitespace-nowrap">
-        {features.has("excel") && rows.length > 0 ? (
+        {rows.length > 0 ? (
           <>
           <button
             type="button"
             data-testid="excel-download"
-            onClick={() => downloadTop10(rows, t)}
+            onClick={() => (features.has("excel") ? downloadTop10(rows, t) : setExcelUp(true))}
             className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
           >
             ⬇ {t.excel}
@@ -1565,12 +1571,8 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </button>
           )}
           </>
-        ) : signedIn && !features.has("excel") && rows.length > 0 ? (
-          <Link href="/pricing" className="flex min-w-0 items-center gap-3 text-xs">
-            <span className="truncate text-mute">{t.plusPitch}</span>
-            <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
-          </Link>
         ) : null}
+        {excelUp && <ExcelUpsell onClose={() => setExcelUp(false)} />}
         {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={features.has("add_left_out") && !show && !message ? addFromWhy : undefined} />}
         {admin && rows.length > 0 && !show && !message && <BondNoteFoot isins={rows.map((r) => r.isin)} />}
         {admin && rows.length > 0 && !show && !message && (
@@ -1583,6 +1585,21 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </button>
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Small centered pop-up for plans without Excel (same soft tone as the other upgrade prompts). */
+function ExcelUpsell({ onClose }: { onClose: () => void }) {
+  const t = useFinderText();
+  return (
+    <div role="dialog" aria-modal="true" aria-label={t.excelUpTitle} data-testid="excel-upsell" onClick={onClose} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xs whitespace-normal rounded-2xl bg-white p-5 text-center shadow-xl">
+        <p className="text-base font-semibold text-ink">{t.excelUpTitle}</p>
+        <p className="mt-1 text-sm text-mute">{t.excelUpBody}</p>
+        <Link href="/pricing" className="mt-4 block rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">{t.upgrade}</Link>
+        <button type="button" onClick={onClose} className="mt-2 text-xs text-mute hover:underline">{t.close}</button>
       </div>
     </div>
   );
@@ -1618,6 +1635,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
   const canExclude = features.has("blacklist");
   const canEdit = (canSwap || canExclude) && !message && rows.length > 0;
   const [panel, setPanel] = useState<number | null>(null);
+  const [excelUp, setExcelUp] = useState(false);
   useEffect(() => setPanel(null), [data]);
   const swapIn = (slot: number, b: ResultRow) => {
     setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
@@ -1644,9 +1662,10 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
         </button>
         {title(t.sheetTitle)}
         <span className="flex w-20 justify-end">
-          {features.has("excel") && rows.length > 0 && (
-            <button type="button" onClick={() => downloadTop10(rows, t)} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
+          {rows.length > 0 && (
+            <button type="button" onClick={() => (features.has("excel") ? downloadTop10(rows, t) : setExcelUp(true))} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
           )}
+          {excelUp && <ExcelUpsell onClose={() => setExcelUp(false)} />}
         </span>
       </div>
       <div className="grid shrink-0 grid-cols-2 gap-2">
@@ -1690,7 +1709,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
               <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
                             <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
-              <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
+              <span className="flex justify-center"><ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
             </li>
           ))}
           {locked > 0 && (
@@ -1942,7 +1961,7 @@ function SwapButton({ onClick, label }: { onClick: () => void; label: string }) 
 
 /** The minus at the end of a row: one tap excludes the issuer, and the list is searched again without it (another bond
  *  takes its place). Without the plan feature it is a faint link to the plans, same size, so nothing moves. */
-function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { row: ResultRow; allowed: boolean; signedIn: boolean; onExcluded: () => void; big?: boolean }) {
+function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false, tip }: { row: ResultRow; allowed: boolean; signedIn: boolean; onExcluded: () => void; big?: boolean; tip?: boolean }) {
   const t = useFinderText();
   const [busy, setBusy] = useState(false);
   const size = big ? "h-9 w-9" : "h-6 w-6";
@@ -1953,7 +1972,7 @@ function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { ro
   );
   if (!allowed) {
     return (
-      <Link href={signedIn ? "/pricing" : "/signup"} title={t.excludePaid} aria-label={t.excludePaid} data-testid="exclude-locked" className={`inline-flex ${size} items-center justify-center rounded-full text-mute/40 hover:bg-canvas hover:text-mute`}>
+      <Link href={signedIn ? "/pricing" : "/signup"} title={t.excludePaid} aria-label={t.excludePaid} data-testid="exclude-locked" data-tip={tip ? "blacklist" : undefined} className={`inline-flex ${size} items-center justify-center rounded-full text-red-500/70 hover:bg-canvas hover:text-red-600`}>
         {icon}
       </Link>
     );
@@ -1972,7 +1991,8 @@ function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { ro
       title={label}
       aria-label={label}
       data-testid="exclude-row"
-      className={`inline-flex ${size} items-center justify-center rounded-full text-mute hover:bg-canvas hover:text-red-600 disabled:opacity-40`}
+      data-tip={tip ? "blacklist" : undefined}
+      className={`inline-flex ${size} items-center justify-center rounded-full text-red-500 hover:bg-canvas hover:text-red-600 disabled:opacity-40`}
     >
       {icon}
     </button>

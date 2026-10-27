@@ -8,7 +8,7 @@ import { buildSlider } from "@/lib/sliderPortfolios";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { coherentFrontier } from "@/lib/coherentFrontier";
 import { stepGap } from "@/lib/stepGap";
-import { checkList, DEFAULT_POLICY, factsOf, policySignature } from "@/lib/coherence";
+import { checkList, DEFAULT_POLICY, END_POLICY, factsOf, policySignature } from "@/lib/coherence";
 import { CLASS_NAMES } from "@/lib/creditProfileText";
 import { TERMS } from "@/lib/limits";
 import { groupInfo } from "@/lib/issuerGroups";
@@ -24,10 +24,10 @@ const groups = new Set(src.bonds.map((b) => groupInfo(b).group));
 console.log(`EUR all orders: ${src.bonds.length} bonds, ${groups.size} issuer groups, ${unclassified.size} groups without a sector: ${[...unclassified].sort().join(", ")}`);
 console.log(`Rules ${policySignature(DEFAULT_POLICY)}`);
 
-const describe = (isins: string[]) => {
+const describe = (isins: string[], end = false) => {
   const bonds = isins.map((i) => by.get(i)!) as PublicBond[];
   const facts = bonds.map(factsOf);
-  const checks = checkList(facts, DEFAULT_POLICY, 10);
+  const checks = checkList(facts, end ? END_POLICY : DEFAULT_POLICY, 10);
   const classes = new Map<number, number>();
   facts.forEach((f) => classes.set(f.cls, (classes.get(f.cls) ?? 0) + 1));
   const sectors = new Map<string, number>();
@@ -61,7 +61,7 @@ for (const t of TERMS) {
   for (let i = 1; i < after.length; i++) if (!(after[i].ytm! > after[i - 1].ytm! && after[i].expectedLoss! > after[i - 1].expectedLoss!)) bad++;
   const rows = (label: string, pos: ReturnType<typeof buildSlider>) => {
     let failing = 0, dups = 0;
-    for (const p of pos) { const d = describe(p.isins); if (!d.ok) failing++; if (d.dup !== "none") dups++; }
+    pos.forEach((p, k) => { const d = describe(p.isins, k === 0 || k === pos.length - 1); if (!d.ok) failing++; if (d.dup !== "none") dups++; });
     console.log(`${label}: ${pos.length} positions, return ${f2(pos[0]?.ytm ?? 0)}-${f2(pos.at(-1)?.ytm ?? 0)}%, loss ${f2(pos[0]?.expectedLoss ?? 0)}-${f2(pos.at(-1)?.expectedLoss ?? 0)}%; lists breaking a rule: ${failing}/${pos.length}; lists with a repeated issuer group: ${dups}`);
   };
   // Which rule binds: the same optimiser with one rule at a time loosened (diagnostic only, not a product setting).
@@ -80,7 +80,8 @@ for (const t of TERMS) {
   rows("Methodology 1      ", m1);
   rows("spread rules before", before);
   rows("spread rules after ", after);
-  for (const p of after) if (!describe(p.isins).ok) bad++;
+  after.forEach((p, k) => { if (!describe(p.isins, k === 0 || k === after.length - 1).ok) bad++; });
+  for (const [label, p] of [["LOW END", after[0]], ["HIGH END", after.at(-1)]] as const) if (p) { const d = describe(p.isins, true); console.log(`  ${label}: return ${f2(p.ytm!)}%, expected loss ${p.expectedLoss!.toFixed(3)}%; ratings ${d.ratings}; ${d.issuers}`); }
   for (const [label, pos] of [["BEFORE (spread rules, old)", before], ["AFTER (coherent)", after]] as const) {
     for (const k of [Math.ceil(pos.length * 0.25), Math.ceil(pos.length * 0.5), Math.ceil(pos.length * 0.75)]) {
       const p = pos[k - 1];

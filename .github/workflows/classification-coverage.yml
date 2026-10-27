@@ -1,0 +1,24 @@
+name: Classification coverage
+# Manual: counts how many bonds of the shared bond table carry a country and an industry (columns, fill, top values). Counts only.
+on: workflow_dispatch
+jobs:
+  count:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - run: |
+          sudo apt-get install -y -qq postgresql-client >/dev/null 2>&1 || true
+          q() { psql "$DATABASE_URL" -X -A -t -F ' | ' -c "$1"; }
+          echo "== columns"; q "select column_name from information_schema.columns where table_name='public_bonds' order by ordinal_position"
+          echo "== country filled (all bonds / EUR)"; q "select count(*), count(country), count(*) filter (where currency='EUR'), count(country) filter (where currency='EUR') from public_bonds"
+          echo "== country top values"; q "select country, count(*) from public_bonds group by 1 order by 2 desc limit 25"
+          echo "== distinct issuers / issuers with a country"; q "select count(distinct issuer), count(distinct issuer) filter (where country is not null) from public_bonds"
+          for c in sector industry issuer_country issuer_sector issuer_type country_of_risk lei parent_issuer issuer_category; do
+            if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
+              echo "== $c filled"; q "select count(*), count($c) from public_bonds"
+              echo "== $c values"; q "select $c, count(*) from public_bonds group by 1 order by 2 desc limit 15"
+            fi
+          done
+          echo "== ISIN prefixes (top)"; q "select left(isin,2), count(*) from public_bonds group by 1 order by 2 desc limit 20"

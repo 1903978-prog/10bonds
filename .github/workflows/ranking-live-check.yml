@@ -6,7 +6,7 @@ on:
     paths: [".github/workflows/ranking-live-check.yml", "scripts/ranking-live-check.ts"]
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}

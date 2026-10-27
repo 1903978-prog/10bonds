@@ -6,7 +6,9 @@ import type { DomainState } from "@/lib/emailDomain";
 /** Admin: whether confirmation e-mails are on, and the DNS records still to add at Namecheap. */
 export default function EmailDomainCard() {
   const [s, setS] = useState<DomainState | null>(null);
+  const [log, setLog] = useState<{ at: string; kind: string; to: string; outcome: string; detail: string }[]>([]);
   useEffect(() => {
+    fetch("/api/admin/email-log", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])).then(setLog).catch(() => {});
     fetch("/api/admin/email-domain", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then(setS).catch(() => {});
   }, []);
   if (!s) return null;
@@ -15,6 +17,8 @@ export default function EmailDomainCard() {
       <h2 className="text-lg font-semibold">Confirmation e-mails</h2>
       {!s.configured ? (
         <p className="mt-2 text-sm text-mute">Off: no Resend key on the server yet.</p>
+      ) : s.status === "send-only" ? (
+        <p className="mt-2 text-sm text-mute">On: sending from {s.domain}. The server key can only send, so Resend’s domain status cannot be read here; the list below shows what each send returned.</p>
       ) : s.status === "verified" ? (
         <p className="mt-2 text-sm text-mute">On: sending from {s.domain} (verified).</p>
       ) : (
@@ -42,6 +46,28 @@ export default function EmailDomainCard() {
             </table>
           </div>
         </>
+      )}
+      <h3 className="mt-5 text-sm font-semibold">Last send attempts</h3>
+      <p className="mt-1 text-xs text-mute">
+        “Accepted by Resend” only means our server handed the e-mail over. If a person says nothing arrived, open{" "}
+        <a className="text-accent" href="https://resend.com/emails" target="_blank" rel="noreferrer">resend.com/emails</a>:
+        “Bounced” means the mailbox refused it (check the address); “Suppressed” means Resend blocks that address after an earlier bounce.
+        Remove it at <a className="text-accent" href="https://resend.com/suppressions" target="_blank" rel="noreferrer">resend.com/suppressions</a> and send again.
+      </p>
+      {log.length === 0 ? <p className="mt-1 text-xs text-mute">None yet.</p> : (
+        <table className="mt-2 w-full text-left text-xs" data-testid="email-log">
+          <tbody>
+            {log.map((r, i) => (
+              <tr key={i} className="border-t border-line/60 align-top">
+                <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.at).toLocaleString()}</td>
+                <td className="py-1 pr-3">{r.kind}</td>
+                <td className="py-1 pr-3">{r.to}</td>
+                <td className={`py-1 pr-3 ${r.outcome.startsWith("accepted") ? "" : "text-red-600"}`}>{r.outcome}</td>
+                <td className="py-1 break-all">{r.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

@@ -14,7 +14,7 @@ export function JsonLd({ data }: { data: unknown }) {
 
 export type Crumb = { name: string; href: string };
 
-export function Breadcrumbs({ locale, items, siteUrl }: { locale: Locale; items: Crumb[]; siteUrl: string }) {
+export function Breadcrumbs({ locale, items, siteUrl }: { locale: Locale | "en"; items: Crumb[]; siteUrl: string }) {
   return (
     <>
       <nav aria-label={T[locale].breadcrumb} className="mb-4 text-sm text-mute">
@@ -38,21 +38,21 @@ export function Breadcrumbs({ locale, items, siteUrl }: { locale: Locale; items:
   );
 }
 
-export function ToolCta({ locale }: { locale: Locale }) {
+export function ToolCta({ locale }: { locale: Locale | "en" }) {
   const t = T[locale];
   return (
     <aside className="mt-10 rounded-[24px] bg-ink p-6 text-white sm:p-8">
       <p className="text-xl font-semibold tracking-tight">{t.ctaTitle}</p>
       <p className="mt-2 text-[15px] text-white/75">{t.ctaText}</p>
       <div className="mt-5 flex flex-wrap gap-3">
-        <Link href={`/${locale}`} className="rounded-full bg-accent px-5 py-2.5 text-[15px] font-medium text-white hover:bg-[#0077ed]">{t.openTool}</Link>
+        <Link href={locale === "en" ? "/" : `/${locale}`} className="rounded-full bg-accent px-5 py-2.5 text-[15px] font-medium text-white hover:bg-[#0077ed]">{t.openTool}</Link>
         <Link href="/signup" className="rounded-full bg-white/10 px-5 py-2.5 text-[15px] font-medium text-white hover:bg-white/20">{t.freeAccount}</Link>
       </div>
     </aside>
   );
 }
 
-function Table({ locale, rows, curve, admin }: { locale: Locale; rows: ComparisonRow[]; curve?: boolean; admin: boolean }) {
+function Table({ locale, rows, curve, admin }: { locale: Locale | "en"; rows: ComparisonRow[]; curve?: boolean; admin: boolean }) {
   const t = T[locale];
   return (
     <div className="overflow-x-auto">
@@ -82,14 +82,14 @@ function Table({ locale, rows, curve, admin }: { locale: Locale; rows: Compariso
   );
 }
 
-export function DataStamp({ locale, asOf, source }: { locale: Locale; asOf: string | null; source: "live" | "sample" | null }) {
+export function DataStamp({ locale, asOf, source }: { locale: Locale | "en"; asOf: string | null; source: "live" | "sample" | null }) {
   const t = T[locale];
   if (source === "sample") return <p className="text-xs font-medium text-amber-700">{t.sample}</p>;
   return asOf ? <p className="text-xs text-mute">{t.dataAsOf} <time dateTime={asOf}>{fmtDate(locale, asOf)}</time></p> : null;
 }
 
 /** The data part of a comparison page: table(s), figures and the data date. */
-export async function ComparisonBody({ locale, c, asOf, source }: { locale: Locale; c: ComparisonData; asOf: string | null; source: "live" | "sample" | null }) {
+export async function ComparisonBody({ locale, c, asOf, source }: { locale: Locale | "en"; c: ComparisonData; asOf: string | null; source: "live" | "sample" | null }) {
   const t = T[locale];
   // The admin also sees each bond's S&P grade next to the risk score.
   const admin = (await currentUser().catch(() => null))?.isAdmin === true;
@@ -114,7 +114,7 @@ export async function ComparisonBody({ locale, c, asOf, source }: { locale: Loca
         {c.ytm && <div><dt className="text-xs text-mute">{t.range}</dt><dd className="font-semibold tabular-nums">{fmtNum(locale, c.ytm.min)} / {fmtNum(locale, c.ytm.median)} / {fmtNum(locale, c.ytm.max)}%</dd></div>}
         {c.avgDuration !== null && <div><dt className="text-xs text-mute">{t.avgDuration}</dt><dd className="font-semibold tabular-nums">{fmtNum(locale, c.avgDuration, 1)} {t.years}</dd></div>}
       </dl>
-      <p className="mt-4 text-sm text-mute">{t.moreRows} <Link href={`/${locale}`} className="text-accent">{t.openTool}</Link></p>
+      <p className="mt-4 text-sm text-mute">{t.moreRows} <Link href={locale === "en" ? "/" : `/${locale}`} className="text-accent">{t.openTool}</Link></p>
     </div>
   );
 }
