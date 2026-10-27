@@ -38,4 +38,9 @@ describe("issuer country table", () => {
     expect(classifyRow({ isin: "US1", issuer_country: "DE" }, "Verizon").country).toBe("Germany");
     expect(issuerCountryOf("European Investment Bank")).toBeNull();
   });
+  it("shows supranationals as their own country group", () => {
+    expect(classifyRow({ isin: "XS1" }, "European Investment Bank").country).toBe("Supranational");
+    expect(classifyRow({ isin: "EU1", issuer_country: "LU" }, "EFSF").country).toBe("Supranational");
+    expect(classifyRow({ isin: "US1" }, "Verizon").country).toBe("United States");
+  });
 });
