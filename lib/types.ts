@@ -3,7 +3,9 @@ export type PublicBond = {
   isin: string;
   name: string;
   issuer: string | null;
-  country: string | null;
+  country: string | null; // issuer country as resolved by lib/classify.ts (null = not classified)
+  countrySource?: string | null; // feed | feed-legacy | isin-prefix (lib/classify.ts)
+  feedSector?: string | null; // issuer_sector from the copy, one of the twelve sectors; the issuer-group table wins when it has the issuer
   currency: string;
   coupon: number | null;
   maturity: string | null; // YYYY-MM-DD
