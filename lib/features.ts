@@ -20,7 +20,7 @@ const t = (free: boolean, plus: boolean, premium: boolean, pro: boolean): Ticks 
 export const FEATURES = [
   { key: "full_top10", admin: "Full top 10 (visitors without an account see 3)", built: true, ticks: t(true, true, true, true) },
   { key: "isin", admin: "ISIN codes, bond name, coupon, maturity", built: true, ticks: t(true, true, true, true) },
-  { key: "portfolio_sim", admin: "Portfolio simulation (averages, loss, Monte Carlo)", built: true, ticks: t(true, true, true, true) },
+  { key: "portfolio_sim", admin: "Portfolio figures (averages, expected loss)", built: true, ticks: t(true, true, true, true) },
   { key: "bond_page_full", admin: "Return and rank on each bond page", built: true, ticks: t(true, true, true, true) },
   { key: "unlimited_single", admin: "Unlimited one-bond searches (else the Free number below)", built: true, ticks: t(false, true, true, true) },
   { key: "unlimited_portfolio", admin: "Unlimited portfolio searches (else the Free number below)", built: true, ticks: t(false, true, true, true) },
@@ -74,7 +74,7 @@ export const MAX_PLAN_LINES = 7;
 type Group = { keys: FeatureKey[]; label: Record<Lang, string> };
 const GROUPS: Group[] = [
   { keys: ["full_top10", "isin", "bond_page_full"], label: { en: "Full top 10 with ISIN, coupon, maturity", it: "Top 10 completa con ISIN, cedola, scadenza", fr: "Top 10 complet avec ISIN, coupon, échéance", de: "Volle Top 10 mit ISIN, Kupon, Fälligkeit" } },
-  { keys: ["portfolio_sim", "loss_chart", "multi_chart", "heat_map"], label: { en: "Portfolio simulation, charts and heat map", it: "Simulazione del portafoglio, grafici e mappa di calore", fr: "Simulation du portefeuille, graphiques et carte thermique", de: "Portfolio-Simulation, Diagramme und Heatmap" } },
+  { keys: ["portfolio_sim", "loss_chart", "multi_chart", "heat_map"], label: { en: "Portfolio figures, charts and heat map", it: "Cifre del portafoglio, grafici e mappa di calore", fr: "Chiffres du portefeuille, graphiques et carte thermique", de: "Portfolio-Kennzahlen, Diagramme und Heatmap" } },
   { keys: ["unlimited_single", "unlimited_portfolio"], label: { en: "Unlimited searches", it: "Ricerche illimitate", fr: "Recherches illimitées", de: "Unbegrenzte Suchen" } },
   { keys: ["isin_search"], label: { en: "Search any bond by ISIN", it: "Cerca qualsiasi bond per ISIN", fr: "Recherche de toute obligation par ISIN", de: "Jede Anleihe per ISIN suchen" } },
   { keys: ["excel", "swap", "blacklist"], label: { en: "Excel download, bond swap and blacklist", it: "Download Excel, sostituzione bond e blacklist", fr: "Export Excel, échange d'obligations et liste noire", de: "Excel-Download, Anleihetausch und Sperrliste" } },

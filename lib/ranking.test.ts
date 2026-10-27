@@ -92,7 +92,7 @@ describe("shapeForTier", () => {
     expect(JSON.stringify(p)).not.toMatch(/SAMPLE\d/);
   });
 
-  it("free accounts get the ISIN codes and the portfolio simulation by default (the owner, 24/10/2026)", () => {
+  it("free accounts get the ISIN codes and the portfolio figures by default (the owner, 24/10/2026)", () => {
     const p = shapeForTier(ranked, "free");
     expect(p.rows[0].isin).toBeTruthy();
     expect(p.summary?.lifeLoss).not.toBeNull();

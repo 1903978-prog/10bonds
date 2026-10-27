@@ -63,7 +63,7 @@ const en = {
   steps: [
     { k: "01 / Horizon", t: "Duration", s: "Short, medium or long term." },
     { k: "02 / Balance", t: "Risk versus return", s: "One slider sets the balance between modeled risk and return." },
-    { k: "03 / Portfolio", t: "Bonds selected by the model", s: "10 bonds from different issuers, modeled with Monte Carlo analysis." },
+    { k: "03 / Portfolio", t: "Bonds selected by the model", s: "10 bonds from different issuers." },
   ],
   stepsTitle: "Three steps. Ten bonds.",
   // The quant methodology paper (the owner, 24/10/2026), English only: public/methodology/10bonds-quant-methodology.pdf.
@@ -153,7 +153,7 @@ const it: LandingText = {
   steps: [
     { k: "01 / Orizzonte", t: "Durata", s: "Breve, medio o lungo termine." },
     { k: "02 / Equilibrio", t: "Rischio e rendimento", s: "Un solo cursore regola l'equilibrio tra rischio stimato e rendimento." },
-    { k: "03 / Portafoglio", t: "Obbligazioni selezionate dal modello", s: "10 obbligazioni di emittenti diversi, modellato con analisi Monte Carlo." },
+    { k: "03 / Portafoglio", t: "Obbligazioni selezionate dal modello", s: "10 obbligazioni di emittenti diversi." },
   ],
   stepsTitle: "Tre passi. Dieci obbligazioni.",
   paper: "Metodologia scientifica (PDF, in inglese)",
@@ -239,7 +239,7 @@ const fr: LandingText = {
   steps: [
     { k: "01 / Horizon", t: "Durée", s: "Court, moyen ou long terme." },
     { k: "02 / Équilibre", t: "Risque et rendement", s: "Un seul curseur règle l'équilibre entre risque modélisé et rendement." },
-    { k: "03 / Portefeuille", t: "Obligations sélectionnées par le modèle", s: "10 obligations d'émetteurs différents, modélisé par analyse Monte Carlo." },
+    { k: "03 / Portefeuille", t: "Obligations sélectionnées par le modèle", s: "10 obligations d'émetteurs différents." },
   ],
   stepsTitle: "Trois étapes. Dix obligations.",
   paper: "Méthodologie scientifique (PDF, en anglais)",
@@ -325,7 +325,7 @@ const de: LandingText = {
   steps: [
     { k: "01 / Horizont", t: "Laufzeit", s: "Kurz-, mittel- oder langfristig." },
     { k: "02 / Balance", t: "Risiko und Rendite", s: "Ein Regler steuert das Verhältnis von modelliertem Risiko und Rendite." },
-    { k: "03 / Portfolio", t: "Vom Modell ausgewählte Anleihen", s: "10 Anleihen verschiedener Emittenten, modelliert mit Monte-Carlo-Analyse." },
+    { k: "03 / Portfolio", t: "Vom Modell ausgewählte Anleihen", s: "10 Anleihen verschiedener Emittenten." },
   ],
   stepsTitle: "Drei Schritte. Zehn Anleihen.",
   paper: "Wissenschaftliche Methodik (PDF, auf Englisch)",

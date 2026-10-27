@@ -2,7 +2,7 @@ import type { MethodLang } from "./methodology";
 
 /**
  * The Selection methodology page (/selection-methodology): how the Portfolio top 10 is built, step by step, exactly as
- * lib/bonds.ts, lib/outliers.ts, lib/ranking.ts, lib/expectedLoss.ts and lib/monteCarlo.ts do it (the owner, 20/10/2026).
+ * lib/bonds.ts, lib/outliers.ts, lib/ranking.ts and lib/expectedLoss.ts do it (the owner, 20/10/2026).
  * Numbers come from the code's constants and are filled in by the page ({placeholders}); never agency names.
  */
 export type SelectionText = {
@@ -12,8 +12,6 @@ export type SelectionText = {
   steps: [string, string][];
   formulasHead: string;
   formulas: [string, string][];
-  mcHead: string;
-  mc: string[];
   fullHead: string;
   full: [string, string][];
 };
@@ -21,7 +19,7 @@ export type SelectionText = {
 export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
   en: {
     title: "How we pick the top 10",
-    intro: "A transparent, rules-based process: clean the data, measure each bond's chance of default year by year, then choose the 10 bonds whose combined probability of at least one issuer default is lowest while still reaching your target return. A Monte Carlo simulation then stress-tests the list.",
+    intro: "A transparent, rules-based process: clean the data, measure each bond's chance of default year by year, then choose the 10 bonds whose combined probability of at least one issuer default is lowest while still reaching your target return.",
     stepsHead: "The process",
     steps: [
       ["Universe", "Bonds from our daily data copy in your currency and minimum order size, with a 10BONDS risk score no higher than your limit. Unscored bonds never appear."],
@@ -30,7 +28,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["One per issuer", "Each issuer can appear once, so the list is spread across 10 different credits."],
       ["Default probabilities", "Each bond's chance of default for every year until it matures, from long-run historical default studies for its risk level."],
       ["Optimisation", "Among all valid lists, the one with the lowest modelled probability of at least one issuer default whose average return reaches your target and whose average duration stays within 5% of your horizon."],
-      ["Stress test", "{paths} simulated scenarios of defaults give the expected return after defaults and a bad-case (5th percentile) return."],
     ],
     formulasHead: "Formulas",
     formulas: [
@@ -42,12 +39,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Expected loss on your money (shown)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd}%, over the bonds' life"],
       ["Return after expected losses", "y − PD(D) ÷ D × {lgd}%, D = duration (used for ties and for the 1-bond view)"],
       ["Diversification score (0–100)", "per industry and per country: H = Σ wᵢ² (wᵢ = share of the 10 bonds), score = (1 ÷ H − 1) ÷ 9 × 100; overall = average of the two. 100 = every bond in a different group, 0 = all in one; bonds with no industry or country on record count as one group"],
-    ],
-    mcHead: "Monte Carlo stress test",
-    mc: [
-      "Each of the {paths} scenarios draws, for every bond, whether it defaults within your horizon (using its default probability) and when.",
-      "A bond grows at its return until it defaults, then returns {recovery}% of its value. The list is equally weighted.",
-      "We report the average return across all scenarios and the return that 95% of scenarios beat. The draw is seeded, so the same list always gives the same result.",
     ],
     fullHead: "Full explanation",
     full: [
@@ -67,7 +58,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
   },
   it: {
     title: "Come scegliamo le 10 obbligazioni",
-    intro: "Un processo trasparente e basato su regole: puliamo i dati, misuriamo anno per anno la probabilità di default di ogni obbligazione e scegliamo le 10 con la probabilità di perdita complessiva più bassa che raggiungono ancora il tuo rendimento obiettivo. Una simulazione Monte Carlo mette poi alla prova la lista.",
+    intro: "Un processo trasparente e basato su regole: puliamo i dati, misuriamo anno per anno la probabilità di default di ogni obbligazione e scegliamo le 10 con la probabilità di perdita complessiva più bassa che raggiungono ancora il tuo rendimento obiettivo.",
     stepsHead: "Il processo",
     steps: [
       ["Universo", "Obbligazioni della nostra copia dati giornaliera nella tua valuta e taglio minimo, con un punteggio di rischio 10BONDS non superiore al tuo limite. Le obbligazioni senza punteggio non compaiono mai."],
@@ -76,7 +67,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Un'obbligazione per emittente", "Ogni emittente compare una sola volta, quindi la lista è distribuita su 10 crediti diversi."],
       ["Probabilità di default", "Per ogni obbligazione la probabilità di default anno per anno fino alla scadenza, da studi storici pubblici di lungo periodo sui default per il suo livello di rischio."],
       ["Ottimizzazione", "Tra tutte le liste valide, quella con la probabilità di perdita più bassa il cui rendimento medio raggiunge l'obiettivo e la cui duration media resta entro il 5% del tuo orizzonte."],
-      ["Stress test", "{paths} scenari simulati di default danno il rendimento atteso al netto dei default e un rendimento nel caso sfavorevole (5° percentile)."],
     ],
     formulasHead: "Formule",
     formulas: [
@@ -88,12 +78,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Perdita attesa sul capitale (mostrata)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd}%, sulla vita delle obbligazioni"],
       ["Rendimento al netto delle perdite attese", "y − PD(D) ÷ D × {lgd}%, D = duration (per i pareggi e la vista 1 obbligazione)"],
       ["Punteggio di diversificazione (0–100)", "per settore e per paese: H = Σ wᵢ² (wᵢ = quota delle 10 obbligazioni), punteggio = (1 ÷ H − 1) ÷ 9 × 100; totale = media dei due. 100 = ogni obbligazione in un gruppo diverso, 0 = tutte in uno; senza settore o paese noto contano come un solo gruppo"],
-    ],
-    mcHead: "Stress test Monte Carlo",
-    mc: [
-      "In ciascuno dei {paths} scenari estraiamo, per ogni obbligazione, se va in default entro il tuo orizzonte (secondo la sua probabilità di default) e quando.",
-      "Un'obbligazione cresce al suo rendimento fino al default, poi restituisce il {recovery}% del suo valore. La lista è a pesi uguali.",
-      "Riportiamo il rendimento medio su tutti gli scenari e il rendimento superato dal 95% degli scenari. L'estrazione usa un seme fisso: la stessa lista dà sempre lo stesso risultato.",
     ],
     fullHead: "Spiegazione completa",
     full: [
@@ -113,7 +97,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
   },
   fr: {
     title: "Comment nous choisissons les 10 obligations",
-    intro: "Un processus transparent et fondé sur des règles : nous nettoyons les données, mesurons année après année la probabilité de défaut de chaque obligation, puis choisissons les 10 dont la probabilité de perte combinée est la plus faible tout en atteignant votre rendement cible. Une simulation Monte Carlo met ensuite la liste à l'épreuve.",
+    intro: "Un processus transparent et fondé sur des règles : nous nettoyons les données, mesurons année après année la probabilité de défaut de chaque obligation, puis choisissons les 10 dont la probabilité de perte combinée est la plus faible tout en atteignant votre rendement cible.",
     stepsHead: "Le processus",
     steps: [
       ["Univers", "Obligations de notre copie de données quotidienne dans votre devise et votre montant minimum, avec un score de risque 10BONDS au plus égal à votre limite. Les obligations sans score n'apparaissent jamais."],
@@ -122,7 +106,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Une obligation par émetteur", "Chaque émetteur n'apparaît qu'une fois : la liste est répartie sur 10 crédits différents."],
       ["Probabilités de défaut", "Pour chaque obligation, la probabilité de défaut année par année jusqu'à l'échéance, d'après des études historiques publiques de long terme pour son niveau de risque."],
       ["Optimisation", "Parmi toutes les listes valides, celle à la probabilité de perte la plus faible dont le rendement moyen atteint votre cible et dont la duration moyenne reste à 5 % de votre horizon."],
-      ["Test de résistance", "{paths} scénarios de défauts simulés donnent le rendement attendu après défauts et un rendement défavorable (5e centile)."],
     ],
     formulasHead: "Formules",
     formulas: [
@@ -134,12 +117,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Perte attendue sur votre capital (affichée)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd} %, sur la durée des obligations"],
       ["Rendement net des pertes attendues", "y − PD(D) ÷ D × {lgd} %, D = duration (pour départager et pour la vue 1 obligation)"],
       ["Score de diversification (0–100)", "par secteur et par pays : H = Σ wᵢ² (wᵢ = part des 10 obligations), score = (1 ÷ H − 1) ÷ 9 × 100 ; total = moyenne des deux. 100 = chaque obligation dans un groupe différent, 0 = toutes dans un seul ; sans secteur ou pays connu, elles comptent comme un seul groupe"],
-    ],
-    mcHead: "Test de résistance Monte Carlo",
-    mc: [
-      "Dans chacun des {paths} scénarios, nous tirons pour chaque obligation si elle fait défaut avant votre horizon (selon sa probabilité de défaut) et à quel moment.",
-      "Une obligation croît à son rendement jusqu'au défaut, puis rend {recovery} % de sa valeur. La liste est équipondérée.",
-      "Nous indiquons le rendement moyen de tous les scénarios et le rendement dépassé par 95 % d'entre eux. Le tirage utilise une graine fixe : la même liste donne toujours le même résultat.",
     ],
     fullHead: "Explication complète",
     full: [
@@ -159,7 +136,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
   },
   de: {
     title: "So wählen wir die Top 10",
-    intro: "Ein transparenter, regelbasierter Prozess: Wir bereinigen die Daten, messen Jahr für Jahr die Ausfallwahrscheinlichkeit jeder Anleihe und wählen dann die 10 Anleihen mit der geringsten gemeinsamen Verlustwahrscheinlichkeit, die Ihre Zielrendite noch erreichen. Eine Monte-Carlo-Simulation prüft die Liste anschließend unter Stress.",
+    intro: "Ein transparenter, regelbasierter Prozess: Wir bereinigen die Daten, messen Jahr für Jahr die Ausfallwahrscheinlichkeit jeder Anleihe und wählen dann die 10 Anleihen mit der geringsten gemeinsamen Verlustwahrscheinlichkeit, die Ihre Zielrendite noch erreichen.",
     stepsHead: "Der Ablauf",
     steps: [
       ["Universum", "Anleihen aus unserer täglichen Datenkopie in Ihrer Währung und Mindestanlage, mit einem 10BONDS-Risikowert bis zu Ihrem Limit. Anleihen ohne Wert erscheinen nie."],
@@ -168,7 +145,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Eine pro Emittent", "Jeder Emittent erscheint nur einmal, die Liste verteilt sich also auf 10 verschiedene Schuldner."],
       ["Ausfallwahrscheinlichkeiten", "Für jede Anleihe die Ausfallwahrscheinlichkeit Jahr für Jahr bis zur Fälligkeit, aus langfristigen öffentlichen historischen Ausfallstudien für ihr Risikoniveau."],
       ["Optimierung", "Unter allen gültigen Listen die mit der geringsten Verlustwahrscheinlichkeit, deren Durchschnittsrendite Ihr Ziel erreicht und deren durchschnittliche Duration innerhalb von 5 % Ihres Horizonts bleibt."],
-      ["Stresstest", "{paths} simulierte Ausfallszenarien liefern die erwartete Rendite nach Ausfällen und eine Rendite im ungünstigen Fall (5. Perzentil)."],
     ],
     formulasHead: "Formeln",
     formulas: [
@@ -180,12 +156,6 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Erwarteter Verlust auf Ihr Geld (angezeigt)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd} %, über die Laufzeit der Anleihen"],
       ["Rendite nach erwarteten Verlusten", "y − PD(D) ÷ D × {lgd} %, D = Duration (für Gleichstände und die 1-Anleihe-Ansicht)"],
       ["Diversifikationswert (0–100)", "je Branche und je Land: H = Σ wᵢ² (wᵢ = Anteil der 10 Anleihen), Wert = (1 ÷ H − 1) ÷ 9 × 100; gesamt = Mittel beider. 100 = jede Anleihe in einer anderen Gruppe, 0 = alle in einer; ohne bekannte Branche oder Land zählen sie als eine Gruppe"],
-    ],
-    mcHead: "Monte-Carlo-Stresstest",
-    mc: [
-      "In jedem der {paths} Szenarien wird für jede Anleihe gezogen, ob sie innerhalb Ihres Horizonts ausfällt (gemäß ihrer Ausfallwahrscheinlichkeit) und wann.",
-      "Eine Anleihe wächst mit ihrer Rendite bis zum Ausfall und bringt dann {recovery} % ihres Werts zurück. Die Liste ist gleich gewichtet.",
-      "Wir zeigen die Durchschnittsrendite über alle Szenarien und die Rendite, die 95 % der Szenarien übertreffen. Die Ziehung nutzt einen festen Startwert: Dieselbe Liste ergibt immer dasselbe Ergebnis.",
     ],
     fullHead: "Vollständige Erklärung",
     full: [
