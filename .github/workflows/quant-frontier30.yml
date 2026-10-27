@@ -1,0 +1,26 @@
+name: Quant frontier 30
+# Read-only. Revised 30-band method (efficient frontier) on a frozen "Quant baseline" snapshot. Does not touch production.
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_run_id: { description: "Run id of a 'Quant baseline' run", required: true }
+      horizons: { description: "Comma list: short,mid,long (empty = all)", required: false, default: "" }
+jobs:
+  bands:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    permissions: { contents: read, actions: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - uses: actions/download-artifact@v4
+        with: { name: quant-baseline, path: frozen, run-id: "${{ inputs.baseline_run_id }}", github-token: "${{ github.token }}" }
+      - run: QUANT_SNAPSHOT=frozen/snapshot.json.gz QUANT_OUT=quant-out QUANT_HORIZONS="${{ inputs.horizons }}" npx vite-node -c vitest.config.ts scripts/quant-frontier30.ts
+      - run: cat quant-out/frontier30.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quant-frontier30
+          path: quant-out
+          retention-days: 90
