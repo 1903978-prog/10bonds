@@ -217,7 +217,7 @@ export function OneBondScreen({ lang, data, asOf, locale }: { lang: FinderLang; 
   const date = new Date(b.maturity.slice(0, 10) + "T12:00:00Z").toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
   const sym = b.currency === "USD" ? "US$" : "€";
   const facts: [string, ReactNode][] = [
-    ["ISIN", b.isin], [f.risk, <RiskBadge key="r" risk={b.risk} />], [f.duration, `${num(b.duration)} ${f.yrs}`],
+    ["ISIN", `${b.isin.slice(0, 4)}••••••${b.isin.slice(-2)}`], [f.risk, <RiskBadge key="r" risk={b.risk} />], [f.duration, `${num(b.duration)} ${f.yrs}`],
     [f.coupon, `${num(b.coupon, 2)}%`], [f.maturity, date], [f.minInvest, b.minInvestment ? `${sym}${num(b.minInvestment / 1000, 0)}k` : "–"],
   ];
   return (

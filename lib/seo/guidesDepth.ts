@@ -114,3 +114,13 @@ export const DEPTH_EXTRAS: DepthExtra[] = [
 <p>Les obligations d'État offrent en général des rendements plus faibles, une grande liquidité et un risque de crédit limité. Les obligations d'entreprise offrent en moyenne des rendements plus élevés, avec davantage de risque de crédit et, selon l'émission, moins de liquidité. La bonne combinaison dépend d'un horizon personnel ; comparer à échéance égale, en regardant la notation et la diversification, permet au moins de poser correctement la question.</p>`,
   },
 ];
+
+/** Target keywords each French guide really answers, added to its related keywords once (27 Oct 2026). */
+export const RELATED_ADD: { locale: Locale; slug: string; keywords: string[] }[] = [
+  { locale: "fr", slug: "probabilite-defaut-notation", keywords: ["risque de crédit obligation"] },
+  { locale: "fr", slug: "acheter-des-oat", keywords: ["oat 10 ans", "rendement oat 10 ans"] },
+  { locale: "fr", slug: "obligations-2026-comment-comparer", keywords: ["comment comparer rendement et risque obligataire"] },
+  { locale: "fr", slug: "calcul-rendement-obligation", keywords: ["calcul rendement actuariel"] },
+  { locale: "fr", slug: "obligations-ou-etf-obligataires", keywords: ["obligations ou etf"] },
+  { locale: "fr", slug: "oat-obligations-etat", keywords: ["obligations d'état ou obligations d'entreprise"] },
+];
