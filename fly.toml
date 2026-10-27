@@ -25,7 +25,8 @@ primary_region = "cdg"
     method = "GET"
     path = "/api/health"
 
+# 4 shared CPUs (was 1): the single shared CPU was throttled to a small share once its burst credit ran out, so pages took 15+ s. About +2 USD/month.
 [[vm]]
   memory = "1024mb"
   cpu_kind = "shared"
-  cpus = 1
+  cpus = 4
