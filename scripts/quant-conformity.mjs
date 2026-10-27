@@ -20,3 +20,16 @@ out.push("", `Total gain available: ${gainable} points. By blocker class: ${Obje
 const need = 0.95 * total;
 out.push(`95% of ${total} = ${need.toFixed(2)} points; Score B live = ${score("B")}, gap ${(need - score("B")).toFixed(2)}.`);
 console.log(out.join("\n"));
+
+// Reconciliation: every open point, by what it needs. A row needing several things is counted once under its combination.
+if (process.argv.includes("--needs")) {
+  const open = rows.filter((r) => r.B !== "I");
+  const groups = {};
+  for (const r of open) { const k = [...(r.needs ?? [])].sort().join("+") || "none"; groups[k] = groups[k] ?? { pts: 0, rows: [] }; groups[k].pts += r.w * (1 - v[r.B]); groups[k].rows.push(r.id); }
+  console.log("\n## Open points by what they need (each row once)\n\n| Needs | Points | Rows |\n|---|---:|---|");
+  for (const [k, g] of Object.entries(groups).sort((a, b) => b[1].pts - a[1].pts)) console.log(`| ${k} | ${g.pts} | ${g.rows.join(", ")} |`);
+  const has = (n) => open.filter((r) => (r.needs ?? []).includes(n)).reduce((s, r) => s + r.w * (1 - v[r.B]), 0);
+  console.log(`\nAny code: ${has("code")}; any approval: ${has("approval")}; any data: ${has("data")}; any legal/licence: ${has("legal") + has("licence")} (overlaps counted in each line).`);
+  const only = (n) => open.filter((r) => (r.needs ?? []).length === 1 && r.needs[0] === n).reduce((s, r) => s + r.w * (1 - v[r.B]), 0);
+  console.log(`Needs only code: ${only("code")}; only approval: ${only("approval")}; only data: ${only("data")}.`);
+}
