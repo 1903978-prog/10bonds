@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { confirmationEmail, sendEmail, siteUrl } from "./email";
+import { logEmail } from "./emailLog";
 import { readToken, signToken } from "./session";
 
 const TTL = 3 * 86400_000;
@@ -22,7 +23,10 @@ export const emailTag = tag;
 
 export async function sendConfirmation(userId: number, email: string, username: string, lang = "en") {
   const link = confirmLink(userId, email, lang);
-  if (!link) return "failed" as const;
+  if (!link) {
+    await logEmail("Confirm your 10BONDS account", email, "not sent", "No confirmation link: SESSION_SECRET missing or too short on the server");
+    return "failed" as const;
+  }
   const m = confirmationEmail(username, link);
   return sendEmail(email, m.subject, m.html, m.text);
 }
