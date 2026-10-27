@@ -29,6 +29,7 @@ import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, active
 import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
+import { bandsRows } from "@/lib/bands30";
 
 export const dynamic = "force-dynamic";
 
@@ -94,8 +95,18 @@ export async function GET(req: Request) {
   let coherent: CoherentFrontier | null = null;
   let frontierResults: RankedBond[] | null = null;
   let nearest = false;
+  // A position of the "30 risk bands" slider (b30=position): the saved list of the revised 30-band method (lib/bands30.ts), already checked against today's rows.
+  // A customer's own exclusions cannot be applied to it, so a list holding an excluded bond is reported as not available.
+  const b30 = Math.floor(Number(url.searchParams.get("b30")));
+  const fixed = b30 >= 1 && !url.searchParams.get("m");
+  let fixedRows: RankedBond[] | null = null;
+  if (fixed) {
+    fixedRows = (await bandsRows(data, filter, duration, b30)) ?? [];
+    if (skip && fixedRows.some((r) => skip(r))) fixedRows = [];
+    frontierResults = fixedRows;
+  }
   // Spread rules always use the coherent frontier, never the plain ranking below (which knows none of the rules), whether or not the page asked for guard=1.
-  if (url.searchParams.get("guard") === "1" || method === "spread") {
+  if (!fixed && (url.searchParams.get("guard") === "1" || method === "spread")) {
     try {
       const fr = method === "spread" ? frontierFor(data, filter, duration, "spread", skip ? { key: exclusionKey, fn: skip } : null) : skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method);
       if (method === "spread") coherent = fr as CoherentFrontier;
@@ -123,7 +134,7 @@ export async function GET(req: Request) {
       frontierResults = [];
     }
   }
-  if (coherent && !frontierResults?.length && activeFallback() === "none") {
+  if ((coherent || fixed) && !frontierResults?.length && activeFallback() === "none") {
     // Paper 7.1: no optimised list means no list. Same payload shape as a normal answer, with no rows, so the page shows its "not available" state.
     // Such an answer does not use up a search (owner decision 27/10/2026).
     const quota = usage ? await refundSearch(user!, usage) : null;
@@ -142,7 +153,7 @@ export async function GET(req: Request) {
   // Honest state of the answer (quant correction, brief section 11): READY = exact optimised list; UPDATING = optimised list saved for slightly
   // older prices; NEAREST_POINT = the asked position had no list, the nearest optimised one is shown; FALLBACK_RANKING = no optimised list at
   // all, the plain ranker (which knows none of the optimiser's rules) filled in; INFEASIBLE = nothing (only when the fallback is switched off).
-  const status = coherent ? (frontierResults?.length ? (nearest ? "NEAREST_POINT" : coherent.stale ? "UPDATING" : "READY") : "FALLBACK_RANKING") : undefined;
+  const status = fixed ? (frontierResults?.length ? "READY" : "INFEASIBLE") : coherent ? (frontierResults?.length ? (nearest ? "NEAREST_POINT" : coherent.stale ? "UPDATING" : "READY") : "FALLBACK_RANKING") : undefined;
   const outliers = user?.isAdmin
     ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
     : undefined;
@@ -173,9 +184,9 @@ export async function GET(req: Request) {
   // With "swap": the bonds left out, to swap into the list; with "why_table" also why each one is out.
   const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
-  const alternatives = coherent ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
+  const alternatives = coherent || fixed ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, manifest, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent || fixed ? withoutListEdits(features) : features, excluded: skip !== null && !coherent && !fixed, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, manifest, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

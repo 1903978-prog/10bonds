@@ -199,6 +199,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const shortlistDots = useShortlistDots(isAdmin && (showHeat || showAll));
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
+  // "30 risk bands" slider (27/10/2026): saved lists of the revised 30-band method, an extra choice next to the standard slider. bandsOk: lists exist for this filter (null = not known yet).
+  const [bands, setBands] = useState<"std" | "b30">("std");
+  const [bandsOk, setBandsOk] = useState<boolean | null>(null);
+  const useBands = bands === "b30" && bandsOk === true;
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
   const [diagOpen, setDiagOpen] = useState(false);
   const firstOpen = positions?.find((p) => !p.unavailable)?.position ?? 1;
@@ -245,6 +249,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     const span = <span className="truncate text-[16px] font-semibold">{title}</span>;
     return simple ? <PfArrows prev={stepFrom(-1)} next={stepFrom(1)} onStep={changeMix} busy={loading}>{span}</PfArrows> : span;
   };
+  useEffect(() => { setBandsOk(null); }, [duration, currency, size]);
   useEffect(() => {
     // Loaded in Advanced too (admin), for the frontier dots on its chart.
     if (!TERMS.some((x) => x.duration === duration)) { setPositions(null); return; }
@@ -252,16 +257,24 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     let timer: ReturnType<typeof setTimeout> | undefined;
     setPositions(null);
     const load = (tries: number) =>
-      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
+      fetch(bands === "b30" ? `/api/bonds/bands30?${new URLSearchParams({ duration: String(duration), currency, size })}` : `/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
           if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
-          else if (r.ok) setPositions((await r.json()).positions);
+          else if (r.ok) {
+            const body = await r.json();
+            if (bands === "b30") {
+              // No saved lists for this filter or horizon: back to the standard slider, and the choice is greyed out.
+              setBandsOk(!!body.positions?.length);
+              if (!body.positions?.length) { setBands("std"); return; }
+            }
+            setPositions(body.positions);
+          }
         })
         .catch(() => {});
     load(0);
     return () => { stop = true; clearTimeout(timer); };
-  }, [duration, currency, size, method]);
+  }, [duration, currency, size, method, bands]);
   // In Simple search the position decides risk and return, so they follow the term, the filters and the data.
   useEffect(() => {
     if (!simple) return;
@@ -328,6 +341,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
         if (method === "m1") qs.set("m", method);
+        if (useBands && positions?.length) qs.set("b30", String(mix));
         if (heatOn) {
           // The heat map cell's list: the same exact frontier the map is built from, with the map's methodology.
           qs.set("duration", String(heatPick.duration));
@@ -337,6 +351,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           else qs.delete("m");
           qs.set("bl", showHeat && heatBl ? "1" : "0");
         }
+        if (heatOn) qs.delete("b30");
         if (preview.current) qs.set("preview", preview.current);
         if (isAdmin && tuner.weight !== null) {
           qs.set("rw", String(tuner.weight));
@@ -380,7 +395,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };
-  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl]);
+  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl, useBands, mix]);
   useEffect(() => { setHeatPick(null); setPicked(null); setSelDur(null); }, [duration, ytm, risk, mix, adv, spread, showHeat, showAll]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
@@ -619,6 +634,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 />
               </div>
 
+              <div className="mt-3">
+                <Toggle
+                  label={t.bandsLabel}
+                  value={useBands ? "b30" : "std"}
+                  options={[["std", t.bandsStd], ["b30", t.bands30]]}
+                  onChange={(v) => { setTouched(true); setBands(v as "std" | "b30"); }}
+                  testId="toggle-bands"
+                  disabled={bandsOk === false ? ["b30"] : []}
+                />
+              </div>
             </MoreFilters>
           </>
         ) : (
