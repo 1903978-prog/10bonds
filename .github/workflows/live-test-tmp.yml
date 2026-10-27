@@ -1,0 +1,12 @@
+name: Live test tmp
+on:
+  push:
+    branches: [claude/live-test-tmp]
+jobs:
+  t:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm init -y >/dev/null && npm i playwright@1.49.1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+      - run: node live-test.mjs
