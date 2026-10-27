@@ -30,7 +30,7 @@ const en = {
   issuer: "Issuer", bond: "Bond", yield: "Return", duration: "Duration", yrs: "yrs",
   isinPlus: "ISIN with Plus", freeAccount: "Free account", detailsFree: "Details with a free account",
   plusPitch: "Unlimited searches, Excel, bond swaps and exclusions with Plus.", seePlans: "See plans", excel: "Download Excel",
-  swap: "Replace with a similar bond", swapTitle: (who: string) => `Replace ${who}`, swapHint: "Similar duration and risk, issuers not already in your list.", swapPick: "Swap", swapNone: "No similar bond left to swap in.", neverShow: "Never show:", thisBond: "This bond", thisIssuer: "This issuer", myExclusions: "My exclusions", close: "Close", exclude: "Exclude this issuer", excludePaid: "Exclude an issuer: paid plans",
+  swap: "Replace with a similar bond", swapTitle: (who: string) => `Replace ${who}`, swapHint: "Similar duration and risk, issuers not already in your list.", swapPick: "Swap", swapNone: "No similar bond left to swap in.", neverShow: "Never show:", thisBond: "This bond", thisIssuer: "This issuer", myExclusions: "My exclusions", close: "Close", exclude: "Blacklist this issuer", excludePaid: "Blacklist: upgrade to unlock",
   resetList: "Back to the original list",
  
   more: (n: number) => `${n} more bonds match your goals`, noCard: "Free, no card needed.", seeAll: "See all 10 with a free account",
@@ -73,7 +73,7 @@ const it: FinderText = {
   issuer: "Emittente", bond: "Obbligazione", yield: "Rendimento", duration: "Duration", yrs: "anni",
   isinPlus: "ISIN con Plus", freeAccount: "Account gratuito", detailsFree: "Dettagli con un account gratuito",
   plusPitch: "Con Plus: ricerche illimitate, Excel, sostituzioni ed esclusioni.", seePlans: "Vedi i piani", excel: "Scarica Excel",
-  swap: "Sostituisci con un bond simile", swapTitle: (who: string) => `Sostituisci ${who}`, swapHint: "Durata e rischio simili, emittenti non già in lista.", swapPick: "Sostituisci", swapNone: "Nessun bond simile da inserire.", neverShow: "Non mostrare più:", thisBond: "Questo bond", thisIssuer: "Questo emittente", myExclusions: "Le mie esclusioni", close: "Chiudi", exclude: "Escludi questo emittente", excludePaid: "Escludere un emittente: piani a pagamento",
+  swap: "Sostituisci con un bond simile", swapTitle: (who: string) => `Sostituisci ${who}`, swapHint: "Durata e rischio simili, emittenti non già in lista.", swapPick: "Sostituisci", swapNone: "Nessun bond simile da inserire.", neverShow: "Non mostrare più:", thisBond: "Questo bond", thisIssuer: "Questo emittente", myExclusions: "Le mie esclusioni", close: "Chiudi", exclude: "Blacklist: escludi questo emittente", excludePaid: "Blacklist: passa a un piano superiore",
   resetList: "Torna alla lista originale",
  
   more: (n: number) => `Altre ${n} obbligazioni corrispondono ai tuoi obiettivi`, noCard: "Gratis, senza carta.", seeAll: "Vedi tutte e 10 con un account gratuito",
@@ -115,7 +115,7 @@ const fr: FinderText = {
   issuer: "Émetteur", bond: "Obligation", yield: "Rendement", duration: "Duration", yrs: "ans",
   isinPlus: "ISIN avec Plus", freeAccount: "Compte gratuit", detailsFree: "Détails avec un compte gratuit",
   plusPitch: "Avec Plus : recherches illimitées, Excel, remplacements et exclusions.", seePlans: "Voir les offres", excel: "Télécharger Excel",
-  swap: "Remplacer par une obligation similaire", swapTitle: (who: string) => `Remplacer ${who}`, swapHint: "Duration et risque proches, émetteurs absents de votre liste.", swapPick: "Remplacer", swapNone: "Aucune obligation similaire disponible.", neverShow: "Ne plus afficher :", thisBond: "Cette obligation", thisIssuer: "Cet émetteur", myExclusions: "Mes exclusions", close: "Fermer", exclude: "Exclure cet émetteur", excludePaid: "Exclure un émetteur : offres payantes",
+  swap: "Remplacer par une obligation similaire", swapTitle: (who: string) => `Remplacer ${who}`, swapHint: "Duration et risque proches, émetteurs absents de votre liste.", swapPick: "Remplacer", swapNone: "Aucune obligation similaire disponible.", neverShow: "Ne plus afficher :", thisBond: "Cette obligation", thisIssuer: "Cet émetteur", myExclusions: "Mes exclusions", close: "Fermer", exclude: "Liste noire : exclure cet émetteur", excludePaid: "Liste noire : passez à une offre supérieure",
   resetList: "Revenir à la liste d'origine",
  
   more: (n: number) => `${n} autres obligations correspondent à vos objectifs`, noCard: "Gratuit, sans carte.", seeAll: "Voir les 10 avec un compte gratuit",
@@ -157,7 +157,7 @@ const de: FinderText = {
   issuer: "Emittent", bond: "Anleihe", yield: "Rendite", duration: "Duration", yrs: "J.",
   isinPlus: "ISIN mit Plus", freeAccount: "Kostenloses Konto", detailsFree: "Details mit kostenlosem Konto",
   plusPitch: "Mit Plus: unbegrenzte Suchen, Excel, Tausch und Ausschlüsse.", seePlans: "Tarife ansehen", excel: "Excel herunterladen",
-  swap: "Durch eine ähnliche Anleihe ersetzen", swapTitle: (who: string) => `${who} ersetzen`, swapHint: "Ähnliche Duration und ähnliches Risiko, Emittenten noch nicht in Ihrer Liste.", swapPick: "Tauschen", swapNone: "Keine ähnliche Anleihe zum Tauschen übrig.", neverShow: "Nie mehr zeigen:", thisBond: "Diese Anleihe", thisIssuer: "Dieser Emittent", myExclusions: "Meine Ausschlüsse", close: "Schließen", exclude: "Diesen Emittenten ausschließen", excludePaid: "Emittenten ausschließen: kostenpflichtige Tarife",
+  swap: "Durch eine ähnliche Anleihe ersetzen", swapTitle: (who: string) => `${who} ersetzen`, swapHint: "Ähnliche Duration und ähnliches Risiko, Emittenten noch nicht in Ihrer Liste.", swapPick: "Tauschen", swapNone: "Keine ähnliche Anleihe zum Tauschen übrig.", neverShow: "Nie mehr zeigen:", thisBond: "Diese Anleihe", thisIssuer: "Dieser Emittent", myExclusions: "Meine Ausschlüsse", close: "Schließen", exclude: "Sperrliste: diesen Emittenten ausschließen", excludePaid: "Sperrliste: auf einen höheren Tarif wechseln",
   resetList: "Zurück zur ursprünglichen Liste",
  
   more: (n: number) => `${n} weitere Anleihen passen zu Ihren Zielen`, noCard: "Kostenlos, ohne Karte.", seeAll: "Alle 10 mit kostenlosem Konto ansehen",

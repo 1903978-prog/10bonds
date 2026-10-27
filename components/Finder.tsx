@@ -1472,7 +1472,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
               {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td><td className="px-1 py-0 text-center"><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td></>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
-              <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
+              <td className="py-0 text-center">{!show && <ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
@@ -1513,7 +1513,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
             <span className="-mr-2 flex shrink-0 items-center">
               <span className="w-7 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</span>
-              <span className="w-9 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big />}</span>
+              <span className="w-9 text-center">{!show && <ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big />}</span>
             </span>
           </li>
         ))}
@@ -1695,7 +1695,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
               <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
                             <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
-              <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
+              <span className="flex justify-center"><ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
             </li>
           ))}
           {locked > 0 && (
@@ -1947,7 +1947,7 @@ function SwapButton({ onClick, label }: { onClick: () => void; label: string }) 
 
 /** The minus at the end of a row: one tap excludes the issuer, and the list is searched again without it (another bond
  *  takes its place). Without the plan feature it is a faint link to the plans, same size, so nothing moves. */
-function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { row: ResultRow; allowed: boolean; signedIn: boolean; onExcluded: () => void; big?: boolean }) {
+function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false, tip }: { row: ResultRow; allowed: boolean; signedIn: boolean; onExcluded: () => void; big?: boolean; tip?: boolean }) {
   const t = useFinderText();
   const [busy, setBusy] = useState(false);
   const size = big ? "h-9 w-9" : "h-6 w-6";
@@ -1958,7 +1958,7 @@ function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { ro
   );
   if (!allowed) {
     return (
-      <Link href={signedIn ? "/pricing" : "/signup"} title={t.excludePaid} aria-label={t.excludePaid} data-testid="exclude-locked" className={`inline-flex ${size} items-center justify-center rounded-full text-mute/40 hover:bg-canvas hover:text-mute`}>
+      <Link href={signedIn ? "/pricing" : "/signup"} title={t.excludePaid} aria-label={t.excludePaid} data-testid="exclude-locked" data-tip={tip ? "blacklist" : undefined} className={`inline-flex ${size} items-center justify-center rounded-full text-red-500/70 hover:bg-canvas hover:text-red-600`}>
         {icon}
       </Link>
     );
@@ -1977,7 +1977,8 @@ function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { ro
       title={label}
       aria-label={label}
       data-testid="exclude-row"
-      className={`inline-flex ${size} items-center justify-center rounded-full text-mute hover:bg-canvas hover:text-red-600 disabled:opacity-40`}
+      data-tip={tip ? "blacklist" : undefined}
+      className={`inline-flex ${size} items-center justify-center rounded-full text-red-500 hover:bg-canvas hover:text-red-600 disabled:opacity-40`}
     >
       {icon}
     </button>
