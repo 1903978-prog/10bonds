@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { issuerKey } from "./ranking";
 import { bondRisk } from "./ratings";
 import type { PublicBond } from "./types";
-import { buildSlider, moodOf, SLIDER_POSITIONS } from "./sliderPortfolios";
+import { buildSlider, moodOf, SLIDER_POSITIONS, tileFigures } from "./sliderPortfolios";
 import { exactFrontier } from "./exactFrontier";
 import { isWeak, MAX_WEAK } from "./frontierGuard";
 import { TERMS } from "./limits";
@@ -39,6 +39,9 @@ function checkPositions(bonds: PublicBond[], duration: number) {
       expect(p.expectedLoss!).toBeGreaterThan(pos[i - 1].expectedLoss!);
     }
     expect(f.at(p.query!.ytm)!.isins).toEqual(p.isins);
+    // The live boxes under the slider show the same figures as the list the button gives for this position.
+    const hit = f.at(p.query!.ytm)!;
+    expect(tileFigures(p)).toEqual({ ret: `${(Math.round(hit.ytm * 100) / 100).toFixed(2)}%`, loss: `${(Math.round(hit.el * 1000) / 1000).toFixed(2)}%` });
   });
   expect(new Set(pos.map((p) => p.isins.join())).size).toBe(pos.length);
   // No position is beaten by another one.
@@ -48,6 +51,17 @@ function checkPositions(bonds: PublicBond[], duration: number) {
   expect(pos[pos.length - 1].isins).toEqual(f.points[f.points.length - 1].isins);
   return pos;
 }
+
+describe("slider ends", () => {
+  for (const t of TERMS) it(`${t.key}: the high-return end has clearly more return and more loss than the low-return end`, () => {
+    const pos = buildSlider(exactFrontier(universe(7, t.duration, 6), t.duration));
+    const lo = tileFigures(pos[0])!, hi = tileFigures(pos[pos.length - 1])!;
+    expect(pos[pos.length - 1].ytm!).toBeGreaterThan(pos[0].ytm! + 0.5);
+    expect(pos[pos.length - 1].expectedLoss!).toBeGreaterThan(pos[0].expectedLoss!);
+    expect(hi.ret).not.toBe(lo.ret);
+    expect(hi.loss).not.toBe(lo.loss);
+  });
+});
 
 describe("slider positions (exact efficient frontier)", () => {
   it("has at most 30 positions and words by the riskiest bond", () => {
