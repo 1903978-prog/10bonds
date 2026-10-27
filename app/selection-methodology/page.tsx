@@ -29,10 +29,15 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
 
   return (
     <article lang={lang} className="mx-auto max-w-6xl">
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
+      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
+        <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="quant-paper"
+          className="whitespace-nowrap text-[13px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80" style={{ color: "#127052" }}>
+          {LANDING_TEXT[lang].paper} ↓
+        </a>
+      </div>
       <p className="mt-1 max-w-3xl text-[13px] leading-snug text-mute">
-        {t.intro}{" "}
-        <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="text-accent hover:underline" data-testid="quant-paper">{LANDING_TEXT[lang].paper}</a>
+        {t.intro}
       </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.25fr_1fr_0.85fr]">
