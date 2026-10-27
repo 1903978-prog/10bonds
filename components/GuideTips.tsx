@@ -11,13 +11,14 @@ import type { FinderLang } from "@/lib/finderText";
 const KEY = "tb_tips";
 // The 1 bond page has its own tour and its own flag, so seeing one never hides the other.
 const KEY_SINGLE = "tb_tips_single";
-type Step = { tip: string; title: string; body: string; /** Bubble sits over the target (big areas) instead of beside it. */ over?: boolean; /** Skipped when the target is not on screen. */ optional?: boolean };
+type Step = { tip: string; title: string; body: string; /** Bubble sits over the target (big areas) instead of beside it. */ over?: boolean; /** Skipped when the target is not on screen. */ optional?: boolean; /** Last step: waits (nothing shown) until the target appears, e.g. once results are on screen. Bubble sits under the target. */ late?: boolean };
 
 const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; next: string; done: string; skip: string }> = {
   en: {
     simple: [
       { tip: "horizon", title: "1. Choose the term", body: "Short, medium or long term." },
       { tip: "return", title: "2. Set risk versus return", body: "One slider: lower risk on the left, higher return potential on the right." },
+      { tip: "views", title: "3. Switch the result view", body: "List shows your 10 bonds. Chart plots expected loss against return. Multi-year chart compares horizons of 2–10 years. Heat map colours expected loss by return and term.", late: true },
     ],
     steps: [
       { tip: "currency", title: "1. Select the currency", body: "Euro or US dollar bonds." },
@@ -25,6 +26,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "horizon", title: "3. Set your horizon", body: "How many years you want to keep your money invested." },
       { tip: "return", title: "4. Set your desired return", body: "The return per year you are after, before costs." },
       { tip: "risk", title: "5. Choose the highest risk", body: "1 is the safest. Your top 10 appears on the right." },
+      { tip: "views", title: "6. Switch the result view", body: "List shows your 10 bonds. Chart plots expected loss against return. Multi-year chart compares horizons of 2–10 years. Heat map colours expected loss by return and term.", late: true },
     ],
     single: [
       { tip: "horizon", title: "1. Choose the term", body: "How many years you want to stay invested." },
@@ -38,6 +40,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
     simple: [
       { tip: "horizon", title: "1. Scegli la durata", body: "Breve, medio o lungo termine." },
       { tip: "return", title: "2. Imposta rischio e rendimento", body: "Un solo cursore: rischio più basso a sinistra, rendimento potenziale più alto a destra." },
+      { tip: "views", title: "3. Cambia la vista dei risultati", body: "Elenco mostra le tue 10 obbligazioni. Grafico confronta perdita attesa e rendimento. Grafico pluriennale confronta orizzonti da 2 a 10 anni. Mappa di calore colora la perdita attesa per rendimento e durata.", late: true },
     ],
     steps: [
       { tip: "currency", title: "1. Scegli la valuta", body: "Obbligazioni in euro o in dollari USA." },
@@ -45,6 +48,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "horizon", title: "3. Imposta l'orizzonte", body: "Per quanti anni vuoi tenere investiti i tuoi soldi." },
       { tip: "return", title: "4. Imposta il rendimento desiderato", body: "Il rendimento annuo che cerchi, prima di costi e tasse." },
       { tip: "risk", title: "5. Scegli il rischio massimo", body: "1 è il più sicuro. La tua top 10 appare a destra." },
+      { tip: "views", title: "6. Cambia la vista dei risultati", body: "Elenco mostra le tue 10 obbligazioni. Grafico confronta perdita attesa e rendimento. Grafico pluriennale confronta orizzonti da 2 a 10 anni. Mappa di calore colora la perdita attesa per rendimento e durata.", late: true },
     ],
     single: [
       { tip: "horizon", title: "1. Scegli la durata", body: "Per quanti anni vuoi restare investito." },
@@ -58,6 +62,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
     simple: [
       { tip: "horizon", title: "1. Choisissez la durée", body: "Court, moyen ou long terme." },
       { tip: "return", title: "2. Réglez risque et rendement", body: "Un seul curseur : risque plus faible à gauche, rendement potentiel plus élevé à droite." },
+      { tip: "views", title: "3. Changez la vue des résultats", body: "Liste montre vos 10 obligations. Graphique compare perte attendue et rendement. Graphique pluriannuel compare des horizons de 2 à 10 ans. Carte thermique colore la perte attendue selon rendement et durée.", late: true },
     ],
     steps: [
       { tip: "currency", title: "1. Choisissez la devise", body: "Obligations en euros ou en dollars US." },
@@ -65,6 +70,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "horizon", title: "3. Fixez votre horizon", body: "Combien d'années vous voulez garder votre argent investi." },
       { tip: "return", title: "4. Fixez le rendement souhaité", body: "Le rendement par an que vous visez, avant frais et impôts." },
       { tip: "risk", title: "5. Choisissez le risque maximal", body: "1 est le plus sûr. Votre top 10 apparaît à droite." },
+      { tip: "views", title: "6. Changez la vue des résultats", body: "Liste montre vos 10 obligations. Graphique compare perte attendue et rendement. Graphique pluriannuel compare des horizons de 2 à 10 ans. Carte thermique colore la perte attendue selon rendement et durée.", late: true },
     ],
     single: [
       { tip: "horizon", title: "1. Choisissez la durée", body: "Combien d'années vous voulez rester investi." },
@@ -78,6 +84,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
     simple: [
       { tip: "horizon", title: "1. Laufzeit wählen", body: "Kurz-, mittel- oder langfristig." },
       { tip: "return", title: "2. Risiko und Rendite einstellen", body: "Ein Regler: geringeres Risiko links, höheres Renditepotenzial rechts." },
+      { tip: "views", title: "3. Ergebnisansicht wechseln", body: "Liste zeigt Ihre 10 Anleihen. Diagramm stellt erwarteten Verlust und Rendite gegenüber. Mehrjahres-Diagramm vergleicht Horizonte von 2 bis 10 Jahren. Heatmap färbt den erwarteten Verlust nach Rendite und Laufzeit.", late: true },
     ],
     steps: [
       { tip: "currency", title: "1. Währung wählen", body: "Anleihen in Euro oder US-Dollar." },
@@ -85,6 +92,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "horizon", title: "3. Anlagehorizont festlegen", body: "Wie viele Jahre Ihr Geld angelegt bleiben soll." },
       { tip: "return", title: "4. Gewünschte Rendite festlegen", body: "Die Rendite pro Jahr, die Sie suchen, vor Kosten und Steuern." },
       { tip: "risk", title: "5. Höchstes Risiko wählen", body: "1 ist am sichersten. Ihre Top 10 erscheint rechts." },
+      { tip: "views", title: "6. Ergebnisansicht wechseln", body: "Liste zeigt Ihre 10 Anleihen. Diagramm stellt erwarteten Verlust und Rendite gegenüber. Mehrjahres-Diagramm vergleicht Horizonte von 2 bis 10 Jahren. Heatmap färbt den erwarteten Verlust nach Rendite und Laufzeit.", late: true },
     ],
     single: [
       { tip: "horizon", title: "1. Laufzeit wählen", body: "Wie viele Jahre Sie investiert bleiben möchten." },
@@ -105,7 +113,7 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
   const all = page === "single" ? t.single : simple ? t.simple : t.steps;
   const steps = only ? all.filter((s) => only.includes(s.tip)) : all;
   const [i, setI] = useState<number | null>(null);
-  const [pos, setPos] = useState<{ left: number; top: number; side: "right" | "below" } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; side: "right" | "below"; arrow?: number } | null>(null);
 
   useEffect(() => {
     let seen = false;
@@ -137,6 +145,14 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
         if (step.optional) { if (i !== null && i < steps.length - 1) setI(i + 1); else finish(); return; }
         return setPos(null);
       }
+      if (step.late) {
+        // Under the tab switch, right-aligned so it stays on screen; the arrow points at the switch.
+        const z2 = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+        const b = el.getBoundingClientRect();
+        const vw2 = window.innerWidth / z2;
+        const left = Math.max(16, Math.min(b.right / z2 - WIDTH, vw2 - WIDTH - 16));
+        return setPos({ left, top: b.bottom / z2 + 10, side: "below", arrow: Math.max(16, Math.min(b.left / z2 + b.width / z2 / 2 - left - 6, WIDTH - 28)) });
+      }
       // The page is zoomed on wider screens (html zoom): rects come in screen pixels, styles in zoomed CSS pixels.
       const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
       const box = el.getBoundingClientRect();
@@ -149,9 +165,10 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
       else setPos({ left: Math.max(16, Math.min(r.left, vw - WIDTH - 16)), top: r.bottom + 10, side: "below" });
     };
     place();
+    const wait = step.late ? window.setInterval(place, 500) : 0;
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
-    return () => { window.removeEventListener("resize", place); window.removeEventListener("scroll", place, true); };
+    return () => { window.clearInterval(wait); window.removeEventListener("resize", place); window.removeEventListener("scroll", place, true); };
   }, [step, i, steps.length, finish]);
 
   useEffect(() => {
@@ -174,7 +191,7 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
       <span
         aria-hidden
         className="absolute h-3 w-3 rotate-45 bg-ink"
-        style={pos.side === "right" ? { left: -6, top: 34 } : { left: 22, top: -6 }}
+        style={pos.side === "right" ? { left: -6, top: 34 } : { left: pos.arrow ?? 22, top: -6 }}
       />
       <div className="text-[14px] font-semibold leading-snug">{step.title}</div>
       <p className="mt-1 text-[12.5px] leading-snug text-white/80">{step.body}</p>
