@@ -271,7 +271,7 @@ One record per country, year and scenario:  the core score; H; the final score o
 ### Operational workflow
 1. Freeze cutoff and source vintages. 2. Collect and reconcile debt, macro, institutions, resources, facilities and history. 3. Calculate the current snapshot. 4. Build the debt and macro path through at least 2050. 5. Calculate every annual component and history adjustment. 6. Run the stresses. 7. Apply all validation tests. 8. Export the evidence table, debt ledger, history ledger, assumption register and score table alongside the rating summary.
 
-Update after a new major macro release, debt-management plan, official programme decision, default event or material revision. Never replace old results silently: preserve version, date and a bridge explaining each change. A reproducible implementation must use these formulas directly; Monte Carlo is neither required nor appropriate for calculating this score.
+Update after a new major macro release, debt-management plan, official programme decision, default event or material revision. Never replace old results silently: preserve version, date and a bridge explaining each change. A reproducible implementation must use these formulas directly.
 
 ## 11. Official source register and application limits
 The links below identify official source families and methodology. They are starting points, not substitutes for the exact country observation link. Archive the table actually used. Source institutions do not endorse the rating weights, thresholds or deductions.

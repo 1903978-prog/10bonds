@@ -85,21 +85,16 @@ describe("expected loss formulas (methodology page)", () => {
   });
 });
 
-describe("Monte Carlo uses the same default table as every other figure", async () => {
-  const { mcBondOf } = await import("./tiers");
-  const { simulatePortfolio } = await import("./monteCarlo");
-  const mk = (issuer: string, rating: string) => ({ isin: issuer, name: issuer, issuer, country: null, currency: "EUR", coupon: 3, maturity: null, ratingSp: rating, ratingMoodys: null, ratingFitch: null, ratingResolved: null, grossYtm: 4, modifiedDuration: 5, ytmAsOf: null });
-  it("the chance of at least one default in the simulation matches the closed form 1 - prod(1 - PD) within sampling error", () => {
-    const bonds = ["AAA", "A", "BBB", "BB", "B+", "B", "BBB-", "A-", "BB+", "AA"].map((r, i) => mk(`Co ${i}`, r));
-    const input = bonds.map((b) => mcBondOf(b, 4));
-    const exact = listLossChance(input.map((x) => x.pd! * 100)) / 100;
-    const sim = simulatePortfolio(input, 4, 400_000, 7).defaults!.anyDefault;
-    expect(Math.abs(sim - exact)).toBeLessThan(0.004);
+describe("the closed-form list figures use the same default table as every other figure", () => {
+  it("a government is read from the government table, a company from the company table", () => {
+    expect(bondLossChance(8, 5, true)).toBeCloseTo(2.32, 8);
+    expect(bondLossChance(8, 5)).toBeCloseTo(cumulativeDefault(8, 5), 8);
   });
-  it("a government is simulated with the government table", () => {
-    const gov = mk("Republic of Italy", "BBB");
-    const co = mk("Some Company", "BBB");
-    expect(mcBondOf(gov, 5).pd! * 100).toBeCloseTo(2.32, 8);
-    expect(mcBondOf(co, 5).pd! * 100).toBeCloseTo(cumulativeDefault(8, 5), 8);
+  it("the chance of at least one default is 1 - prod(1 - PD), bounded by the largest chance and the sum", () => {
+    const pds = [0.1, 0.5, 1.2, 3, 4.1, 6, 2, 0.8, 5, 0.3];
+    const any = listLossChance(pds);
+    expect(any).toBeGreaterThanOrEqual(Math.max(...pds));
+    expect(any).toBeLessThanOrEqual(pds.reduce((s, x) => s + x, 0));
+    expect(any).toBeCloseTo(100 * (1 - pds.reduce((p, x) => p * (1 - x / 100), 1)), 10);
   });
 });

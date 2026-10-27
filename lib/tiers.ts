@@ -1,7 +1,7 @@
 import type { PublicBond, RankedBond, Tier } from "./types";
 import { averages, RESULT_COUNT, UNRATED_NOTCH } from "./ranking";
 import { averageRisk, bondNotch, bondRisk } from "./ratings";
-import { bondLossChance, listLifeLoss, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
+import { bondLossChance, listLifeLoss, listLossChance, lossAdjustedYield, LOSS_GIVEN_DEFAULT } from "./expectedLoss";
 import { lgdOf, rankOf, RANK_LABEL, type Rank } from "./seniority";
 import { lifeYears } from "./lifeYears";
 import { sectorOf } from "./sectors";
@@ -64,14 +64,11 @@ export type ResultsPayload = {
   tier: Tier;
   rows: ResultRow[];
   lockedCount: number;
-  summary: { count: number; avgYtm: number | null; avgDuration: number | null; avgRisk: number | null; lifeLoss: number | null } | null;
+  summary: { count: number; avgYtm: number | null; avgDuration: number | null; avgRisk: number | null; lifeLoss: number | null; /** Chance in % that at least one issuer defaults before its bond matures (closed form). */ anyDefault?: number | null } | null;
 };
 
 /** Chance in % the bond defaults before it matures, rounded to 0.001. */
 export const pdOf = (b: PublicBond) => Math.round(bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, lifeYears(b), isSovereignBond(b)) * 1000) / 1000;
-
-/** One bond of a list as the Monte Carlo takes it: its default chance within the horizon comes from the same function as the expected loss (bond's own rating notch, government table for governments). */
-export const mcBondOf = (b: PublicBond, years: number) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b), pd: bondLossChance(bondNotch(b) ?? UNRATED_NOTCH, years, isSovereignBond(b)) / 100 });
 
 /** The chance in % scaled so that chance x the flat 60% equals chance x this bond's loss given default: what the optimisers minimise. */
 export const lossPdOf = (b: PublicBond) => (pdOf(b) * lgdOf(b)) / LOSS_GIVEN_DEFAULT;
@@ -122,6 +119,7 @@ export function shapeForTier(ranked: RankedBond[], tier: Tier, features: Feature
           avgDuration: avg.duration,
           avgRisk: averageRisk(ranked.map(bondRisk)),
           lifeLoss: ranked.length ? listLifeLoss(ranked.map(pdOf), ranked.map(lgdOf)) : null,
+          anyDefault: ranked.length ? listLossChance(ranked.map(pdOf)) : null,
         }
       : null,
   };

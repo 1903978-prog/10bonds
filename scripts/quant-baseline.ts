@@ -25,7 +25,6 @@ import { TERMS, LIMITS } from "@/lib/limits";
 import { bondNotch, bondRisk, spGradeOf } from "@/lib/ratings";
 import { lgdOf } from "@/lib/seniority";
 import { lossPdOf, pdOf } from "@/lib/tiers";
-import { MC_PATHS } from "@/lib/monteCarlo";
 import { lifeYears } from "@/lib/lifeYears";
 
 const out = process.env.QUANT_OUT ?? "quant-out";
@@ -58,7 +57,6 @@ const manifest = {
     issuerGroupsVersion: GROUP_TABLE_VERSION, sectorTaxonomyVersion: SECTOR_TAXONOMY_VERSION,
     ratingMap: "worst of S&P/Moody's/Fitch by lib/ratings.ts, notch AAA=0, risk class 1..10",
   },
-  simulation: { paths: MC_PATHS, seed: 1, correlated: false },
   objective: "minimise sum of lossPdOf = PD(cumulative to maturity) x LGD(rank) / 0.6 over the ten bonds; reported expected loss = mean(PD x LGD) (equal weights, undiscounted)",
 };
 

@@ -15,4 +15,4 @@ Tests live in `lib/audit*.test.ts` (fixture data, no database needed).
 
 ## Not changed, for Livio's information
 - Bonds with no maturity in the data pass the database filter and are treated as perpetual only if the seniority field or the name says so. Not changed because it may hide many normal bonds; needs a live count first.
-- Monte Carlo runs 1,000,000 paths (about 0.1 s). 100,000 gives the same figures within about 0.2 points on the default share; not switched, the stability thread decides.
+- Monte Carlo was removed on 27/10/2026 (owner decision): only the closed-form figures remain, so the notes above on its table are historical.

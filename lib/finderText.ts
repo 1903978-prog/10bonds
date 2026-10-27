@@ -6,9 +6,9 @@ import type { RiskWhy } from "./tiers";
 export type FinderLang = "en" | "it" | "fr" | "de";
 
 const en = {
-  frontierTitle: "We find the efficient frontier for your investments", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("en-GB")} ${c} bonds, one grey dot each (all durations)`, frontierBlue: (a: number, b: number) => `${a}–${b} year bonds`, frontierLine: "Efficient frontier of the blue bonds, risk 1 to 8", frontierHow: "Your top 10 is chosen with Pareto rules and a Monte Carlo simulation.", frontierStart: "Choose a horizon, then press the button to see your bonds.",
+  frontierTitle: "We find the efficient frontier for your investments", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("en-GB")} ${c} bonds, one grey dot each (all durations)`, frontierBlue: (a: number, b: number) => `${a}–${b} year bonds`, frontierLine: "Efficient frontier of the blue bonds, risk 1 to 8", frontierHow: "Your top 10 is chosen with Pareto rules.", frontierStart: "Choose a horizon, then press the button to see your bonds.",
   h1: "Find bonds that match your goals",
-  intro: "Choose short, medium or long term and set risk versus return on one slider. The result is a portfolio of 10 bonds, modeled with Monte Carlo analysis.",
+  intro: "Choose short, medium or long term and set risk versus return on one slider. The result is a portfolio of 10 bonds.",
   etfSide: "Illustrative ETF benchmark", ourSide: "10bonds", etfRisk: "risk", etfVs: "vs", etfTip: (d: string, r: string) => `Illustrative EUR corporate bond ETF benchmark, gross, as of ${d}: provisional, not an average across ETFs; risk ${r} is estimated. 10bonds: the 10 bonds above. Illustrative comparison of different instruments (a fund versus single bonds): gross, not guaranteed, modeled risk. The bonds carry no fund management fee; broker costs apply.`,
   mode: "Mode", single: "1 bond", portfolio: "Portfolio",
   termShort: "Short", termMid: "Medium", termLong: "Long", termYears: (a: number, b: number) => `${a}–${b} years`, findPortfolio: "Pareto efficient portfolio", moreFilters: "More filters", mood: { conservative: "Conservative", balanced: "Balanced", higher: "Higher return potential" }, mixLabel: "Return & risk", lowReturn: "Low return", highReturn: "High return", horizon: "Investment horizon", horizonHint: "Target duration", years: "years", year1: "1 year", years30: "30+ years",
@@ -20,10 +20,7 @@ const en = {
   stale: (days: number) => `These returns are ${days} days old and may be out of date. Check current prices with your broker.`,
   sample: "Sample data. These bonds and returns are made up and are shown only to preview the design.",
   scanning: (i: string, n: string) => `Scanning bond ${i} of ${n}`,
-  scanTitle: (cur: string) => `Scanning ${cur} bonds`, scanBox: (cur: string) => `${cur} bonds searched`, scanOf: "of", scanSimsLabel: "Monte Carlo simulations", scanDone: "Top 10 found", scanCaption: "Each line is one simulated scenario; drops are defaults",
-  scanSims: (i: string, n: string) => `Monte Carlo simulations ${i} of ${n}`,
-  mc: (n: string, e: string, p: string) => `${n} Monte Carlo simulations of defaults: return after defaults ${e}, 95% of scenarios above ${p}. A simulation, not a forecast.`,
-  mcRun: (n: string) => `${n} Monte Carlo simulations of defaults run on this list. A simulation, not a forecast.`,
+  scanTitle: (cur: string) => `Scanning ${cur} bonds`, scanBox: (cur: string) => `${cur} bonds searched`, scanOf: "of", scanDone: "Top 10 found",
   found: "bonds found", retYear: "Return (per year)", avgYield: "average return", avgDuration: "average duration",
   noOptimised: "No Pareto efficient portfolio available for this position. Move the slider or choose another term.",
   none: "No bonds match this horizon and risk. Try a different duration or accept a higher risk.",
@@ -50,9 +47,9 @@ const en = {
 export type FinderText = typeof en;
 
 const it: FinderText = {
-  frontierTitle: "Troviamo la frontiera efficiente per i tuoi investimenti", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("it-IT")} obbligazioni in ${c}, un punto grigio ciascuna (tutte le duration)`, frontierBlue: (a: number, b: number) => `Obbligazioni a ${a}–${b} anni`, frontierLine: "Frontiera efficiente dei punti blu, rischio da 1 a 8", frontierHow: "La tua top 10 è scelta con regole di Pareto e una simulazione Monte Carlo.", frontierStart: "Scegli un orizzonte, poi premi il pulsante per vedere le tue obbligazioni.",
+  frontierTitle: "Troviamo la frontiera efficiente per i tuoi investimenti", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("it-IT")} obbligazioni in ${c}, un punto grigio ciascuna (tutte le duration)`, frontierBlue: (a: number, b: number) => `Obbligazioni a ${a}–${b} anni`, frontierLine: "Frontiera efficiente dei punti blu, rischio da 1 a 8", frontierHow: "La tua top 10 è scelta con regole di Pareto.", frontierStart: "Scegli un orizzonte, poi premi il pulsante per vedere le tue obbligazioni.",
   h1: "Trova le obbligazioni in linea con i tuoi criteri",
-  intro: "Scegli breve, medio o lungo termine e imposta rischio e rendimento con un solo cursore. Il risultato è un portafoglio di 10 obbligazioni, modellato con analisi Monte Carlo.",
+  intro: "Scegli breve, medio o lungo termine e imposta rischio e rendimento con un solo cursore. Il risultato è un portafoglio di 10 obbligazioni.",
   etfSide: "Benchmark ETF illustrativo", ourSide: "10bonds", etfRisk: "rischio", etfVs: "vs", etfTip: (d: string, r: string) => `Benchmark illustrativo di ETF su obbligazioni societarie EUR, lordo, al ${d}: provvisorio, non una media tra ETF; rischio ${r} stimato. 10bonds: le 10 obbligazioni sotto. Confronto illustrativo tra strumenti diversi (un fondo e singole obbligazioni): lordo, non garantito, rischio modellato. Le obbligazioni non hanno commissioni di gestione di un fondo; si applicano i costi del broker.`,
   mode: "Modalità", single: "1 obbligazione", portfolio: "Portafoglio",
   termShort: "Breve", termMid: "Medio", termLong: "Lungo", termYears: (a: number, b: number) => `${a}–${b} anni`, findPortfolio: "Portafoglio efficiente di Pareto", moreFilters: "Altri filtri", mood: { conservative: "Prudente", balanced: "Bilanciato", higher: "Rendimento potenziale più alto" }, mixLabel: "Rendimento e rischio", lowReturn: "Rendimento basso", highReturn: "Rendimento alto", horizon: "Orizzonte di investimento", horizonHint: "Duration obiettivo", years: "anni", year1: "1 anno", years30: "30+ anni",
@@ -64,10 +61,7 @@ const it: FinderText = {
   stale: (days: number) => `Questi rendimenti risalgono a ${days} giorni fa e potrebbero non essere aggiornati. Verifica i prezzi attuali con il tuo broker.`,
   sample: "Dati di esempio. Queste obbligazioni e questi rendimenti sono inventati e servono solo a mostrare la grafica.",
   scanning: (i: string, n: string) => `Analisi obbligazione ${i} di ${n}`,
-  scanTitle: (cur: string) => `Analisi obbligazioni in ${cur}`, scanBox: (cur: string) => `obbligazioni in ${cur} analizzate`, scanOf: "di", scanSimsLabel: "Simulazioni Monte Carlo", scanDone: "Top 10 trovate", scanCaption: "Ogni linea è uno scenario simulato; i cali sono default",
-  scanSims: (i: string, n: string) => `Simulazioni Monte Carlo ${i} di ${n}`,
-  mc: (n: string, e: string, p: string) => `${n} simulazioni Monte Carlo dei default: rendimento dopo i default ${e}, nel 95% degli scenari sopra ${p}. Simulazione, non una previsione.`,
-  mcRun: (n: string) => `${n} simulazioni Monte Carlo dei default eseguite su questa lista. Simulazione, non una previsione.`,
+  scanTitle: (cur: string) => `Analisi obbligazioni in ${cur}`, scanBox: (cur: string) => `obbligazioni in ${cur} analizzate`, scanOf: "di", scanDone: "Top 10 trovate",
   found: "obbligazioni trovate", retYear: "Rendimento (annuo)", avgYield: "rendimento medio", avgDuration: "duration media",
   noOptimised: "Nessun portafoglio efficiente di Pareto disponibile per questa posizione. Sposta il cursore o scegli un'altra durata.",
   none: "Nessuna obbligazione per questo orizzonte e rischio. Prova un'altra duration o accetta un rischio più alto.",
@@ -93,9 +87,9 @@ const it: FinderText = {
 };
 
 const fr: FinderText = {
-  frontierTitle: "Nous trouvons la frontière efficiente pour vos investissements", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("fr-FR")} obligations en ${c}, un point gris chacune (toutes durations)`, frontierBlue: (a: number, b: number) => `Obligations à ${a}–${b} ans`, frontierLine: "Frontière efficiente des points bleus, risque de 1 à 8", frontierHow: "Votre top 10 est choisi avec des règles de Pareto et une simulation de Monte-Carlo.", frontierStart: "Choisissez un horizon, puis appuyez sur le bouton pour voir vos obligations.",
+  frontierTitle: "Nous trouvons la frontière efficiente pour vos investissements", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("fr-FR")} obligations en ${c}, un point gris chacune (toutes durations)`, frontierBlue: (a: number, b: number) => `Obligations à ${a}–${b} ans`, frontierLine: "Frontière efficiente des points bleus, risque de 1 à 8", frontierHow: "Votre top 10 est choisi avec des règles de Pareto.", frontierStart: "Choisissez un horizon, puis appuyez sur le bouton pour voir vos obligations.",
   h1: "Trouvez les obligations qui correspondent à vos critères",
-  intro: "Choisissez court, moyen ou long terme et réglez risque et rendement avec un seul curseur. Le résultat est un portefeuille de 10 obligations, modélisé par analyse Monte Carlo.",
+  intro: "Choisissez court, moyen ou long terme et réglez risque et rendement avec un seul curseur. Le résultat est un portefeuille de 10 obligations.",
   etfSide: "Référence ETF illustrative", ourSide: "10bonds", etfRisk: "risque", etfVs: "vs", etfTip: (d: string, r: string) => `Référence illustrative d'ETF d'obligations d'entreprise EUR, brute, au ${d} : provisoire, pas une moyenne des ETF ; risque ${r} estimé. 10bonds : les 10 obligations ci-dessous. Comparaison illustrative d'instruments différents (un fonds et des obligations individuelles) : brut, non garanti, risque modélisé. Les obligations n'ont pas de frais de gestion de fonds ; les frais du courtier s'appliquent.`,
   mode: "Mode", single: "1 obligation", portfolio: "Portefeuille",
   termShort: "Court", termMid: "Moyen", termLong: "Long", termYears: (a: number, b: number) => `${a}–${b} ans`, findPortfolio: "Portefeuille efficient de Pareto", moreFilters: "Plus de filtres", mood: { conservative: "Prudent", balanced: "Équilibré", higher: "Rendement potentiel plus élevé" }, mixLabel: "Rendement et risque", lowReturn: "Rendement faible", highReturn: "Rendement élevé", horizon: "Horizon de placement", horizonHint: "Duration cible", years: "ans", year1: "1 an", years30: "30+ ans",
@@ -107,10 +101,7 @@ const fr: FinderText = {
   stale: (days: number) => `Ces rendements datent de ${days} jours et peuvent ne plus être à jour. Vérifiez les prix actuels auprès de votre courtier.`,
   sample: "Données d'exemple. Ces obligations et rendements sont fictifs et servent uniquement à montrer la présentation.",
   scanning: (i: string, n: string) => `Analyse de l'obligation ${i} sur ${n}`,
-  scanTitle: (cur: string) => `Analyse des obligations en ${cur}`, scanBox: (cur: string) => `obligations en ${cur} analysées`, scanOf: "sur", scanSimsLabel: "Simulations Monte-Carlo", scanDone: "Top 10 trouvées", scanCaption: "Chaque ligne est un scénario simulé ; les chutes sont des défauts",
-  scanSims: (i: string, n: string) => `Simulations Monte-Carlo ${i} sur ${n}`,
-  mc: (n: string, e: string, p: string) => `${n} simulations Monte-Carlo des défauts : rendement après défauts ${e}, supérieur à ${p} dans 95 % des scénarios. Simulation, pas une prévision.`,
-  mcRun: (n: string) => `${n} simulations Monte-Carlo des défauts effectuées sur cette liste. Simulation, pas une prévision.`,
+  scanTitle: (cur: string) => `Analyse des obligations en ${cur}`, scanBox: (cur: string) => `obligations en ${cur} analysées`, scanOf: "sur", scanDone: "Top 10 trouvées",
   found: "obligations trouvées", retYear: "Rendement (par an)", avgYield: "rendement moyen", avgDuration: "duration moyenne",
   noOptimised: "Aucun portefeuille efficient de Pareto disponible pour cette position. Déplacez le curseur ou choisissez une autre durée.",
   none: "Aucune obligation pour cet horizon et ce risque. Essayez une autre duration ou un risque plus élevé.",
@@ -136,9 +127,9 @@ const fr: FinderText = {
 };
 
 const de: FinderText = {
-  frontierTitle: "Wir finden die Effizienzkurve für Ihre Anlagen", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("de-DE")} ${c}-Anleihen, je ein grauer Punkt (alle Laufzeiten)`, frontierBlue: (a: number, b: number) => `Anleihen mit ${a}–${b} Jahren`, frontierLine: "Effizienzkurve der blauen Punkte, Risiko 1 bis 8", frontierHow: "Ihre Top 10 wird mit Pareto-Regeln und einer Monte-Carlo-Simulation ausgewählt.", frontierStart: "Wählen Sie einen Horizont und drücken Sie dann die Schaltfläche, um Ihre Anleihen zu sehen.",
+  frontierTitle: "Wir finden die Effizienzkurve für Ihre Anlagen", frontierDots: (n: number | null, c: string) => `${n === null ? "–" : n.toLocaleString("de-DE")} ${c}-Anleihen, je ein grauer Punkt (alle Laufzeiten)`, frontierBlue: (a: number, b: number) => `Anleihen mit ${a}–${b} Jahren`, frontierLine: "Effizienzkurve der blauen Punkte, Risiko 1 bis 8", frontierHow: "Ihre Top 10 wird mit Pareto-Regeln ausgewählt.", frontierStart: "Wählen Sie einen Horizont und drücken Sie dann die Schaltfläche, um Ihre Anleihen zu sehen.",
   h1: "Finden Sie Anleihen, die zu Ihren Kriterien passen",
-  intro: "Wählen Sie kurz-, mittel- oder langfristig und stellen Sie Risiko und Rendite mit einem Regler ein. Das Ergebnis ist ein Portfolio aus 10 Anleihen, modelliert mit Monte-Carlo-Analyse.",
+  intro: "Wählen Sie kurz-, mittel- oder langfristig und stellen Sie Risiko und Rendite mit einem Regler ein. Das Ergebnis ist ein Portfolio aus 10 Anleihen.",
   etfSide: "Illustrativer ETF-Benchmark", ourSide: "10bonds", etfRisk: "Risiko", etfVs: "vs", etfTip: (d: string, r: string) => `Illustrativer ETF-Benchmark für EUR-Unternehmensanleihen, brutto, Stand ${d}: vorläufig, kein Durchschnitt über ETFs; Risiko ${r} geschätzt. 10bonds: die 10 Anleihen unten. Illustrativer Vergleich verschiedener Instrumente (ein Fonds gegenüber Einzelanleihen): brutto, nicht garantiert, modelliertes Risiko. Die Anleihen haben keine Fondsverwaltungsgebühr; Brokerkosten fallen an.`,
   mode: "Modus", single: "1 Anleihe", portfolio: "Portfolio",
   termShort: "Kurz", termMid: "Mittel", termLong: "Lang", termYears: (a: number, b: number) => `${a}–${b} Jahre`, findPortfolio: "Pareto-effizientes Portfolio", moreFilters: "Weitere Filter", mood: { conservative: "Konservativ", balanced: "Ausgewogen", higher: "Höheres Renditepotenzial" }, mixLabel: "Rendite und Risiko", lowReturn: "Niedrige Rendite", highReturn: "Hohe Rendite", horizon: "Anlagehorizont", horizonHint: "Ziel-Duration", years: "Jahre", year1: "1 Jahr", years30: "30+ Jahre",
@@ -150,10 +141,7 @@ const de: FinderText = {
   stale: (days: number) => `Diese Renditen sind ${days} Tage alt und möglicherweise nicht mehr aktuell. Prüfen Sie die aktuellen Kurse bei Ihrem Broker.`,
   sample: "Beispieldaten. Diese Anleihen und Renditen sind erfunden und zeigen nur das Design.",
   scanning: (i: string, n: string) => `Prüfe Anleihe ${i} von ${n}`,
-  scanTitle: (cur: string) => `Prüfe ${cur}-Anleihen`, scanBox: (cur: string) => `${cur}-Anleihen geprüft`, scanOf: "von", scanSimsLabel: "Monte-Carlo-Simulationen", scanDone: "Top 10 gefunden", scanCaption: "Jede Linie ist ein simuliertes Szenario; Einbrüche sind Ausfälle",
-  scanSims: (i: string, n: string) => `Monte-Carlo-Simulationen ${i} von ${n}`,
-  mc: (n: string, e: string, p: string) => `${n} Monte-Carlo-Simulationen von Ausfällen: Rendite nach Ausfällen ${e}, in 95 % der Szenarien über ${p}. Simulation, keine Prognose.`,
-  mcRun: (n: string) => `${n} Monte-Carlo-Simulationen von Ausfällen für diese Liste. Simulation, keine Prognose.`,
+  scanTitle: (cur: string) => `Prüfe ${cur}-Anleihen`, scanBox: (cur: string) => `${cur}-Anleihen geprüft`, scanOf: "von", scanDone: "Top 10 gefunden",
   found: "Anleihen gefunden", retYear: "Rendite (pro Jahr)", avgYield: "Durchschnittsrendite", avgDuration: "durchschnittliche Duration",
   noOptimised: "Kein Pareto-effizientes Portfolio für diese Position verfügbar. Verschieben Sie den Regler oder wählen Sie eine andere Laufzeit.",
   none: "Keine Anleihe passt zu diesem Horizont und Risiko. Wählen Sie eine andere Duration oder ein höheres Risiko.",

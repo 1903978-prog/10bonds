@@ -10,8 +10,6 @@ import { GROUP_TABLE_VERSION } from "./issuerGroups";
 import { SECTOR_TAXONOMY_VERSION } from "./sectors";
 import { SOLVER_OPTIONS, MIP_ABS_GAP } from "./highsSolver";
 import { LIMITS } from "./limits";
-import { MC_PATHS } from "./monteCarlo";
-import type { MonteCarloResult } from "./monteCarlo";
 
 const sha = (x: unknown) => crypto.createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 16);
 // The data hash covers every bond once; it is remembered per loaded bond list (same list object = same data), so a request does not rehash 10,000+ bonds.
@@ -34,10 +32,7 @@ export function buildManifest(args: {
   isins: string[];
   outputs: { ytm: number | null; duration: number | null; expectedLossPct: number | null };
   cert?: Certificate;
-  mc?: MonteCarloResult;
-  mcSeed?: number;
   spreadDiagnostics?: Record<string, unknown>;
-  revalidation?: { paths: number; seed: number; expYield: number | null; p5: number | null; diffExpYield: number | null; diffP5: number | null };
 }) {
   const e = activeEngine();
   return {
@@ -50,9 +45,7 @@ export function buildManifest(args: {
     tables: { defaultRatesHash: sha(DEFAULT_RATES), defaultYears: DEFAULT_YEARS, lgdByRank: LGD_BY_RANK, issuerGroupsVersion: GROUP_TABLE_VERSION, sectorTaxonomyVersion: SECTOR_TAXONOMY_VERSION },
     models: { defaultModel: "historical table, linear cumulative (v1)", recovery: "debt-rank LGD (not bond-specific)", dependence: "independent issuers (none)", tailRisk: "CVaR off", lossModel: e.loss },
     solver: { name: "HiGHS", options: SOLVER_OPTIONS, absGapTolerance: MIP_ABS_GAP, status: args.status ?? null, certificate: args.cert ?? null },
-    simulation: { paths: args.mc?.paths ?? MC_PATHS, seed: args.mcSeed ?? 1, correlated: false, defaults: args.mc?.defaults ?? null },
     spreadDiagnostics: args.spreadDiagnostics ?? null,
-    revalidation: args.revalidation ?? null,
     portfolio: { isins: args.isins, outputs: args.outputs },
   };
 }
