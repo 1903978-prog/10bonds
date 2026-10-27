@@ -250,13 +250,22 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     if (!TERMS.some((x) => x.duration === duration)) { setPositions(null); return; }
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    setPositions(null);
+    // The last positions seen in this browser fill the chart dots and tiles at once; fresh ones replace them.
+    const ck = `slider-pos:${duration}:${currency}:${size}:${method ?? ""}`;
+    let cached: SliderPosition[] | null = null;
+    try { const c = localStorage.getItem(ck); if (c) cached = JSON.parse(c); } catch {}
+    setPositions(cached?.length ? cached : null);
     const load = (tries: number) =>
       fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
           if ((r.status === 202 || !r.ok) && tries < 60) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
-          else if (r.ok) setPositions((await r.json()).positions);
+          else if (r.ok) {
+            const ps = (await r.json()).positions;
+            if (stop) return;
+            setPositions(ps);
+            try { localStorage.setItem(ck, JSON.stringify(ps)); } catch {}
+          }
         })
         .catch(() => { if (!stop && tries < 60) timer = setTimeout(() => load(tries + 1), 3000); });
     load(0);

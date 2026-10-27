@@ -63,3 +63,34 @@ export async function saveFrontier(key: string, f: CoherentFrontier): Promise<vo
     console.error("[frontier-store] save failed:", (e as Error).message);
   }
 }
+
+/** Finished slider positions (the preloaded dots and tile figures), saved so a restart or release serves them at once. Newest for the same filter and horizon is returned when the data moved a little. */
+export async function loadSavedSlider<T>(key: string): Promise<T | null> {
+  if (!accountsConfigured()) return null;
+  try {
+    const s = await sql();
+    const k = `slider:${key}|slider`;
+    const exact = await s`select data from app.frontier_cache where key = ${k}`;
+    if (exact[0]) return exact[0].data as T;
+    const rest = k.slice(k.indexOf("|"));
+    const near = await s`select data from app.frontier_cache where key like ${"slider:%" + esc(rest)} order by created_at desc limit 1`;
+    return near[0] ? (near[0].data as T) : null;
+  } catch (e) {
+    console.error("[frontier-store] slider load failed:", (e as Error).message);
+    return null;
+  }
+}
+
+export async function saveSlider(key: string, data: unknown): Promise<void> {
+  if (!accountsConfigured()) return;
+  try {
+    const s = await sql();
+    const k = `slider:${key}|slider`;
+    const rest = k.slice(k.indexOf("|"));
+    await s`delete from app.frontier_cache where key like ${"slider:%" + esc(rest)} and key <> ${k}`;
+    await s`insert into app.frontier_cache (key, data) values (${k}, ${s.json(data as never)})
+            on conflict (key) do update set data = excluded.data, created_at = now()`;
+  } catch (e) {
+    console.error("[frontier-store] slider save failed:", (e as Error).message);
+  }
+}

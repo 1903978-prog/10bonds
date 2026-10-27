@@ -5,6 +5,7 @@ import type { Certificate } from "./coherentFrontier";
 import { buildSlider, type SliderPosition } from "./sliderPortfolios";
 import { belowHurdle } from "./exactFrontier";
 import { stepGap } from "./stepGap";
+import { loadSavedSlider, saveSlider } from "./frontierStore";
 
 // The slider positions (up to 30 points on the exact frontier) per horizon and bond filter, worked out in the background
 // once per data copy (outlier rule included), then served from memory. A customer never waits for them: until they are
@@ -22,6 +23,8 @@ export async function sliderFor(f: BondFilter, duration: number, m: FrontierMeth
   const key = [SLIDER_METHOD, frontierKey(src, f, duration, m)].join("|");
   const hit = ready.get(key);
   if (hit) return { positions: hit, key, cert: certs.get(key) };
+  // Saved copy (this data or the newest for the same filter and horizon): answered at once; the exact one rebuilds behind it.
+  const saved = wait ? null : await loadSavedSlider<SliderPosition[]>(key);
   if (!building.has(key)) {
     const p = (async () => {
       // Started on the next turn, so the request that asked is answered first.
@@ -32,6 +35,7 @@ export async function sliderFor(f: BondFilter, duration: number, m: FrontierMeth
       const positions = built.map((p, i) => ({ ...p, belowHurdle: miss[i] }));
       if (ready.size > 24) ready.clear();
       ready.set(key, positions);
+      void saveSlider(key, positions);
       if ("cert" in frontier) certs.set(key, frontier.cert as Certificate);
       return positions;
     })().finally(() => building.delete(key));
@@ -44,5 +48,6 @@ export async function sliderFor(f: BondFilter, duration: number, m: FrontierMeth
     const done = await building.get(key)?.catch(() => null);
     if (done) return { positions: done, key, cert: certs.get(key) };
   }
+  if (saved?.length) return { positions: saved, key };
   return { positions: null, key };
 }
