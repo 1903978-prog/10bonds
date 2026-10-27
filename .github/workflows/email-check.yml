@@ -22,6 +22,9 @@ jobs:
     steps:
       - name: DNS as the world sees it
         run: |
+          echo "ROOT MX  $DOMAIN -> $(dig +short MX $DOMAIN @1.1.1.1 | tr '\n' ' ')"
+          echo "ROOT TXT $DOMAIN -> $(dig +short TXT $DOMAIN @1.1.1.1 | tr '\n' ' ' | cut -c1-300)"
+          echo "NS $DOMAIN -> $(dig +short NS $DOMAIN @1.1.1.1 | tr '\n' ' ')"
           for r in "TXT resend._domainkey" "MX send" "TXT send" "CNAME send" "CNAME rsend" "TXT _dmarc"; do
             set -- $r
             printf '%-6s %-22s -> %s\n' "$1" "$2.$DOMAIN" "$(dig +short "$1" "$2.$DOMAIN" @1.1.1.1 | tr '\n' ' ' | cut -c1-120)"
