@@ -5,6 +5,7 @@ import { COUNTRIES, type Country } from "@/lib/brokers/types";
 import { countryView } from "@/lib/brokers/view";
 import { CALCULATORS } from "@/lib/seo/calculators";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
+import { enBondsPath, enComparisons, enText } from "@/lib/seo/comparisonsEn";
 import { CALCULATOR_EN, enPath } from "@/lib/seo/knowledgeEn";
 import { curvePath } from "@/lib/seo/yieldCurves";
 import { insightsPath } from "@/lib/seo/insights";
@@ -32,6 +33,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const l of LOCALES) out.push({ url: SITE_URL + curvePath(l), changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => curvePath(x)), en: SITE_URL + curvePath("en") } } });
   for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + insightsPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => insightsPath(x)), en: SITE_URL + insightsPath("en") } } });
   for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + bondMapPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => bondMapPath(x)), en: SITE_URL + bondMapPath("en") } } });
+  // English bond comparison pages (US and UK readers): the hub, and every page with enough bonds behind it.
+  out.push({ url: SITE_URL + enBondsPath(), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.7 });
+  for (const d of enComparisons()) {
+    const c = pages.find((p) => p.def.id === d.id);
+    if (c && indexable(c, source)) out.push({ url: SITE_URL + enBondsPath(enText(d).slug), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8 });
+  }
   for (const g of EN_GUIDES) out.push({ url: SITE_URL + enPath(g.slug), changeFrequency: "monthly", priority: 0.7 });
   for (const l of LOCALES) {
     out.push({ url: `${SITE_URL}/${l}`, changeFrequency: "daily", priority: 1, alternates: { languages: { en: SITE_URL + "/", ...langs((x) => `/${x}`), "x-default": SITE_URL + "/" } } });

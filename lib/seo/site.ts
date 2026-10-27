@@ -54,6 +54,6 @@ export function guideAlternates(g: Guide, siblings: Guide[]): Metadata["alternat
   return Object.keys(languages).length ? { canonical, languages } : { canonical };
 }
 
-const DATE_LOCALE: Record<Locale, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE" };
-export const fmtDate = (l: Locale, iso: string) => new Date(iso).toLocaleDateString(DATE_LOCALE[l], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome" });
-export const fmtNum = (l: Locale, n: number, d = 2) => n.toLocaleString(DATE_LOCALE[l], { minimumFractionDigits: d, maximumFractionDigits: d });
+const DATE_LOCALE: Record<Locale | "en", string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
+export const fmtDate = (l: Locale | "en", iso: string) => new Date(iso).toLocaleDateString(DATE_LOCALE[l], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome" });
+export const fmtNum = (l: Locale | "en", n: number, d = 2) => n.toLocaleString(DATE_LOCALE[l], { minimumFractionDigits: d, maximumFractionDigits: d });

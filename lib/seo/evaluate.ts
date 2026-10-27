@@ -2,6 +2,7 @@ import type { CrawlResult, CrawledPage } from "./crawl";
 import type { PsiResult } from "./google";
 import { similarity } from "./page";
 import { comparisonBySlug } from "./comparisons";
+import { comparisonEnBySlug } from "./comparisonsEn";
 import type { SeoMarket } from "./input";
 import { isLocale, LOCALE } from "./locales";
 import { DIMENSIONS, problems, share, tier, type CriterionResult, type DimensionId, type Points } from "./rubric";
@@ -61,12 +62,12 @@ export function evaluate(f: Facts): CriterionResult[] {
   const ok = (p: CrawledPage) => p.status === 200;
   const indexable = c ? c.pages.filter((p) => ok(p) && !p.noindex) : [];
   const guideBase = seg ? `${home}/${seg.guides}/` : `${home}/`;
-  // No English comparison pages exist yet, so the comparison checks find none for the US and UK.
-  const compBase = seg ? `${home}/${seg.bonds}/` : null;
+  // The US and UK read the English comparison pages at /knowledge/bonds.
+  const compBase = seg ? `${home}/${seg.bonds}/` : "/knowledge/bonds/";
   const published = f.guides;
   const enSlugs = new Set(published.map((g) => g.slug));
   const guidePages = c ? c.pages.filter((p) => p.path.startsWith(guideBase) && !p.path.slice(guideBase.length).includes("/") && ok(p) && (eu || enSlugs.has(p.path.slice(guideBase.length)))) : [];
-  const compPages = c && eu && compBase ? c.pages.filter((p) => p.path.startsWith(compBase) && !!comparisonBySlug(eu, p.path.slice(compBase.length)) && ok(p) && !p.noindex) : [];
+  const compPages = c ? c.pages.filter((p) => p.path.startsWith(compBase) && !p.path.slice(compBase.length).includes("/") && !!(eu ? comparisonBySlug(eu, p.path.slice(compBase.length)) : comparisonEnBySlug(p.path.slice(compBase.length))) && ok(p) && !p.noindex) : [];
   const pageOf = (slug: string) => guidePages.find((p) => p.path === guideBase + slug);
   const isCompLink = (l: string) => !!compBase && l.startsWith(compBase);
   const methodPath = seg ? `${home}/${seg.method}` : "/methodology";
@@ -258,20 +259,15 @@ export function evaluate(f: Facts): CriterionResult[] {
       hubs: () => {
         if (!c) return noCrawl;
         const gPath = seg ? `${home}/${seg.guides}` : home;
-        const oPath = seg ? `${home}/${seg.bonds}` : null;
+        const oPath = seg ? `${home}/${seg.bonds}` : "/knowledge/bonds";
         const g = c.pages.find((p) => p.path === gPath && ok(p));
-        const o = oPath ? c.pages.find((p) => p.path === oPath && ok(p)) : undefined;
+        const o = c.pages.find((p) => p.path === oPath && ok(p));
         const hp = c.pages.find((p) => p.path === home);
-        if (!oPath) {
-          // English: the Knowledge Center is the guides hub; there is no English comparison hub yet.
-          if (!g) return { points: 0, evidence: `The English hub ${gPath} is missing.` };
-          const missG = published.map((x) => guideBase + x.slug).filter((p) => !g.linksOut.includes(p));
-          return { points: 1, evidence: `${gPath} is live${missG.length ? `; not linked from it: ${list(missG)}` : " and links every English guide"}. No English comparison hub yet.` };
-        }
         if (!g || !o) return { points: 0, evidence: `Hub pages: ${gPath} ${g ? "live" : "missing"}, ${oPath} ${o ? "live" : "missing"}.` };
         const missG = published.map((x) => guideBase + x.slug).filter((p) => !g.linksOut.includes(p));
         const missO = compPages.map((p) => p.path).filter((p) => !o.linksOut.includes(p));
-        const homeOk = !!hp && hp.linksOut.includes(gPath) && hp.linksOut.includes(oPath);
+        // English: the Knowledge Center is the guides hub and the home, so it only has to link the comparison hub.
+        const homeOk = !!hp && (seg ? hp.linksOut.includes(gPath) : true) && hp.linksOut.includes(oPath);
         const all = !missG.length && !missO.length && homeOk;
         return { points: all ? 2 : 1, evidence: all ? "Both hubs are live, link all their pages, and the home page links both hubs." : `Hubs live. Not linked from their hub: ${list([...missG, ...missO])}. Home links both hubs: ${homeOk ? "yes" : "no"}.` };
       },

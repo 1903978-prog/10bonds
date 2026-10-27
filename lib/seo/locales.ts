@@ -60,7 +60,16 @@ export function suggestLocale(saved: string | null | undefined, acceptLanguage: 
 export const LANG_COOKIE = "tb_lang";
 
 // Words used on the public pages, per language.
-export const T: Record<Locale, Record<string, string>> = {
+export const T: Record<Locale | "en", Record<string, string>> = {
+  // English (US and UK readers): only the words used by the shared comparison table and the call to action.
+  en: {
+    openTool: "Open the bond finder", freeAccount: "Free account: the full top 10",
+    ctaTitle: "Find your 10 bonds", ctaText: "Pick a duration and a target return: 10BONDS shows the 10 closest euro bonds, one per issuer.",
+    issuer: "Issuer", riskCol: "Risk (1-10)", ytm: "Return to maturity (per year)", duration: "Duration", maturity: "Maturity", year: "Year",
+    dataAsOf: "Data as of", sample: "Sample data, not real", bondsCount: "bonds", issuersCount: "issuers", range: "Return min / median / max",
+    avgDuration: "Average duration", moreRows: "The full top 10, with the details of each bond, is in the bond finder.",
+    years: "years", breadcrumb: "Breadcrumb", compare: "Compare",
+  },
   it: {
     home: "Home", guides: "Guide", bonds: "Obbligazioni", tools: "Calcolatori", method: "Metodologia", team: "Redazione", knowledge: "Sapere", plans: "Piani", focus: "Analisi rischio", focusShort: "Rischio",
     by: "Di", reviewedBy: "Revisione di", editorial: "Redazione 10BONDS", published: "Pubblicata il", reviewed: "Ultima revisione", updated: "Aggiornata il",
