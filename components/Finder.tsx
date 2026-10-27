@@ -252,7 +252,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
-          if ((r.status === 202 || !r.ok) && tries < 60) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
+          if ((r.status === 202 || !r.ok) && tries < 60) timer = setTimeout(() => load(tries + 1), r.status === 429 ? 5000 : tries < 5 ? 1000 : 3000);
           else if (r.ok) {
             const ps = (await r.json()).positions;
             if (stop) return;
@@ -349,14 +349,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         let res: globalThis.Response | null = null;
         let body = null;
         // The spread-rules lists are built in the background (202 until ready): keep asking, up to a few minutes.
-        for (let i = 0; i < 4 || (res?.status === 202 && i < 90); i++) {
-          if (i) await new Promise((done) => setTimeout(done, res?.status === 202 ? 3000 : 1500));
+        // A busy answer (429) is waited out like a pending one, never shown as an error.
+        const wait = (r: globalThis.Response | null) => !r ? 1500 : r.status === 202 ? 3000 : r.status === 429 ? 5000 : 1500;
+        for (let i = 0; i < 4 || ((res?.status === 202 || res?.status === 429) && i < 90); i++) {
+          if (i) await new Promise((done) => setTimeout(done, wait(res)));
           res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
           body = await res.json().catch(() => null);
-          if (body && res.status < 500 && res.status !== 202) break;
+          if (body && res.status < 500 && res.status !== 202 && res.status !== 429) break;
         }
         if (!res || !body) throw new Error(errText);
-        if (res.status === 202) throw new Error("The spread-rules lists are still being calculated. Try again in a minute.");
+        if (res.status === 202 || res.status === 429) throw new Error("The lists are still being calculated. Try again in a minute.");
         // A slower, older search never replaces a newer answer already on screen.
         if (seq < appliedSeq.current) return;
         appliedSeq.current = seq;

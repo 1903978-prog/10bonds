@@ -12,7 +12,8 @@ export const NOTCH_DOWN_BY_RANK: Record<Rank, number> = { senior: 0, snp: 1, sub
 export const RANK_LABEL: Record<Rank, string> = { senior: "Senior preferred", snp: "Senior non-preferred", sub: "Subordinated" };
 
 const SNP = /non[- ]?preferred|\bsnp\b/i;
-const JUNIOR = /subord|\bsub\b|junior|\bjr\b|hybrid|\bat1\b|additional tier|\bcoco\b|contingent|tier ?[12]\b|\bt[12]\b|\blt2\b|\bperp|mezz|deeply|lower tier|upper tier|capital note|preferred (stock|share)/i;
+// "Unsubordinated" / "non-subordinated" are senior wording and must not match "subord".
+const JUNIOR = /(?<!\b(?:un|non|not)[- ]?)subord|nachrang|\bsub\b|junior|\bjr\b|hybrid|\bat1\b|additional tier|\bcoco\b|contingent|tier ?[123]\b|\bt[123]\b|\blt2\b|\bperp|mezz|deeply|lower tier|upper tier|capital note|preferred (stock|share)/i;
 
 /** The rank the seniority text stands for, or null when the data has none. */
 export function rankOfText(seniority: string | null | undefined): Rank | null {

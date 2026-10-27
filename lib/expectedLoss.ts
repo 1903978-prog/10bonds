@@ -1,4 +1,5 @@
 import { DEFAULT_RATES, DEFAULT_YEARS } from "./seo/defaultRates";
+import { linearCumulative } from "./linearCumulative";
 import { activeEngine } from "./enginePolicy";
 import { cumulativeDefaultV2, cumulativeDefaultHazard } from "./lossModel";
 import { SOVEREIGN_YEARS, sovereignCumulative, sovereignRow } from "./sovereign";
@@ -20,7 +21,7 @@ export const setPdScale = (x: number) => { pdScale = x > 0 ? x : 1; };
 /** Cumulative default probability in % over `years` for a notch, read linearly between the published years. */
 export function cumulativeDefault(notch: number, years: number, sovereign = false): number {
   const base = sovereign ? sovereignBase(notch, years) : cumulativeBase(notch, years);
-  return pdScale === 1 ? base : Math.min(100, base * pdScale);
+  return Math.min(100, pdScale === 1 ? base : base * pdScale);
 }
 
 // National governments use their own table (lib/sovereign.ts), read the same way as the corporate one.
@@ -32,13 +33,7 @@ function sovereignBase(notch: number, years: number): number {
 function cumulativeBase(notch: number, years: number): number {
   // Engine policy "v2_hazard" (lib/lossModel.ts); the default "v1_linear" below is what runs in production today.
   if (activeEngine().loss === "v2_hazard") return cumulativeDefaultV2(notch, years).pct;
-  const row = rowOf(notch);
-  const ys = DEFAULT_YEARS as readonly number[];
-  if (years <= ys[0]) return row[0];
-  for (let i = 1; i < ys.length; i++) {
-    if (years <= ys[i]) return row[i - 1] + ((row[i] - row[i - 1]) * (years - ys[i - 1])) / (ys[i] - ys[i - 1]);
-  }
-  return (row[row.length - 1] * years) / ys[ys.length - 1];
+  return linearCumulative(rowOf(notch), DEFAULT_YEARS, years);
 }
 
 /** Expected loss in percentage points per year for a notch over a horizon. */

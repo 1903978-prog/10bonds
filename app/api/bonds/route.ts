@@ -43,9 +43,11 @@ const isEnd = (pts: { end?: string; isins: string[] }[], rows: RankedBond[]) => 
 };
 
 export async function GET(req: Request) {
-  // Sliders send one request per move; 240 a minute per address (both bond routes together) is far above normal use.
-  if (!allow(`bonds:${clientIp(req)}`, 240, 60_000))
-    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+  // Sliders send one request per move and a waiting search asks again every few seconds: signed-in accounts (which have
+  // their own search allowance) are not limited here, visitors get 600 a minute per address.
+  const signedIn = await currentUser();
+  if (!signedIn && !allow(`bonds:${clientIp(req)}`, 600, 60_000))
+    return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429, headers: { "Retry-After": "5" } });
   const url = new URL(req.url);
   const duration = clampParam(url.searchParams.get("duration"), LIMITS.duration);
   const ytm = clampParam(url.searchParams.get("ytm"), LIMITS.ytm);
@@ -53,7 +55,6 @@ export async function GET(req: Request) {
 
   // The tier comes from the signed-in account (server side). Other views can be previewed on sample data only.
   // An account whose e-mail is still unconfirmed after the grace period searches like a visitor.
-  const signedIn = await currentUser();
   const user = signedIn?.confirmBlocked ? null : signedIn;
   // Outlier rule (lib/outliers.ts): users get the saved number of standard deviations; the admin can try another (os).
   const liveSd = await currentOutlierSd();

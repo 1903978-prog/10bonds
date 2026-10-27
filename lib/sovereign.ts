@@ -1,5 +1,6 @@
 import type { PublicBond } from "./types";
 import { issuerClass } from "./seo/classify";
+import { linearCumulative } from "./linearCumulative";
 
 // Cumulative default chances of national governments (foreign-currency sovereign debt), in %, by letter rating band and
 // years since issue. Supplied by the owner 27/10/2026 (S&P Global Ratings, 1975-2025, Table 16); the source stays internal:
@@ -30,15 +31,9 @@ export function sovereignRow(notch: number): number[] {
   return SOVEREIGN_RATES[n < ROW_OF_NOTCH.length ? ROW_OF_NOTCH[n] : SOVEREIGN_RATES.length - 1][1];
 }
 
-/** Cumulative default chance in % for a sovereign notch, linear between the published years like the corporate table. */
+/** Cumulative default chance in % for a sovereign notch, linear between the published years like the corporate table (lib/linearCumulative.ts). */
 export function sovereignCumulative(notch: number, years: number): number {
-  const row = sovereignRow(notch);
-  const ys = SOVEREIGN_YEARS as readonly number[];
-  if (years <= ys[0]) return row[0];
-  for (let i = 1; i < ys.length; i++) {
-    if (years <= ys[i]) return row[i - 1] + ((row[i] - row[i - 1]) * (years - ys[i - 1])) / (ys[i] - ys[i - 1]);
-  }
-  return (row[row.length - 1] * years) / ys[ys.length - 1];
+  return linearCumulative(sovereignRow(notch), SOVEREIGN_YEARS, years);
 }
 
 // A government is recognised by name for EVERY country: the issuer name, with words like "Republic of", "Kingdom of", "Federative",
