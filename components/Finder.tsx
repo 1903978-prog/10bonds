@@ -1,5 +1,6 @@
 "use client";
 
+import { landOn } from "@/lib/bandSlider";
 import Link from "next/link";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
@@ -221,9 +222,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setYtm(m.ytm);
     }
   };
+  // Risk-band positions without a list (see lib/bandSlider.ts for the switch).
+  const bandGap = (p: number) => !!positions?.[0]?.band && !!positions[p - 1]?.unavailable;
   const changeMix = (pos: number) => {
     setTouched(true);
-    const to = Math.min(mixMax, Math.max(pos, firstOpen));
+    const to = landOn(Math.min(mixMax, Math.max(pos, firstOpen)), mix, bandGap, mixMax);
     setMix(to);
     applyMix(to);
   };
@@ -281,9 +284,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       return;
     }
     // Ready positions: the middle one until the visitor moves the slider, else the same one (within the 1..k there are).
-    const at = positions?.length
+    const want = positions?.length
       ? touched ? Math.min(positions.length, Math.max(mix, firstOpen)) : Math.max(firstOpen, Math.ceil(positions.length / 2))
       : Math.max(mix, 1);
+    const at = positions?.length ? landOn(want, want, bandGap, positions.length) : want;
     if (positions || caps) applyMix(at);
     if (positions?.length && at !== mix) setMix(at);
     // eslint-disable-next-line react-hooks/exhaustive-deps
