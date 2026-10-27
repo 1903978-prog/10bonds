@@ -22,3 +22,13 @@ describe("sovereign default table", () => {
     expect(cumulativeDefault(8, 5)).toBeCloseTo(1.4, 9);
   });
 });
+
+describe("governments of every country", () => {
+  const gov = (issuer: string) => isSovereignBond({ issuer, isin: "X", country: null });
+  it("recognises governments worldwide by name", () => {
+    for (const n of ["Federative Republic of Brazil", "Brazil", "Mexico", "United Mexican States", "Republic of Poland", "Romania", "Turkey", "Republic of Turkiye", "Hungary", "Colombia (Republic of)", "Republic of Uruguay", "Oman Sovereign", "People's Republic of China", "Kingdom of Saudi Arabia", "Republic of South Africa", "Republic of Korea", "Republic of Philippines", "Republic of Cote d'Ivoire", "State of Israel", "United States of America", "Czech Republic", "Republic of Peru", "Hashemite Kingdom of Jordan", "Arab Republic of Egypt"]) expect(gov(n), n).toBe(true);
+  });
+  it("keeps agencies, regions, supranationals, territories and companies on the corporate table", () => {
+    for (const n of ["Petrobras", "Republic Services", "Georgia Power", "State of Georgia", "Hong Kong", "Puerto Rico", "European Investment Bank", "Region of Lombardy", "City of Paris", "KfW", "Bank of Mexico", "Mexico City Airport", "Pemex", "Brazil Minerals", null as unknown as string]) expect(gov(n), String(n)).toBe(false);
+  });
+});

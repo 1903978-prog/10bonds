@@ -41,13 +41,51 @@ export function sovereignCumulative(notch: number, years: number): number {
   return (row[row.length - 1] * years) / ys[ys.length - 1];
 }
 
+// A government is recognised by name for EVERY country: the issuer name, with words like "Republic of", "Kingdom of", "Federative",
+// "Government" taken off, must be exactly a country's name ("Federative Republic of Brazil", "Republic of Poland", "Mexico").
+// Agencies, supranationals, regions, cities and companies never reduce to a bare country name, so they stay on the corporate table.
+// Territories that are not sovereign states (Hong Kong, Puerto Rico, ...) are left out on purpose.
+const NOT_STATES = new Set(["HK", "MO", "PR", "GU", "VI", "AS", "MP", "AI", "AW", "BM", "KY", "CW", "SX", "FO", "GL", "GI", "GG", "JE", "IM", "NC", "PF", "TW", "XK", "AX", "BL", "BQ", "CC", "CK", "CX", "EH", "FK", "GF", "GP", "HM", "IO", "MF", "MQ", "MS", "NF", "NU", "PM", "PN", "RE", "SH", "SJ", "TC", "TF", "TK", "UM", "VG", "WF", "YT", "AQ", "BV", "GS", "PS", "EU", "UN", "EZ", "QO", "ZZ"]);
+const FILLER = /\b(the|republic|kingdom|federal|federative|state|states|of|and|government|govt|sultanate|emirate|emirates|grand|duchy|commonwealth|peoples|democratic|socialist|sovereign|hashemite|oriental|bolivarian|arab|islamic|plurinational|principality|union|sovereign|international|bonds?|notes?|treasury|global|intl)\b/g;
+const squash = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/'/g, "").replace(/[^a-z0-9]+/g, " ").replace(FILLER, " ").replace(/\s+/g, " ").trim();
+const ALIASES = ["turkey", "korea", "russia", "uae", "ivory coast", "cote divoire", "czech", "slovak", "hellenic", "greece", "united mexican", "united states america", "usa", "uk", "great britain", "vietnam", "viet nam", "brunei", "laos", "burma", "swaziland", "macedonia", "holy see", "cabo verde", "cape verde", "congo", "east timor", "timor leste", "bahamas", "gambia"];
+const COUNTRIES: Set<string> = (() => {
+  const set = new Set<string>(ALIASES.map(squash).filter(Boolean));
+  const names = new Intl.DisplayNames(["en"], { type: "region" });
+  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for (const a of A) for (const b of A) {
+    const code = a + b;
+    if (NOT_STATES.has(code)) continue;
+    let n: string | undefined;
+    try { n = names.of(code); } catch { continue; }
+    if (!n || n === code) continue;
+    set.add(squash(n.replace(/\(.*?\)/g, " ").replace(/ - /g, " ")));
+    set.add(squash(n)); // e.g. "Congo - Kinshasa", "Myanmar (Burma)"
+    if (n.includes("(")) set.add(squash(n.replace(/\)/g, "").split("(").pop() ?? ""));
+  }
+  set.delete("");
+  return set;
+})();
+// "Georgia" the country versus the US state: a US state bond reads "State of Georgia" or "Georgia (State of)".
+const AMBIGUOUS_STATE = /^(state of (georgia)|georgia \(state of\))/i;
+
+/** True when the issuer name is a national government of any country. */
+export function isGovernmentName(issuer: string | null | undefined): boolean {
+  const raw = (issuer ?? "").trim();
+  if (!raw || AMBIGUOUS_STATE.test(raw)) return false;
+  const k = squash(raw);
+  if (!k) return false;
+  if (COUNTRIES.has(k)) return true;
+  return /^[a-z]{2} sovereign$/i.test(raw.trim()) ? COUNTRIES.size > 0 : false;
+}
+
 const cache = new Map<string, boolean>();
 /** True when the issuer is a national government by name (not an agency, supranational, region or company). */
 export function isSovereignBond(b: Pick<PublicBond, "issuer" | "isin" | "country">): boolean {
   const key = `${b.issuer ?? ""}|${b.country ?? ""}`;
   let hit = cache.get(key);
   if (hit === undefined) {
-    hit = issuerClass(b) === "sovereign";
+    hit = issuerClass(b) === "sovereign" || isGovernmentName(b.issuer);
     cache.set(key, hit);
   }
   return hit;
