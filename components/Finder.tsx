@@ -255,10 +255,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
-          if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
+          if ((r.status === 202 || !r.ok) && tries < 60) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
           else if (r.ok) setPositions((await r.json()).positions);
         })
-        .catch(() => {});
+        .catch(() => { if (!stop && tries < 60) timer = setTimeout(() => load(tries + 1), 3000); });
     load(0);
     return () => { stop = true; clearTimeout(timer); };
   }, [duration, currency, size, method]);
