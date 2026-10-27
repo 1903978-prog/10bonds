@@ -13,6 +13,7 @@ import { issuerVerified } from "./issuerGroups";
 import { stepGap } from "./stepGap";
 import { lifeYears } from "./lifeYears";
 import { loadSolver, MIP_ABS_GAP, SOLVER_OPTIONS } from "./highsSolver";
+import { isSovereignBond } from "./sovereign";
 
 // The exact optimiser under the rating coherence and credit concentration rules (lib/coherence.ts), Methodology with
 // spread rules only (admin). One mixed-integer programme per candidate worst class m = 1..R, solved by HiGHS (branch and
@@ -194,7 +195,7 @@ const retOf = (sel: Cand[]) => sel.reduce((s, c) => s + c.ret, 0) / sel.length;
 
 function listOf(picked: Cand[]): FrontierList {
   const rows: RankedBond[] = picked
-    .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!, lgdOf(o.b)), rank: 0 }))
+    .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!, lgdOf(o.b), isSovereignBond(o.b)), rank: 0 }))
     .sort((a, b) => b.score - a.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin))
     .map((x, i) => ({ ...x, rank: i + 1 }));
   return { u: picked.reduce((s, o) => s + o.u, 0), ytm: retOf(picked), el: listLifeLoss(picked.map((o) => o.pd)), isins: rows.map((x) => x.isin).sort(), rows };

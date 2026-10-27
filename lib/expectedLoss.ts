@@ -1,6 +1,7 @@
 import { DEFAULT_RATES, DEFAULT_YEARS } from "./seo/defaultRates";
 import { activeEngine } from "./enginePolicy";
-import { cumulativeDefaultV2 } from "./lossModel";
+import { cumulativeDefaultV2, cumulativeDefaultHazard } from "./lossModel";
+import { SOVEREIGN_YEARS, sovereignCumulative, sovereignRow } from "./sovereign";
 
 // Yield after expected losses ("loss-adjusted yield"), the score both finder modes rank by:
 // yield minus the yearly default rate for the bond's rating over its horizon times the share lost in a default.
@@ -17,9 +18,15 @@ let pdScale = 1;
 export const setPdScale = (x: number) => { pdScale = x > 0 ? x : 1; };
 
 /** Cumulative default probability in % over `years` for a notch, read linearly between the published years. */
-export function cumulativeDefault(notch: number, years: number): number {
-  const base = cumulativeBase(notch, years);
+export function cumulativeDefault(notch: number, years: number, sovereign = false): number {
+  const base = sovereign ? sovereignBase(notch, years) : cumulativeBase(notch, years);
   return pdScale === 1 ? base : Math.min(100, base * pdScale);
+}
+
+// National governments use their own table (lib/sovereign.ts), read the same way as the corporate one.
+function sovereignBase(notch: number, years: number): number {
+  if (activeEngine().loss === "v2_hazard") return cumulativeDefaultHazard(sovereignRow(notch), years, SOVEREIGN_YEARS).pct;
+  return sovereignCumulative(notch, years);
 }
 
 function cumulativeBase(notch: number, years: number): number {
@@ -35,14 +42,14 @@ function cumulativeBase(notch: number, years: number): number {
 }
 
 /** Expected loss in percentage points per year for a notch over a horizon. */
-export function expectedLoss(notch: number, years: number, lgd = LOSS_GIVEN_DEFAULT): number {
+export function expectedLoss(notch: number, years: number, lgd = LOSS_GIVEN_DEFAULT, sovereign = false): number {
   const t = Math.max(1, years);
-  return (cumulativeDefault(notch, t) / t) * lgd;
+  return (cumulativeDefault(notch, t, sovereign) / t) * lgd;
 }
 
 /** Yield after expected losses, in %. */
-export function lossAdjustedYield(ytm: number, notch: number, years: number, lgd = LOSS_GIVEN_DEFAULT): number {
-  return ytm - expectedLoss(notch, years, lgd);
+export function lossAdjustedYield(ytm: number, notch: number, years: number, lgd = LOSS_GIVEN_DEFAULT, sovereign = false): number {
+  return ytm - expectedLoss(notch, years, lgd, sovereign);
 }
 
 /**
@@ -65,6 +72,6 @@ export function listLifeLoss(chances: number[], lgds?: number[]): number {
 }
 
 /** One bond's chance of defaulting before it matures, in %. */
-export function bondLossChance(notch: number, years: number): number {
-  return Math.min(100, cumulativeDefault(notch, Math.max(0, years)));
+export function bondLossChance(notch: number, years: number, sovereign = false): number {
+  return Math.min(100, cumulativeDefault(notch, Math.max(0, years), sovereign));
 }

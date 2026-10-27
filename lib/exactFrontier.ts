@@ -7,6 +7,7 @@ import { lgdOf } from "./seniority";
 import { issuerKey, portfolioPool, RESULT_COUNT, UNRATED_NOTCH, withinRisk } from "./ranking";
 import { isWeak, MAX_WEAK } from "./frontierGuard";
 import { lifeYears } from "./lifeYears";
+import { isSovereignBond } from "./sovereign";
 
 // Exact efficient frontier (the owner, 24/10/2026), replacing the swap search for the slider positions:
 // choose 10 bonds at 1/10 each, minimise the summed default chance to maturity (so the expected loss on your money)
@@ -165,7 +166,7 @@ export function exactFrontier(bonds: PublicBond[], duration: number, gap: Gap = 
     const picked = polish(chosen);
     if (picked !== chosen) r = picked.reduce((s, o) => s + o.u, 0);
     const rows = picked
-      .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!, lgdOf(o.b)), rank: 0 }))
+      .map((o) => ({ ...o.b, ratingNotch: bondNotch(o.b), score: lossAdjustedYield(o.ret, bondNotch(o.b) ?? UNRATED_NOTCH, o.b.modifiedDuration!, lgdOf(o.b), isSovereignBond(o.b)), rank: 0 }))
       .sort((a, b) => b.score - a.score || b.grossYtm! - a.grossYtm! || a.isin.localeCompare(b.isin))
       .map((x, i) => ({ ...x, rank: i + 1 }));
     return {

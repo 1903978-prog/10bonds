@@ -7,8 +7,8 @@ import { DEFAULT_RATES, DEFAULT_YEARS } from "./seo/defaultRates";
 // Beyond the last observed year (15) the model continues the LAST observed hazard rate (years 10-15). That is a
 // regularisation, not a calibrated long-horizon estimate: results past 15 years are flagged `extrapolated`, and `band` gives
 // the range between the two defensible choices (last-interval hazard, average hazard over 0-15 years). No claim of precision
-// is made for them. Corporate default table only: no sovereign table exists in the repository (needs data and licence
-// decisions), so a government bond is priced from the corporate table and is NOT a separately estimated population.
+// is made for them. These readers work on whatever table row they are given: the corporate table here, the sovereign one
+// (lib/sovereign.ts) through lib/expectedLoss.ts.
 // Pure functions of the table passed in, so they can be tested on synthetic tables.
 
 export type Pd = { /** cumulative default chance to the horizon, in % */ pct: number; /** true beyond the last observed year */ extrapolated: boolean; /** pct under the two tail choices (equal to pct inside the data) */ band: [number, number] };

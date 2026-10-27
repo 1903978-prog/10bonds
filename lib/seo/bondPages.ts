@@ -4,6 +4,7 @@ import { bondNotch, bondRisk } from "../ratings";
 import { lossAdjustedYield } from "../expectedLoss";
 import { lgdOf } from "../seniority";
 import { LOCALE, LOCALES, pathOf, type Locale } from "./locales";
+import { isSovereignBond } from "../sovereign";
 
 // One public page per bond the site shows, at /bonds/{ISIN} (English) and /it/obbligazioni/{ISIN},
 // /fr/obligations/{ISIN}, /de/anleihen/{ISIN}, so a Google search for an ISIN can find 10BONDS (the owner, 20 Oct 2026).
@@ -88,7 +89,7 @@ export function bondDescription(l: BondLang, b: PublicBond): string {
 export function peerRank(b: PublicBond, all: PublicBond[]): { rank: number; of: number; adj: number } | null {
   const score = (x: PublicBond) => {
     const n = bondNotch(x);
-    return n === null || x.grossYtm === null || x.modifiedDuration === null ? null : lossAdjustedYield(x.grossYtm, n, x.modifiedDuration, lgdOf(x));
+    return n === null || x.grossYtm === null || x.modifiedDuration === null ? null : lossAdjustedYield(x.grossYtm, n, x.modifiedDuration, lgdOf(x), isSovereignBond(x));
   };
   const own = score(b);
   if (own === null || b.modifiedDuration === null) return null;

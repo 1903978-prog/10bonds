@@ -8,6 +8,7 @@ import { bondNotch, bondRisk } from "./ratings";
 import { bracketExplain, outlierWhy, type Scenario } from "./riskPremium/shadow";
 import type { RiskRanking } from "./riskPremium/rank";
 import type { EvalContext } from "./riskPremium/evaluate";
+import { isSovereignBond } from "./sovereign";
 
 // "Why in or out" for one search (Premium, Pro and admin; the owner, 20/10/2026): every bond of the search window with the
 // reason it is in the top 10 or not, in the order the ranking applies its rules. Built from the same ranking the
@@ -37,7 +38,7 @@ export function explainCurrent(bonds: PublicBond[], outliers: Outlier[], sc: Sce
   const currency = new Set(bonds.map((b) => b.currency));
   for (const o of outliers) if (currency.has(o.bond.currency) && inWindow(o.bond)) out.push(row(o.bond, outlierWhy(o)));
   for (const b of bonds.filter(inWindow)) {
-    const after = (bb: PublicBond) => lossAdjustedYield(bb.grossYtm!, bondNotch(bb) ?? 10, bb.modifiedDuration!, lgdOf(bb));
+    const after = (bb: PublicBond) => lossAdjustedYield(bb.grossYtm!, bondNotch(bb) ?? 10, bb.modifiedDuration!, lgdOf(bb), isSovereignBond(bb));
     let why: string;
     if (top.has(b.isin)) why = `In the top 10: return ${pct(b.grossYtm!)}, ${pct(after(b))} after expected losses`;
     else if (!withinRisk([b], sc.risk).length) why = `Riskier than the risk limit (risk ${bondRisk(b)} > ${sc.risk})`;
