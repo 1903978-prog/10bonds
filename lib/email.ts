@@ -87,7 +87,9 @@ export async function sendEmail(to: string, subject: string, html: string, text:
     });
     const body = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 300);
     if (!res.ok) console.error("[email] send failed: HTTP", res.status, maskEmails(body));
-    await logEmail(kind, to, res.ok ? "sent" : `failed HTTP ${res.status}`, maskEmails(body));
+    let id = "";
+    if (res.ok) id = ((await res.clone().json().catch(() => null)) as { id?: string } | null)?.id ?? "";
+    await logEmail(kind, to, res.ok ? "accepted by Resend" : `failed HTTP ${res.status}`, res.ok ? `Resend id ${id}` : maskEmails(body));
     // Resend refuses a domain that is not verified yet (403): stop claiming e-mail works until a later send succeeds.
     if (!res.ok && res.status === 403 && /verif|domain/i.test(body)) {
       lastRefusedAt = Date.now();
