@@ -247,7 +247,7 @@ export type User = {
   storedPlan: StoredPlan;
   premiumUntil: string | null;
   emailVerified: boolean;
-  /** Signed up more than CONFIRM_GRACE_MS ago and the address is still not confirmed: treated as a visitor until it is. */
+  /** Address not confirmed yet (e-mails on, not admin): treated as a visitor (names and ISINs blurred) until it is. */
   confirmBlocked: boolean;
   isAdmin: boolean;
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
@@ -290,7 +290,6 @@ export async function forgetVisitor(visitorId: string): Promise<void> {
 export const OWNER_COOKIE = "tb_owner";
 
 /** How long a new account may be used before its e-mail address must be confirmed. */
-export const CONFIRM_GRACE_MS = 3 * 3600_000;
 
 const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, newsletter_opt_in, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
@@ -307,7 +306,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     storedPlan: r.plan,
     premiumUntil: r.premium_until ? new Date(r.premium_until).toISOString() : null,
     emailVerified,
-    confirmBlocked: !emailVerified && emailConfigured() && !!r.created_at && now - new Date(r.created_at).getTime() > CONFIRM_GRACE_MS,
+    confirmBlocked: !emailVerified && !admin && emailConfigured(),
     // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: admin,
