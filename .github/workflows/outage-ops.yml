@@ -1,0 +1,36 @@
+# One-off outage diagnosis (27 Oct 2026): reads Fly status and logs, then sets memory to 1024 MB as the owner approved.
+# Runs only from the branch claude/outage-ops; never touches main and deploys nothing.
+name: Outage ops
+on:
+  push:
+    branches: [claude/outage-ops]
+jobs:
+  ops:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
+        with:
+          version: 0.4.118
+      - name: Status before
+        run: |
+          flyctl status -a 10bonds || true
+          flyctl machine list -a 10bonds || true
+          flyctl releases -a 10bonds | head -15 || true
+          flyctl scale show -a 10bonds || true
+      - name: Logs (recent buffer)
+        run: flyctl logs -a 10bonds --no-tail 2>&1 | tail -250 || true
+      - name: Memory events
+        run: |
+          for m in $(flyctl machine list -a 10bonds --json | python3 -c "import sys,json;print(' '.join(x['id'] for x in json.load(sys.stdin)))"); do
+            echo "== $m"; flyctl machine status $m -a 10bonds 2>&1 | tail -40 || true
+          done
+      - name: Set memory 1024 MB
+        run: flyctl scale memory 1024 -a 10bonds
+      - name: Status after
+        run: |
+          sleep 20
+          flyctl status -a 10bonds || true
+          curl -s -o /dev/null -m 60 -w "home %{http_code} %{time_total}s\n" https://10bonds.com/ || true
