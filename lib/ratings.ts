@@ -12,11 +12,14 @@ const MOODYS_SCALE = [
 
 export function notchOf(grade: string | null | undefined): number | null {
   if (!grade) return null;
-  const g = grade.trim();
-  const sp = SP_SCALE.indexOf(g);
+  // Typographic minus signs and any letter case arrive from some feeds ("BBB−", "bbb+", "BAA2").
+  const g = grade.trim().replace(/[\u2212\u2013\u2014]/g, "-").toLowerCase();
+  // Default and selective-default grades of the three agencies (S&P "SD", Fitch "RD", "DDD", "DD") are all D: the bond has no risk score.
+  if (g === "sd" || g === "rd" || g === "ddd" || g === "dd") return SP_SCALE.length - 1;
+  const sp = SP_SCALE.findIndex((x) => x.toLowerCase() === g);
   if (sp >= 0) return sp;
-  // Moody's grades sometimes arrive upper-cased ("BAA2"); S&P grades have no digits, so this cannot clash.
-  const m = MOODYS_SCALE.findIndex((x) => x.toLowerCase() === g.toLowerCase());
+  // S&P grades have no digits, so they cannot clash with Moody's.
+  const m = MOODYS_SCALE.findIndex((x) => x.toLowerCase() === g);
   if (m >= 0) return m;
   return null;
 }
