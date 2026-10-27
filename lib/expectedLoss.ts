@@ -1,4 +1,6 @@
 import { DEFAULT_RATES, DEFAULT_YEARS } from "./seo/defaultRates";
+import { activeEngine } from "./enginePolicy";
+import { cumulativeDefaultV2 } from "./lossModel";
 
 // Yield after expected losses ("loss-adjusted yield"), the score both finder modes rank by:
 // yield minus the yearly default rate for the bond's rating over its horizon times the share lost in a default.
@@ -12,6 +14,8 @@ function rowOf(notch: number): number[] {
 
 /** Cumulative default probability in % over `years` for a notch, read linearly between the published years. */
 export function cumulativeDefault(notch: number, years: number): number {
+  // Engine policy "v2_hazard" (lib/lossModel.ts); the default "v1_linear" below is what runs in production today.
+  if (activeEngine().loss === "v2_hazard") return cumulativeDefaultV2(notch, years).pct;
   const row = rowOf(notch);
   const ys = DEFAULT_YEARS as readonly number[];
   if (years <= ys[0]) return row[0];

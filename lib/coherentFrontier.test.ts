@@ -185,12 +185,12 @@ describe("infeasible and scarce universes never relax a rule", () => {
 describe("versioned engine policy (spread mode, composition mode)", () => {
   it("the default engine policy leaves cache keys and certificates exactly as they were", () => {
     expect(engineSignature(DEFAULT_ENGINE)).toBe("");
-    expect(engineSignature({ spread: "diagnostic_only", composition: "house_window" })).toContain("diagnostic_only");
+    expect(engineSignature({ spread: "diagnostic_only", composition: "house_window", loss: "v1_linear" })).toContain("diagnostic_only");
   });
   for (const engine of [
-    { spread: "diagnostic_only", composition: "house_window" },
-    { spread: "hard_constraint", composition: "ceiling_only" },
-    { spread: "diagnostic_only", composition: "ceiling_only" },
+    { spread: "diagnostic_only", composition: "house_window", loss: "v1_linear" },
+    { spread: "hard_constraint", composition: "ceiling_only", loss: "v1_linear" },
+    { spread: "diagnostic_only", composition: "ceiling_only", loss: "v1_linear" },
   ] as EnginePolicy[]) {
     it(`matches a full search of every legal list: ${engine.spread} + ${engine.composition}`, { timeout: 180000 }, async () => {
       const p = engine.composition === "ceiling_only" ? { ...DEFAULT_POLICY, maxDispersion: 9, minCore: 0, minWorst: 1 } : DEFAULT_POLICY;
@@ -214,7 +214,7 @@ describe("versioned engine policy (spread mode, composition mode)", () => {
   it("dropping the spread rule can only widen the feasible set: never worse at any return", { timeout: 120000 }, async () => {
     const bonds = universe(17);
     const hard = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: DEFAULT_ENGINE });
-    const diag = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: { spread: "diagnostic_only", composition: "house_window" } });
+    const diag = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: { spread: "diagnostic_only", composition: "house_window", loss: "v1_linear" } });
     for (const pt of hard.points.filter((x) => !x.end)) {
       const alt = diag.points.find((d) => d.ytm >= pt.ytm - 1e-9);
       expect(alt).toBeTruthy();

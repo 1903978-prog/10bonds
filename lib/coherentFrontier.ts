@@ -49,7 +49,7 @@ export type Certificate = {
   /** True only when every solve that produced a list ended Optimal within the tolerances. */
   certified: boolean;
 };
-export type CoherentFrontier = ExactFrontier & { cert: Certificate; policy: CoherencePolicy };
+export type CoherentFrontier = ExactFrontier & { cert: Certificate; policy: CoherencePolicy; /** Served from a list saved for slightly older prices while the exact one is rebuilt (lib/frontierCache.ts). */ stale?: boolean };
 
 type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number; /** The two ends of the slider: no spread rule, and at least this many risk 1 bonds. */ end?: { minRisk1: number } };
 type Outcome = { status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] };
@@ -224,6 +224,8 @@ async function topList(cands: Cand[], p: CoherencePolicy, duration: number, ceil
 export async function coherentFrontier(bonds: PublicBond[], duration: number, p: CoherencePolicy = activePolicy(), ceiling: number = LIMITS.risk.max, opts: { /** Diagnostics only: leave the spread rule out to see which rule binds. */ noSpreadRule?: boolean; /** Versioned spread / composition switches (lib/enginePolicy.ts); default = the active engine policy. */ engine?: EnginePolicy } = {}): Promise<CoherentFrontier> {
   const t0 = Date.now();
   const engine = opts.engine ?? activeEngine();
+  // The loss model is read from the active engine policy deep inside the bond figures: a different one must be activated with setEngine first.
+  if (engine.loss !== activeEngine().loss) throw new Error(`Loss model ${engine.loss} asked for, but ${activeEngine().loss} is active (setEngine first).`);
   // Composition "ceiling_only": no rating window, core or worst-class rule; only the ceiling limits the classes.
   if (engine.composition === "ceiling_only") p = { ...p, maxDispersion: 9, minCore: 0, minWorst: 1 };
   const stats: Certificate = { policy: policySignature(p) + engineSignature(engine), solves: 0, optimal: 0, infeasible: 0, uncertified: 0, absGap: TOL, relGap: 0, seconds: 0, certified: true };

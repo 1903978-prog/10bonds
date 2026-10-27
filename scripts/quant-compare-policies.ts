@@ -12,7 +12,7 @@ import { candidatesOf, coherentFrontier } from "@/lib/coherentFrontier";
 import { activePolicy, policySignature } from "@/lib/coherence";
 import { buildSlider } from "@/lib/sliderPortfolios";
 import { spreadVerdicts } from "@/lib/spreadDiagnostic";
-import type { EnginePolicy } from "@/lib/enginePolicy";
+import { setEngine, DEFAULT_ENGINE, type EnginePolicy } from "@/lib/enginePolicy";
 import { TERMS } from "@/lib/limits";
 import type { BondSource } from "@/lib/bonds";
 
@@ -21,14 +21,17 @@ const out = process.env.QUANT_OUT ?? "quant-out";
 fs.mkdirSync(out, { recursive: true });
 const f2 = (x: number) => x.toFixed(2), f3 = (x: number) => x.toFixed(3);
 const CONFIGS: { name: string; e: EnginePolicy }[] = [
-  { name: "A today: hard spread + house window", e: { spread: "hard_constraint", composition: "house_window" } },
-  { name: "B paper: diagnostic spread + house window", e: { spread: "diagnostic_only", composition: "house_window" } },
-  { name: "C hard spread + ceiling only", e: { spread: "hard_constraint", composition: "ceiling_only" } },
-  { name: "D paper spread + ceiling only (no house rating rules)", e: { spread: "diagnostic_only", composition: "ceiling_only" } },
+  { name: "A today: hard spread + house window", e: { spread: "hard_constraint", composition: "house_window", loss: "v1_linear" } },
+  { name: "B paper: diagnostic spread + house window", e: { spread: "diagnostic_only", composition: "house_window", loss: "v1_linear" } },
+  { name: "C hard spread + ceiling only", e: { spread: "hard_constraint", composition: "ceiling_only", loss: "v1_linear" } },
+  { name: "D paper spread + ceiling only (no house rating rules)", e: { spread: "diagnostic_only", composition: "ceiling_only", loss: "v1_linear" } },
+  { name: "E = A with loss model v2 (hazard interpolation)", e: { spread: "hard_constraint", composition: "house_window", loss: "v2_hazard" } },
+  { name: "F = B with loss model v2 (hazard interpolation)", e: { spread: "diagnostic_only", composition: "house_window", loss: "v2_hazard" } },
 ];
 const md: string[] = [`# Policy comparison on one frozen snapshot`, `data ${src.source} ${src.asOf}, ${src.bonds.length} bonds, rules ${policySignature()}\n`];
 const result: any = { asOf: src.asOf, bonds: src.bonds.length, horizons: {} };
 for (const t of TERMS) {
+  setEngine(DEFAULT_ENGINE);
   const cands = candidatesOf(src.bonds, t.duration, true);
   const sizes = cands.map((c) => c.beatenBy.size);
   const verdicts = spreadVerdicts(cands.map((c) => c.b), cands.map((c) => c.b));
@@ -37,6 +40,7 @@ for (const t of TERMS) {
   md.push(`## ${t.key} (${t.duration}y)`, `Pool ${pool.candidates} bonds in the duration window. Spread diagnostic: ${pool.adequate} adequately compensated, ${pool.belowHurdle} below hurdle, ${pool.insufficient} insufficient data. Under the hard rule ${pool.notBeaten} are never beaten, ${pool.beatenBy1to9} can be chosen only together with 1-9 other issuer groups, ${pool.beatenBy10plus_unusable} can never be chosen (beaten by 10+ groups).`, "", "| Config | efficient lists | slider positions | return range % | loss range % | worst class at top | seconds | status |", "|---|---|---|---|---|---|---|---|");
   const frs: any[] = [];
   for (const c of CONFIGS) {
+    setEngine(c.e);
     const fr = await coherentFrontier(src.bonds, t.duration, activePolicy(), 10, { engine: c.e });
     const sl = buildSlider(fr);
     const lo = fr.points[0], hi = fr.points.at(-1);
@@ -53,6 +57,7 @@ for (const t of TERMS) {
   };
   const costHard = gap(frs[0], frs[1]), costHard2 = gap(frs[2], frs[3]), costHouse = gap(frs[0], frs[2]);
   md.push("", `Cost of the hard spread rule (A vs B): at ${costHard.pointsWhereOtherIsBetter} of ${costHard.pointsOfA} points the paper rule reaches a lower loss for the same return (largest saving ${costHard.largestLossSavedPct} pt of loss at return ${costHard.atReturn?.toFixed?.(2) ?? "-"}%); at the same loss it reaches up to +${costHard.largestExtraYieldAtSameLossPct} pt return. Without the house rating rules (C vs D): ${costHard2.pointsWhereOtherIsBetter}/${costHard2.pointsOfA}, up to +${costHard2.largestExtraYieldAtSameLossPct} pt return.`, `Cost of the house rating window (A vs C): ${costHouse.pointsWhereOtherIsBetter}/${costHouse.pointsOfA} points better without it, up to +${costHouse.largestExtraYieldAtSameLossPct} pt return at the same loss.`, "");
+  md.push(`Effect of the loss model v2 alone (A vs E): compare rows A and E (same rules, other default model). v2 only changes how default chance is read between and beyond the table's years (bonds under 1 year and over 15 years move most).`, "");
   const nameOf = (s: any) => s.sl.length ? [0, Math.floor((s.sl.length - 1) / 2), s.sl.length - 1].map((k) => { const p = s.sl[k]; return `pos ${p.position}: ${f2(p.ytm!)}% / loss ${f3(p.expectedLoss!)}%`; }).join("; ") : "none";
   for (const s of frs) md.push(`- ${s.c.name}: ${nameOf(s)}`);
   md.push("");
