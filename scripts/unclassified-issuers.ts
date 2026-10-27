@@ -8,4 +8,5 @@ console.log(`issuers ${a.issuers} · missing a country ${noCountry.length} · mi
 console.log(`bonds ${a.coverage.total} · with country ${a.coverage.country} · with industry ${a.coverage.sector}`);
 const top = Number(process.env.TOP ?? 80);
 console.log(`bonds in the missing-country issuers ${noCountry.reduce((n, m) => n + m.bonds, 0)} · shown below: the first ${top}`);
-noCountry.slice(0, top).forEach((m, i) => console.log(`#${i + 1}\t${m.bonds}\t${m.issuer}\t${m.isin}\t${m.currency}\t${m.needs}\t${m.sector ?? ""}`));
+const from = Number(process.env.FROM ?? 0);
+noCountry.slice(from, top).forEach((m, i) => console.log(`#${from + i + 1}\t${m.bonds}\t${m.issuer}\t${m.isin.slice(0, 2)}\t${m.sector ?? ""}`));
