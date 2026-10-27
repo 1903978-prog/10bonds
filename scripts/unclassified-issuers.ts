@@ -10,3 +10,12 @@ const top = Number(process.env.TOP ?? 80);
 console.log(`bonds in the missing-country issuers ${noCountry.reduce((n, m) => n + m.bonds, 0)} · shown below: the first ${top}`);
 const from = Number(process.env.FROM ?? 0);
 noCountry.slice(from, top).forEach((m, i) => console.log(`#${from + i + 1}\t${m.bonds}\t${m.issuer}\t${m.isin.slice(0, 2)}\t${m.sector ?? ""}`));
+
+if (process.env.CSV) {
+  const supra = /\b(european (investment bank|union|stability|financial stability)|eib|efsf|esm|ibrd|world bank|international bank for|asian development|african development|inter-american|interamerican|european bank for reconstruction|ebrd|council of europe|nordic investment|kfw|eurofima|european atomic|euratom|islamic development|asian infrastructure|international finance corp|ifc|cebd|ceb)\b/i;
+  const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  console.log("CSV-START");
+  console.log("issuer,bonds,sample_isin,currency");
+  noCountry.filter((m) => !supra.test(m.issuer)).forEach((m) => console.log([q(m.issuer), m.bonds, m.isin, m.currency].join(",")));
+  console.log("CSV-END");
+}
