@@ -20,7 +20,7 @@ export default function Summary({ data }: { data: SummaryData }) {
   return (
     <div className="space-y-5" data-testid="seo-summary">
       <section className="grid gap-3 sm:grid-cols-2">
-        <Score label="SEO score" value={data.seo.score === null ? null : Math.round(data.seo.score)} pct={data.seo.assessedPct} note="Average of Italy, France and Germany." />
+        <Score label="SEO score" value={data.seo.score === null ? null : Math.round(data.seo.score)} pct={data.seo.assessedPct} note={`Average of the 5 markets${data.lastCheck ? `, evaluated ${day(data.lastCheck)}` : ""}.`} />
         <Score label="GEO score" value={data.geo.score} pct={data.geo.assessedPct} note="How ready the site is to be cited by AI assistants." />
       </section>
 

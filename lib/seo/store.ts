@@ -375,6 +375,17 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       if (row) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${row.id}, ${"system"}, ${"published"}, ${"Title or description shortened or fixed (27 Oct 2026)."})`;
     }
   }
+  // "10bonds Analyst": the editorial team's byline (a team, not a person: no credentials, never marked verified). Published
+  // guides without a reviewer get it, dated by the guide's own last update, once (27 Oct 2026).
+  const [analyst] = await s`insert into app.settings (key, value) values ('seo_analyst_2026_10_27', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;
+  if (analyst) {
+    const [existing] = await s`select id from app.seo_people where name = ${ANALYST_NAME} limit 1`;
+    const id = existing?.id ?? (await s`insert into app.seo_people (name, role, bio, credentials, credentials_verified, is_public)
+      values (${ANALYST_NAME}, ${"Editorial team"}, ${"The 10BONDS editorial team checks each guide against the published bond data and the selection methodology. It is a team byline, not an individual's profile."}, ${null}, false, true) returning id`)[0].id;
+    const rows = await s`update app.seo_guides set reviewer_id = ${id}, reviewed_at = updated_at
+      where status = 'published' and reviewer_id is null returning id`;
+    for (const r of rows) await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${r.id}, ${"system"}, ${"published"}, ${"Reviewed by 10bonds Analyst (date = last update of the guide)."})`;
+  }
   for (const k of SEED_KEYWORDS) {
     // New keywords go in whole; for existing ones only empty fields are filled, so admin edits are never overwritten.
     await s`insert into app.seo_keywords (market, keyword, intent, landing_path, kc_section, potential, volume, volume_source, verified_at)
@@ -391,6 +402,7 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
 }
 
 // ---------- People (authors and reviewers) ----------
+export const ANALYST_NAME = "10bonds Analyst";
 export type Person = { id: number; name: string; role: string; bio: string | null; credentials: string | null; credentialsVerified: boolean; isPublic: boolean };
 const toPerson = (r: Record<string, unknown>): Person => ({
   id: Number(r.id), name: r.name as string, role: r.role as string, bio: (r.bio as string) ?? null, credentials: (r.credentials as string) ?? null,

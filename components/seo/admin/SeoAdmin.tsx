@@ -126,7 +126,7 @@ export default function SeoAdmin() {
           The US and UK are tracked through their keywords and Google rankings (English pages, searches from that country). This tab covers Italy, France and Germany only.
         </p>
       )}
-      {tab === "overview" && <Overview key={version} market={market} onMarket={setMarket} />}
+      {tab === "overview" && <Overview key={version} market={market} onMarket={setMarket} onRan={loadSummary} />}
       {tab === "rankings" && <Rankings market={market} />}
       {tab === "ai" && <AiVisibility />}
       {tab === "countries" && <Countries />}
