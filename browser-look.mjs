@@ -19,13 +19,17 @@ for (let i = 0; i < n; i++) {
   await terms.nth(i).click();
   const s = Date.now();
   await p.locator('[data-testid="find-portfolio"]').click();
-  let rows = 0;
-  while (Date.now() - s < 15000) {
+  let rows = 0, tiles = "", filled = 0, tilesAt = null, listAt = null;
+  while (Date.now() - s < 20000) {
+    tiles = (await p.locator('[data-testid="result-boxes"]').innerText().catch(() => "")).replace(/\s+/g, " ");
+    if (tilesAt === null && /\d+\.\d+% Return/.test(tiles)) tilesAt = Date.now() - s;
     rows = await p.locator(rowsSel).count();
-    const txt = await p.locator("main").innerText();
-    if (rows >= 10 && !/Something went wrong/.test(txt)) break;
+    filled = await p.locator(rowsSel).evaluateAll((els) => els.filter((e) => /[A-Z]{2}[A-Z0-9]{9}\d|\d+\.\d+\s*%/.test(e.textContent || "")).length);
+    if (listAt === null && filled >= 10) listAt = Date.now() - s;
+    if (tilesAt !== null && listAt !== null) break;
     await p.waitForTimeout(100);
   }
+  console.log(`term ${i}: tiles at ${tilesAt} ms, list (10 filled rows) at ${listAt} ms (rows=${rows}, filled=${filled})`);
   const ms = Date.now() - s;
   const boxes = (await p.locator('[data-testid="result-boxes"]').innerText().catch(() => "")).replace(/\s+/g, " ");
   const wrong = /Something went wrong/.test(await p.locator("main").innerText());
