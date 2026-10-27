@@ -1,0 +1,22 @@
+name: Secval probe
+# Temporary, read-only: load test of the live public pages. Removed before merge.
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/project-thread-xze0y9]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Wait for the deploy to land
+        run: sleep 420
+      - name: Load test
+        run: |
+          curl -s https://10bonds.com/sitemap.xml | grep -oE '<loc>[^<]+' | sed 's/<loc>//' > urls.txt
+          wc -l urls.txt
+          time (cat urls.txt | xargs -P 8 -I{} curl -s -m 20 -o /dev/null -w '%{http_code} %{time_total} {}\n' {} | sort -k2 -n -r > res.txt)
+          echo "non-200:"; awk '$1!=200' res.txt | head -20
+          echo "slowest:"; head -5 res.txt
+          curl -s -o /dev/null -w 'bond sitemap %{http_code} %{time_total}s\n' https://10bonds.com/bonds/sitemap.xml
+          curl -s -o /dev/null -w 'bond sitemap again %{http_code} %{time_total}s\n' https://10bonds.com/bonds/sitemap.xml
