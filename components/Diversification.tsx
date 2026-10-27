@@ -6,11 +6,11 @@ import type { FinderLang } from "@/lib/finderText";
 
 // Under the 10-bond table (the owner, 26/10/2026): allocation by industry and by country, plus one diversification score.
 // A fixed-size strip (4 bar slots per chart, "–" when empty), so nothing moves whatever the list holds.
-const TEXT: Record<FinderLang, { score: string; line: string; industry: string; country: string; other: string; none: string; lock: string; signUp: string }> = {
-  en: { score: "Diversification", line: "0–100: how evenly the 10 bonds spread across industries and countries (100 = every bond different).", industry: "By industry", country: "By country", other: "Other", none: "Not classified", lock: "Subscribe to a paid plan to visualize", signUp: "Sign up for free to visualize" },
-  it: { score: "Diversificazione", line: "0–100: quanto le 10 obbligazioni sono distribuite tra settori e paesi (100 = tutte diverse).", industry: "Per settore", country: "Per paese", other: "Altri", none: "Non classificato", lock: "Abbonati a un piano a pagamento per visualizzare", signUp: "Registrati gratis per visualizzare" },
-  fr: { score: "Diversification", line: "0–100 : répartition des 10 obligations entre secteurs et pays (100 = toutes différentes).", industry: "Par secteur", country: "Par pays", other: "Autres", none: "Non classé", lock: "Passez à un forfait payant pour visualiser", signUp: "Inscrivez-vous gratuitement pour visualiser" },
-  de: { score: "Diversifikation", line: "0–100: wie gleichmäßig sich die 10 Anleihen auf Branchen und Länder verteilen (100 = alle verschieden).", industry: "Nach Branche", country: "Nach Land", other: "Andere", none: "Nicht klassifiziert", lock: "Bezahlten Tarif abonnieren, um es zu sehen", signUp: "Kostenlos registrieren zum Anzeigen" },
+const TEXT: Record<FinderLang, { score: string; line: string; industry: string; country: string; other: string; none: string; lock: string; signUp: string; hint: string }> = {
+  en: { score: "Diversification", line: "0–100: how evenly the 10 bonds spread across industries and countries (100 = every bond different).", industry: "By industry", country: "By country", other: "Other", none: "Not classified", lock: "Upgrade to visualize", signUp: "Sign up for free to visualize", hint: "See how evenly the 10 bonds spread across industries and countries" },
+  it: { score: "Diversificazione", line: "0–100: quanto le 10 obbligazioni sono distribuite tra settori e paesi (100 = tutte diverse).", industry: "Per settore", country: "Per paese", other: "Altri", none: "Non classificato", lock: "Passa al piano superiore per visualizzare", signUp: "Registrati gratis per visualizzare", hint: "Scopri quanto le 10 obbligazioni sono distribuite tra settori e paesi" },
+  fr: { score: "Diversification", line: "0–100 : répartition des 10 obligations entre secteurs et pays (100 = toutes différentes).", industry: "Par secteur", country: "Par pays", other: "Autres", none: "Non classé", lock: "Passez à l'offre supérieure pour visualiser", signUp: "Inscrivez-vous gratuitement pour visualiser", hint: "Voyez comment les 10 obligations se répartissent entre secteurs et pays" },
+  de: { score: "Diversifikation", line: "0–100: wie gleichmäßig sich die 10 Anleihen auf Branchen und Länder verteilen (100 = alle verschieden).", industry: "Nach Branche", country: "Nach Land", other: "Andere", none: "Nicht klassifiziert", lock: "Upgraden Sie zum Anzeigen", signUp: "Kostenlos registrieren zum Anzeigen", hint: "Sehen Sie, wie gleichmäßig sich die 10 Anleihen auf Branchen und Länder verteilen" },
 };
 
 const BARS = 4;
@@ -52,8 +52,10 @@ export default function Diversification({ rows, lang, locked: notAllowed, signed
       <div className={locked ? "blur-[6px]" : ""} aria-hidden={locked}><Bars title={t.industry} slices={locked ? decoy : d?.industry ?? []} other={t.other} none={t.none} /></div>
       <div className={locked ? "blur-[6px]" : ""} aria-hidden={locked}><Bars title={t.country} slices={locked ? decoy : d?.country ?? []} other={t.other} none={t.none} /></div>
       {locked && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Link href={signedIn ? "/pricing" : `/signup?next=${lang === "en" ? "/" : `/${lang}`}`} data-testid="diversification-lock" className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white shadow-lg transition hover:opacity-90">{signedIn ? t.lock : t.signUp}</Link>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-3 text-center">
+          <p className="text-[12px] font-semibold leading-none">{t.score}</p>
+          <p className="max-w-[460px] text-[10.5px] leading-tight text-mute">{t.hint}</p>
+          <Link href={signedIn ? "/pricing" : `/signup?next=${lang === "en" ? "/" : `/${lang}`}`} data-testid="diversification-lock" className="rounded-full bg-accent px-4 py-1 text-[13px] font-semibold text-white shadow-lg transition hover:opacity-90">{signedIn ? t.lock : t.signUp}</Link>
         </div>
       )}
     </div>
