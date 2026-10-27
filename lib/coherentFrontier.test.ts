@@ -4,6 +4,7 @@ import { candidatesOf, coherentFrontier } from "./coherentFrontier";
 import { checkList, cleanPolicy, DEFAULT_POLICY, END_POLICY, factsOf, type CoherencePolicy } from "./coherence";
 import { buildSlider } from "./sliderPortfolios";
 import { exactFrontier } from "./exactFrontier";
+import { DEFAULT_ENGINE, engineSignature, type EnginePolicy } from "./enginePolicy";
 
 const bond = (isin: string, issuer: string, ytm: number, rating: string, dur = 4): PublicBond => ({
   isin, name: isin, issuer, country: null, currency: "EUR", coupon: null, maturity: null,
@@ -21,8 +22,8 @@ function universe(seed: number, names = NAMES, grades = GRADES): PublicBond[] {
 }
 
 // Every list of 10 of the bonds that satisfies every rule (small universes only): the answer the solver must match.
-function bruteLists(bonds: PublicBond[], duration: number, p: CoherencePolicy = DEFAULT_POLICY) {
-  const cs = candidatesOf(bonds, duration);
+function bruteLists(bonds: PublicBond[], duration: number, p: CoherencePolicy = DEFAULT_POLICY, spread = true) {
+  const cs = candidatesOf(bonds, duration, spread);
   const out: { ret: number; loss: number }[] = [];
   const pick: number[] = [];
   const go = (i: number) => {
@@ -32,7 +33,7 @@ function bruteLists(bonds: PublicBond[], duration: number, p: CoherencePolicy = 
       if (Math.abs(dur - duration) > duration * 0.05 + 1e-9) return;
       if (!checkList(sel.map((c) => c), p, 10).every((c) => c.ok)) return;
       const groups = new Set(sel.map((c) => c.group));
-      if (sel.some((c) => [...c.beatenBy].some((g) => !groups.has(g)))) return; // spread rule
+      if (spread && sel.some((c) => [...c.beatenBy].some((g) => !groups.has(g)))) return; // spread rule
       out.push({ ret: sel.reduce((s, c) => s + c.ret, 0) / 10, loss: (sel.reduce((s, c) => s + c.pd, 0) / 10) * 0.6 });
       return;
     }
@@ -178,5 +179,46 @@ describe("infeasible and scarce universes never relax a rule", () => {
     const bonds = universe(5).map((b, i) => (i < 3 ? { ...b, issuer: null } : b));
     const f = await coherentFrontier(bonds, 4);
     for (const p of f.points) for (const r of p.rows) expect(r.issuer).not.toBeNull();
+  });
+});
+
+describe("versioned engine policy (spread mode, composition mode)", () => {
+  it("the default engine policy leaves cache keys and certificates exactly as they were", () => {
+    expect(engineSignature(DEFAULT_ENGINE)).toBe("");
+    expect(engineSignature({ spread: "diagnostic_only", composition: "house_window" })).toContain("diagnostic_only");
+  });
+  for (const engine of [
+    { spread: "diagnostic_only", composition: "house_window" },
+    { spread: "hard_constraint", composition: "ceiling_only" },
+    { spread: "diagnostic_only", composition: "ceiling_only" },
+  ] as EnginePolicy[]) {
+    it(`matches a full search of every legal list: ${engine.spread} + ${engine.composition}`, { timeout: 180000 }, async () => {
+      const p = engine.composition === "ceiling_only" ? { ...DEFAULT_POLICY, maxDispersion: 9, minCore: 0, minWorst: 1 } : DEFAULT_POLICY;
+      let compared = 0;
+      for (const seed of [5, 17, 41]) {
+        const bonds = universe(seed);
+        const f = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine });
+        const lists = bruteLists(bonds, 4, p, engine.spread === "hard_constraint");
+        if (!lists.length) { expect(f.points).toHaveLength(0); continue; }
+        expect(f.cert.certified).toBe(true);
+        expect(f.cert.policy).toContain(engine.spread);
+        for (const pt of f.points.filter((x) => !x.end)) {
+          const feasible = lists.filter((l) => l.ret >= pt.ytm - 1e-9);
+          expect(pt.el).toBeCloseTo(Math.min(...feasible.map((l) => l.loss)), 7);
+          compared++;
+        }
+      }
+      expect(compared).toBeGreaterThan(3);
+    });
+  }
+  it("dropping the spread rule can only widen the feasible set: never worse at any return", { timeout: 120000 }, async () => {
+    const bonds = universe(17);
+    const hard = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: DEFAULT_ENGINE });
+    const diag = await coherentFrontier(bonds, 4, DEFAULT_POLICY, 10, { engine: { spread: "diagnostic_only", composition: "house_window" } });
+    for (const pt of hard.points.filter((x) => !x.end)) {
+      const alt = diag.points.find((d) => d.ytm >= pt.ytm - 1e-9);
+      expect(alt).toBeTruthy();
+      expect(alt!.el).toBeLessThanOrEqual(pt.el + 1e-7);
+    }
   });
 });

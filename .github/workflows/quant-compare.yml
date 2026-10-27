@@ -1,0 +1,23 @@
+name: Quant policy comparison
+# Read-only. Re-runs the engine on the frozen bond data of a "Quant baseline" run (input: that run's id) under every
+# combination of spread mode (hard / diagnostic) and composition mode (house window / ceiling only). Never touches
+# the database or the live cache. Manual only.
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_run_id: { description: "Run id of a 'Quant baseline' run (its artifact holds the bond data)", required: true }
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions: { contents: read, actions: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - uses: actions/download-artifact@v4
+        with: { name: quant-baseline, path: frozen, run-id: "${{ inputs.baseline_run_id }}", github-token: "${{ github.token }}" }
+      - run: QUANT_SNAPSHOT=frozen/snapshot.json.gz QUANT_OUT=quant-out npx vite-node -c vitest.config.ts scripts/quant-compare-policies.ts
+      - uses: actions/upload-artifact@v4
+        with: { name: quant-compare, path: quant-out, retention-days: 90 }
