@@ -41,7 +41,7 @@ const page = await ctx.newPage();
 await page.addInitScript(() => localStorage.setItem("tb_cookie_consent", JSON.stringify({ necessary: true, preferences: false, statistics: false, marketing: false })));
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
-await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+await page.goto(`${BASE}/?intro=0`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector('[data-testid="term-picker"]', { timeout: 30000 });
 const ready = () => page.waitForFunction(() => document.querySelectorAll("table tbody tr:not([aria-hidden]) td.tabular-nums").length >= 10 && /\d\.\d\d%/.test(document.querySelector('[data-testid="result-boxes"]')?.textContent ?? ""), null, { timeout: 15000 });
 const pageTimes = [];
