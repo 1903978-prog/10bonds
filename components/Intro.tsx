@@ -119,7 +119,7 @@ export default function Intro({ lang, heading = true, onClose }: { lang: FinderL
       {/* Phones: the finder button sits below the story, so a way out is also on top. */}
       <button type="button" onClick={() => onClose(true)} className="-mb-2 justify-self-end text-[13px] text-accent lg:hidden">{t.skip} →</button>
       {/* Left: the chart and, at the end, the examples, laid over each other in one fixed box. */}
-      <div className="relative h-[360px] overflow-hidden rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:h-[400px] sm:p-5 lg:h-auto">
+      <div className="relative h-[360px] overflow-hidden rounded-lg border border-line bg-white p-4 sm:h-[400px] sm:p-5 lg:h-auto">
         <div className={`absolute inset-4 transition-opacity duration-1000 motion-reduce:transition-none sm:inset-5 ${k === LAST ? "pointer-events-none opacity-0" : "opacity-100"}`}>
           <IntroChart data={data} k={k} t={t} reduced={reduced} />
         </div>

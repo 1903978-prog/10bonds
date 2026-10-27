@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 // Small shared pieces for the SEO admin screens, in the same style as the main admin page.
 
-export const card = "rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6";
+export const card = "rounded-[24px] bg-white p-5 sm:p-6";
 export const input = "mt-1 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm";
 export const btn = "rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-[#0077ed] disabled:opacity-60";
 export const btnLight = "rounded-full bg-canvas px-4 py-2 text-sm font-medium hover:bg-line disabled:opacity-60";

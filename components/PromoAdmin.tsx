@@ -18,7 +18,7 @@ export default function PromoAdmin() {
     setState(r?.ok ? "saved" : "error");
   }
   return (
-    <div className="mb-3 rounded-[20px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="promo-admin">
+    <div className="mb-3 rounded-[20px] bg-white p-4" data-testid="promo-admin">
       <h2 className="text-sm font-semibold">Halloween 2026 promo</h2>
       <p className="text-[11px] text-mute">Percent off the first month of Plus, Premium and Pro, shown crossed out on the Plans page and applied by Stripe. Times are UTC (5 Nov end of day in Rome = 22:59:59Z).</p>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">

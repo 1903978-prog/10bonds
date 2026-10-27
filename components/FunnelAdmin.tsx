@@ -43,7 +43,7 @@ export default function FunnelAdmin() {
       {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">Could not load the numbers.</p>}
       {d && (
         <>
-          <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="funnel-steps">
+          <div className="rounded-[24px] bg-white p-5" data-testid="funnel-steps">
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-mute"><th className="pb-2">Step</th><th className="pb-2 text-right">Visitors</th><th className="pb-2 text-right">From previous</th><th className="pb-2 text-right">From top</th><th className="w-1/3 pb-2" /></tr></thead>
               <tbody>
@@ -60,13 +60,13 @@ export default function FunnelAdmin() {
             </table>
             <p className="mt-3 text-xs text-mute">Paying subscribers right now, from the accounts table (not from browser events): <b data-testid="paying-now">{d.payingNow}</b></p>
           </div>
-          <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+          <div className="rounded-[24px] bg-white p-5">
             <h2 className="font-semibold">Upgrade prompts and Pro</h2>
             <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
               {d.extra.map((s) => <li key={s.kind} className="flex justify-between border-t border-line py-1.5"><span>{FUNNEL_LABEL[s.kind]}</span><span className="tabular-nums">{s.visitors}</span></li>)}
             </ul>
           </div>
-          <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="funnel-countries">
+          <div className="rounded-[24px] bg-white p-5" data-testid="funnel-countries">
             <h2 className="font-semibold">Countries</h2>
             <p className="text-xs text-mute">Visitors = people who allowed statistics. Page views without statistics = anonymous daily counts. Accounts = all sign-ups. “??” = country unknown.</p>
             <table className="mt-2 w-full text-sm">
@@ -77,7 +77,7 @@ export default function FunnelAdmin() {
               </tbody>
             </table>
           </div>
-          <div className="overflow-x-auto rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+          <div className="overflow-x-auto rounded-[24px] bg-white p-5">
             <h2 className="font-semibold">Daily visitors per step</h2>
             <table className="mt-2 w-full text-xs">
               <thead><tr className="text-left text-mute"><th className="pb-2 pr-3">Day</th>{kinds.map((k) => <th key={k} className="pb-2 pr-3 text-right font-medium">{FUNNEL_LABEL[k]}</th>)}</tr></thead>

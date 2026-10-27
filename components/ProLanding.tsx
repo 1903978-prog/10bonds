@@ -13,7 +13,7 @@ export default function ProLanding({ cta }: { cta: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-4xl space-y-6" data-testid="pro-landing">
       <TrackView kind="pro_page_view" />
-      <section className="rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
+      <section className="rounded-lg border border-line bg-white p-7 sm:p-10">
         <p className="text-sm font-medium text-accent">For regulated wealth managers and family offices</p>
         <h1 className="mt-1 text-[32px] font-semibold tracking-tight sm:text-[38px]">Bond Replacement Engine</h1>
         <p className="mt-3 max-w-2xl text-[16px] text-mute">
@@ -28,7 +28,7 @@ export default function ProLanding({ cta }: { cta: React.ReactNode }) {
         <div className="mt-6">{cta}</div>
       </section>
 
-      <section className="rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="pro-demo">
+      <section className="rounded-lg border border-line bg-white p-7 sm:p-10" data-testid="pro-demo">
         <TrackView kind="pro_demo_view" />
         <h2 className="text-[22px] font-semibold tracking-tight">Demo on a sample portfolio</h2>
         <p className="mt-1 text-sm text-mute">Fictional portfolio, fictional bonds and fictional prices, only to show how the screen reads. Not real securities.</p>
@@ -71,7 +71,7 @@ export default function ProLanding({ cta }: { cta: React.ReactNode }) {
         </p>
       </section>
 
-      <section className="rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
+      <section className="rounded-lg border border-line bg-white p-7 sm:p-10">
         <h2 className="text-[22px] font-semibold tracking-tight">Access for verified professionals</h2>
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-[14px]">
           <li>Create a free account and send three details: firm name, regulator, registration number.</li>

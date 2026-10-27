@@ -34,7 +34,7 @@ export default function VisitorsAdmin() {
       {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">Could not load the visitors.</p>}
       {rows?.length === 0 && <p className="text-mute">No visitors recorded yet.</p>}
       {rows && rows.length > 0 && (
-        <div className="overflow-x-auto rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+        <div className="overflow-x-auto rounded-[24px] bg-white p-5">
           <table className="w-full text-sm" data-testid="visitors-table">
             <thead>
               <tr className="text-left text-xs text-mute">

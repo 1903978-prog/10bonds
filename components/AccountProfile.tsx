@@ -23,7 +23,7 @@ type Props = {
 };
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-const card = "rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8";
+const card = "rounded-lg border border-line bg-white p-6 sm:p-8";
 const RANK: Record<string, number> = { free: 0, plus: 1, premium: 2, pro: 3 };
 
 async function post(url: string, body: unknown): Promise<{ ok: boolean; error?: string; [k: string]: unknown }> {

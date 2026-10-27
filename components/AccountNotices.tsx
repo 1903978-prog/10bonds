@@ -113,7 +113,7 @@ export default function AccountNotices() {
         const done = () => { setWelcome(false); clearQuery(); };
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" data-testid="welcome-modal">
-          <div className="w-full max-w-md rounded-[28px] bg-white p-7 text-center shadow-[0_8px_40px_rgba(0,0,0,0.2)] sm:p-9">
+          <div className="w-full max-w-md rounded-lg border border-line bg-white p-7 text-center shadow-[0_8px_40px_rgba(0,0,0,0.2)] sm:p-9">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl">{verify ? "✉️" : "🎉"}</div>
             <h2 className="mt-4 text-[24px] font-semibold leading-tight tracking-tight">
               {verify ? "Please confirm your e-mail" : withCode ? "Your code is active!" : "Welcome to 10BONDS!"}

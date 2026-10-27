@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const card = "mx-auto max-w-xl rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-9";
+const card = "mx-auto max-w-xl rounded-lg border border-line bg-white p-7 sm:p-9";
 
 export default async function Pro() {
   const user = await currentUser();

@@ -15,7 +15,7 @@ import { sanitizeHtml } from "@/lib/seo/sanitize";
 
 // Server-rendered pages of the Brokers & Trading Fees section, shared by the /it, /fr and /de routes.
 
-const card = "rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8";
+const card = "rounded-lg border border-line bg-white p-6 sm:p-8";
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** Unpublished countries are visible to the admin only (preview). */

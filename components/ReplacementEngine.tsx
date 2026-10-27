@@ -10,7 +10,7 @@ import { SpSlot } from "./RiskBadge";
 
 type Response = EngineResult & { analysis?: PortfolioAnalysis; skipped: { line: number; text: string; why: string }[]; source: "live" | "sample"; asOf: string | null };
 
-const card = "rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-8";
+const card = "rounded-lg border border-line bg-white p-6 sm:p-8";
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(2)}%`);
 const yrs = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n.toFixed(1)} yrs`);
 const eur = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -230,7 +230,7 @@ function Compare({ label, before, after }: { label: string; before: string; afte
 function LineCard({ line }: { line: Line }) {
   if (line.action === "unknown")
     return (
-      <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+      <div className="rounded-[24px] bg-white p-5">
         <Badge tone="gray">Not covered</Badge>
         <p className="mt-2 font-mono text-sm">{line.isin} · {eur(line.amount)}</p>
         <p className="mt-1 text-sm text-mute">{line.reason}</p>
@@ -238,14 +238,14 @@ function LineCard({ line }: { line: Line }) {
     );
   if (line.action === "keep")
     return (
-      <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="pro-keep">
+      <div className="rounded-[24px] bg-white p-5" data-testid="pro-keep">
         <Badge tone="gray">No alternative</Badge>
         <BondRow b={line.sell} amount={line.amount} />
         <p className="mt-2 text-sm text-mute">{line.reason}</p>
       </div>
     );
   return (
-    <div className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6" data-testid="pro-swap">
+    <div className="rounded-[24px] bg-white p-5 sm:p-6" data-testid="pro-swap">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={line.kind === "yield" ? "green" : "blue"}>{line.kind === "yield" ? "Higher yield" : "Lower risk"}</Badge>
         <span className="text-sm text-mute">

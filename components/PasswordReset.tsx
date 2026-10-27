@@ -13,7 +13,7 @@ function useLang(): ResetLang {
   return lang;
 }
 
-const box = "mx-auto max-w-md rounded-[28px] bg-white p-7 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-9";
+const box = "mx-auto max-w-md rounded-lg border border-line bg-white p-7 sm:p-9";
 const input = "mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-[15px] outline-none focus:border-accent";
 const button = "w-full rounded-full bg-accent px-5 py-3 text-[15px] font-medium text-white transition hover:bg-[#0077ed] disabled:opacity-60";
 

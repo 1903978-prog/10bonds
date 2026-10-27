@@ -3,7 +3,7 @@ import { riskColor } from "@/components/RiskBadge";
 /** Highlight block at the top of a country or company page: tile, name, the 10bonds.com rating in an oval, and the 1-10 scale. */
 export default function RatingHeader({ tile, name, sub, score, risk }: { tile: string; name: string; sub: string; score: number; risk: number }) {
   return (
-    <section className="rounded-2xl bg-white px-4 py-3 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="rating-header">
+    <section className="rounded-2xl bg-white px-4 py-3" data-testid="rating-header">
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ink text-[13px] font-bold tracking-widest text-white">{tile}</span>
         <div className="min-w-0">

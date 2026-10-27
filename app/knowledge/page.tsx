@@ -56,7 +56,7 @@ export default async function KnowledgePage() {
       />
       <div className="mt-8 space-y-6">
         {KC_ORDER.map((sec) => (
-          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-6">
+          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 sm:p-6">
             <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
             <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
             {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (

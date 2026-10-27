@@ -40,7 +40,7 @@ export default async function RankingMethodology({ searchParams }: { searchParam
   const rows = [...byRisk.entries()].sort((x, y) => x[0] - y[0]).map(([risk, bps]) => ({ risk, lo: Math.min(...bps), hi: Math.max(...bps) }));
   const top = (risk: number) => rows.find((r) => r.risk === risk)?.hi ?? 0;
   const v = { version: curve.version, min: curve.minMaturity, max: curve.maxMaturity, floorRisk: riskOfNotch(notchOf(curve.floor)) ?? "–", exceptional: curve.exceptionalBp, a: top(2), b: top(4), diff: top(4) - top(2), sd: sd.toFixed(1) };
-  const card = "overflow-hidden rounded-2xl bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
+  const card = "overflow-hidden rounded-2xl bg-white";
   const head = "px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-mute";
 
   return (

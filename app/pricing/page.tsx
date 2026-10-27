@@ -77,7 +77,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
         {PLANS.map((p) => (
           <div
             key={p.name}
-            className={`flex flex-col rounded-[20px] bg-white p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] ${p.highlight ? "ring-2 ring-accent" : ""}`}
+            className={`flex flex-col rounded-[20px] bg-white p-5 ${p.highlight ? "ring-2 ring-accent" : ""}`}
           >
             <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               {p.name}

@@ -8,7 +8,7 @@ type Row = {
 };
 type Key = "email" | "username" | "plan" | "promoCode" | "createdAt" | "emailConfirmed" | "lastSeenAt" | "secondsOnSite" | "searches" | "cameFrom" | "country";
 
-const card = "rounded-[24px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]";
+const card = "rounded-[24px] bg-white p-6";
 const day = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const when = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 const plan = (r: Row) => (r.premiumUntil && r.plan !== "premium" && r.plan !== "pro" ? `premium (code, until ${day(r.premiumUntil)})` : r.plan);

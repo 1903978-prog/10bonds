@@ -52,7 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang}>
       <body className="font-sans">
-        <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
+        <header className="sticky top-0 z-20 border-b border-line bg-white">
           <nav className="header-wide mx-auto flex h-14 min-w-0 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>
             <div className="ml-2 flex items-center gap-1.5 text-[13px] text-mute sm:ml-3 sm:gap-5 sm:text-sm">

@@ -9,7 +9,7 @@ export default function PageError({ error, reset }: { error: Error & { digest?: 
     console.error("[page]", error.digest ?? "", error.message);
   }, [error]);
   return (
-    <div className="mx-auto max-w-xl rounded-[28px] bg-white p-8 text-center shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+    <div className="mx-auto max-w-xl rounded-lg border border-line bg-white p-8 text-center">
       <h1 className="text-2xl font-semibold tracking-tight">Something went wrong</h1>
       <p className="mt-3 text-mute">This page could not load. Please try again in a moment.</p>
       <div className="mt-6 flex justify-center gap-3">
