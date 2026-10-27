@@ -583,9 +583,9 @@ constraints
   app.seo_shares seo_shares_guide_id_fkey: FOREIGN KEY (guide_id) REFERENCES app.seo_guides(id) ON DELETE SET NULL
   app.seo_shares seo_shares_pkey: PRIMARY KEY (id)
   app.settings settings_pkey: PRIMARY KEY (key)
+  app.shortlist_seeds shortlist_seeds_pkey: PRIMARY KEY (key)
   app.shortlists shortlists_name_key: UNIQUE (name)
   app.shortlists shortlists_pkey: PRIMARY KEY (id)
-  app.shortlist_seeds shortlist_seeds_pkey: PRIMARY KEY (key)
   app.trial_codes trial_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.trial_codes trial_codes_pkey: PRIMARY KEY (code)
   app.trial_codes trial_codes_redeemed_by_fkey: FOREIGN KEY (redeemed_by) REFERENCES app.users(id) ON DELETE SET NULL

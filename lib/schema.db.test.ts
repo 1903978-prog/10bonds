@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 // The database design is tracked in git: docs/database-schema.txt is what the app's setup code builds in schema "app".
 // CI runs this against an empty Postgres (twice, so setup must be repeatable); any table, column, rule or index change
 // without the matching change to that file fails the build. Locally: TEST_ACCOUNTS_DATABASE_URL=postgres://... npm test
-// To accept a deliberate change: add UPDATE_SCHEMA=1 to that command and commit the file.
+// To accept a deliberate change: npm run schema:update (needs TEST_ACCOUNTS_DATABASE_URL) and commit the file.
+// Everything is sorted with collation "C", so the file is the same on any Postgres whatever its language setting
+// (a database sorting in en_US puts shortlists before shortlist_seeds, a C one the other way round).
 const url = process.env.TEST_ACCOUNTS_DATABASE_URL;
 const FILE = path.join(__dirname, "..", "docs", "database-schema.txt");
 
@@ -45,11 +47,11 @@ async function buildAll() {
 async function describeSchema(sql: Awaited<ReturnType<typeof buildAll>>): Promise<string> {
   const cols = await sql`
     select table_name t, column_name c, data_type d, is_nullable n, column_default x
-    from information_schema.columns where table_schema = 'app' order by table_name, ordinal_position`;
+    from information_schema.columns where table_schema = 'app' order by table_name collate "C", ordinal_position`;
   const cons = await sql`
     select conrelid::regclass::text t, conname n, pg_get_constraintdef(oid) d
-    from pg_constraint where connamespace = 'app'::regnamespace order by 1, 2`;
-  const idx = await sql`select tablename t, indexdef d from pg_indexes where schemaname = 'app' order by 1, 2`;
+    from pg_constraint where connamespace = 'app'::regnamespace order by conrelid::regclass::text collate "C", conname collate "C"`;
+  const idx = await sql`select tablename t, indexdef d from pg_indexes where schemaname = 'app' order by tablename collate "C", indexdef collate "C"`;
   const lines: string[] = [];
   let table = "";
   for (const r of cols) {
