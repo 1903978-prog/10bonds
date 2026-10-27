@@ -17,6 +17,8 @@ export default function EmailDomainCard() {
       <h2 className="text-lg font-semibold">Confirmation e-mails</h2>
       {!s.configured ? (
         <p className="mt-2 text-sm text-mute">Off: no Resend key on the server yet.</p>
+      ) : s.status === "send-only" ? (
+        <p className="mt-2 text-sm text-mute">On: sending from {s.domain}. The server key can only send, so Resend’s domain status cannot be read here; the list below shows what each send returned.</p>
       ) : s.status === "verified" ? (
         <p className="mt-2 text-sm text-mute">On: sending from {s.domain} (verified).</p>
       ) : (
