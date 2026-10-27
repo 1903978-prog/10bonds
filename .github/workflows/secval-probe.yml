@@ -7,7 +7,7 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 15
     steps:
       - name: Wait for the deploy to land
         run: sleep 420
