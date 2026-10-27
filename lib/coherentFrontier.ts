@@ -355,4 +355,12 @@ export async function bestInBand(cands: Cand[], p: CoherencePolicy, duration: nu
 }
 export type BandCand = Cand;
 export const newCertificate = (): Certificate => ({ policy: "bands", solves: 0, optimal: 0, infeasible: 0, uncertified: 0, absGap: TOL, relGap: 0, seconds: 0, certified: true });
-export { listOf as listOfCands };
+export { listOf as listOfCands, lossOf as lossOfCands, retOf as retOfCands, TOL as SOLVER_TOL };
+/** One exact solve under the regular rules with no rating window (only the ceiling), optionally inside an average-risk band, a return floor or a loss cap. 30-band mode only. */
+export async function solveFree(cands: Cand[], p: CoherencePolicy, duration: number, spec: { objective: "loss" | "ret"; retMin?: number; lossMax?: number; riskBand?: { lo: number; hi: number } }, stats: Certificate): Promise<{ status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] }> {
+  return solve(cands, LIMITS.risk.max, { ...p, maxDispersion: 9, minCore: 0, minWorst: 0 }, duration, spec, stats);
+}
+/** The two approved slider ends (low-risk end with as many risk 1 bonds as exist, and the maximum-yield end), built under their own end rules. */
+export async function approvedEnds(cands: Cand[], duration: number, stats: Certificate): Promise<{ low: Cand[] | null; high: Cand[] | null }> {
+  return { low: await lowEnd(cands, duration, stats), high: await highEnd(cands, duration, LIMITS.risk.max, stats) };
+}
