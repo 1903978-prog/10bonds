@@ -10,7 +10,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 2,
@@ -23,7 +24,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 3,
@@ -36,7 +38,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 4,
@@ -49,7 +52,10 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "data-feed",
-  "next": "Needs the nightly op-model feed to fill the flag; add a live coverage check"
+  "next": "Needs the nightly op-model feed to fill the flag; add a live coverage check",
+  "needs": [
+   "data"
+  ]
  },
  {
   "id": 5,
@@ -62,7 +68,10 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "approval",
-  "next": "Auto yield-outlier removal contradicts paper; change to flag-only needs owner approval"
+  "next": "Auto yield-outlier removal contradicts paper; change to flag-only needs owner approval",
+  "needs": [
+   "approval"
+  ]
  },
  {
   "id": 6,
@@ -75,7 +84,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 7,
@@ -88,7 +98,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 8,
@@ -101,7 +112,11 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "data",
-  "next": "Call schedules not in the data; build yield/duration-to-worst code, flag missing"
+  "next": "Call schedules not in the data; build yield/duration-to-worst code, flag missing",
+  "needs": [
+   "code",
+   "data"
+  ]
  },
  {
   "id": 9,
@@ -114,7 +129,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 10,
@@ -127,7 +143,11 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "code+data",
-  "next": "Public USD Treasury curve; add as diagnostic benchmark"
+  "next": "Public USD Treasury curve; add as diagnostic benchmark",
+  "needs": [
+   "code",
+   "data"
+  ]
  },
  {
   "id": 11,
@@ -140,7 +160,11 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "data+legal",
-  "next": "ESMA CEREP / KBRA ingestion; legal review of reuse"
+  "next": "ESMA CEREP / KBRA ingestion; legal review of reuse",
+  "needs": [
+   "data",
+   "legal"
+  ]
  },
  {
   "id": 12,
@@ -153,7 +177,11 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "data+legal",
-  "next": "Sovereign table needs rating-conditional denominators"
+  "next": "Sovereign table needs rating-conditional denominators",
+  "needs": [
+   "data",
+   "legal"
+  ]
  },
  {
   "id": 13,
@@ -166,7 +194,10 @@
   "B": "P",
   "builtOff": "I",
   "blocker": "approval",
-  "next": "v2 hazard built, off; enabling changes live risk numbers"
+  "next": "v2 hazard built, off; enabling changes live risk numbers",
+  "needs": [
+   "approval"
+  ]
  },
  {
   "id": 14,
@@ -179,7 +210,11 @@
   "B": "M",
   "builtOff": "P",
   "blocker": "approval",
-  "next": "v2 flags tail beyond 15y; band still missing"
+  "next": "v2 flags tail beyond 15y; band still missing",
+  "needs": [
+   "approval",
+   "data"
+  ]
  },
  {
   "id": 15,
@@ -192,7 +227,11 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "data",
-  "next": "CEREP transitions; experimental only"
+  "next": "CEREP transitions; experimental only",
+  "needs": [
+   "data",
+   "legal"
+  ]
  },
  {
   "id": 16,
@@ -205,7 +244,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 17,
@@ -218,7 +258,11 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "data+licence",
-  "next": "Recovery data per ISIN: quotes or public prospectus extraction"
+  "next": "Recovery data per ISIN: quotes or public prospectus extraction",
+  "needs": [
+   "data",
+   "licence"
+  ]
  },
  {
   "id": 18,
@@ -231,7 +275,11 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "approval",
-  "next": "Needs v2 loss + coupon timing; changes live numbers"
+  "next": "Needs v2 loss + coupon timing; changes live numbers",
+  "needs": [
+   "approval",
+   "data"
+  ]
  },
  {
   "id": 19,
@@ -244,7 +292,10 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "data",
-  "next": "Needs calibrated stress recovery"
+  "next": "Needs calibrated stress recovery",
+  "needs": [
+   "data"
+  ]
  },
  {
   "id": 20,
@@ -257,7 +308,11 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "data",
-  "next": "No call data; add YTW code and 'not assessed' flag"
+  "next": "No call data; add YTW code and 'not assessed' flag",
+  "needs": [
+   "code",
+   "data"
+  ]
  },
  {
   "id": 21,
@@ -270,7 +325,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 22,
@@ -283,7 +339,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 23,
@@ -296,7 +353,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 24,
@@ -310,7 +368,10 @@
   "builtOff": "P",
   "blocker": "code",
   "next": "Floors reproduce 5y values; other horizons need an approved AAA anchor",
-  "note": "lib/spreadDiagnostics.ts, in admin manifest"
+  "note": "lib/spreadDiagnostics.ts, in admin manifest",
+  "needs": [
+   "approval"
+  ]
  },
  {
   "id": 25,
@@ -324,7 +385,11 @@
   "builtOff": "M",
   "blocker": "code",
   "next": "Diagnostic code; no inference of PD from spreads",
-  "note": "Below BB / 11-30y are labelled 'not assessed' (honest state) but not estimated; needs hazard evidence"
+  "note": "Below BB / 11-30y are labelled 'not assessed' (honest state) but not estimated; needs hazard evidence",
+  "needs": [
+   "code",
+   "data"
+  ]
  },
  {
   "id": 26,
@@ -337,7 +402,11 @@
   "B": "M",
   "builtOff": "P",
   "blocker": "data",
-  "next": "Built, illustrative; needs calibration evidence"
+  "next": "Built, illustrative; needs calibration evidence",
+  "needs": [
+   "data",
+   "approval"
+  ]
  },
  {
   "id": 27,
@@ -350,7 +419,11 @@
   "B": "M",
   "builtOff": "P",
   "blocker": "approval",
-  "next": "Built, off; budget must be approved (1A)"
+  "next": "Built, off; budget must be approved (1A)",
+  "needs": [
+   "approval",
+   "data"
+  ]
  },
  {
   "id": 28,
@@ -363,7 +436,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 29,
@@ -376,7 +450,10 @@
   "B": "P",
   "builtOff": "P",
   "blocker": "code",
-  "next": "Revalidation runs per admin request only; run it for every served list in the rebuild job"
+  "next": "Revalidation runs per admin request only; run it for every served list in the rebuild job",
+  "needs": [
+   "code"
+  ]
  },
  {
   "id": 30,
@@ -390,7 +467,8 @@
   "builtOff": "I",
   "blocker": "",
   "next": "",
-  "note": "Computed for every served list; returned to paid API users and in the admin manifest; not shown on the page"
+  "note": "Computed for every served list; returned to paid API users and in the admin manifest; not shown on the page",
+  "needs": []
  },
  {
   "id": 31,
@@ -403,7 +481,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 32,
@@ -416,7 +495,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 33,
@@ -429,7 +509,10 @@
   "B": "P",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": [
+   "code"
+  ]
  },
  {
   "id": 34,
@@ -442,7 +525,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 35,
@@ -455,7 +539,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 36,
@@ -468,7 +553,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 37,
@@ -481,7 +567,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 38,
@@ -494,7 +581,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 39,
@@ -507,7 +595,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 40,
@@ -520,7 +609,8 @@
   "B": "I",
   "builtOff": "P",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 41,
@@ -533,7 +623,10 @@
   "B": "P",
   "builtOff": "D",
   "blocker": "code",
-  "next": "Report ceiling/band per position"
+  "next": "Report ceiling/band per position",
+  "needs": [
+   "code"
+  ]
  },
  {
   "id": 42,
@@ -547,7 +640,8 @@
   "builtOff": "I",
   "blocker": "",
   "next": "",
-  "note": "Admin response carries a full manifest (PR: run manifest); not yet stored in a table"
+  "note": "Admin response carries a full manifest (PR: run manifest); not yet stored in a table",
+  "needs": []
  },
  {
   "id": 43,
@@ -560,7 +654,12 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "data",
-  "next": "Needs historical point-in-time data"
+  "next": "Needs historical point-in-time data",
+  "needs": [
+   "data",
+   "licence",
+   "code"
+  ]
  },
  {
   "id": 44,
@@ -573,7 +672,8 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  },
  {
   "id": 45,
@@ -587,7 +687,10 @@
   "builtOff": "P",
   "blocker": "code",
   "next": "Stability study (eq. 37) written; run on frozen data, then count as Implemented if results are published",
-  "note": "scripts/quant-stability.ts, workflow Quant stability study"
+  "note": "scripts/quant-stability.ts, workflow Quant stability study",
+  "needs": [
+   "code"
+  ]
  },
  {
   "id": 46,
@@ -600,7 +703,10 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "data",
-  "next": "Needs default observations"
+  "next": "Needs default observations",
+  "needs": [
+   "data"
+  ]
  },
  {
   "id": 47,
@@ -613,7 +719,10 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "code",
-  "next": "Price-risk horizon analysis"
+  "next": "Price-risk horizon analysis",
+  "needs": [
+   "code"
+  ]
  },
  {
   "id": 48,
@@ -626,6 +735,7 @@
   "B": "I",
   "builtOff": "I",
   "blocker": "",
-  "next": ""
+  "next": "",
+  "needs": []
  }
 ]

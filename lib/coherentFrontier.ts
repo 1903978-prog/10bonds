@@ -86,7 +86,7 @@ export function listCvar(ctx: CvarCtx, ci: Set<number>): number {
   return sum / tail;
 }
 
-type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number; /** The two ends of the slider: no spread rule, and at least this many risk 1 bonds. */ end?: { minRisk1: number } };
+type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number; /** 30-band mode: average risk class of the list within [lo, hi]. */ riskBand?: { lo: number; hi: number }; /** The two ends of the slider: no spread rule, and at least this many risk 1 bonds. */ end?: { minRisk1: number } };
 type Outcome = { status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] };
 
 export function candidatesOf(bonds: PublicBond[], duration: number, spreadRule = true): Cand[] {
@@ -129,6 +129,10 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   add("dhi", sum(all, (i) => cs[i].dur), "<=", N * duration * 1.05);
   if (spec.retMin !== undefined) add("ret", sum(all, (i) => cs[i].ret), ">=", spec.retMin * N);
   if (spec.lossMax !== undefined) add("los", sum(all, (i) => cs[i].pd), "<=", spec.lossMax);
+  if (spec.riskBand) {
+    add("rlo", sum(all, (i) => cs[i].cls), ">=", spec.riskBand.lo * N - 1e-9);
+    add("rhi", sum(all, (i) => cs[i].cls), "<=", spec.riskBand.hi * N + 1e-9);
+  }
   add("core", sum(all.filter((i) => cs[i].cls >= m - 1), () => 1), ">=", p.minCore);
   add("worst", sum(all.filter((i) => cs[i].cls === m), () => 1), ">=", p.minWorst);
   if (spec.end) add("risk1", sum(all.filter((i) => cs[i].cls === 1), () => 1), ">=", spec.end.minRisk1);
@@ -335,3 +339,20 @@ export async function coherentFrontier(bonds: PublicBond[], duration: number, p:
   }
   return out;
 }
+
+/**
+ * 30-BAND MODE (owner 27/10/2026, separate from the live slider; nothing in production calls it): the highest-return list of 10 whose AVERAGE risk
+ * class lies in [lo, hi], under the given policy (one bond per issuer group, durations, sector / loss-share / weak-bond caps, ceiling). Among lists with the
+ * same maximum return (within the solver tolerance) the one with the least expected loss. null = no list exists in the band under this policy.
+ * The policy's rating window and worst-class rules are not used here: the band itself fixes the average risk.
+ */
+export async function bestInBand(cands: Cand[], p: CoherencePolicy, duration: number, band: { lo: number; hi: number }, stats: Certificate): Promise<{ status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] }> {
+  const q: CoherencePolicy = { ...p, maxDispersion: 9, minCore: 0, minWorst: 0 };
+  const top = await solve(cands, LIMITS.risk.max, q, duration, { objective: "ret", riskBand: band }, stats);
+  if (top.status === "infeasible" || !top.sel.length) return top;
+  const r2 = await solve(cands, LIMITS.risk.max, q, duration, { objective: "loss", retMin: retOf(top.sel) - 1e-7, riskBand: band }, stats);
+  return r2.sel.length && r2.status === "optimal" ? r2 : top;
+}
+export type BandCand = Cand;
+export const newCertificate = (): Certificate => ({ policy: "bands", solves: 0, optimal: 0, infeasible: 0, uncertified: 0, absGap: TOL, relGap: 0, seconds: 0, certified: true });
+export { listOf as listOfCands };
