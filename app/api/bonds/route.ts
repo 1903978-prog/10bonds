@@ -7,7 +7,7 @@ import { shapeForTier, tierFeatures } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
 import { simulateCached } from "@/lib/monteCarlo";
 import { lgdOf } from "@/lib/seniority";
-import { bondNotch, bondRisk } from "@/lib/ratings";
+import { bondNotch } from "@/lib/ratings";
 import type { RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
@@ -21,7 +21,7 @@ import { activeFallback } from "@/lib/enginePolicy";
 import { buildManifest } from "@/lib/runManifest";
 import { simulatePortfolio } from "@/lib/monteCarlo";
 import { listLifeLoss } from "@/lib/expectedLoss";
-import { pdOf } from "@/lib/tiers";
+import { mcBondOf, pdOf } from "@/lib/tiers";
 import { bundCurve } from "@/lib/riskPremium/benchmark";
 import { spreadDiagnostic } from "@/lib/spreadDiagnostics";
 import { lifeYears } from "@/lib/lifeYears";
@@ -148,7 +148,7 @@ export async function GET(req: Request) {
     ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
     : undefined;
   // A real Monte Carlo run of defaults on this top 10 over the chosen horizon. Its averages come with "portfolio_sim".
-  const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b) })), duration);
+  const sim = simulateCached(`${data.asOf}|${duration}|${results.map((b) => `${b.isin}:${b.grossYtm}`).join(",")}`, results.map((b) => mcBondOf(b, duration)), duration);
   // Every bond searched numbered 1..N in alphabetical order (issuer, then name, then ISIN); the show on the page counts up to each pick's number.
   const abc = [...data.bonds].sort((a, b) => (a.issuer ?? a.name).localeCompare(b.issuer ?? b.name, "en") || a.name.localeCompare(b.name, "en") || a.isin.localeCompare(b.isin));
   const place = new Map(abc.map((b, i) => [b.isin, i + 1]));
@@ -160,7 +160,7 @@ export async function GET(req: Request) {
   // Admin only (internal audit): complete record of this run, plus a re-test of the same list on an independent simulation (other seed).
   const manifest = user?.isAdmin
     ? (() => {
-        const re = simulatePortfolio(results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b) })), duration, 1_000_000, 2);
+        const re = simulatePortfolio(results.map((b) => mcBondOf(b, duration)), duration, 1_000_000, 2);
         const avg = (f: (b: RankedBond) => number | null | undefined) => (results.length ? results.reduce((s, b) => s + (f(b) ?? 0), 0) / results.length : null);
         const bund = bundCurve(data.bonds, data.asOf).points;
         return buildManifest({
