@@ -19,7 +19,7 @@ export function Metric({ header, row }: { header: string[]; row: string[] }) {
   const max = Math.max(Math.abs(a ?? 0), Math.abs(b ?? 0), 1);
   const tone = fav === null ? "text-mute" : fav ? "text-[#067647]" : "text-[#b54708]";
   return (
-    <div className="rounded-3xl border border-line bg-white p-6 sm:p-7" data-testid="fin-metric">
+    <div className="rounded-lg border border-line bg-white p-6 sm:p-7" data-testid="fin-metric">
       <p className="text-[15px] font-medium text-mute">{row[0]}</p>
       <p className="mt-2 text-[40px] font-semibold leading-none tracking-tight tabular-nums sm:text-[44px]">{row[2]}</p>
       <p className="mt-2 text-[15px] text-mute">

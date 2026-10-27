@@ -31,7 +31,7 @@ export default async function SelectionMethodology({ searchParams }: { searchPar
   const sd = await currentOutlierSd();
   const num = (n: number) => new Intl.NumberFormat(lang).format(n);
   const v = { window: DURATION_WINDOW * 100, lgd: LOSS_GIVEN_DEFAULT * 100, recovery: MC_RECOVERY * 100, paths: num(MC_PATHS), peers: OUTLIER_MIN_PEERS, sd: num(sd) };
-  const card = "overflow-hidden rounded-2xl bg-white";
+  const card = "overflow-hidden rounded-lg border border-line bg-white";
   const head = "px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-mute";
 
   return (

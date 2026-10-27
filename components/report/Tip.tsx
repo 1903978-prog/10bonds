@@ -11,7 +11,7 @@ export default function Tip({ term, children, right }: { term: string; children:
       </button>
       <span
         role="tooltip"
-        className={`pointer-events-none absolute hidden top-full z-30 mt-2 w-[260px] max-w-[calc(100vw-4rem)] rounded-2xl bg-ink px-4 py-3 text-left text-[14px] font-normal normal-case leading-snug tracking-normal text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)] group-hover:block group-focus-within:block ${right ? "right-0" : "left-0"}`}
+        className={`pointer-events-none absolute hidden top-full z-30 mt-2 w-[260px] max-w-[calc(100vw-4rem)] rounded-lg bg-ink px-4 py-3 text-left text-[14px] font-normal normal-case leading-snug tracking-normal text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)] group-hover:block group-focus-within:block ${right ? "right-0" : "left-0"}`}
       >
         {children}
       </span>

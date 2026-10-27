@@ -36,7 +36,7 @@ export function ReportAuthDialog({ isin, title }: { isin: string; title: string 
       aria-labelledby="report-auth-h"
       data-testid="report-auth"
       onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}
-      className="m-auto w-[calc(100vw-32px)] max-w-[440px] rounded-[24px] border border-line bg-white p-0 text-ink shadow-[0_8px_40px_rgba(0,0,0,0.18)] backdrop:bg-black/40 print:hidden"
+      className="m-auto w-[calc(100vw-32px)] max-w-[440px] rounded-lg border border-line bg-white p-0 text-ink shadow-[0_8px_40px_rgba(0,0,0,0.18)] backdrop:bg-black/40 print:hidden"
     >
       <div className="p-6 sm:p-8">
         <h2 id="report-auth-h" className="text-[24px] font-semibold leading-tight tracking-tight">Keep {title} under watch</h2>

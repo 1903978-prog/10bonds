@@ -1051,7 +1051,7 @@ function MoreFilters({ label, summary, children }: { label: string; summary: str
         {label} <span className="text-mute/70">· {summary}</span> <span aria-hidden>{open ? "▴" : "▾"}</span>
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-2xl border border-line/70 bg-white p-3 shadow-lg [&>div]:mt-0">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border border-line/70 bg-white p-3 shadow-lg [&>div]:mt-0">
           {children}
         </div>
       )}
@@ -1063,7 +1063,7 @@ function MoreFilters({ label, summary, children }: { label: string; summary: str
 function SliderCheck({ positions, onClose }: { positions: SliderPosition[]; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-[1100px] overflow-auto rounded-2xl border border-amber-300 bg-amber-50 p-4 text-[11px] text-amber-900" onClick={(e) => e.stopPropagation()} data-testid="slider-check">
+      <div className="max-h-[90vh] w-full max-w-[1100px] overflow-auto rounded-lg border border-amber-300 bg-amber-50 p-4 text-[11px] text-amber-900" onClick={(e) => e.stopPropagation()} data-testid="slider-check">
         <div className="mb-2 flex items-center justify-between">
           <div className="text-[13px] font-semibold">{positions.length} slider positions along the frontier (same ranking as every search, max 2 bonds at B+ or below)</div>
           <button type="button" onClick={onClose} className="rounded-full border border-amber-300 px-2">Close</button>
@@ -1102,7 +1102,7 @@ function TermPicker({ value, onChange }: { value: string | null; onChange: (dura
   return (
     <div className="mt-3 sm:mt-4" data-tip="horizon">
       <div className="text-[14px] font-semibold">{t.horizon}</div>
-      <div role="radiogroup" aria-label={t.horizon} data-testid="term-picker" className="mt-2 grid grid-cols-3 rounded-2xl bg-canvas p-1">
+      <div role="radiogroup" aria-label={t.horizon} data-testid="term-picker" className="mt-2 grid grid-cols-3 rounded-lg bg-canvas p-1">
         {TERMS.map((x) => (
           <button
             key={x.key}
@@ -1514,7 +1514,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       {/* Phone cards */}
       <ul className="space-y-2 sm:hidden">
         {rows.map((r, i) => (
-          <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-2xl border border-line/70 px-4${hide(i)}`} style={{ height: CARD_H }}>
+          <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-lg border border-line/70 px-4${hide(i)}`} style={{ height: CARD_H }}>
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</div>
@@ -1536,7 +1536,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
           </li>
         ))}
         {Array.from({ length: locked }).map((_, i) => (
-          <li key={`l${i}`} aria-hidden className={`flex select-none items-center gap-3 rounded-2xl border border-line/70 px-4 blur-[5px]${hide(rows.length + i)}`} style={{ height: CARD_H }}>
+          <li key={`l${i}`} aria-hidden className={`flex select-none items-center gap-3 rounded-lg border border-line/70 px-4 blur-[5px]${hide(rows.length + i)}`} style={{ height: CARD_H }}>
             <span className="h-3 w-4 rounded bg-line" />
             <span className="h-3 flex-1 rounded bg-line" />
             <span className="h-3 w-12 rounded bg-line" />
@@ -1559,7 +1559,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       )}
       {panel?.kind === "gpt" && admin && <GptPastePanel onSaved={() => setPanel(null)} onClose={() => setPanel(null)} />}
       {message && (
-        <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center sm:top-[30px]">
+        <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-lg bg-canvas p-6 text-center sm:top-[30px]">
           {message}
         </div>
       )}
@@ -1612,7 +1612,7 @@ function ExcelUpsell({ onClose }: { onClose: () => void }) {
   const t = useFinderText();
   return (
     <div role="dialog" aria-modal="true" aria-label={t.excelUpTitle} data-testid="excel-upsell" onClick={onClose} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xs whitespace-normal rounded-2xl bg-white p-5 text-center shadow-xl">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xs whitespace-normal rounded-lg border border-line bg-white p-5 text-center shadow-xl">
         <p className="text-base font-semibold text-ink">{t.excelUpTitle}</p>
         <p className="mt-1 text-sm text-mute">{t.excelUpBody}</p>
         <Link href="/pricing" className="mt-4 block rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">{t.upgrade}</Link>
@@ -1749,7 +1749,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
           )}
         </ul>
         {message && (
-          <div className="absolute inset-x-0 bottom-0 top-6 flex flex-col items-center justify-center rounded-2xl bg-canvas p-6 text-center">{message}</div>
+          <div className="absolute inset-x-0 bottom-0 top-6 flex flex-col items-center justify-center rounded-lg bg-canvas p-6 text-center">{message}</div>
         )}
         {panel !== null && data && canEdit && rows[panel] && (
           <SwapPanel
@@ -2019,7 +2019,7 @@ function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false, tip }:
 function PanelShell({ title, onClose, children }: { title: ReactNode; onClose: () => void; children: ReactNode }) {
   const t = useFinderText();
   return (
-    <div className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-3" role="dialog" aria-label={typeof title === "string" ? title : undefined}>
+    <div className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-lg border border-line bg-white p-3" role="dialog" aria-label={typeof title === "string" ? title : undefined}>
       <div className="flex h-7 shrink-0 items-center justify-between gap-3">
         <div className="min-w-0 truncate text-sm font-semibold">{title}</div>
         <button type="button" onClick={onClose} aria-label={t.close} className="h-7 w-7 shrink-0 rounded-full text-mute hover:bg-canvas">✕</button>

@@ -97,7 +97,7 @@ export default function SeoAdmin() {
       <ErrorNote error={summaryError} />
       <SearchKpis />
       <History />
-      <div className="flex flex-wrap items-center gap-2 rounded-[20px] bg-white px-4 py-3" aria-label="Reports">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-white px-4 py-3" aria-label="Reports">
         <span className="text-xs text-mute">Open the reports:</span>
         {REPORTS.map(([label, href]) => (
           <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="rounded-full bg-canvas px-3 py-1.5 text-sm hover:bg-line">{label} ↗</a>
@@ -122,7 +122,7 @@ export default function SeoAdmin() {
         </div>
       )}
       {usUk && (tab === "guides" || tab === "performance") && (
-        <p className="rounded-[20px] bg-white px-5 py-4 text-sm text-mute">
+        <p className="rounded-lg border border-line bg-white px-5 py-4 text-sm text-mute">
           The US and UK are tracked through their keywords and Google rankings (English pages, searches from that country). This tab covers Italy, France and Germany only.
         </p>
       )}

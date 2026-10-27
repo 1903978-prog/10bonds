@@ -323,7 +323,7 @@ function Examples({ data, t }: { data: IntroData | null; t: (typeof INTRO_TEXT)[
   return (
     <div className="flex snap-x gap-3 overflow-x-auto lg:grid lg:grid-cols-3 lg:overflow-visible" data-testid="intro-examples">
       {ex.map((e) => (
-        <div key={e.duration} className="w-[230px] shrink-0 snap-start rounded-2xl bg-canvas p-3 lg:w-auto lg:p-4">
+        <div key={e.duration} className="w-[230px] shrink-0 snap-start rounded-lg bg-canvas p-3 lg:w-auto lg:p-4">
           <p className="text-[13px] font-semibold">{t.example(e.duration, e.risk)}</p>
           <ol className="mt-2 space-y-1 lg:mt-3 lg:space-y-2">
             {Array.from({ length: 10 }, (_, i) => {

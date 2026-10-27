@@ -26,7 +26,7 @@ export default function YieldCurveChart({ locale, text, curves, initial }: { loc
   const shown = curves.filter((c) => on.includes(c.country)).map((c) => ({ ...c, points: c.points.filter((p) => p.year <= last) })).filter((c) => c.points.length);
   const all = shown.flatMap((c) => c.points);
 
-  if (!curves.length) return <p className="mt-6 rounded-2xl bg-white p-6 text-mute">{text.empty}</p>;
+  if (!curves.length) return <p className="mt-6 rounded-lg border border-line bg-white p-6 text-mute">{text.empty}</p>;
 
   const x0 = all.length ? Math.min(...all.map((p) => p.year)) : first;
   const x1 = all.length ? Math.max(...all.map((p) => p.year), x0 + 1) : first + 10;

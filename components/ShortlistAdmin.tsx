@@ -99,7 +99,7 @@ export default function ShortlistAdmin() {
       {err && <p className="mt-3 text-red-600" role="alert">{err}</p>}
 
       {edit && (
-        <div className="mt-4 max-w-2xl rounded-2xl border border-amber-300 bg-amber-50 p-3" data-testid="shortlist-form">
+        <div className="mt-4 max-w-2xl rounded-lg border border-amber-300 bg-amber-50 p-3" data-testid="shortlist-form">
           <label className="block text-xs text-mute">Name
             <input value={edit.name} maxLength={60} onChange={(e) => setEdit({ ...edit, name: e.target.value })} className="mt-1 block w-48 rounded-lg border border-line bg-white px-2 py-1 text-sm text-ink" />
           </label>
@@ -208,7 +208,7 @@ function BidCells({ r, onSave }: { r: ShortlistRow; onSave: (v: number | null) =
 /** The yellow summary bar of one portfolio: name, average return, duration, risk, expected loss on your money and bonds counted. Same bar for every list on the page. */
 function SummaryBar({ name, sm, of, className = "", testId = "shortlist-kpis", children }: { name: string; sm: ShortlistSummary; of: number; className?: string; testId?: string; children?: React.ReactNode }) {
   return (
-    <div className={`flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 ${className}`} data-testid={testId}>
+    <div className={`flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 ${className}`} data-testid={testId}>
       <span className="text-base font-semibold">{name}</span>
       <Kpi label="Avg return (YTM)" value={pct(sm.avgYtm)} />
       <Kpi label="Avg duration" value={sm.avgDuration == null ? "–" : `${sm.avgDuration.toFixed(2)} yrs`} />
@@ -271,7 +271,7 @@ function Compare({ id, onOverlap }: { id: number; onOverlap: (isins: string[]) =
   const rows = d && a && b ? compareRows(d.diff, a, b) : [];
   const inp = "mt-0.5 block w-20 rounded-lg border border-line bg-white px-2 py-1 text-sm text-ink";
   return (
-    <div className="mt-4 rounded-2xl border border-amber-300 bg-white p-3" data-testid="shortlist-compare">
+    <div className="mt-4 rounded-lg border border-amber-300 bg-white p-3" data-testid="shortlist-compare">
       <div className="flex flex-wrap items-end gap-4">
         <h2 className="text-base font-semibold">Compare with the live {years}-year portfolio</h2>
         <label className="text-[11px] text-mute">Years<input value={years} onChange={(e) => setYears(e.target.value)} inputMode="numeric" className={inp} /></label>
@@ -343,7 +343,7 @@ function Alternative({ id }: { id: number }) {
   const rows = d && a && b ? compareRows(d.diff, a, b) : [];
   const c = d?.core;
   return (
-    <div className="mt-4 rounded-2xl border border-amber-300 bg-white p-3" data-testid="shortlist-alt">
+    <div className="mt-4 rounded-lg border border-amber-300 bg-white p-3" data-testid="shortlist-alt">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-base font-semibold">Alternative set at the same expected loss (model-selected)</h2>
         <button type="button" disabled={state === "busy"} onClick={() => { setErr(null); setState("busy"); }} className="rounded-full bg-yellow-300 px-4 py-1 text-xs font-semibold text-ink disabled:opacity-60" data-testid="alt-run">

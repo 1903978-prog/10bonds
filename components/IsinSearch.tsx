@@ -60,7 +60,7 @@ export default function IsinSearch({ lang, allowed }: { lang: BondLang; allowed:
           {t.search}
         </button>
       </form>
-      <div className={`relative mt-4 overflow-hidden rounded-2xl bg-white p-4 ${BOX}`} data-testid="isin-result">
+      <div className={`relative mt-4 overflow-hidden rounded-lg border border-line bg-white p-4 ${BOX}`} data-testid="isin-result">
         {!allowed ? (
           <>
             {/* Made-up figures, blurred: nothing real is sent to Free plans or visitors. */}

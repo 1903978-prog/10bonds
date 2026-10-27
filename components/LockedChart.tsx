@@ -30,7 +30,7 @@ function Shape({ kind }: { kind: LockedKind }) {
 
 export default function LockedChart({ kind, label, href }: { kind: LockedKind; label: string; href: string }) {
   return (
-    <div className="relative h-full min-h-[300px] overflow-hidden rounded-2xl bg-black/[0.02]" data-testid="locked-chart">
+    <div className="relative h-full min-h-[300px] overflow-hidden rounded-lg bg-black/[0.02]" data-testid="locked-chart">
       <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full select-none blur-[7px]" aria-hidden="true" preserveAspectRatio="none">
         {[0, 1, 2, 3].map((i) => <line key={i} x1={L} x2={W - 10} y1={20 + i * 55} y2={20 + i * 55} stroke="#d2d2d7" />)}
         <Shape kind={kind} />

@@ -6,7 +6,7 @@ import { reloadGptRatings } from "@/lib/gptStore";
 type Stats = { total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number; freshness: { basis: string; total: number; last24h: number; last48h: number; olderThan7d: number; noDate: number; newest: string | null; oldest: string | null } } | { error: string } | null;
 type Req = { id: number; requestedAt: string; status: string; pickedUpAt: string | null; finishedAt: string | null; note: string | null };
 
-const card = "rounded-2xl border border-line bg-white p-5";
+const card = "rounded-lg border border-line bg-white p-5";
 const when = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const STATUS: Record<string, string> = { pending: "Waiting for the main app", running: "Refreshing now", done: "Done", failed: "Failed" };
 

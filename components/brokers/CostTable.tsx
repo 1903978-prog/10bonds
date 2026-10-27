@@ -130,7 +130,7 @@ export default function CostTable({ rows, categories, amounts, labels }: { rows:
 
       <ol className="mt-4 space-y-3 md:hidden">
         {sorted.map((r, i) => (
-          <li key={r.id} className="rounded-2xl border border-line/70 p-4">
+          <li key={r.id} className="rounded-lg border border-line/70 p-4">
             <div className="flex items-baseline justify-between gap-3">
               <Link href={r.profileHref} className="font-semibold">
                 {i + 1}. {r.name}

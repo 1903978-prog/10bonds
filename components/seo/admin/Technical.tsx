@@ -91,7 +91,7 @@ export default function Technical({ version }: { version: number }) {
 
 export function Kpi({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-2xl bg-white p-3">
+    <div className="rounded-lg border border-line bg-white p-3">
       <p className="text-[11px] text-mute">{label}</p>
       <p className={`mt-0.5 text-lg font-semibold ${tone ?? ""}`}>{value}</p>
     </div>

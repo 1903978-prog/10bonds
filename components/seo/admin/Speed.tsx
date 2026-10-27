@@ -42,7 +42,7 @@ export default function Speed({ version }: { version: number }) {
               <button onClick={() => measure(market)} disabled={busy !== null} className={btnLight}>{busy === market ? "Measuring…" : "Measure now"}</button>
             </div>
             <p className="mt-1 text-xs text-mute">{psi ? `Measured ${when(psi.at)}` : "Not measured yet."}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl bg-canvas p-2">
+            <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-canvas p-2">
               <Kpi label="Performance" value={psi?.lab.performance == null ? "–" : `${psi.lab.performance}/100`} tone={scoreTone(psi?.lab.performance ?? null)} />
               <Kpi label="Accessibility" value={psi?.lab.accessibility == null ? "–" : `${psi.lab.accessibility}/100`} tone={scoreTone(psi?.lab.accessibility ?? null)} />
               <Kpi label="Largest paint (LCP)" value={psi?.lab.lcpMs == null ? "–" : `${num(psi.lab.lcpMs / 1000, 1)} s`} />

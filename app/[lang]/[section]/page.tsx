@@ -86,7 +86,7 @@ export default async function SectionPage({ params }: Props) {
       />
       <div className="mt-8 space-y-6">
         {KC_ORDER.map((sec) => (
-          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 sm:p-6">
+          <section key={sec} id={sec} className="rounded-lg border border-line bg-white p-5 sm:p-6">
             <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
             <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
             {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (
@@ -94,12 +94,12 @@ export default async function SectionPage({ params }: Props) {
                 {items[sec].map((i) => (
                   <li key={i.title + (i.href ?? "")}>
                     {i.href ? (
-                      <Link href={i.href} className="block h-full rounded-2xl bg-canvas px-4 py-3 hover:text-accent">
+                      <Link href={i.href} className="block h-full rounded-lg bg-canvas px-4 py-3 hover:text-accent">
                         <span className="block text-[15px] font-medium">{i.title}</span>
                         {i.note && <span className="mt-0.5 block text-xs text-mute">{i.note}</span>}
                       </Link>
                     ) : (
-                      <span className="block h-full rounded-2xl border border-dashed border-line px-4 py-3 text-mute">
+                      <span className="block h-full rounded-lg border border-dashed border-line px-4 py-3 text-mute">
                         <span className="block text-[15px]">{i.title}</span>
                         <span className="mt-0.5 block text-xs">{i.note}</span>
                       </span>
@@ -117,12 +117,12 @@ export default async function SectionPage({ params }: Props) {
   } else if (s === "guides") {
     const guides = await publishedGuides(l);
     body = guides.length === 0 ? (
-      <p className="mt-8 rounded-2xl bg-white p-6 text-mute">{t.noGuides} <Link href={pathOf(l, "bonds")} className="text-accent">{t.bonds} ›</Link></p>
+      <p className="mt-8 rounded-lg border border-line bg-white p-6 text-mute">{t.noGuides} <Link href={pathOf(l, "bonds")} className="text-accent">{t.bonds} ›</Link></p>
     ) : (
       <ul className="mt-8 space-y-3">
         {guides.map((g) => (
           <li key={g.id}>
-            <Link href={pathOf(l, "guides", g.slug)} className="block rounded-[20px] bg-white p-5 hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
+            <Link href={pathOf(l, "guides", g.slug)} className="block rounded-lg border border-line bg-white p-5 hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
               <h2 className="text-lg font-semibold tracking-tight">{g.title}</h2>
               <p className="mt-1 text-[15px] text-mute">{g.metaDescription}</p>
               {g.reviewedAt && <p className="mt-2 text-xs text-mute">{t.reviewed}: {fmtDate(l, g.reviewedAt)}</p>}
@@ -144,14 +144,14 @@ export default async function SectionPage({ params }: Props) {
     body = (
       <>
         <div className="mt-4"><DataStamp locale={l} asOf={asOf} source={source} /></div>
-        {live.length === 0 && <p className="mt-8 rounded-2xl bg-white p-6 text-mute">{t.notEnough}</p>}
+        {live.length === 0 && <p className="mt-8 rounded-lg border border-line bg-white p-6 text-mute">{t.notEnough}</p>}
         {groups.filter(([, ids]) => ids.length).map(([key, ids]) => (
           <ul key={key} className="mt-6 grid gap-3 sm:grid-cols-2">
             {ids.map((id) => {
               const p = live.find((x) => x.def.id === id)!;
               return (
                 <li key={id}>
-                  <Link href={pathOf(l, "bonds", p.def.text[l].slug)} className="block h-full rounded-2xl bg-white p-4 hover:text-accent">
+                  <Link href={pathOf(l, "bonds", p.def.text[l].slug)} className="block h-full rounded-lg border border-line bg-white p-4 hover:text-accent">
                     <span className="block text-[15px] font-medium">{p.def.text[l].h1}</span>
                     <span className="mt-1 block text-xs text-mute">{p.issuers} {t.issuersCount} · {p.bonds} {t.bondsCount}</span>
                   </Link>
@@ -168,7 +168,7 @@ export default async function SectionPage({ params }: Props) {
     body = (
       <ul className="mt-8 space-y-3">
         <li>
-          <Link href={pathOf(l, "tools", c.slug)} className="block rounded-[20px] bg-white p-5 hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
+          <Link href={pathOf(l, "tools", c.slug)} className="block rounded-lg border border-line bg-white p-5 hover:shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
             <h2 className="text-lg font-semibold tracking-tight">{c.h1}</h2>
             <p className="mt-1 text-[15px] text-mute">{c.description}</p>
           </Link>
@@ -192,10 +192,10 @@ export default async function SectionPage({ params }: Props) {
   } else {
     const people = await publicPeople();
     const tx = TEAM[l];
-    body = people.length === 0 ? <p className="mt-8 rounded-2xl bg-white p-6 text-mute">{tx.empty}</p> : (
+    body = people.length === 0 ? <p className="mt-8 rounded-lg border border-line bg-white p-6 text-mute">{tx.empty}</p> : (
       <ul className="mt-8 space-y-3">
         {people.map((p) => (
-          <li key={p.id} id={`p${p.id}`} className="rounded-[20px] bg-white p-5">
+          <li key={p.id} id={`p${p.id}`} className="rounded-lg border border-line bg-white p-5">
             <h2 className="text-lg font-semibold">{p.name}</h2>
             <p className="text-sm text-mute">{p.role}</p>
             {p.bio && <p className="mt-2 text-[15px]">{p.bio}</p>}

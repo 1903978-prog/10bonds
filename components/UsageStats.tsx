@@ -96,7 +96,7 @@ export default function UsageStats() {
       data-testid="cookie-banner"
       role="dialog"
       aria-label={t.label}
-      className="fixed inset-x-2 bottom-2 z-40 mx-auto max-h-[85vh] max-w-5xl overflow-y-auto rounded-2xl bg-white px-4 py-3 text-[12px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:inset-x-4 sm:bottom-4 sm:text-[13px]"
+      className="fixed inset-x-2 bottom-2 z-40 mx-auto max-h-[85vh] max-w-5xl overflow-y-auto rounded-lg border border-line bg-white px-4 py-3 text-[12px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:inset-x-4 sm:bottom-4 sm:text-[13px]"
     >
       {!settings ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">

@@ -18,7 +18,7 @@ export default function WeeklyEmailAdmin({ initial, lang }: { initial: Status; l
     setBusy(false);
   };
   return (
-    <div className="mt-5 rounded-2xl bg-black/[0.03] p-4 text-sm">
+    <div className="mt-5 rounded-lg bg-black/[0.03] p-4 text-sm">
       <p>
         Subscribers: <strong data-testid="weekly-subscribers">{s.subscribers}</strong> · Monday sending:{" "}
         <strong className={s.on ? "text-green-700" : "text-red-700"} data-testid="weekly-on">{s.on ? "ON" : "OFF"}</strong>

@@ -39,7 +39,7 @@ export default function FeatureAdmin() {
   }
 
   const numbers = (
-    <div className="mt-4 rounded-[20px] bg-white p-4" data-testid="free-limits">
+    <div className="mt-4 rounded-lg border border-line bg-white p-4" data-testid="free-limits">
       <h2 className="text-sm font-semibold">Free searches per day</h2>
       <p className="text-[11px] text-mute">One counter for one-bond and portfolio searches together. Used when &ldquo;Unlimited&rdquo; is not ticked for Free. Resets at midnight, Rome time. Changes the site, counter and Plans page within a minute.</p>
       <div className="mt-2 flex gap-6 text-[12px]">
@@ -63,7 +63,7 @@ export default function FeatureAdmin() {
   );
 
   const table = (built: boolean) => (
-    <div className="rounded-[20px] bg-white p-4">
+    <div className="rounded-lg border border-line bg-white p-4">
       <h2 className="text-sm font-semibold">{built ? "In the app now" : "Ideas, not built yet"}</h2>
       <p className="h-4 text-[11px] text-mute">{built ? "A tick changes the site within a minute." : "Ticks are saved for planning; the site does not change."}</p>
       <table className="mt-2 w-full table-fixed text-[12px]">

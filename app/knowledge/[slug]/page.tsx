@@ -110,7 +110,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
         {c.intro.map((p) => <p key={p} className="mt-3 text-[17px] text-mute">{p}</p>)}
         <YieldCalculator locale="en" text={c} />
-        <section className="mt-8 rounded-[24px] bg-white p-6 text-[16px] leading-[1.7]">
+        <section className="mt-8 rounded-lg border border-line bg-white p-6 text-[16px] leading-[1.7]">
           <h2 className="text-[22px] font-semibold tracking-tight">{c.how.h2}</h2>
           {c.how.paras.map((p) => <p key={p} className="mt-3">{p}</p>)}
         </section>
@@ -147,7 +147,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Compare euro bonds</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {compare.map((d) => <li key={d.id}><Link href={enBondsPath(enText(d).slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{enText(d).h1}</Link></li>)}
+            {compare.map((d) => <li key={d.id}><Link href={enBondsPath(enText(d).slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{enText(d).h1}</Link></li>)}
           </ul>
         </section>
       )}
@@ -155,7 +155,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Related guides</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {related.map((x) => <li key={x.slug}><Link href={enPath(x.slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{x.title}</Link></li>)}
+            {related.map((x) => <li key={x.slug}><Link href={enPath(x.slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{x.title}</Link></li>)}
           </ul>
         </section>
       )}

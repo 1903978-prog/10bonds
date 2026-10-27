@@ -56,17 +56,17 @@ export default async function KnowledgePage() {
       />
       <div className="mt-8 space-y-6">
         {KC_ORDER.map((sec) => (
-          <section key={sec} id={sec} className="rounded-[24px] bg-white p-5 sm:p-6">
+          <section key={sec} id={sec} className="rounded-lg border border-line bg-white p-5 sm:p-6">
             <h2 className="text-[22px] font-semibold tracking-tight">{k.sections[sec].name}</h2>
             <p className="mt-1 text-[15px] text-mute">{k.sections[sec].intro}</p>
             {items[sec].length === 0 ? <p className="mt-3 text-sm text-mute">{k.empty}</p> : (
               <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items[sec].map((i) => (
                   <li key={i.href}>
-                    <Link href={i.href} className="block h-full rounded-2xl bg-canvas px-4 py-3 text-[15px] font-medium hover:text-accent">{i.title}</Link>
+                    <Link href={i.href} className="block h-full rounded-lg bg-canvas px-4 py-3 text-[15px] font-medium hover:text-accent">{i.title}</Link>
                   </li>
                 ))}
-                {sec === KC_ORDER[0] && <li><NewsletterCta className="flex h-full items-center rounded-2xl bg-canvas px-4 py-3" /></li>}
+                {sec === KC_ORDER[0] && <li><NewsletterCta className="flex h-full items-center rounded-lg bg-canvas px-4 py-3" /></li>}
               </ul>
             )}
           </section>

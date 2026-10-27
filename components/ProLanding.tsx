@@ -21,9 +21,9 @@ export default function ProLanding({ cta }: { cta: React.ReactNode }) {
           and shows the net gain after trading costs. Fixed rules, shown on screen, applied the same way every time.
         </p>
         <ul className="mt-5 grid gap-3 text-[14px] sm:grid-cols-3">
-          <li className="rounded-2xl bg-canvas p-4"><b>1 · Upload</b><br />A CSV or Excel file with ISIN and amount. Portfolios are never stored.</li>
-          <li className="rounded-2xl bg-canvas p-4"><b>2 · Screen</b><br />Duration within ±0.5 years, same or better rating, one bond per issuer, issuer cap, net of cost.</li>
-          <li className="rounded-2xl bg-canvas p-4"><b>3 · Review</b><br />Keep or Replace for each line, the reason in plain words, and an Excel file for your file note.</li>
+          <li className="rounded-lg bg-canvas p-4"><b>1 · Upload</b><br />A CSV or Excel file with ISIN and amount. Portfolios are never stored.</li>
+          <li className="rounded-lg bg-canvas p-4"><b>2 · Screen</b><br />Duration within ±0.5 years, same or better rating, one bond per issuer, issuer cap, net of cost.</li>
+          <li className="rounded-lg bg-canvas p-4"><b>3 · Review</b><br />Keep or Replace for each line, the reason in plain words, and an Excel file for your file note.</li>
         </ul>
         <div className="mt-6">{cta}</div>
       </section>

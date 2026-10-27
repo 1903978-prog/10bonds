@@ -40,7 +40,7 @@ export default function OutreachAdmin() {
         <button onClick={async () => { const j = await post({ action: "load" }); setMsg(`${j.added ?? 0} drafts added.`); load(); }} className="rounded-full bg-accent px-4 py-2 font-medium text-white" data-testid="outreach-load">Load first batch as drafts</button>
         <span className="text-mute" data-testid="outreach-counts">{Object.entries(counts).map(([c, n]) => `${c}: ${n}`).join(" · ") || "No drafts yet."}</span>
       </div>
-      <div className="overflow-x-auto rounded-[24px] bg-white p-5">
+      <div className="overflow-x-auto rounded-lg border border-line bg-white p-5">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-mute"><th className="pb-2 pr-3">Country</th><th className="pb-2 pr-3">Firm</th><th className="pb-2 pr-3">Address</th><th className="pb-2 pr-3">Status</th><th /></tr></thead>
           <tbody>

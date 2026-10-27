@@ -43,7 +43,7 @@ export default function Diversification({ rows, lang, locked: notAllowed, signed
   const d = locked ? null : diversification(rows);
   const decoy: DivSlice[] = [{ label: "••••••", share: 0.4 }, { label: "••••••", share: 0.3 }, { label: "••••••", share: 0.2 }, { label: "••••••", share: 0.1 }];
   return (
-    <div className="relative mt-2 hidden h-[86px] grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)] gap-4 overflow-hidden rounded-2xl bg-black/[0.02] px-3 py-2 sm:grid" data-testid="diversification">
+    <div className="relative mt-2 hidden h-[86px] grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)] gap-4 overflow-hidden rounded-lg bg-black/[0.02] px-3 py-2 sm:grid" data-testid="diversification">
       <div className={`min-w-0 ${locked ? "blur-[6px]" : ""}`} aria-hidden={locked}>
         <p className="text-[10px] font-medium uppercase tracking-wide text-mute">{t.score}</p>
         <p className="text-[24px] font-semibold leading-none tabular-nums" data-testid="diversification-score">{locked ? "00" : d ? d.score : "–"}<span className="text-[11px] font-normal text-mute"> /100</span></p>

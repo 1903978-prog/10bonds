@@ -166,7 +166,7 @@ export default function Performance({ market }: { market: Locale }) {
 }
 
 function Box({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
+  return <div className="rounded-lg bg-canvas p-3"><p className="text-xs text-mute">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
 }
 
 function SetupGoogle({ email }: { email: string | null }) {

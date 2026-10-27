@@ -25,7 +25,7 @@ export default function AdminMenu({ isAdmin, asUser, adminLink }: { isAdmin: boo
         className="inline-flex min-h-[28px] touch-manipulation items-center gap-1 whitespace-nowrap rounded-full bg-yellow-200 px-2.5 py-0.5 text-xs font-medium text-ink">
         Admin <span aria-hidden="true">▾</span>
       </button>
-      <div onClick={(e) => { if ((e.target as HTMLElement).closest("button, a")) setOpen(false); }} className={`${open ? "flex" : "hidden"} absolute right-0 top-full z-30 mt-2 w-[200px] flex-col items-stretch gap-3 rounded-2xl border border-line bg-white p-3 text-xs shadow-[0_8px_30px_rgba(0,0,0,0.12)]`}>
+      <div onClick={(e) => { if ((e.target as HTMLElement).closest("button, a")) setOpen(false); }} className={`${open ? "flex" : "hidden"} absolute right-0 top-full z-30 mt-2 w-[200px] flex-col items-stretch gap-3 rounded-lg border border-line bg-white p-3 text-xs shadow-[0_8px_30px_rgba(0,0,0,0.12)]`}>
         {(isAdmin || asUser) && <div className="flex items-center justify-between gap-2"><span className="text-mute">Admin view</span><AdminToggle on={isAdmin} /></div>}
         {isAdmin && <div className="flex items-center justify-between gap-2"><span className="text-mute">Site</span><ViewSwitch /></div>}
         {isAdmin && <div className="flex items-center justify-between gap-2"><span className="text-mute">Brand stamp</span><BrandToggle className="inline-flex" /></div>}

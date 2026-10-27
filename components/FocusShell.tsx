@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import FocusTabs from "@/components/FocusTabs";
 import RatingHeader from "@/components/RatingOval";
 
-export const card = "overflow-hidden rounded-2xl bg-white";
+export const card = "overflow-hidden rounded-lg border border-line bg-white";
 export const head = "px-3 pb-1 pt-2.5 text-[11px] font-semibold uppercase tracking-wide text-mute";
 
 export type FocusNavItem = { key: string; href: string; label: string; current: boolean; locked: boolean; free?: boolean };

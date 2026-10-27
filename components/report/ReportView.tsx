@@ -16,7 +16,7 @@ const lead = "text-[17px] leading-[1.6] text-ink";
 const body = "text-[16px] leading-[1.65]";
 const meta = "text-[14px] leading-snug text-mute";
 const label = "text-[14px] font-medium text-mute";
-const card = "report-card rounded-3xl border border-line bg-white p-6 sm:p-8";
+const card = "report-card rounded-lg border border-line bg-white p-6 sm:p-8";
 
 const ALL_SECTIONS: NavItem[] = [
   { id: "overview", n: "01", label: "Overview" },
@@ -73,7 +73,7 @@ function Rows({ rows }: { rows: Row[] }) {
 
 function Details({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <details className={`group report-details rounded-2xl border border-line bg-white ${className}`}>
+    <details className={`group report-details rounded-lg border border-line bg-white ${className}`}>
       <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-4 px-5 py-3 text-[16px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
         {title}
         <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-canvas text-[20px] leading-none text-mute transition-transform duration-200 motion-reduce:transition-none group-open:rotate-45">+</span>
@@ -99,7 +99,7 @@ function Table({ header, rows }: { header?: string[]; rows: string[][] }) {
 function Kpi({ title, f, tip, note, right }: { title: string; f: Fig; tip?: React.ReactNode; note?: string; right?: boolean }) {
   const none = f.status === "not_verified";
   return (
-    <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-3xl border border-line bg-white p-6" style={{ containerType: "inline-size" }} data-testid={`kpi-${title.toLowerCase().replace(/\W+/g, "-")}`}>
+    <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-lg border border-line bg-white p-6" style={{ containerType: "inline-size" }} data-testid={`kpi-${title.toLowerCase().replace(/\W+/g, "-")}`}>
       <p className={label}>{title}{tip && <Tip term={title} right={right}>{tip}</Tip>}</p>
       <BigText text={f.text} className={`mt-1 block whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums ${none ? "text-[24px] text-mute" : ""}`} size={none ? undefined : "clamp(32px, 15cqi, 40px)"} />
       <p className={`mt-1 ${meta}`}>{note ?? figMeta(f)}</p>
@@ -170,14 +170,14 @@ export default function ReportView({ r, open, admin = false, signedIn = false, v
               <Kpi title="10bonds.com score" f={open ? r.kpis.score : { text: "Plans", status: "not_verified" }} tip="A 0–100 score produced by our model from public information, on the date shown. Higher means a stronger position under the model. It is not a credit rating and not a probability of default." />
               <Kpi title="Return (gross)" f={open ? r.kpis.ret : { text: "Plans", status: "not_verified" }} tip="Yearly return if you hold to maturity, before costs. Not a promise." right />
               <Kpi title="Maturity" f={r.kpis.maturity} note={r.kpis.maturityNote} />
-              <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-3xl border border-line bg-white p-6" data-testid="kpi-10bonds-risk">
+              <div className="report-card flex min-h-[136px] min-w-0 flex-col justify-between rounded-lg border border-line bg-white p-6" data-testid="kpi-10bonds-risk">
                 <p className={label}>10bonds risk</p>
                 <div className="mt-2"><RiskBadge risk={r.risk} size="lg" /></div>
                 <p className={`mt-2 ${meta}`}>1 lowest · 10 highest</p>
               </div>
             </div>
             {admin && (
-              <dl className="mt-4 rounded-3xl border border-line bg-white p-4"><HeroFact title="Return after tax" f={open ? r.netReturn : NV} /></dl>
+              <dl className="mt-4 rounded-lg border border-line bg-white p-4"><HeroFact title="Return after tax" f={open ? r.netReturn : NV} /></dl>
             )}
 
             <div className="mt-4 flex flex-wrap items-center gap-3 print:hidden">
@@ -353,7 +353,7 @@ function Protection({ r, term }: { r: Report; term: (l: string) => Fig }) {
         <h3 className="text-[20px] font-semibold tracking-tight">Creditor seniority<Tip term="seniority">Seniority decides who is repaid first if the issuer fails. Senior unsecured bondholders rank above subordinated bondholders and shareholders.</Tip></h3>
         <p className={`mt-2 ${body} text-mute`}>Where this bond ranks if the issuer cannot pay. Most senior at the top.</p>
         {r.capital.length ? (
-          <ol className="mt-6 divide-y divide-line/80 overflow-hidden rounded-2xl border border-line">
+          <ol className="mt-6 divide-y divide-line/80 overflow-hidden rounded-lg border border-line">
             {r.capital.map(([layer, risk, mark]) => {
               const here = /this bond/i.test(mark);
               return (

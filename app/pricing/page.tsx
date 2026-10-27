@@ -53,13 +53,13 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
         {!user && <p className="mt-0.5 text-xs text-mute">{t.visitor}</p>}
         {promo && <p className="mt-0.5 text-xs text-mute" data-testid="promo-line">{promoLine(lang, promo.percent, promoEndLabel(promo.endsAt, lang))}</p>}
         {sp.paid && (
-          <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-800" data-testid="paid-msg">
+          <p className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800" data-testid="paid-msg">
             {t.paid}
           </p>
         )}
-        {sp.cancelled && <p className="mt-4 rounded-2xl bg-canvas px-4 py-3 text-sm text-mute">{t.cancelled}</p>}
+        {sp.cancelled && <p className="mt-4 rounded-lg bg-canvas px-4 py-3 text-sm text-mute">{t.cancelled}</p>}
         {sub?.status === "past_due" && (
-          <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{t.pastDue[0]}<Link href="/account" className="underline">{t.pastDue[1]}</Link>{t.pastDue[2]}</p>
+          <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">{t.pastDue[0]}<Link href="/account" className="underline">{t.pastDue[1]}</Link>{t.pastDue[2]}</p>
         )}
         {sub?.cancelAtEnd && sub.renewsAt && (
           <p className="mt-4 text-sm text-mute">{t.endsOn(new Date(sub.renewsAt).toLocaleDateString(lang === "en" ? "en-GB" : lang, { day: "numeric", month: "long", year: "numeric" }))}</p>
@@ -67,7 +67,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
       </div>
       <div className="mt-3 flex justify-center">
         <div className="inline-flex rounded-full bg-canvas p-1 text-sm" data-testid="billing-toggle">
-          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "month" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-month">{t.monthly}</Link>
+          <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "month" ? "bg-soft text-accent ring-1 ring-accent" : "text-mute"}`} data-testid="billing-month">{t.monthly}</Link>
           <span className="cursor-default select-none rounded-full px-4 py-1 font-medium text-mute opacity-60" aria-disabled="true" data-testid="billing-year">
             {t.yearly} <span className="text-accent">−{Math.round(YEARLY_DISCOUNT * 100)}%</span>
           </span>
@@ -77,7 +77,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
         {PLANS.map((p) => (
           <div
             key={p.name}
-            className={`flex flex-col rounded-[20px] bg-white p-5 ${p.highlight ? "ring-2 ring-accent" : ""}`}
+            className={`flex flex-col rounded-lg border border-line bg-white p-5 ${p.highlight ? "ring-2 ring-accent" : ""}`}
           >
             <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               {p.name}

@@ -107,7 +107,7 @@ export default function AccountProfile(p: Props) {
             <span className={`absolute left-[2px] top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow transition-transform ${news ? "translate-x-[20px]" : ""}`} />
           </button>
         </div>
-        {sub?.status === "past_due" && <p className="mt-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">Your last payment failed. Please update your card under “Card and invoices”.</p>}
+        {sub?.status === "past_due" && <p className="mt-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">Your last payment failed. Please update your card under “Card and invoices”.</p>}
       </div>
 
       <ExclusionsCard card={card} />
@@ -127,7 +127,7 @@ export default function AccountProfile(p: Props) {
             </div>
             <div className="mt-4 grid gap-2">
               {plans.map((k) => (
-                <label key={k} className={`flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${plan === k ? "border-accent bg-accent/5" : "border-line"}`}>
+                <label key={k} className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-4 py-3 ${plan === k ? "border-accent bg-accent/5" : "border-line"}`}>
                   <span className="flex items-center gap-3">
                     <input type="radio" name="plan" checked={plan === k} onChange={() => setPlan(k)} data-testid={`profile-plan-${k}`} />
                     <span className="font-medium">{PLAN_NAMES[k]}</span>
@@ -195,7 +195,7 @@ export default function AccountProfile(p: Props) {
             Delete my activity data
           </button>
         ) : (
-          <div className="mt-3 rounded-2xl bg-canvas p-4 text-sm">
+          <div className="mt-3 rounded-lg bg-canvas p-4 text-sm">
             <p>This deletes your usage statistics and search history. Your account and plan stay.</p>
             <div className="mt-3 flex gap-2">
               <button data-testid="profile-erase-confirm" disabled={busy !== ""} onClick={() => run("erase", () => post("/api/account/erase", { confirm: true }), "Your activity data has been deleted.", false).then(() => setConfirmErase(false))} className="rounded-full bg-ink px-4 py-2 font-medium text-white disabled:opacity-50">
@@ -210,7 +210,7 @@ export default function AccountProfile(p: Props) {
             Delete my account and all my data
           </button>
         ) : (
-          <div className="mt-3 rounded-2xl bg-red-50 p-4 text-sm text-red-900" data-testid="delete-box">
+          <div className="mt-3 rounded-lg bg-red-50 p-4 text-sm text-red-900" data-testid="delete-box">
             <p className="font-medium">This cannot be undone.</p>
             <p className="mt-1">
               Your account, plan, search history, usage statistics and any professional access request are deleted at once.
@@ -239,7 +239,7 @@ export default function AccountProfile(p: Props) {
         )}
       </div>
 
-      {msg && <p className={`rounded-2xl px-4 py-3 text-sm ${msg.ok ? "bg-green-50 text-green-800" : "bg-red-50 text-red-700"}`} data-testid="profile-msg">{msg.text}</p>}
+      {msg && <p className={`rounded-lg px-4 py-3 text-sm ${msg.ok ? "bg-green-50 text-green-800" : "bg-red-50 text-red-700"}`} data-testid="profile-msg">{msg.text}</p>}
 
       <form method="post" action="/api/auth/logout">
         <button type="submit" data-testid="profile-signout" className="w-full rounded-full px-5 py-3 text-[15px] font-medium text-mute hover:text-ink">

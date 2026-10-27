@@ -167,7 +167,7 @@ export default function Overview({ market, onMarket, onRan }: { market: SeoMarke
 
 function Stat({ label, value, big, tone }: { label: string; value: string; big?: boolean; tone?: string }) {
   return (
-    <div className="rounded-2xl bg-canvas p-3">
+    <div className="rounded-lg bg-canvas p-3">
       <p className="text-xs text-mute">{label}</p>
       <p className={`mt-1 font-semibold ${big ? "text-2xl" : "text-lg"} ${tone ?? ""}`}>{value}</p>
     </div>
@@ -267,7 +267,7 @@ function Dimension({ market, dim, results, onSaved }: { market: SeoMarket; dim: 
           const r = results.find((x) => x.dimension === dim && x.criterion === c.id);
           const [label, tone] = STATUS_LABEL[r?.status ?? "not_assessed"];
           return (
-            <div key={c.id} className="rounded-2xl border border-line p-4">
+            <div key={c.id} className="rounded-lg border border-line p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium">{c.title}</p>
                 <div className="flex items-center gap-2">

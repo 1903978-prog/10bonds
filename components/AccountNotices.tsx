@@ -84,7 +84,7 @@ export default function AccountNotices() {
     <>
       {gateOpen && me && createPortal(
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="gate-title" data-testid="confirm-gate">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+          <div className="w-full max-w-sm rounded-lg border border-line bg-white p-6 text-center shadow-xl">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-xl">✉️</div>
             <h2 id="gate-title" className="mt-3 text-[18px] font-semibold text-ink">{g.title}</h2>
             {mailFailed && gateMsg !== g.sent ? (
@@ -108,7 +108,7 @@ export default function AccountNotices() {
           </div>
         </div>, document.body)}
       {confirmMsg && (
-        <div className="fixed inset-x-3 top-16 z-30 mx-auto flex max-w-xl items-start justify-between gap-3 rounded-2xl bg-white p-4 text-sm shadow-[0_8px_40px_rgba(0,0,0,0.12)]" data-testid="confirm-result">
+        <div className="fixed inset-x-3 top-16 z-30 mx-auto flex max-w-xl items-start justify-between gap-3 rounded-lg border border-line bg-white p-4 text-sm shadow-[0_8px_40px_rgba(0,0,0,0.12)]" data-testid="confirm-result">
           <span>{confirmMsg}</span>
           <button onClick={() => { setConfirmed(null); clearQuery(); }} className="text-mute hover:text-ink" aria-label="Close">✕</button>
         </div>

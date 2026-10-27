@@ -58,7 +58,7 @@ function Crumbs({ t, items }: { t: CountryContent; items: { name: string; href: 
 }
 
 function Preview({ t, on }: { t: CountryContent; on: boolean }) {
-  return on ? <p className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.ui.draftBanner} <Link href="/admin/brokers" className="underline">Admin</Link></p> : null;
+  return on ? <p className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.ui.draftBanner} <Link href="/admin/brokers" className="underline">Admin</Link></p> : null;
 }
 
 function Markets({ t, here }: { t: CountryContent; here: Country }) {
@@ -79,7 +79,7 @@ function Markets({ t, here }: { t: CountryContent; here: Country }) {
 
 function FindBonds({ t }: { t: CountryContent }) {
   return (
-    <Link href="/" className="flex items-center justify-between gap-4 rounded-[24px] bg-ink px-6 py-5 text-white transition hover:opacity-90" data-track="brokers:find-bonds">
+    <Link href="/" className="flex items-center justify-between gap-4 rounded-lg bg-ink px-6 py-5 text-white transition hover:opacity-90" data-track="brokers:find-bonds">
       <span>
         <span className="block text-lg font-semibold">{t.ui.findBonds}</span>
         <span className="block text-sm text-white/70">{t.ui.findBondsText}</span>
@@ -92,7 +92,7 @@ function FindBonds({ t }: { t: CountryContent }) {
 function Sponsored({ t, list, country }: { t: CountryContent; list: { id: string; name: string; url: string | null }[]; country: Country }) {
   if (list.length === 0) return null;
   return (
-    <aside className="rounded-[24px] border border-dashed border-line bg-white/60 p-5" aria-label={t.ui.sponsored}>
+    <aside className="rounded-lg border border-dashed border-line bg-white/60 p-5" aria-label={t.ui.sponsored}>
       <p className="text-xs font-semibold uppercase tracking-wide text-mute">{t.ui.sponsored}</p>
       <ul className="mt-2 space-y-1 text-sm">
         {list.map((s) => (

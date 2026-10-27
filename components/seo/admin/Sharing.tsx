@@ -67,21 +67,21 @@ export default function Sharing() {
           When you publish a guide, it is sent to Bing and Google at once, and posted once on the 10BONDS LinkedIn page and X. Forums and Reddit are never posted to automatically.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-canvas p-4 text-sm">
+          <div className="rounded-lg bg-canvas p-4 text-sm">
             <div className="flex items-center justify-between"><span className="font-medium">Bing, Yandex (IndexNow)</span><On on={data.indexnow} /></div>
             <p className="mt-1 text-xs text-mute">Nothing to set up.</p>
           </div>
-          <div className="rounded-2xl bg-canvas p-4 text-sm">
+          <div className="rounded-lg bg-canvas p-4 text-sm">
             <div className="flex items-center justify-between"><span className="font-medium">Google (sitemap)</span><On on={!!data.google.serviceAccount && !!data.google.site} /></div>
             <p className="mt-1 text-xs text-mute">
               {data.google.serviceAccount && data.google.site ? `Uses ${data.google.serviceAccount}; it needs "Full" permission in Search Console.` : "Set up the Google connection in the Search performance tab first."}
             </p>
           </div>
-          <div className="rounded-2xl bg-canvas p-4 text-sm">
+          <div className="rounded-lg bg-canvas p-4 text-sm">
             <div className="flex items-center justify-between"><span className="font-medium">LinkedIn page</span><On on={li.connected && !!li.org} /></div>
             <p className="mt-1 text-xs text-mute">{li.connected ? `Connected${li.renews ? "" : ` until ${day(li.until)}, then click Connect again`}.` : li.app ? "Click Connect LinkedIn below." : "Needs the steps below."}</p>
           </div>
-          <div className="rounded-2xl bg-canvas p-4 text-sm">
+          <div className="rounded-lg bg-canvas p-4 text-sm">
             <div className="flex items-center justify-between"><span className="font-medium">X</span><On on={data.x} /></div>
             <p className="mt-1 text-xs text-mute">{data.x ? "Keys set." : "Needs the steps below."}</p>
           </div>

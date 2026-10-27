@@ -218,7 +218,7 @@ async function ComparisonPage({ l, def }: { l: Locale; def: ComparisonDef }) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t.guides}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {relGuides.slice(0, 4).map((g) => <li key={g.id}><Link href={pathOf(l, "guides", g.slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{g.title}</Link></li>)}
+            {relGuides.slice(0, 4).map((g) => <li key={g.id}><Link href={pathOf(l, "guides", g.slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{g.title}</Link></li>)}
           </ul>
         </section>
       )}
@@ -226,7 +226,7 @@ async function ComparisonPage({ l, def }: { l: Locale; def: ComparisonDef }) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t.compare}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {related.map((p) => <li key={p!.def.id}><Link href={pathOf(l, "bonds", p!.def.text[l].slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{p!.def.text[l].h1}</Link></li>)}
+            {related.map((p) => <li key={p!.def.id}><Link href={pathOf(l, "bonds", p!.def.text[l].slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{p!.def.text[l].h1}</Link></li>)}
           </ul>
         </section>
       )}
@@ -307,7 +307,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t.liveData}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {comps.map((d) => <li key={d.id}><Link href={pathOf(l, "bonds", d.text[l].slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{d.text[l].h1}</Link></li>)}
+            {comps.map((d) => <li key={d.id}><Link href={pathOf(l, "bonds", d.text[l].slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{d.text[l].h1}</Link></li>)}
           </ul>
         </section>
       )}
@@ -315,7 +315,7 @@ async function GuidePage({ l, g }: { l: Locale; g: Guide }) {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t.related}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-            {related.map((x) => <li key={x.id}><Link href={pathOf(l, "guides", x.slug)} className="block rounded-2xl bg-white p-4 text-[15px] hover:text-accent">{x.title}</Link></li>)}
+            {related.map((x) => <li key={x.id}><Link href={pathOf(l, "guides", x.slug)} className="block rounded-lg border border-line bg-white p-4 text-[15px] hover:text-accent">{x.title}</Link></li>)}
           </ul>
         </section>
       )}
