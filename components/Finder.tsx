@@ -1387,6 +1387,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
   const canExclude = features.has("blacklist");
   // The swap panel for one slot, drawn over the rows so nothing moves.
   const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | { kind: "gpt" } | null>(null);
+  const [excelUp, setExcelUp] = useState(false);
   useEffect(() => setPanel(null), [data]);
   // Admin only (the owner, 24/10/2026): a details line under each bond, copy the ISINs for GPT and show GPT's ratings.
   const [admin, setAdmin] = useState(false);
@@ -1554,12 +1555,12 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
 
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
       <div className="mt-2 flex h-7 items-center gap-2 overflow-hidden whitespace-nowrap">
-        {features.has("excel") && rows.length > 0 ? (
+        {rows.length > 0 ? (
           <>
           <button
             type="button"
             data-testid="excel-download"
-            onClick={() => downloadTop10(rows, t)}
+            onClick={() => (features.has("excel") ? downloadTop10(rows, t) : setExcelUp(true))}
             className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
           >
             ⬇ {t.excel}
@@ -1570,12 +1571,8 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </button>
           )}
           </>
-        ) : signedIn && !features.has("excel") && rows.length > 0 ? (
-          <Link href="/pricing" className="flex min-w-0 items-center gap-3 text-xs">
-            <span className="truncate text-mute">{t.plusPitch}</span>
-            <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
-          </Link>
         ) : null}
+        {excelUp && <ExcelUpsell onClose={() => setExcelUp(false)} />}
         {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={features.has("add_left_out") && !show && !message ? addFromWhy : undefined} />}
         {admin && rows.length > 0 && !show && !message && <BondNoteFoot isins={rows.map((r) => r.isin)} />}
         {admin && rows.length > 0 && !show && !message && (
@@ -1588,6 +1585,21 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </button>
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Small centered pop-up for plans without Excel (same soft tone as the other upgrade prompts). */
+function ExcelUpsell({ onClose }: { onClose: () => void }) {
+  const t = useFinderText();
+  return (
+    <div role="dialog" aria-modal="true" aria-label={t.excelUpTitle} data-testid="excel-upsell" onClick={onClose} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xs whitespace-normal rounded-2xl bg-white p-5 text-center shadow-xl">
+        <p className="text-base font-semibold text-ink">{t.excelUpTitle}</p>
+        <p className="mt-1 text-sm text-mute">{t.excelUpBody}</p>
+        <Link href="/pricing" className="mt-4 block rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">{t.upgrade}</Link>
+        <button type="button" onClick={onClose} className="mt-2 text-xs text-mute hover:underline">{t.close}</button>
       </div>
     </div>
   );
@@ -1623,6 +1635,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
   const canExclude = features.has("blacklist");
   const canEdit = (canSwap || canExclude) && !message && rows.length > 0;
   const [panel, setPanel] = useState<number | null>(null);
+  const [excelUp, setExcelUp] = useState(false);
   useEffect(() => setPanel(null), [data]);
   const swapIn = (slot: number, b: ResultRow) => {
     setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
@@ -1649,9 +1662,10 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
         </button>
         {title(t.sheetTitle)}
         <span className="flex w-20 justify-end">
-          {features.has("excel") && rows.length > 0 && (
-            <button type="button" onClick={() => downloadTop10(rows, t)} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
+          {rows.length > 0 && (
+            <button type="button" onClick={() => (features.has("excel") ? downloadTop10(rows, t) : setExcelUp(true))} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
           )}
+          {excelUp && <ExcelUpsell onClose={() => setExcelUp(false)} />}
         </span>
       </div>
       <div className="grid shrink-0 grid-cols-2 gap-2">
