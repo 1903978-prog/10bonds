@@ -1,6 +1,6 @@
 // Temporary stability test: anonymous timings + 20-user load, no browser needed.
 const BASE = "https://10bonds.com";
-const t = async (url) => { const s = performance.now(); let r; try { r = await fetch(BASE + url, { signal: AbortSignal.timeout(60000) }); await r.text(); } catch (e) { return { url, status: "ERR " + e.message, ms: Math.round(performance.now() - s) }; } return { url, status: r.status, ms: Math.round(performance.now() - s) }; };
+const t = async (url) => { const s = performance.now(); let r; try { r = await fetch(BASE + url, { signal: AbortSignal.timeout(30000) }); await r.text(); } catch (e) { return { url, status: "ERR " + e.message, ms: Math.round(performance.now() - s) }; } return { url, status: r.status, ms: Math.round(performance.now() - s) }; };
 const pct = (a, p) => a.length ? a.slice().sort((x, y) => x - y)[Math.min(a.length - 1, Math.floor(p * a.length))] : 0;
 console.log("== single anonymous requests (twice: cold, warm)");
 const terms = [["Short", 2], ["Medium", 4], ["Long", 10]];
