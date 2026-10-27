@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (cached && Date.now() - cached.at < TTL_MS) return cached.entries;
   const entries = await build();
   if (entries.length) cached = { at: Date.now(), entries };
-  return entries;
+  return entries.length || !cached ? entries : cached.entries;
 }
 
 async function build(): Promise<MetadataRoute.Sitemap> {
