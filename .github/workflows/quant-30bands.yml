@@ -20,4 +20,7 @@ jobs:
       - run: QUANT_SNAPSHOT=frozen/snapshot.json.gz QUANT_OUT=quant-out QUANT_HORIZONS="${{ inputs.horizons }}" npx vite-node -c vitest.config.ts scripts/quant-30bands.ts
       - run: cat quant-out/bands30.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        with: { name: quant-30bands-${{ inputs.horizons || 'all' }}, path: quant-out, retention-days: 90 }
+        with:
+          name: quant-30bands
+          path: quant-out
+          retention-days: 90
