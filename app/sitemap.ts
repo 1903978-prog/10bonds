@@ -19,8 +19,25 @@ export const dynamic = "force-dynamic";
 const langs = (pathFor: (l: Locale) => string | null) =>
   Object.fromEntries(LOCALES.map((l) => [LOCALE[l].hreflang, pathFor(l)]).filter(([, p]) => p).map(([k, p]) => [k, SITE_URL + p]));
 
+// Google fetches this often and a slow or failing database read made it report "Couldn't fetch", so the built
+// list is kept for ten minutes and, if a rebuild fails, the last good one is served.
+const TTL_MS = 10 * 60 * 1000;
+let cached: { at: number; entries: MetadataRoute.Sitemap } | null = null;
+
 /** Every public, indexable page in every language, with its language versions. Private pages are never listed. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  if (cached && Date.now() - cached.at < TTL_MS) return cached.entries;
+  try {
+    const entries = await build();
+    cached = { at: Date.now(), entries };
+    return entries;
+  } catch (e) {
+    if (cached) return cached.entries;
+    throw e;
+  }
+}
+
+async function build(): Promise<MetadataRoute.Sitemap> {
   const [{ pages, asOf, source }, guides, brokers] = await Promise.all([comparisonPages(), publishedGuides(), loadPublicData()]);
   const out: MetadataRoute.Sitemap = [
     { url: SITE_URL + "/", changeFrequency: "daily", priority: 1, alternates: { languages: { en: SITE_URL + "/", ...langs((l) => `/${l}`), "x-default": SITE_URL + "/" } } },
