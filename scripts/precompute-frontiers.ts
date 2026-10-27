@@ -7,6 +7,7 @@ import { frontierKey } from "@/lib/frontierCache";
 import { loadSavedFrontier, saveFrontier } from "@/lib/frontierStore";
 import { coherentFrontier } from "@/lib/coherentFrontier";
 import { TERMS } from "@/lib/limits";
+import { sliderFor } from "@/lib/sliderCache";
 
 const f = { currency: "EUR", size: "100k" } as const;
 const src = await loadBondsFor(f);
@@ -20,4 +21,10 @@ for (const t of TERMS) {
   await saveFrontier(key, fr);
   console.log(`${t.key} (${t.duration}y): ${fr.points.length} lists saved, ${Math.round((Date.now() - t0) / 1000)} s`);
 }
+// The slider positions (chart dots and the two tiles under the slider) are saved too, so the finder has them at once.
+for (const t of TERMS) {
+  const { positions } = await sliderFor(f, t.duration, "spread", true);
+  console.log(`${t.key} (${t.duration}y): ${positions?.length ?? 0} slider positions`);
+}
+await new Promise((done) => setTimeout(done, 2000)); // let the saves finish
 process.exit(0);
