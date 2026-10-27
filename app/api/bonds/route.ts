@@ -7,7 +7,7 @@ import { shapeForTier, tierFeatures } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
 import { simulateCached } from "@/lib/monteCarlo";
 import { lgdOf } from "@/lib/seniority";
-import { bondRisk } from "@/lib/ratings";
+import { bondNotch, bondRisk } from "@/lib/ratings";
 import type { RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
@@ -22,6 +22,9 @@ import { buildManifest } from "@/lib/runManifest";
 import { simulatePortfolio } from "@/lib/monteCarlo";
 import { listLifeLoss } from "@/lib/expectedLoss";
 import { pdOf } from "@/lib/tiers";
+import { bundCurve } from "@/lib/riskPremium/benchmark";
+import { spreadDiagnostic } from "@/lib/spreadDiagnostics";
+import { lifeYears } from "@/lib/lifeYears";
 import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, activePolicy } from "@/lib/coherence";
 import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
@@ -158,7 +161,9 @@ export async function GET(req: Request) {
     ? (() => {
         const re = simulatePortfolio(results.map((b) => ({ ytm: b.grossYtm!, risk: bondRisk(b), lgd: lgdOf(b) })), duration, 1_000_000, 2);
         const avg = (f: (b: RankedBond) => number | null | undefined) => (results.length ? results.reduce((s, b) => s + (f(b) ?? 0), 0) / results.length : null);
+        const bund = bundCurve(data.bonds, data.asOf).points;
         return buildManifest({
+          spreadDiagnostics: Object.fromEntries(results.map((b) => [b.isin, spreadDiagnostic({ notch: bondNotch(b), currency: b.currency, years: lifeYears(b), ytm: b.grossYtm }, bund)])),
           src: data, inputs: { duration, ytm, risk, filter }, status, isins: results.map((b) => b.isin), cert: coherent?.cert, mc: sim,
           outputs: { ytm: avg((b) => b.grossYtm), duration: avg((b) => b.modifiedDuration), expectedLossPct: listLifeLoss(results.map(pdOf), results.map(lgdOf)) },
           revalidation: { paths: re.paths, seed: 2, expYield: re.expYield, p5: re.p5, diffExpYield: re.expYield != null && sim.expYield != null ? re.expYield - sim.expYield : null, diffP5: re.p5 != null && sim.p5 != null ? re.p5 - sim.p5 : null },

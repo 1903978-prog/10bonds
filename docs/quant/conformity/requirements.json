@@ -304,12 +304,13 @@
   "w": 1,
   "req": "Absolute spread floors tied to the table",
   "orig": "M",
-  "live": "M",
-  "A": "M",
-  "B": "M",
-  "builtOff": "M",
+  "live": "P",
+  "A": "P",
+  "B": "P",
+  "builtOff": "P",
   "blocker": "code",
-  "next": "Diagnostic code from paper values"
+  "next": "Floors reproduce 5y values; other horizons need an approved AAA anchor",
+  "note": "lib/spreadDiagnostics.ts, in admin manifest"
  },
  {
   "id": 25,
@@ -322,7 +323,8 @@
   "B": "M",
   "builtOff": "M",
   "blocker": "code",
-  "next": "Diagnostic code; no inference of PD from spreads"
+  "next": "Diagnostic code; no inference of PD from spreads",
+  "note": "Below BB / 11-30y are labelled 'not assessed' (honest state) but not estimated; needs hazard evidence"
  },
  {
   "id": 26,

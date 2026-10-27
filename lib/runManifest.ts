@@ -36,6 +36,7 @@ export function buildManifest(args: {
   cert?: Certificate;
   mc?: MonteCarloResult;
   mcSeed?: number;
+  spreadDiagnostics?: Record<string, unknown>;
   revalidation?: { paths: number; seed: number; expYield: number | null; p5: number | null; diffExpYield: number | null; diffP5: number | null };
 }) {
   const e = activeEngine();
@@ -50,6 +51,7 @@ export function buildManifest(args: {
     models: { defaultModel: "historical table, linear cumulative (v1)", recovery: "debt-rank LGD (not bond-specific)", dependence: "independent issuers (none)", tailRisk: "CVaR off", lossModel: e.loss },
     solver: { name: "HiGHS", options: SOLVER_OPTIONS, absGapTolerance: MIP_ABS_GAP, status: args.status ?? null, certificate: args.cert ?? null },
     simulation: { paths: args.mc?.paths ?? MC_PATHS, seed: args.mcSeed ?? 1, correlated: false, defaults: args.mc?.defaults ?? null },
+    spreadDiagnostics: args.spreadDiagnostics ?? null,
     revalidation: args.revalidation ?? null,
     portfolio: { isins: args.isins, outputs: args.outputs },
   };
