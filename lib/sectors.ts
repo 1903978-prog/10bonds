@@ -14,4 +14,4 @@ export const SECTORS = [
   "Technology", "Communication services", "Utilities", "Energy", "Materials", "Real estate",
 ] as const;
 
-export const sectorOf = (b: Pick<PublicBond, "issuer" | "isin">): string => groupInfo(b).sector ?? UNCLASSIFIED;
+export const sectorOf = (b: Pick<PublicBond, "issuer" | "isin"> & { feedSector?: string | null }): string => groupInfo(b).sector ?? b.feedSector ?? UNCLASSIFIED;
