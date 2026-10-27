@@ -79,12 +79,22 @@ export async function GET(req: Request) {
   // A customer's exclusions get their own coherent frontier (built in the background, keyed by the excluded set).
   let coherent: CoherentFrontier | null = null;
   let frontierResults: RankedBond[] | null = null;
+  let nearest = false;
   // Spread rules always use the coherent frontier, never the plain ranking below (which knows none of the rules), whether or not the page asked for guard=1.
   if (url.searchParams.get("guard") === "1" || method === "spread") {
     try {
       const fr = method === "spread" ? frontierFor(data, filter, duration, "spread", skip ? { key: exclusionKey, fn: skip } : null) : skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method);
       if (method === "spread") coherent = fr as CoherentFrontier;
       frontierResults = fr.at(ytm)?.rows ?? [];
+      // Never empty: if the exact point is missing or fails the check below, use the nearest frontier point that passes.
+      if (method === "spread") {
+        const pts = (fr as CoherentFrontier).points.filter((p) => p.rows.length > 0);
+        const ok = (rows: RankedBond[]) => checkList(rows.map((r) => factsOf(r)), activePolicy(), LIMITS.risk.max).every((c) => c.ok);
+        if (!frontierResults.length || !ok(frontierResults)) {
+          const near = [...pts].sort((a, b) => Math.abs(a.ytm - ytm) - Math.abs(b.ytm - ytm)).find((p) => ok(p.rows));
+          if (near) { frontierResults = near.rows; nearest = true; }
+        }
+      }
     } catch (e) {
       if (e instanceof FrontierPending) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
       throw e;
@@ -99,7 +109,7 @@ export async function GET(req: Request) {
       frontierResults = [];
     }
   }
-  const { results, band, engine } = frontierResults
+  const { results, band, engine } = frontierResults?.length
     ? {
         results: frontierResults,
         band: portfolioPool(withinRisk(data.bonds, LIMITS.risk.max), duration).band,
@@ -124,7 +134,7 @@ export async function GET(req: Request) {
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), activePolicy()).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: policySignature(), cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), activePolicy()).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: policySignature(), cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

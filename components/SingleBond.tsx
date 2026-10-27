@@ -35,15 +35,18 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   // Reveal progress 0..1: dots appear one after the other (riskiest on the left first) while the counter climbs.
   const [prog, setProg] = useState(1);
   const lang = useContext(FinderLangContext);
+  // A failed or late answer is retried by itself (2 s, 4 s, 8 s, then every 8 s) instead of leaving the chart empty.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setLoading(true);
+      let failed = false;
       try {
         const qs = new URLSearchParams({ duration: String(duration), currency, size });
         if (preview) qs.set("preview", preview);
-        const res = await fetch(`/api/bonds/curve?${qs}`, { signal: ctrl.signal });
+        const res = await fetch(`/api/bonds/curve?${qs}`, { signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(30_000)]) });
         const body = await res.json();
         if (res.status === 402 && body.limitReached) {
           setLimit(body.limitReached);
@@ -57,16 +60,19 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         setIndex(0);
         setLevel(null); // a new horizon starts again from the lowest-risk bond
       } catch (e) {
-        if ((e as Error).name !== "AbortError") setError((e as Error).message);
+        if (!ctrl.signal.aborted) { failed = true; setError((e as Error).message); }
       } finally {
-        setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
+        if (failed) retry = setTimeout(() => setAttempt((n) => n + 1), Math.min(8000, 2000 * 2 ** attempt));
       }
-    }, 400);
+    }, attempt ? 0 : 400);
+    let retry: ReturnType<typeof setTimeout> | undefined;
     return () => {
       clearTimeout(t);
+      clearTimeout(retry);
       ctrl.abort();
     };
-  }, [duration, preview, currency, size]);
+  }, [duration, preview, currency, size, attempt]);
 
   const nDots = dropDominated(data?.points ?? []).filter((p) => p.ytm !== null).length;
   useEffect(() => {
@@ -101,7 +107,6 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   const bond = point?.options[index] ?? null;
 
   if (limit) return <LimitReached quota={limit} />;
-  if (error) return <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>;
 
   return (
     <div className={`transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
@@ -113,6 +118,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
       </div>
       {/* Fixed-height counter line: climbs to the real number of bonds scanned, then stays as a quiet note. */}
       <div className="mt-1 h-4 text-[11px] tabular-nums text-mute sm:text-xs" aria-live="off" data-testid="scan-counter">
+        {error && !data && <span data-testid="curve-retry">{error}</span>}
         {data && scanned !== null && scanned > 0 && (running
           ? `${CHECKED[lang]?.run ?? CHECKED.en.run} ${Math.round(scanned * prog * (2 - prog)).toLocaleString("en-US")}`
           : `${scanned.toLocaleString("en-US")} ${CHECKED[lang]?.done ?? CHECKED.en.done}`)}
