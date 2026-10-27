@@ -5,13 +5,11 @@ on:
 jobs:
   t:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 10
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl machine restart 8e3e5ea777e968 -a 10bonds --skip-health-checks || flyctl machine restart -a 10bonds --force || true
+      - run: sleep 45; for i in 1 2 3 4 5 6; do for u in /api/health /; do curl -s -o /dev/null -w "$u %{http_code} %{time_total}s\n" -m 30 https://10bonds.com$u; done; sleep 10; done
       - run: flyctl status -a 10bonds || true
-      - run: flyctl logs -a 10bonds --no-tail 2>&1 | tail -90 || true
-      - run: |
-          timeout 90 flyctl ssh console -a 10bonds -C "sh -c 'a=\$(head -1 /proc/stat); sleep 10; b=\$(head -1 /proc/stat); echo cpu_before: \$a; echo cpu_after: \$b; cat /proc/pressure/cpu; ps -eo pid,rss,etime,time,args | grep -E \"node|next\" | grep -v grep | cut -c1-120; top -bn1 | head -8'" 2>&1 | tail -25 || true
-      - run: nproc; for u in /api/health /; do curl -s -o /dev/null -w "$u %{http_code} %{time_total}s\n" -m 40 https://10bonds.com$u; done
