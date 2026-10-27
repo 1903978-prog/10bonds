@@ -15,7 +15,7 @@ import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
 import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
-import { frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
+import { coherentBuild, frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
 import { activeFallback } from "@/lib/enginePolicy";
 import { buildManifest } from "@/lib/runManifest";
 import { listLifeLoss } from "@/lib/expectedLoss";
@@ -134,6 +134,8 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   const bandMode = bandMeta !== null || bandNone !== null;
   // Spread rules always use the coherent frontier, never the plain ranking below (which knows none of the rules), whether or not the page asked for guard=1.
   if (!bandMode && (url.searchParams.get("guard") === "1" || method === "spread")) {
+    // A list still being read back from the database is waited for (up to 2.5 s) instead of answered "pending", which would make the page wait 3 s before asking again.
+    if (method === "spread" && !skip) await Promise.race([coherentBuild(data, filter, duration).catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
     try {
       const fr = method === "spread" ? frontierFor(data, filter, duration, "spread", skip ? { key: exclusionKey, fn: skip } : null) : skip ? exactFrontier(data.bonds.filter((b) => !skip(b)), duration, gapOf(method)) : frontierFor(data, filter, duration, method);
       if (method === "spread") coherent = fr as CoherentFrontier;
