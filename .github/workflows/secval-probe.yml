@@ -1,0 +1,27 @@
+name: Secval probe
+# Temporary, read-only: prints the live site's headers and page load times. Removed before merge.
+on:
+  push:
+    branches: [claude/project-thread-xze0y9]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Headers
+        run: |
+          curl -sI https://10bonds.com/ | grep -iE '^(HTTP|server|via|cache|content-encoding|x-powered|fly-)' || true
+          curl -sI -H 'Accept-Encoding: gzip, br' https://10bonds.com/ | grep -i content-encoding || echo "no compression on /"
+          echo ---- robots; curl -s https://10bonds.com/robots.txt | head -20
+          echo ---- llms; curl -s https://10bonds.com/llms.txt | head -5
+      - name: Page timings
+        run: |
+          for p in / /pricing /knowledge /it /fr /de /methodology /selection-methodology /sitemap.xml /bonds/sitemap.xml /api/health /api/bonds/caps /risk-assessment /bonds/FR0013482841 /terms /login /nonexistent-page; do
+            for i in 1 2 3; do curl -s -o /dev/null -H 'Accept-Encoding: gzip' -w "$p  %{http_code}  ttfb=%{time_starttransfer}  total=%{time_total}  bytes=%{size_download}\n" "https://10bonds.com$p"; done
+          done
+      - name: Crawl check (links in sitemap)
+        run: |
+          curl -s https://10bonds.com/sitemap.xml | grep -oE '<loc>[^<]+' | sed 's/<loc>//' > urls.txt
+          wc -l urls.txt
+          head -400 urls.txt | while read u; do echo "$(curl -s -o /dev/null -w '%{http_code} %{time_total}' "$u") $u"; done | awk '$1!=200' | head -30
+          echo done-crawl
