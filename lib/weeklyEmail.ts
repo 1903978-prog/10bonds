@@ -15,7 +15,7 @@ export type WeeklyPicks = { asOf: string | null; scanned: number; rows: WeeklyRo
 type Text = {
   subject: (date: string) => string;
   title: string;
-  intro: (years: number, risk: number, scanned: string) => string;
+  intro: (years: number, scanned: string) => string;
   cols: [string, string, string, string];
   avg: (ret: string, risk: string) => string;
   cta: string;
@@ -30,7 +30,7 @@ const TEXT: Record<WelcomeLang, Text> = {
   en: {
     subject: (d) => `Your weekly top 10 bonds · ${d}`,
     title: "This week's top 10",
-    intro: (y, r, n) => `10 bonds for a ${y}-year horizon with risk up to ${r} of 10, one per issuer, picked by our standard method from ${n} bonds.`,
+    intro: (y, n) => `10 bonds for a ${y}-year horizon, one per issuer, selected by our standard method from ${n} bonds. The same list goes to every reader and is not tailored to you.`,
     cols: ["Issuer", "Matures", "Return (per year)", "Risk"],
     avg: (r, k) => `Average return ${r}% per year · average risk ${k} of 10`,
     cta: "Build your own top 10",
@@ -43,7 +43,7 @@ const TEXT: Record<WelcomeLang, Text> = {
   it: {
     subject: (d) => `La tua top 10 settimanale di obbligazioni · ${d}`,
     title: "La top 10 della settimana",
-    intro: (y, r, n) => `10 obbligazioni per un orizzonte di ${y} anni con rischio fino a ${r} su 10, una per emittente, scelte con il nostro metodo standard tra ${n} obbligazioni.`,
+    intro: (y, n) => `10 obbligazioni per un orizzonte di ${y} anni, una per emittente, selezionate con il nostro metodo standard tra ${n} obbligazioni. La stessa lista va a tutti i lettori e non è personalizzata per te.`,
     cols: ["Emittente", "Scadenza", "Rendimento (annuo)", "Rischio"],
     avg: (r, k) => `Rendimento medio ${r}% annuo · rischio medio ${k} su 10`,
     cta: "Crea la tua top 10",
@@ -56,7 +56,7 @@ const TEXT: Record<WelcomeLang, Text> = {
   fr: {
     subject: (d) => `Votre top 10 obligations de la semaine · ${d}`,
     title: "Le top 10 de la semaine",
-    intro: (y, r, n) => `10 obligations pour un horizon de ${y} ans avec un risque jusqu'à ${r} sur 10, une par émetteur, choisies par notre méthode standard parmi ${n} obligations.`,
+    intro: (y, n) => `10 obligations pour un horizon de ${y} ans, une par émetteur, sélectionnées par notre méthode standard parmi ${n} obligations. La même liste est envoyée à tous les lecteurs et n'est pas adaptée à votre situation.`,
     cols: ["Émetteur", "Échéance", "Rendement (par an)", "Risque"],
     avg: (r, k) => `Rendement moyen ${r} % par an · risque moyen ${k} sur 10`,
     cta: "Créez votre top 10",
@@ -69,7 +69,7 @@ const TEXT: Record<WelcomeLang, Text> = {
   de: {
     subject: (d) => `Ihre wöchentlichen Top 10 Anleihen · ${d}`,
     title: "Die Top 10 der Woche",
-    intro: (y, r, n) => `10 Anleihen für einen Horizont von ${y} Jahren mit Risiko bis ${r} von 10, eine pro Emittent, mit unserer Standardmethode aus ${n} Anleihen ausgewählt.`,
+    intro: (y, n) => `10 Anleihen für einen Horizont von ${y} Jahren, eine pro Emittent, mit unserer Standardmethode aus ${n} Anleihen ausgewählt. Dieselbe Liste geht an alle Leser und ist nicht auf Sie zugeschnitten.`,
     cols: ["Emittent", "Fällig", "Rendite (pro Jahr)", "Risiko"],
     avg: (r, k) => `Durchschnittliche Rendite ${r} % pro Jahr · durchschnittliches Risiko ${k} von 10`,
     cta: "Eigene Top 10 erstellen",
@@ -92,7 +92,7 @@ export function weeklyEmail(rawLang: unknown, picks: WeeklyPicks, unsubscribe: s
   const avgRet = rows.length ? rows.reduce((s, r) => s + r.ret, 0) / rows.length : 0;
   const risks = rows.map((r) => r.risk).filter((r): r is number => r !== null);
   const avgRisk = risks.length ? risks.reduce((s, r) => s + r, 0) / risks.length : 0;
-  const intro = t.intro(WEEKLY_INPUTS.duration, WEEKLY_INPUTS.risk, num(picks.scanned, lang, 0));
+  const intro = t.intro(WEEKLY_INPUTS.duration, num(picks.scanned, lang, 0));
   const avg = t.avg(num(avgRet, lang, 2), num(avgRisk, lang, 1));
   const finder = `${base}${lang === "en" ? "/" : pathOf(lang)}`;
   const seller = `${COMPANY.legalName}, ${COMPANY.address}`;
