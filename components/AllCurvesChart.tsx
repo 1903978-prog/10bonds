@@ -7,6 +7,11 @@ import type { CurvePoint } from "@/lib/lossCurve";
 import type { OptResult } from "@/lib/optimalBuild";
 import { dotTitle, type ShortlistDot } from "@/lib/shortlistStore";
 
+/** A point of a multi-year curve: `target` gives back exactly that list in the search, `dur` is its average duration. */
+export type MPoint = CurvePoint & { target?: number; dur?: number };
+/** The point picked on the chart (a real frontier list, never an interpolated one). */
+export type PickedPoint = { duration: number; ytm: number; loss: number; dur?: number };
+
 /** One colour per horizon, 2 to 10 years. */
 export const COLOURS = ["#0066cc", "#e4572e", "#17a673", "#8e44ad", "#f0a202", "#1abc9c", "#c0392b", "#5d6d7e", "#d35400"];
 
@@ -16,13 +21,13 @@ export const COLOURS = ["#0066cc", "#e4572e", "#17a673", "#8e44ad", "#f0a202", "
  * Hovering shows each horizon's expected loss at that target yield. It fills whatever box
  * it is put in (drawn at the box's real pixel size, so text stays readable at any size); the box decides the layout.
  */
-export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel, optimal, selected, onSelect, shortlists }: { curves: { duration: number; points: CurvePoint[]; max: number }[]; retLabel: string; lossLabel: string; yearsLabel: string; optimal?: OptResult | null; selected?: number | null; onSelect?: (years: number) => void; shortlists?: ShortlistDot[] }) {
+export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel, optimal, selected, onSelect, picked, onPickPoint, onPickOptimal, shortlists }: { curves: { duration: number; points: MPoint[]; max: number }[]; retLabel: string; lossLabel: string; yearsLabel: string; optimal?: OptResult | null; selected?: number | null; onSelect?: (years: number | null) => void; picked?: PickedPoint | null; onPickPoint?: (duration: number, p: MPoint) => void; onPickOptimal?: (years: number) => void; shortlists?: ShortlistDot[] }) {
   const [box, size] = useBoxSize<HTMLDivElement>();
   const narrow = size.w < 520;
   const F = narrow ? 12 : 14; // font size in px
   const W = size.w, H = size.h, L = narrow ? 52 : 70, R = F * 2.6, T = 14, B = narrow ? 50 : 58;
   const X_START = 3;
-  const series = curves.map((c) => ({ duration: c.duration, shown: shownPoints(c.points) }));
+  const series = curves.map((c) => ({ duration: c.duration, shown: shownPoints(c.points) as MPoint[] }));
   // Return (up) from X_START to the highest slider maximum; expected loss (across) from 0.
   const r0 = X_START;
   const r1 = Math.max(X_START + 0.5, ...curves.map((c) => c.max));
@@ -35,7 +40,7 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
   const [hover, setHover] = useState<number | null>(null);
   const [nearAt, setNearAt] = useState<{ i: number; x: number; y: number } | null>(null); // the curve under the mouse, highlighted
   const selIdx = selected == null ? -1 : curves.findIndex((c) => c.duration === selected);
-  const near = nearAt?.i ?? (selIdx >= 0 ? selIdx : null);
+  const near = selIdx >= 0 ? selIdx : nearAt?.i ?? null; // a selected curve (legend click) stays highlighted, the others dimmed
   // Each curve's horizon at its end (top right of the curve), pushed apart so two labels never overlap.
   const ends = series
     .map((s, i) => ({ i, p: s.shown[s.shown.length - 1] }))
@@ -64,6 +69,22 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
     }
     setNearAt(best ? { i: best.i, x: best.x, y: best.y } : null);
   };
+  // With a curve selected (click its year in the legend), a click or tap on the plot picks the nearest real list of that curve (within 44 px).
+  const onClickPlot = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (selIdx < 0 || !onPickPoint) return;
+    const ctm = e.currentTarget.getScreenCTM();
+    if (!ctm) return;
+    const pt = e.currentTarget.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const m = pt.matrixTransform(ctm.inverse());
+    let best: { p: MPoint; d: number } | null = null;
+    for (const p of series[selIdx].shown) {
+      const d = Math.hypot(X(p.loss) - m.x, Y(p.ytm) - m.y);
+      if (d < 44 && (!best || d < best.d)) best = { p, d };
+    }
+    if (best) onPickPoint(series[selIdx].duration, best.p);
+  };
   // Each curve's list for the hovered return: its first point at or above it (the lowest loss that reaches it);
   // none when the curve ends below it (that horizon cannot give that return, shown as "–").
   const at = (points: CurvePoint[], ytm: number) => points.find((p) => p.ytm >= ytm - 1e-9);
@@ -72,7 +93,7 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
   const pointAt = (duration: number) => hoverRow?.find((r) => r.duration === duration)?.p;
   return (
     <div ref={box} className="h-full w-full overflow-hidden">
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" role="img" aria-label={`${retLabel} / ${lossLabel}`} onMouseMove={onMove} onMouseLeave={() => { setHover(null); setNearAt(null); }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" role="img" aria-label={`${retLabel} / ${lossLabel}`} onMouseMove={onMove} onClick={onClickPlot} onMouseLeave={() => { setHover(null); setNearAt(null); }}>
       {rTicks.map((v) => (
         <g key={`y${v}`}>
           <line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#e5e5ea" />
@@ -95,6 +116,15 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
         strokeLinejoin="round"
         />
       ))}
+      {picked && (() => {
+        const i = series.findIndex((x) => x.duration === picked.duration);
+        return i < 0 ? null : (
+          <g pointerEvents="none" data-testid="picked-point">
+            <circle cx={X(picked.loss)} cy={Y(picked.ytm)} r={9} fill="none" stroke="#1d1d1f" strokeWidth={1.5} />
+            <circle cx={X(picked.loss)} cy={Y(picked.ytm)} r={4.5} fill={COLOURS[i]} />
+          </g>
+        );
+      })()}
       {optimal && (
         // "Find Optimal Portfolio" (admin): one dot per curve at its model-selected list, a hollow ring at the geometric knee when that is a different list, and a gold star on the best maturity. Tap or hover for the figures.
         <g data-testid="optimal-markers">
@@ -107,21 +137,21 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
             return (
               <g key={m.years}>
                 {k && o && k.isins.join() !== o.isins.join() && inside(k) && (
-                  <circle cx={X(k.el)} cy={Y(k.ytm)} r={4} fill="white" stroke={COLOURS[i]} strokeWidth={1.5} onClick={() => onSelect?.(m.years)} style={{ cursor: "pointer" }}>
+                  <circle cx={X(k.el)} cy={Y(k.ytm)} r={4} fill="white" stroke={COLOURS[i]} strokeWidth={1.5} onClick={(e) => { e.stopPropagation(); onPickOptimal?.(m.years); }} style={{ cursor: "pointer" }}>
                     <title>{`${m.years}-year mathematical knee: point of diminishing marginal return gains. Return ${k.ytm.toFixed(2)}%, expected loss ${k.el.toFixed(2)}%.`}</title>
                   </circle>
                 )}
                 {o && inside(o) && (win ? (
-                  <path d={starPath(X(o.el), Y(o.ytm), 11)} fill="#f0b400" stroke="#8a6500" strokeWidth={1} onClick={() => onSelect?.(m.years)} style={{ cursor: "pointer" }} data-testid="optimal-winner">
+                  <path d={starPath(X(o.el), Y(o.ytm), 11)} fill="#f0b400" stroke="#8a6500" strokeWidth={1} onClick={(e) => { e.stopPropagation(); onPickOptimal?.(m.years); }} style={{ cursor: "pointer" }} data-testid="optimal-winner">
                     <title>{optTitle(m.years, o, true)}</title>
                   </path>
                 ) : (
-                  <circle cx={X(o.el)} cy={Y(o.ytm)} r={selected === m.years ? 7 : 5} fill={COLOURS[i]} stroke="white" strokeWidth={1.5} onClick={() => onSelect?.(m.years)} style={{ cursor: "pointer" }} data-testid={`optimal-dot-${m.years}`}>
+                  <circle cx={X(o.el)} cy={Y(o.ytm)} r={selected === m.years ? 7 : 5} fill={COLOURS[i]} stroke="white" strokeWidth={1.5} onClick={(e) => { e.stopPropagation(); onPickOptimal?.(m.years); }} style={{ cursor: "pointer" }} data-testid={`optimal-dot-${m.years}`}>
                     <title>{optTitle(m.years, o, false)}</title>
                   </circle>
                 ))}
                 {win && o && inside(o) && (
-                  <text x={Math.min(X(o.el) + 14, W - R - F * 12)} y={Y(o.ytm) + F} fontSize={F - 1} fontWeight={600} className="fill-[#8a6500]" pointerEvents="none">
+                  <text x={X(o.el) > W * 0.55 ? X(o.el) - 14 : X(o.el) + 14} textAnchor={X(o.el) > W * 0.55 ? "end" : "start"} y={Y(o.ytm) + F} fontSize={F - 1} fontWeight={600} className="fill-[#8a6500]" pointerEvents="none">
                     ★ Best Risk-Adjusted Portfolio · {m.years}y · {o.ytm.toFixed(2)}% · loss {o.el.toFixed(2)}%
                   </text>
                 )}
@@ -159,7 +189,8 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
         {/* Fixed size: horizon, then (while hovering) the list's return and expected loss, or "–" if it cannot reach it. */}
         <rect x={L + 4} y={T + 2} width={F * 13.4} height={(series.length + 1) * (F + 8) + 8} rx={8} fill="white" fillOpacity={0.9} />
         {series.map((s, i) => (
-          <g key={s.duration}>
+          <g key={s.duration} onClick={(e) => { e.stopPropagation(); onSelect?.(selected === s.duration ? null : s.duration); }} style={{ cursor: "pointer" }} data-testid={`legend-${s.duration}`} opacity={selIdx >= 0 && selIdx !== i ? 0.45 : 1}>
+            <rect x={L + 6} y={T + 8 + i * (F + 8)} width={F * 13} height={F + 8} fill="transparent" />
             <line x1={L + 12} x2={L + 12 + F * 1.6} y1={T + 12 + i * (F + 8) + F / 2 - 1} y2={T + 12 + i * (F + 8) + F / 2 - 1} stroke={COLOURS[i]} strokeWidth={3.5} strokeLinecap="round" />
             <text x={L + 18 + F * 1.6} y={T + 12 + i * (F + 8) + F - 2} className="fill-[#1d1d1f]">{s.duration} {yearsLabel}</text>
             {hover !== null && (
