@@ -1,18 +1,14 @@
 import type { Locale } from "./locales";
 
-// Calculator pages, one per language for now (the brief's first wave). Tax presets cite an official source; where a
-// rate could not be confirmed from an official source it is not preset and the visitor types it.
+// Calculator pages, one per language for now (the brief's first wave). No tax rates are preset or stated (the owner,
+// 26/10/2026): the visitor types their own rate.
 
-export type TaxPreset = { label: string; rate: number };
 export type CalculatorText = {
   slug: string;
   title: string;
   description: string;
   h1: string;
   intro: string[];
-  presets: TaxPreset[];
-  defaultRate: number;
-  taxNote: string; // where the rates come from
   labels: {
     price: string; coupon: string; frequency: string; annual: string; semi: string; quarterly: string; maturity: string; settlement: string;
     tax: string; custom: string; gross: string; net: string; current: string; accrued: string; dirty: string; years: string; invalid: string;
@@ -21,22 +17,15 @@ export type CalculatorText = {
   how: { h2: string; paras: string[] };
 };
 
-const IT_SOURCE =
-  "Aliquote: 12,5% su titoli di Stato italiani ed equiparati (e Stati della white list), 26% sugli altri redditi finanziari, come le obbligazioni societarie (D.L. 66/2014; comunicato Agenzia delle Entrate del 27 giugno 2014). Verifica sempre la tua situazione con un consulente fiscale.";
-
 export const CALCULATORS: Record<Locale, CalculatorText> = {
   it: {
     slug: "rendimento-netto-btp",
     title: "Calcolo rendimento netto BTP e obbligazioni · 10BONDS",
-    description: "Calcola il rendimento a scadenza lordo e netto di un BTP o di un'obbligazione: tassazione 12,5% sui titoli di Stato, 26% sulle obbligazioni societarie.",
+    description: "Calcola il rendimento a scadenza lordo e netto di un BTP o di un'obbligazione: inserisci tu l'aliquota.",
     h1: "Calcolo del rendimento netto di BTP e obbligazioni",
     intro: [
-      "Inserisci prezzo, cedola e scadenza: il calcolatore mostra il rendimento a scadenza lordo e quello netto dopo le tasse su cedole e plusvalenza.",
-      "Per i BTP e gli altri titoli di Stato si applica il 12,5%; per le obbligazioni societarie il 26%.",
+      "Inserisci prezzo, cedola e scadenza: il calcolatore mostra il rendimento a scadenza lordo e, se indichi la tua aliquota, quello netto dopo le tasse su cedole e plusvalenza.",
     ],
-    presets: [{ label: "BTP e titoli di Stato 12,5%", rate: 12.5 }, { label: "Obbligazioni societarie 26%", rate: 26 }, { label: "Lordo 0%", rate: 0 }],
-    defaultRate: 12.5,
-    taxNote: IT_SOURCE,
     labels: {
       price: "Prezzo (secco, per 100)", coupon: "Cedola annua (%)", frequency: "Pagamento cedola", annual: "Annuale", semi: "Semestrale", quarterly: "Trimestrale",
       maturity: "Scadenza", settlement: "Data di acquisto", tax: "Tassazione", custom: "Aliquota (%)", gross: "Rendimento lordo a scadenza", net: "Rendimento netto a scadenza",
@@ -48,7 +37,7 @@ export const CALCULATORS: Record<Locale, CalculatorText> = {
       paras: [
         "Il rendimento a scadenza è il tasso annuo che rende il prezzo pagato (prezzo secco più rateo) uguale al valore attuale di cedole e rimborso.",
         "Nel netto, ogni cedola è ridotta dell'aliquota scelta; a scadenza la differenza tra 100 e il prezzo di acquisto, se positiva, è tassata con la stessa aliquota. Le minusvalenze non sono compensate, perché dipendono dalla tua situazione.",
-        "È una stima semplificata (date cedola calcolate a ritroso dalla scadenza, capitalizzazione annua), non una consulenza.",
+        "È una stima semplificata (date cedola calcolate a ritroso dalla scadenza; rendimento nominale annuo: tasso per periodo × cedole all'anno), non una consulenza.",
       ],
     },
   },
@@ -59,11 +48,8 @@ export const CALCULATORS: Record<Locale, CalculatorText> = {
     h1: "Calcul du rendement actuariel d'une obligation",
     intro: [
       "Saisissez le prix, le coupon et l'échéance : le calculateur donne le rendement actuariel brut et, si vous indiquez un taux d'imposition, le rendement net.",
-      "Pour un résident fiscal français en compte-titres, le prélèvement forfaitaire unique est de 31,4 % en 2026 (12,8 % d'impôt sur le revenu et 18,6 % de prélèvements sociaux). Choisissez 0 % pour le rendement brut ou saisissez votre propre taux si vous optez pour le barème.",
+      "Le taux d'imposition est à saisir par vous.",
     ],
-    presets: [{ label: "PFU 31,4 %", rate: 31.4 }, { label: "Brut 0 %", rate: 0 }],
-    defaultRate: 31.4,
-    taxNote: "Taux : prélèvement forfaitaire unique de 12,8 % plus 18,6 % de prélèvements sociaux depuis le 1er janvier 2026, soit 31,4 % (impots.gouv.fr, « Les revenus mobiliers », mis à jour le 8 avril 2026). Certains revenus restent à 17,2 % de prélèvements sociaux et l'option pour le barème progressif est possible : vérifiez votre situation.",
     labels: {
       price: "Prix (pied de coupon, pour 100)", coupon: "Coupon annuel (%)", frequency: "Paiement du coupon", annual: "Annuel", semi: "Semestriel", quarterly: "Trimestriel",
       maturity: "Échéance", settlement: "Date d'achat", tax: "Imposition", custom: "Taux (%)", gross: "Rendement actuariel brut", net: "Rendement actuariel net",
@@ -75,22 +61,19 @@ export const CALCULATORS: Record<Locale, CalculatorText> = {
       paras: [
         "Le rendement actuariel est le taux annuel qui égalise le prix payé (prix plus coupon couru) et la valeur actuelle des coupons et du remboursement.",
         "En net, chaque coupon est réduit du taux choisi ; à l'échéance, l'écart positif entre 100 et le prix d'achat est imposé au même taux. Les moins-values ne sont pas imputées.",
-        "Estimation simplifiée (dates de coupon calculées à rebours depuis l'échéance, capitalisation annuelle), pas un conseil.",
+        "Estimation simplifiée (dates de coupon calculées à rebours depuis l'échéance, taux par période × coupons par an), pas un conseil.",
       ],
     },
   },
   de: {
     slug: "anleihen-rendite-berechnen",
     title: "Anleihen-Rendite berechnen: Rendite bis Fälligkeit · 10BONDS",
-    description: "Rendite bis Fälligkeit einer Anleihe brutto und nach Abgeltungsteuer berechnen: Kurs, Kupon und Fälligkeit eingeben.",
+    description: "Rendite bis Fälligkeit einer Anleihe brutto und nach Steuern berechnen: Kurs, Kupon und Fälligkeit eingeben.",
     h1: "Anleihen-Rendite berechnen",
     intro: [
       "Kurs, Kupon und Fälligkeit eingeben: Der Rechner zeigt die Rendite bis Fälligkeit vor und nach Steuern.",
-      "Voreingestellt ist die Abgeltungsteuer von 25 % plus 5,5 % Solidaritätszuschlag darauf (26,375 %), ohne Kirchensteuer und ohne Sparer-Pauschbetrag.",
+      "Den Steuersatz geben Sie selbst ein.",
     ],
-    presets: [{ label: "Abgeltungsteuer + Soli 26,375 %", rate: 26.375 }, { label: "Brutto 0 %", rate: 0 }],
-    defaultRate: 26.375,
-    taxNote: "Abgeltungsteuer 25 % (§ 32d EStG) zuzüglich 5,5 % Solidaritätszuschlag auf die Steuer. Kirchensteuer und Sparer-Pauschbetrag sind nicht berücksichtigt; geben Sie bei Bedarf Ihren eigenen Satz ein.",
     labels: {
       price: "Kurs (clean, je 100)", coupon: "Kupon p. a. (%)", frequency: "Kuponzahlung", annual: "Jährlich", semi: "Halbjährlich", quarterly: "Vierteljährlich",
       maturity: "Fälligkeit", settlement: "Kaufdatum", tax: "Steuer", custom: "Steuersatz (%)", gross: "Rendite bis Fälligkeit (brutto)", net: "Rendite bis Fälligkeit (nach Steuern)",
@@ -102,7 +85,7 @@ export const CALCULATORS: Record<Locale, CalculatorText> = {
       paras: [
         "Die Rendite bis Fälligkeit ist der jährliche Zinssatz, bei dem der gezahlte Kurs (plus Stückzinsen) dem Barwert aller Kupons und der Rückzahlung entspricht.",
         "Nach Steuern wird jeder Kupon um den gewählten Satz gekürzt; bei Fälligkeit wird ein Kursgewinn (100 minus Kaufkurs) mit demselben Satz besteuert. Verluste werden nicht verrechnet.",
-        "Vereinfachte Schätzung (Kupontermine rückwärts ab Fälligkeit, jährliche Verzinsung), keine Anlageberatung.",
+        "Vereinfachte Schätzung (Kupontermine rückwärts ab Fälligkeit, Rendite je Periode × Kupons pro Jahr), keine Anlageberatung.",
       ],
     },
   },

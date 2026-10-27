@@ -1,3 +1,4 @@
+import { logEmail } from "./emailLog";
 /**
  * Sends e-mail through Resend's HTTP API when RESEND_API_KEY and EMAIL_FROM are set on the server.
  * Without them nothing is sent and the caller is told, so sign-up still works.
@@ -8,7 +9,7 @@ export function siteUrl(): string {
 
 // E-mails count as "on" only once Resend says the sending domain is verified: until then a confirmation
 // e-mail would never arrive and new accounts (and the admin) would wait for a link that cannot come.
-let domainVerified = false;
+let domainVerified = true; // optimistic: a restart must not hide the confirmation prompt; the first Resend answer corrects it
 let checkedAt = 0;
 let checking: Promise<void> | null = null;
 let lastRefusedAt = 0;
@@ -64,9 +65,19 @@ export async function emailStatus() {
   return { keySet, fromSet: Boolean(process.env.EMAIL_FROM), domain, domainVerified: keySet ? await emailReady() : false };
 }
 
+/** Hides e-mail addresses in text that goes to the server log (Resend's error text can quote the recipient):
+ *  "jane.doe@example.com" becomes "j***@e***.com". */
+export function maskEmails(text: string): string {
+  return text.replace(/([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9-])[A-Za-z0-9.-]*(\.[A-Za-z]{2,})\b/g, "$1***@$2***$3");
+}
+
 export async function sendEmail(to: string, subject: string, html: string, text: string, replyTo?: string, headers?: Record<string, string>): Promise<"sent" | "not-configured" | "failed"> {
   // Sending needs only the key and the sender; the domain check never blocks a send (a sending-only key cannot read domains).
-  if (!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)) return "not-configured";
+  const kind = subject.slice(0, 40);
+  if (!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)) {
+    await logEmail(kind, to, "not configured", "RESEND_API_KEY or EMAIL_FROM missing on the server");
+    return "not-configured";
+  }
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -75,7 +86,10 @@ export async function sendEmail(to: string, subject: string, html: string, text:
       signal: AbortSignal.timeout(10_000),
     });
     const body = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 300);
-    if (!res.ok) console.error("[email] send failed: HTTP", res.status, body);
+    if (!res.ok) console.error("[email] send failed: HTTP", res.status, maskEmails(body));
+    let id = "";
+    if (res.ok) id = ((await res.clone().json().catch(() => null)) as { id?: string } | null)?.id ?? "";
+    await logEmail(kind, to, res.ok ? "accepted by Resend" : `failed HTTP ${res.status}`, res.ok ? `Resend id ${id}` : maskEmails(body));
     // Resend refuses a domain that is not verified yet (403): stop claiming e-mail works until a later send succeeds.
     if (!res.ok && res.status === 403 && /verif|domain/i.test(body)) {
       lastRefusedAt = Date.now();
@@ -85,6 +99,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
     return res.ok ? "sent" : "failed";
   } catch (e) {
     console.error("[email] send failed:", (e as Error).name);
+    await logEmail(kind, to, "failed", (e as Error).name);
     return "failed";
   }
 }

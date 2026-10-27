@@ -30,6 +30,8 @@ export async function emailDomainState(): Promise<DomainState> {
     markEmailDomainVerified(d.status === "verified");
     return { configured: true, domain, status: d.status, records: d.records.map((x) => ({ type: x.type, name: x.name, value: x.value, priority: x.priority ?? null, status: x.status })) };
   } catch (e) {
+    // A send-only key may not read the domain list (401): that is "cannot check", not "off". Sending itself works.
+    if (/HTTP 401/.test((e as Error).message)) return { configured: true, domain, status: "send-only", records: [] };
     return { configured: true, domain, status: "unknown", records: [], error: (e as Error).message };
   }
 }

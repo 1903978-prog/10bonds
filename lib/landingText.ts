@@ -6,9 +6,8 @@ import type { FinderLang } from "./finderText";
 // Compliance (23/10): impersonal wording only, no "you/your", no calls to act, no promises; "Model portfolio" vs
 // "hand-picked portfolio" is allowed.
 const en = {
-  eyebrow: "Bond investments",
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
-  tagline: "Smarter bond selection. Higher potential return.",
+  tagline: "Mathematics instead of guesswork. More yield for the same modeled risk. Or less risk for the same yield. Discover the power of Pareto optimization.",
   cardTitleBench: "Average Bond ETF vs Model portfolio",
   cardTitleBenchShort: "Average Bond ETF vs Model",
   bench: "Bond ETF benchmark",
@@ -29,10 +28,10 @@ const en = {
   ctaBtn: "Explore the tool",
   sticky: "Open the finder",
   kicker: "Model-selected bonds",
-  h1a: "Higher modeled return.",
-  h1b: "Same modeled risk.",
+  h1a: "AI-powered",
+  h1b: "Bond portfolios",
   lead: "An illustration of how a model portfolio of 10 bonds can reach a higher modeled return than a hand-picked one, at the same duration and modeled risk.",
-  cta: "Find top 10 bonds",
+  cta: "Find Pareto efficient portfolio",
   signUp: "Sign up",
   signIn: "Sign in",
   how: "How the 10 are selected",
@@ -74,14 +73,16 @@ const en = {
   carousel: {
     // Action titles, one per slide (the owner, 24/10/2026): [desktop, phone].
     act: {
-      compare: ["Compare the Model portfolio with a bond ETF", "Model portfolio vs bond ETF"],
-      frontier: ["Efficient frontier: return and expected loss of model-selected bond sets", "Efficient frontier"],
-      curve: ["Model-selected bond for each risk level", "Selected bond per risk level"],
-      list: ["See the top 10 bonds", "See the top 10 bonds"],
+      compare: ["Model portfolio vs bond ETF", "Model vs bond ETF"],
+      frontier: ["Efficient frontier of model-selected bonds", "Efficient frontier"],
+      curve: ["Highest return for each risk level", "Return per risk level"],
+      list: ["Pareto Efficient AI Bond Portfolio for selected risk and duration", "Pareto Efficient AI Bond Portfolio"],
       country: ["Check country risk", "Check country risk"],
       company: ["Check company risk", "Check company risk"],
     },
     yrs: "yrs",
+    multi: { title: ["Compare Durations. Find Better Trade-offs.", "Compare durations"] as [string, string], sub: "Risk–return curves for portfolios with horizons from 2 to 10 years.", subShort: "Compare modeled yield and expected loss across investment horizons.", insightShort: "Compare yields at the same risk level.", y: "Desired average return", x: "Expected loss on your money", insightK: "KEY INSIGHT", insight: "At similar modeled loss, different durations can offer different returns." },
+    heat: { title: ["Risk–Return Heat Map", "Risk–return heat map"] as [string, string], sub: "Discover combinations of target return and horizon with lower modeled loss.", subShort: "Compare estimated loss across target yields and investment horizons.", insightShort: "Greener cells = lower modeled loss.", insight: "The greener the cell, the lower its estimated loss for that combination." },
     countryAlt: "Brazil country risk page", companyAlt: "ACMA 2031 bond: risk rating, key data and credit assessment",
 
     locale: "en-GB", label: "What 10bonds shows", slide: "Slide", prev: "Previous", next: "Next",
@@ -96,8 +97,7 @@ const en = {
 export type LandingText = typeof en;
 
 const it: LandingText = {
-  eyebrow: "Investimenti obbligazionari",
-  tagline: "Selezione obbligazionaria più intelligente. Rendimento potenziale più alto.",
+  tagline: "La matematica al posto delle congetture. Più rendimento a parità di rischio modellato. O meno rischio a parità di rendimento. Scopri la potenza dell'ottimizzazione di Pareto.",
   cardTitleBench: "ETF obbligazionario medio e portafoglio del modello",
   cardTitleBenchShort: "ETF obbligazionario medio e modello",
   bench: "Benchmark di ETF obbligazionari",
@@ -118,10 +118,10 @@ const it: LandingText = {
   ctaBtn: "Esplora lo strumento",
   sticky: "Apri lo strumento",
   kicker: "Obbligazioni selezionate dal modello",
-  h1a: "Più rendimento stimato.",
-  h1b: "A pari rischio stimato.",
+  h1a: "Portafogli obbligazionari",
+  h1b: "basati sull'AI",
   lead: "Un esempio di come un portafoglio del modello di 10 obbligazioni possa avere un rendimento stimato più alto di uno scelto a mano, a parità di durata e di rischio stimato.",
-  cta: "Trova le top 10",
+  cta: "Trova il portafoglio efficiente di Pareto",
   signUp: "Registrati",
   signIn: "Accedi",
   how: "Come vengono scelte le 10",
@@ -160,14 +160,16 @@ const it: LandingText = {
   paperShort: "Metodologia (PDF)",
   carousel: {
     act: {
-      compare: ["Confronta il portafoglio del modello con un ETF", "Portafoglio del modello vs ETF"],
-      frontier: ["Frontiera efficiente: rendimento e perdita attesa dei gruppi di obbligazioni selezionati dal modello", "Frontiera efficiente"],
-      curve: ["Obbligazione selezionata dal modello per ogni livello di rischio", "Selezionata per livello di rischio"],
-      list: ["Scopri le 10 obbligazioni top", "Le 10 obbligazioni top"],
+      compare: ["Portafoglio del modello vs ETF", "Modello vs ETF"],
+      frontier: ["Frontiera efficiente del modello", "Frontiera efficiente"],
+      curve: ["Rendimento più alto per ogni livello di rischio", "Rendimento per rischio"],
+      list: ["Portafoglio obbligazionario AI efficiente di Pareto per rischio e durata scelti", "Portafoglio AI efficiente di Pareto"],
       country: ["Verifica il rischio paese", "Verifica il rischio paese"],
       company: ["Verifica il rischio società", "Verifica il rischio società"],
     },
     yrs: "anni",
+    multi: { title: ["Confronta le durate. Trova compromessi migliori.", "Confronta le durate"] as [string, string], sub: "Curve rischio-rendimento per portafogli con orizzonti da 2 a 10 anni.", subShort: "Confronta rendimento stimato e perdita attesa tra orizzonti diversi.", insightShort: "Confronta i rendimenti a pari rischio.", y: "Rendimento medio desiderato", x: "Perdita attesa sul tuo capitale", insightK: "IN BREVE", insight: "A parità di perdita stimata, durate diverse possono offrire rendimenti diversi." },
+    heat: { title: ["Mappa rischio-rendimento", "Mappa rischio-rendimento"] as [string, string], sub: "Scopri le combinazioni di rendimento obiettivo e orizzonte con minore perdita stimata.", subShort: "Confronta la perdita stimata tra rendimenti obiettivo e orizzonti.", insightShort: "Celle più verdi = minore perdita stimata.", insight: "Più la cella è verde, minore è la perdita stimata per quella combinazione." },
     countryAlt: "Pagina del rischio paese: Brasile", companyAlt: "Obbligazione ACMA 2031: rating di rischio, dati chiave e valutazione del credito",
 
     locale: "it-IT", label: "Cosa mostra 10bonds", slide: "Immagine", prev: "Precedente", next: "Successiva",
@@ -181,8 +183,7 @@ const it: LandingText = {
 };
 
 const fr: LandingText = {
-  eyebrow: "Investissement obligataire",
-  tagline: "Une sélection obligataire plus intelligente. Un rendement potentiel plus élevé.",
+  tagline: "Les mathématiques plutôt que l'intuition. Plus de rendement pour le même risque modélisé. Ou moins de risque pour le même rendement. Découvrez la puissance de l'optimisation de Pareto.",
   cardTitleBench: "ETF obligataire moyen et portefeuille du modèle",
   cardTitleBenchShort: "ETF obligataire moyen et modèle",
   bench: "Référence d'ETF obligataires",
@@ -203,10 +204,10 @@ const fr: LandingText = {
   ctaBtn: "Explorer l'outil",
   sticky: "Ouvrir l'outil",
   kicker: "Obligations sélectionnées par le modèle",
-  h1a: "Plus de rendement modélisé.",
-  h1b: "À risque modélisé égal.",
+  h1a: "Portefeuilles obligataires",
+  h1b: "propulsés par l'IA",
   lead: "Une illustration : un portefeuille du modèle de 10 obligations peut atteindre un rendement modélisé plus élevé qu'un portefeuille choisi à la main, à durée et risque modélisé égaux.",
-  cta: "Voir le top 10",
+  cta: "Trouver le portefeuille efficient de Pareto",
   signUp: "S'inscrire",
   signIn: "Connexion",
   how: "Comment les 10 sont choisies",
@@ -245,14 +246,16 @@ const fr: LandingText = {
   paperShort: "Méthodologie (PDF)",
   carousel: {
     act: {
-      compare: ["Comparer le portefeuille du modèle à un ETF obligataire", "Portefeuille du modèle vs ETF"],
-      frontier: ["Frontière efficiente : rendement et perte attendue des ensembles d'obligations sélectionnés par le modèle", "Frontière efficiente"],
-      curve: ["Obligation sélectionnée par le modèle pour chaque niveau de risque", "Sélectionnée par niveau de risque"],
-      list: ["Voir les 10 obligations top", "Voir les 10 top"],
+      compare: ["Portefeuille du modèle vs ETF", "Modèle vs ETF"],
+      frontier: ["Frontière efficiente du modèle", "Frontière efficiente"],
+      curve: ["Rendement le plus élevé par niveau de risque", "Rendement par risque"],
+      list: ["Portefeuille obligataire IA efficient de Pareto selon le risque et la durée choisis", "Portefeuille IA efficient de Pareto"],
       country: ["Vérifier le risque pays", "Vérifier le risque pays"],
       company: ["Vérifier le risque entreprise", "Risque entreprise"],
     },
     yrs: "ans",
+    multi: { title: ["Comparez les durées. Trouvez de meilleurs compromis.", "Comparez les durées"] as [string, string], sub: "Courbes risque-rendement pour des portefeuilles de 2 à 10 ans.", subShort: "Comparez rendement estimé et perte attendue selon les horizons.", insightShort: "Comparez les rendements à risque égal.", y: "Rendement moyen souhaité", x: "Perte attendue sur votre capital", insightK: "À RETENIR", insight: "À perte estimée comparable, des durées différentes peuvent offrir des rendements différents." },
+    heat: { title: ["Carte risque-rendement", "Carte risque-rendement"] as [string, string], sub: "Découvrez les combinaisons de rendement cible et d'horizon avec une perte estimée plus faible.", subShort: "Comparez la perte estimée selon rendements cibles et horizons.", insightShort: "Cases plus vertes = perte estimée plus faible.", insight: "Plus la case est verte, plus la perte estimée de cette combinaison est faible." },
     countryAlt: "Page du risque pays : Brésil", companyAlt: "Obligation ACMA 2031 : notation de risque, données clés et évaluation du crédit",
 
     locale: "fr-FR", label: "Ce que montre 10bonds", slide: "Image", prev: "Précédente", next: "Suivante",
@@ -266,8 +269,7 @@ const fr: LandingText = {
 };
 
 const de: LandingText = {
-  eyebrow: "Anleihen-Investments",
-  tagline: "Klügere Anleihenauswahl. Höhere potenzielle Rendite.",
+  tagline: "Mathematik statt Bauchgefühl. Mehr Rendite bei gleichem modelliertem Risiko. Oder weniger Risiko bei gleicher Rendite. Entdecken Sie die Kraft der Pareto-Optimierung.",
   cardTitleBench: "Durchschnittlicher Anleihen-ETF und Modell-Portfolio",
   cardTitleBenchShort: "Anleihen-ETF und Modell",
   bench: "Anleihen-ETF-Benchmark",
@@ -288,10 +290,10 @@ const de: LandingText = {
   ctaBtn: "Das Tool entdecken",
   sticky: "Tool öffnen",
   kicker: "Vom Modell ausgewählte Anleihen",
-  h1a: "Mehr modellierte Rendite.",
-  h1b: "Bei gleichem modelliertem Risiko.",
+  h1a: "KI-gestützte",
+  h1b: "Anleihe-Portfolios",
   lead: "Zur Illustration: Ein Modell-Portfolio aus 10 Anleihen kann bei gleicher Laufzeit und gleichem Modell-Risiko mehr modellierte Rendite erzielen als ein handverlesenes.",
-  cta: "Top 10 finden",
+  cta: "Pareto-effizientes Portfolio finden",
   signUp: "Registrieren",
   signIn: "Anmelden",
   how: "So werden die 10 ausgewählt",
@@ -330,14 +332,16 @@ const de: LandingText = {
   paperShort: "Methodik (PDF)",
   carousel: {
     act: {
-      compare: ["Modell-Portfolio mit einem Anleihe-ETF vergleichen", "Modell-Portfolio vs ETF"],
-      frontier: ["Effizienzlinie: Rendite und erwarteter Verlust der vom Modell ausgewählten Anleihegruppen", "Effizienzlinie"],
-      curve: ["Vom Modell ausgewählte Anleihe je Risikostufe", "Ausgewählt je Risikostufe"],
-      list: ["Die Top-10-Anleihen ansehen", "Top-10-Anleihen ansehen"],
+      compare: ["Modell-Portfolio vs ETF", "Modell vs ETF"],
+      frontier: ["Effizienzlinie des Modells", "Effizienzlinie"],
+      curve: ["Höchste Rendite je Risikostufe", "Rendite je Risiko"],
+      list: ["Pareto-effizientes KI-Anleihenportfolio für gewähltes Risiko und gewählte Laufzeit", "Pareto-effizientes KI-Portfolio"],
       country: ["Länderrisiko prüfen", "Länderrisiko prüfen"],
       company: ["Unternehmensrisiko prüfen", "Unternehmensrisiko"],
     },
     yrs: "J.",
+    multi: { title: ["Laufzeiten vergleichen. Bessere Kompromisse finden.", "Laufzeiten vergleichen"] as [string, string], sub: "Rendite-Risiko-Kurven für Portfolios mit Laufzeiten von 2 bis 10 Jahren.", subShort: "Geschätzte Rendite und erwarteten Verlust über Laufzeiten vergleichen.", insightShort: "Renditen bei gleichem Risiko vergleichen.", y: "Gewünschte durchschnittliche Rendite", x: "Erwarteter Verlust auf Ihr Kapital", insightK: "KERNAUSSAGE", insight: "Bei ähnlichem modelliertem Verlust können unterschiedliche Laufzeiten unterschiedliche Renditen bieten." },
+    heat: { title: ["Rendite-Risiko-Heatmap", "Rendite-Risiko-Heatmap"] as [string, string], sub: "Kombinationen aus Zielrendite und Laufzeit mit geringerem modelliertem Verlust entdecken.", subShort: "Geschätzten Verlust über Zielrenditen und Laufzeiten vergleichen.", insightShort: "Grünere Zellen = geringerer geschätzter Verlust.", insight: "Je grüner die Zelle, desto geringer der geschätzte Verlust dieser Kombination." },
     countryAlt: "Länderrisiko-Seite: Brasilien", companyAlt: "Anleihe ACMA 2031: Risikorating, Kennzahlen und Kreditbewertung",
 
     locale: "de-DE", label: "Was 10bonds zeigt", slide: "Bild", prev: "Zurück", next: "Weiter",

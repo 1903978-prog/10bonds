@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { ProRow } from "@/lib/pro";
+import { registerFor } from "@/lib/proRegisters";
 
 const d = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const tone = { pending: "bg-amber-100 text-amber-900", approved: "bg-green-100 text-green-800", rejected: "bg-red-100 text-red-800", none: "" };
@@ -50,9 +51,12 @@ export default function ProAdmin() {
               {r.regulator} · licence {r.licence}
               {r.website ? <> · <a href={r.website.startsWith("http") ? r.website : `https://${r.website}`} target="_blank" rel="noreferrer noopener" className="text-accent">{r.website}</a></> : null}
               {" "}· asked {d(r.requestedAt)}
+              {r.registerUrl ? <> · <a href={r.registerUrl} target="_blank" rel="noreferrer noopener" className="text-accent">applicant’s register link</a></> : null}
+              {registerFor(r.regulator) ? <> · <a href={registerFor(r.regulator)!} target="_blank" rel="noreferrer noopener" className="text-accent">open the {r.regulator} register</a></> : null}
+              {r.trialEndsAt ? <> · trial ends {d(r.trialEndsAt)}</> : null}
             </p>
             <div className="mt-3 flex gap-2 text-sm">
-              {r.status !== "approved" && <button onClick={() => decide(r.userId, "approved")} className="rounded-full bg-accent px-4 py-1.5 font-medium text-white" data-testid="pro-approve">Approve</button>}
+              {r.status !== "approved" && <button onClick={() => decide(r.userId, "approved")} className="rounded-full bg-accent px-4 py-1.5 font-medium text-white" data-testid="pro-approve">Approve and start 14-day trial</button>}
               {r.status !== "rejected" && <button onClick={() => decide(r.userId, "rejected")} className="rounded-full bg-canvas px-4 py-1.5 font-medium">{r.status === "approved" ? "Remove access" : "Reject"}</button>}
             </div>
           </div>

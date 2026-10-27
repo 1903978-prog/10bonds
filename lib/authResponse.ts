@@ -15,11 +15,11 @@ export function withSession(userId: number, body: unknown) {
   return res;
 }
 
-export async function readCredentials(req: Request): Promise<Record<"email" | "password" | "username" | "acceptTerms" | "challenge" | "nonce" | "website" | "code" | "newsletter", unknown>> {
+export async function readCredentials(req: Request): Promise<Record<"email" | "password" | "username" | "acceptTerms" | "challenge" | "nonce" | "website" | "code" | "newsletter" | "tz", unknown>> {
   try {
     const b = await req.json();
-    return { email: b?.email, password: b?.password, username: b?.username, acceptTerms: b?.acceptTerms, challenge: b?.challenge, nonce: b?.nonce, website: b?.website, code: b?.code, newsletter: b?.newsletter };
+    return { email: b?.email, password: b?.password, username: b?.username, acceptTerms: b?.acceptTerms, challenge: b?.challenge, nonce: b?.nonce, website: b?.website, code: b?.code, newsletter: b?.newsletter, tz: b?.tz };
   } catch {
-    return { email: null, password: null, username: null, acceptTerms: null, challenge: null, nonce: null, website: null, code: null, newsletter: null };
+    return { email: null, password: null, username: null, acceptTerms: null, challenge: null, nonce: null, website: null, code: null, newsletter: null, tz: null };
   }
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
-import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
+import { LimitReached, QuotaSync, type Quota } from "./SearchQuota";
 import { DURATION_STEPS, LIMITS, TERMS, isOpenEnded, termOf } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
@@ -12,9 +12,12 @@ import { averageRisk } from "@/lib/ratings";
 import { listLifeLoss, listLossChance, LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import { RANK_LABEL } from "@/lib/seniority";
 import LossChart, { slopeAt } from "@/components/LossChart";
+import LockedChart from "@/components/LockedChart";
+import Diversification from "@/components/Diversification";
 import OptimalPanel, { OptimalButton, useOptimal } from "@/components/OptimalPanel";
 import AllCurvesChart, { type MPoint, type PickedPoint } from "@/components/AllCurvesChart";
 import HeatMapChart from "@/components/HeatMapChart";
+import { useShortlistDots } from "@/lib/shortlistStore";
 import type { HeatMap, HeatMethod } from "@/lib/heatMapGrid";
 import SliderCurveChart from "@/components/SliderCurveChart";
 import { nearestLoss } from "@/lib/lossCurve";
@@ -34,7 +37,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
-import { SLIDER_POSITIONS, SLIDER_START, type SliderPosition } from "@/lib/sliderPortfolios";
+import { SLIDER_POSITIONS, SLIDER_START, tileFigures, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
@@ -43,6 +46,7 @@ import { BondNoteFoot } from "@/components/BondNoteFoot";
 import { isinText, parseGptRatings } from "@/lib/gptRatings";
 import { saveGptRatings, useGptRatings } from "@/lib/gptStore";
 import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
+import { GptCalcAll } from "./GptCalcAll";
 import { Spread, SPREAD_HEAD, SPREAD_NOTE, RiskPayCell, RISKPAY_HEAD, RISKPAY_NOTE } from "./Spread";
 import { couponTypeLabel } from "@/lib/bondFacts";
 import { profileParts, type CoherenceView } from "@/lib/creditProfileText";
@@ -79,6 +83,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [data, setData] = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState<Quota | null>(null);
+  // Searches left this week, read before the first search and kept in step with every answer (nothing is counted by reading).
+  // The counter itself lives in the header (components/DailyCounter.tsx); the quota of each search and of a refusal is handed to it.
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const searchSeq = useRef(0);
@@ -101,14 +107,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (the owner, 19/10/2026).
   const [touched, setTouched] = useState(false);
-  // iPhone (the owner, 24/10/2026): "Show selected bonds" opens the results as their own full-screen page, no scrolling.
+  // The list replaces the chart only when the main button is pressed (the owner, 26/10/2026); until then the chart follows the horizon.
+  const [listOn, setListOn] = useState(false);
+  // iPhone (the owner, 24/10/2026): "Show AI Efficient Portfolio" opens the results as their own full-screen page, no scrolling.
   const [sheet, setSheet] = useState(false);
-  // Each press of "Show selected bonds" runs the search again, so the press always shows the search and a fresh list.
+  // Each press of "Show AI Efficient Portfolio" runs the search again, so the press always shows the search and a fresh list.
   const [rerun, setRerun] = useState(0);
   // Sign-up funnel steps (consent-only usage stats; no choices or figures are sent).
   useEffect(() => { if (touched) trackOnce("finder_started"); }, [touched]);
   // The owner watches the show 3x faster.
-  const show = useScanShow(data, touched, isAdmin ? 1000 / 3 : 1000);
+  const show = useScanShow(data, touched && listOn, isAdmin ? 1000 / 3 : 1000);
 
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
@@ -166,9 +174,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // Simple search (everyone): a term and one "Return & risk" slider of up to 30 positions along the efficient frontier,
   // worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
   const [adv, setAdv] = useState(false);
-  // Admin only (yellow): Methodology 1 (what customers get) or the Methodology with spread rules (lib/stepGap.ts).
-  const [spread, setSpread] = useState(false);
-  const method = isAdmin && spread ? "spread" : "m1";
+  // Admin only (yellow): the Methodology with spread rules (what everyone gets) or Methodology 1 (lib/stepGap.ts).
+  const [spread, setSpread] = useState(true);
+  const method = isAdmin && !spread ? "m1" : "spread";
   // Admin only: the risk heat map in chart mode, its methodology, and the cell clicked on it (that return and horizon);
   // while a cell is picked the list on the right is that cell's 10 bonds. Moving any control lets go of it.
   const [showHeat, setShowHeat] = useState(false);
@@ -180,10 +188,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [optAsked, setOptAsked] = useState(false);
   const [optShown, setOptShown] = useState(false);
   const [optSel, setOptSel] = useState<number | null>(null);
-  // Multi-year chart (admin): a curve selected by its legend year, and the real list picked on it; that list shows on the right through heatPick.
+  // Multi-year chart: a curve selected by its legend year, and the real list picked on it; that list shows on the right through heatPick.
   const [selDur, setSelDur] = useState<number | null>(null);
   const [picked, setPicked] = useState<PickedPoint | null>(null);
-  const heatOn = isAdmin && (showHeat || showAll) && heatPick !== null;
+  const features = new Set<FeatureKey>(data?.features ?? []);
+  const canHeat = isAdmin || features.has("heat_map");
+  const canMulti = isAdmin || features.has("multi_chart");
+  const heatOn = ((canHeat && showHeat) || (canMulti && showAll)) && heatPick !== null;
+  const shortlistDots = useShortlistDots(isAdmin && (showHeat || showAll));
   const simple = !isAdmin || !adv;
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
@@ -239,7 +251,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     let timer: ReturnType<typeof setTimeout> | undefined;
     setPositions(null);
     const load = (tries: number) =>
-      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "spread" ? { m: method } : {}) })}`)
+      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
           if (r.status === 202 && tries < 20) timer = setTimeout(() => load(tries + 1), tries < 5 ? 1000 : 3000);
@@ -292,6 +304,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setSize(r.size);
       setMode(r.mode);
       setTouched(true);
+      setListOn(true);
       if (r.sheet && r.mode === "portfolio" && window.matchMedia("(max-width: 639px)").matches) setSheet(true);
       setResumed((n) => n + 1);
     });
@@ -313,13 +326,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
-        if (method === "spread") qs.set("m", method);
+        if (method === "m1") qs.set("m", method);
         if (heatOn) {
           // The heat map cell's list: the same exact frontier the map is built from, with the map's methodology.
           qs.set("duration", String(heatPick.duration));
           qs.set("ytm", String(heatPick.ytm));
           qs.set("guard", "1");
-          if (showHeat && heatMethod === "spread") qs.set("m", "spread");
+          if (showHeat && heatMethod === "m1") qs.set("m", "m1");
           else qs.delete("m");
           qs.set("bl", showHeat && heatBl ? "1" : "0");
         }
@@ -380,7 +393,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, [touched, data, mode]);
   const tier = data?.tier ?? "visitor";
   // What this plan includes comes with each answer (the admin's feature table, /admin/features).
-  const features = new Set<FeatureKey>(data?.features ?? []);
   // Visitors get the two averages too (the owner, 24/10/2026); only the bond names wait for a free account.
   const paid = features.has("portfolio_sim") || tier === "visitor";
   // The expected-loss chart above the list (paid plans, portfolio mode): a button switches the table for the chart in the same box.
@@ -391,9 +403,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const chartable = (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0 && (!data.lockedCount || isAdmin);
   // Chart mode (Livio 24/10): the chart takes the place of the controls on the left, the 10 bonds sit on the right.
   // It stays on while a new list loads, so nothing jumps between searches.
-  const curveMode = chartOn && (features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data;
+  // Free plans and visitors get the same tabs with a blurred decoy chart and a button to the Plans page (components/LockedChart.tsx):
+  // the real curves are never fetched for them.
+  const chartLocked = !(features.has("loss_chart") || isAdmin) && mode === "portfolio" && !!data && data.rows.length > 0;
+  const curveMode = chartOn && ((features.has("loss_chart") || isAdmin) || chartLocked) && mode === "portfolio" && !!data;
   // View tabs above the results (Livio 25/10): List | Chart | Multi-year chart | Heat map. The last two are admin only (yellow).
   const view = !chartOn ? "list" : showHeat ? "heat" : showAll ? "multi" : "chart";
+  // Each view is real for the admin and for plans that have it (/admin/features); everyone else gets the blurred decoy.
+  const viewLocked = view === "heat" ? !canHeat : view === "multi" ? !canMulti : chartLocked;
   const opt = useOptimal(isAdmin && optAsked && chartOn && chartable, currency, size);
   const optReady = opt !== null && opt !== "pending" && opt !== "failed";
   const pickOpt = (years: number) => {
@@ -420,8 +437,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     setShowAll(v === "multi");
   };
   const viewTabs = (
-    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs">
-      {([["list", t.chartOff], ["chart", t.chartOn], ...(isAdmin ? [["multi", "Multi-year chart"], ["heat", "Heat map"]] : [])] as [string, string][]).map(([k, label]) => (
+    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs" data-tip="views">
+      {([["list", t.chartOff], ["chart", t.chartOn], ["multi", isAdmin ? "Multi-year chart" : t.chartMulti], ["heat", isAdmin ? "Heat map" : t.chartHeat]] as [string, string][]).map(([k, label]) => (
         <button
           key={k}
           type="button"
@@ -429,7 +446,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           aria-selected={view === k}
           data-testid={`view-tab-${k}`}
           onClick={() => pickView(k)}
-          className={`whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] ${view === k ? (k === "multi" || k === "heat" ? "bg-amber-100 font-medium text-amber-900 shadow-sm" : "bg-white font-medium text-ink shadow-sm") : k === "multi" || k === "heat" ? "text-amber-800" : "text-mute"}`}
+          className={`whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] ${view === k ? (isAdmin && (k === "multi" || k === "heat") ? "bg-amber-100 font-medium text-amber-900 shadow-sm" : "bg-white font-medium text-ink shadow-sm") : isAdmin && (k === "multi" || k === "heat") ? "text-amber-800" : "text-mute"}`}
         >
           {label}
         </button>
@@ -452,19 +469,19 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     return () => ctrl.abort();
   }, [chartOn, chartable, duration, risk, currency, size]);
   useEffect(() => {
-    if (!chartOn || !chartable || !showAll || !isAdmin) return;
+    if (!chartOn || !chartable || !showAll || !canMulti) return;
     const ctrl = new AbortController();
     fetch(`/api/bonds/loss-curve?${new URLSearchParams({ all: "1", risk: String(risk), currency, size })}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => j?.curves && setAllCurves(j.curves))
       .catch(() => {});
     return () => ctrl.abort();
-  }, [chartOn, chartable, showAll, isAdmin, risk, currency, size]);
+  }, [chartOn, chartable, showAll, canMulti, risk, currency, size]);
   // Admin only: the risk heat map (expected loss per target return and horizon), in place of the curves. Asked for as
   // soon as the admin's page opens, so the server builds it in the background and it shows at once when switched on.
   const [heatMap, setHeatMap] = useState<HeatMap | "unavailable" | null>(null);
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canHeat) return;
     setHeatMap(null);
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -480,10 +497,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         .catch(() => {});
     ask();
     return () => { stop = true; clearTimeout(timer); };
-  }, [isAdmin, currency, size, heatMethod, heatBl]);
+  }, [canHeat, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
+  // Return and loss of every slider position come with the preloaded positions: the two boxes follow the thumb at once.
+  const live = simple && paid && mode === "portfolio" ? tileFigures(positions?.[mix - 1]) : null;
   // The two boxes under the slider: 0 to 1 while the analysis is drawn, 1 once it is done (they then show the figures).
-  const reveal = useResultReveal(data, touched && mode === "portfolio", loading, show);
+  const waited = useWaitClock(touched && listOn && mode === "portfolio" && loading && !show);
+  const reveal = useResultReveal(data, touched && listOn && mode === "portfolio", loading, show, waited);
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
   const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
@@ -550,15 +570,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 min={1}
                 max={mixMax}
                 step={1}
-                minLabel={t.lowReturn}
-                maxLabel={t.highReturn}
+                minLabel={t.highReturn}
+                maxLabel={t.lowReturn}
+                reversed
                 onChange={changeMix}
               />
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
                   {/* Two-option switch, fixed width: the active methodology is the filled side. */}
-                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Method 1 = what customers get; Spread rules = minimum extra return per rating step (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
+                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Spread rules = what everyone gets (minimum extra return per rating step); Method 1 = old method, for comparing (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
                     {([["m1", "Method 1"], ["spread", "Spread rules"]] as const).map(([k, label]) => (
                       <button key={k} type="button" role="radio" aria-checked={method === k} data-testid={`admin-method-${k}`} onClick={() => setSpread(k === "spread")} className={`flex-1 whitespace-nowrap rounded-full px-1 ${method === k ? "bg-amber-500 text-white" : "text-amber-900"}`}>
                         {label}
@@ -577,8 +598,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 frac={reveal}
                 paths={data?.monteCarlo?.paths || MC_PATHS}
                 lang={lang}
-                ret={!data ? "—" : paid ? pct(summary?.avgYtm) : null}
-                loss={!data ? "—" : paid && summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : paid ? "—" : null}
+                ret={!paid && data ? null : live ? live.ret : !data ? "—" : pct(summary?.avgYtm)}
+                loss={!paid && data ? null : live ? live.loss : !data ? "—" : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
                 lock={lockTo}
               />
             </div>
@@ -661,7 +682,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         )}
         {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
-        <GuideTips lang={lang} simple={simple} only={simple ? (mode === "portfolio" ? ["horizon", "return"] : ["horizon"]) : mode === "portfolio" ? undefined : ["currency", "size", "horizon"]} />
+        {mode === "single"
+          ? <GuideTips key="single" page="single" lang={lang} />
+          : <GuideTips key="portfolio" lang={lang} simple={simple} only={simple ? ["horizon", "return", "views"] : undefined} />}
         {isAdmin && mode === "portfolio" && (
           <details className="mt-2" data-testid="admin-tuner-box">
             <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: tuning</summary>
@@ -677,14 +700,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             tabIndex={mode === "portfolio" ? 0 : -1}
             onClick={() => {
               setTouched(true);
+              setListOn(true);
               // A desired return above the slider's maximum is brought back to it, so the figure shown is the one searched.
               if (caps && ytm > ytmMax) setYtm(ytmMax);
               setRerun((n) => n + 1);
               if (window.matchMedia("(max-width: 639px)").matches) setSheet(true);
               else if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            className="w-full rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
           >
+            <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
             {t.findPortfolio}
           </button>
         </div>
@@ -708,9 +733,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         style={pageH ? { ["--page-h" as string]: `${pageH}px` } : undefined}
       >
         {/* Laid over the results, which load underneath, so the box keeps its exact size when the chart gives way. */}
-        {!touched && (
+        {!listOn && (
           <div className="absolute inset-0 z-10 rounded-[28px] bg-white p-4 sm:p-5">
-            <Frontier currency={currency} />
+            <Frontier currency={currency} band={TERMS.find((x) => x.key === termOf(duration)) ?? { from: Math.max(0, duration - 1), to: duration + 1 }} />
           </div>
         )}
         {/* Every box, row and line below keeps its size and place whatever the results are: 10 row slots always, fixed-height boxes, messages drawn over the rows. */}
@@ -730,13 +755,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                     }}
                   />
                 )}
-                {chartable && viewTabs}
+                {(chartable || chartLocked) && viewTabs}
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
-                {showHeat && isAdmin ? (
-                  <HeatMapChart map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
-                ) : showAll && isAdmin ? (
-                  allCurves && <AllCurvesChart curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={selDur} onSelect={selectCurve} picked={picked} onPickPoint={pickPoint} onPickOptimal={pickOpt} />
+                {viewLocked ? (
+                  <LockedChart kind={view === "heat" ? "heat" : view === "multi" ? "multi" : "chart"} label={signedIn ? t.chartLock : t.chartSignUp} href={signedIn ? "/pricing" : signupHref(lang)} />
+                ) : showHeat && canHeat ? (
+                  <HeatMapChart plain={!isAdmin} shortlists={shortlistDots} map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
+                ) : showAll && canMulti ? (
+                  allCurves && <AllCurvesChart shortlists={shortlistDots} curves={allCurves} retLabel={t.chartX} lossLabel={t.chartY} yearsLabel="yrs" optimal={optShown && optReady ? opt : null} selected={selDur} onSelect={selectCurve} picked={picked} onPickPoint={pickPoint} onPickOptimal={pickOpt} />
                 ) : simple ? (
                   positions?.some((p) => p.ytm != null) && (
                     <SliderCurveChart positions={positions} current={mix} onPick={changeMix} retLabel={t.chartX} lossLabel={t.chartY} dotText={t.chartDot} sameText={t.chartSame} noneText={t.chartNone} />
@@ -793,7 +820,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 }
               />
               </div>
-              <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
+              <QuotaSync quota={limit ?? data?.quota} />
             </div>
           </div>
         ) : (
@@ -819,7 +846,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           {/* Fixed-height row above the list: the chart button is always here, drawn only when a chart can be shown. */}
           <div className="mb-1 flex h-7 items-center justify-between">
             <div>{arrows}</div>
-            {chartable && viewTabs}
+            {(chartable || chartLocked) && viewTabs}
           </div>
           <Results
             dense={false}
@@ -840,7 +867,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               : null
             }
           />
-          <div className="mt-1 h-4">{!limit && <QuotaNote quota={data?.quota} className="" />}</div>
+          <QuotaSync quota={limit ?? data?.quota} />
           {loading && !simple && <Spinner />}
         </div>
         </>
@@ -871,7 +898,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
       </section>
       )}
-      <ConsentGate active={touched && mode === "portfolio"} lang={lang} isAdmin={isAdmin} />
+      <ConsentGate active={listOn && mode === "portfolio"} lang={lang} isAdmin={isAdmin} />
       {sheet && mode === "portfolio" && createPortal(
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
@@ -976,9 +1003,12 @@ function Slider(props: {
   step: number;
   minLabel: string;
   maxLabel: string;
+  reversed?: boolean;
   onChange: (n: number) => void;
 }) {
-  const fill = ((props.value - props.min) / (props.max - props.min)) * 100;
+  // reversed: left end = max value (shown as high return); the stored value is unchanged.
+  const flip = (n: number) => (props.reversed ? props.max + props.min - n : n);
+  const fill = ((flip(props.value) - props.min) / (props.max - props.min)) * 100;
   return (
     <div className="mt-3 sm:mt-4" data-tip={props.tip}>
       <div className="flex items-baseline justify-between">
@@ -992,9 +1022,9 @@ function Slider(props: {
         min={props.min}
         max={props.max}
         step={props.step}
-        value={props.value}
+        value={flip(props.value)}
         style={{ ["--fill" as string]: `${fill}%` }}
-        onChange={(e) => props.onChange(Number(e.target.value))}
+        onChange={(e) => props.onChange(flip(Number(e.target.value)))}
       />
       <div className="mt-1 flex justify-between text-[11px] text-mute">
         <span>{props.minLabel}</span>
@@ -1199,7 +1229,7 @@ function ResultBoxes({ frac, paths, lang, ret, loss, lock }: { frac: number; pat
  * on its own, 2.5 seconds the first time and 1 second after, so the work behind each new list is visible. Instant for
  * reduced motion. 0 before the first search and while a new one loads.
  */
-function useResultReveal(data: Response | null, active: boolean, loading: boolean, show: Show | null): number {
+function useResultReveal(data: Response | null, active: boolean, loading: boolean, show: Show | null, waited: number | null = null): number {
   const [own, setOwn] = useState<number | null>(null);
   const [done, setDone] = useState<Response | null>(null);
   const runs = useRef(0);
@@ -1232,10 +1262,32 @@ function useResultReveal(data: Response | null, active: boolean, loading: boolea
       setOwn(null);
     };
   }, [active, data, show, done]);
+  // While the search runs, the counter climbs on its own towards (never reaching) the full number.
+  if (active && waited !== null) return 0.95 * (1 - Math.exp(-waited / 5000));
   if (!active || !data || loading) return 0;
   if (show) return show.sim;
   if (own !== null) return own;
   return done === data ? 1 : 0;
+}
+
+/** Milliseconds a search has been running (null when none is): drives the live counter and the rows filling in while waiting. */
+function useWaitClock(active: boolean): number | null {
+  const [ms, setMs] = useState<number | null>(null);
+  useEffect(() => {
+    if (!active) {
+      setMs(null);
+      return;
+    }
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      setMs(now - start);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active]);
+  return ms;
 }
 
 type Show = { row: number; count: number; sim: number };
@@ -1310,62 +1362,6 @@ function useScanShow(data: Response | null, active: boolean, perMs = 1000): Show
   return show;
 }
 
-/** The Monte Carlo drawing, laid over the slots of the picks not shown yet (the bond counter is the fifth box above). */
-function ScanPanel({ data, show, lang }: { data: Response; show: Show; lang: FinderLang }) {
-  const t = useFinderText();
-  const fmt = new Intl.NumberFormat(lang);
-  const mc = data.monteCarlo;
-  const sims = mc?.paths ?? 0;
-  const samples = mc?.samples ?? [];
-  const W = 280, H = 70;
-  const all = samples.flat();
-  const vMin = Math.min(...all), vMax = Math.max(...all);
-  const yOf = (v: number) => H - 2 - ((v - vMin) / Math.max(vMax - vMin, 0.1)) * (H - 4);
-  const steps = samples[0]?.length ?? 0;
-  const left = SLOTS - show.row - 1; // slots still hidden, the space this panel has
-  return (
-    <div
-      aria-hidden="true"
-      data-testid="scan-bar"
-      className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-canvas text-center top-[var(--m)] sm:top-[var(--d)]"
-      style={{ ["--m" as string]: `${(show.row + 1) * (CARD_H + 8)}px`, ["--d" as string]: `${HEAD_H + (show.row + 1) * ROW_H}px` }}
-    >
-      {sims > 0 && left >= 3 && (
-        <div className="w-[280px] max-w-[85%]">
-          <svg viewBox={`0 0 ${W} ${H}`} className="block h-[70px] w-full" preserveAspectRatio="none">
-            <defs>
-              <clipPath id="mc-reveal"><rect x={0} y={0} width={W * show.sim} height={H} /></clipPath>
-            </defs>
-            {/* Real simulated paths of this list: each line is one scenario, the drops are defaults. */}
-            <g clipPath="url(#mc-reveal)">
-              {samples.map((s, k) => {
-                const fell = s.some((v, j) => j > 0 && v < s[j - 1]);
-                return (
-                  <polyline
-                    key={k}
-                    points={s.map((v, j) => `${(j / (steps - 1)) * W},${yOf(v)}`).join(" ")}
-                    fill="none"
-                    className={fell ? "stroke-amber-500" : "stroke-accent"}
-                    strokeWidth={fell ? 1.2 : 1.5}
-                    strokeOpacity={fell ? 0.8 : 0.25}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                );
-              })}
-            </g>
-          </svg>
-          <p className="mt-1 text-[10px] text-mute">{t.scanCaption}</p>
-        </div>
-      )}
-      {sims > 0 && (
-        <p className="mt-1 text-[12px] tabular-nums text-mute">
-          {t.scanSimsLabel} <span>{fmt.format(Math.round(show.sim * sims))}</span> / {fmt.format(sims)}
-        </p>
-      )}
-    </div>
-  );
-}
-
 /** The real Monte Carlo run behind this list: its size for everyone, its results for paid plans. */
 function MonteCarloNote({ data, lang, edited }: { data: Response | null; lang: FinderLang; edited: boolean }) {
   const t = useFinderText();
@@ -1407,6 +1403,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
   const canExclude = features.has("blacklist");
   // The swap panel for one slot, drawn over the rows so nothing moves.
   const [panel, setPanel] = useState<{ kind: "swap"; slot: number } | { kind: "gpt" } | null>(null);
+  const [excelUp, setExcelUp] = useState(false);
   useEffect(() => setPanel(null), [data]);
   // Admin only (the owner, 24/10/2026): a details line under each bond, copy the ISINs for GPT and show GPT's ratings.
   const [admin, setAdmin] = useState(false);
@@ -1436,12 +1433,12 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       <table className="hidden w-full table-fixed text-sm sm:table">
         <colgroup>
           <col className="w-9" />
-          {narrow ? <col /> : <col className="w-[24%]" />}
+          {narrow ? <col /> : <col className="w-[17%]" />}
           {!narrow && <col />}
           {!narrow && <col className="w-[8.25rem]" />}
           <col className={narrow ? "w-[4.75rem]" : "w-[6.5rem]"} />
           <col className={narrow ? "w-[3.5rem]" : "w-[6.5rem]"} />
-          {!narrow && <col className="w-[9rem]" />}
+          {!narrow && <col className="w-[7rem]" />}
           <col className="w-[5rem]" />
           {admin && <><col className="w-[3.75rem]" /><col className="w-[3.75rem]" /><col className="w-[4.5rem]" /><col className="w-[4.5rem]" /></>}
           <col className="w-8" />
@@ -1492,7 +1489,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
               <td className="px-1 py-0 text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</td>
               {admin && <><td className="px-1 py-0 text-center"><GptRate isin={r.isin} kind="ir" /></td><td className="px-1 py-0 text-center"><GptRate isin={r.isin} /></td><td className="px-1 py-0 text-center"><Spread ytm={r.ytm} years={r.duration} /></td><td className="px-1 py-0 text-center"><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></td></>}
               <td className="py-0 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</td>
-              <td className="py-0 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
+              <td className="py-0 text-center">{!show && <ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} />}</td>
             </tr>
           ))}
           {Array.from({ length: locked }).map((_, i) => (
@@ -1506,7 +1503,9 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </tr>
           ))}
           {Array.from({ length: empty }).map((_, i) => (
-            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}><td colSpan={(narrow ? 7 : 10) + (admin ? 4 : 0)} /></tr>
+            <tr key={`e${i}`} aria-hidden style={{ height: rowH }}>
+              <td colSpan={(narrow ? 7 : 10) + (admin ? 4 : 0)} />
+            </tr>
           ))}
         </tbody>
       </table>
@@ -1531,7 +1530,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             <span className="font-semibold tabular-nums" title={r.why ? t.riskWhy(r.why) : undefined}>{pct(r.ytm)}</span>
             <span className="-mr-2 flex shrink-0 items-center">
               <span className="w-7 text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel({ kind: "swap", slot: i })} label={`${t.swap}: ${r.issuer}`} />}</span>
-              <span className="w-9 text-center">{!show && <ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big />}</span>
+              <span className="w-9 text-center">{!show && <ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big />}</span>
             </span>
           </li>
         ))}
@@ -1548,7 +1547,6 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       </ul>
 
       {locked > 0 && !show && <LockedOverlay count={locked} top={rows.length} />}
-      {show && data && !message && <ScanPanel data={data} show={show} lang={lang} />}
       {panel?.kind === "swap" && data && canEdit && (
         <SwapPanel
           row={rows[panel.slot]}
@@ -1566,14 +1564,19 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       )}
       </div>
 
+      {/* Allocation by industry and country plus the diversification score: a fixed strip under the full-width table (not beside the chart). */}
+      {!dense && !narrow && (
+        <Diversification rows={show || message ? [] : rows} lang={lang} signedIn={signedIn} locked={!(features.has("loss_chart") || admin)} />
+      )}
+
       {/* One fixed-height line under the table: the Excel button, or the upgrade link, or nothing. */}
       <div className="mt-2 flex h-7 items-center gap-2 overflow-hidden whitespace-nowrap">
-        {features.has("excel") && rows.length > 0 ? (
+        {rows.length > 0 ? (
           <>
           <button
             type="button"
             data-testid="excel-download"
-            onClick={() => downloadTop10(rows, t)}
+            onClick={() => (features.has("excel") ? downloadTop10(rows, t) : setExcelUp(true))}
             className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
           >
             ⬇ {t.excel}
@@ -1584,16 +1587,13 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </button>
           )}
           </>
-        ) : signedIn && !features.has("excel") && rows.length > 0 ? (
-          <Link href="/pricing" className="flex min-w-0 items-center gap-3 text-xs">
-            <span className="truncate text-mute">{t.plusPitch}</span>
-            <span className="shrink-0 font-medium text-accent">{t.seePlans}</span>
-          </Link>
         ) : null}
+        {excelUp && <ExcelUpsell onClose={() => setExcelUp(false)} />}
         {rows.length > 0 && <WhyTable query={whyQuery} lang={lang} inList={rows.map((r) => r.isin!)} onAdd={features.has("add_left_out") && !show && !message ? addFromWhy : undefined} />}
         {admin && rows.length > 0 && !show && !message && <BondNoteFoot isins={rows.map((r) => r.isin)} />}
         {admin && rows.length > 0 && !show && !message && (
           <span className="ml-auto flex shrink-0 items-center gap-1" data-testid="admin-isin-tools">
+            <GptCalcAll isins={rows.map((r) => r.isin).filter((i): i is string => !!i)} />
             <CopyChip text={isinText(rows.map((r) => r.isin))} label="Copy ISINs" testId="copy-isins" />
             <CopyChip text={isinText(rows.map((r) => r.isin), true)} label="+ prompt" testId="copy-isins-prompt" />
             <button type="button" onClick={() => setPanel({ kind: "gpt" })} data-testid="paste-gpt" className="w-[5.5rem] rounded-full border border-amber-300 bg-amber-50 py-0.5 text-center text-[11px] font-medium text-amber-900 hover:bg-amber-100">
@@ -1601,6 +1601,21 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
             </button>
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Small centered pop-up for plans without Excel (same soft tone as the other upgrade prompts). */
+function ExcelUpsell({ onClose }: { onClose: () => void }) {
+  const t = useFinderText();
+  return (
+    <div role="dialog" aria-modal="true" aria-label={t.excelUpTitle} data-testid="excel-upsell" onClick={onClose} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xs whitespace-normal rounded-2xl bg-white p-5 text-center shadow-xl">
+        <p className="text-base font-semibold text-ink">{t.excelUpTitle}</p>
+        <p className="mt-1 text-sm text-mute">{t.excelUpBody}</p>
+        <Link href="/pricing" className="mt-4 block rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">{t.upgrade}</Link>
+        <button type="button" onClick={onClose} className="mt-2 text-xs text-mute hover:underline">{t.close}</button>
       </div>
     </div>
   );
@@ -1615,7 +1630,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
 }
 
 /**
- * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Show selected bonds".
+ * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Show AI Efficient Portfolio".
  * Top to bottom: return and expected loss, the 10 bonds with a few large columns, and one small grey Monte Carlo line
  * over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
@@ -1636,6 +1651,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
   const canExclude = features.has("blacklist");
   const canEdit = (canSwap || canExclude) && !message && rows.length > 0;
   const [panel, setPanel] = useState<number | null>(null);
+  const [excelUp, setExcelUp] = useState(false);
   useEffect(() => setPanel(null), [data]);
   const swapIn = (slot: number, b: ResultRow) => {
     setList(rows.map((r, i) => (i === slot ? { ...b, rank: r.rank } : r)));
@@ -1662,9 +1678,10 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
         </button>
         {title(t.sheetTitle)}
         <span className="flex w-20 justify-end">
-          {features.has("excel") && rows.length > 0 && (
-            <button type="button" onClick={() => downloadTop10(rows, t)} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
+          {rows.length > 0 && (
+            <button type="button" onClick={() => (features.has("excel") ? downloadTop10(rows, t) : setExcelUp(true))} aria-label={t.excel} title={t.excel} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium">⬇ Excel</button>
           )}
+          {excelUp && <ExcelUpsell onClose={() => setExcelUp(false)} />}
         </span>
       </div>
       <div className="grid shrink-0 grid-cols-2 gap-2">
@@ -1708,7 +1725,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
               <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
                             <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
-              <span className="flex justify-center"><ExcludeButton row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
+              <span className="flex justify-center"><ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
             </li>
           ))}
           {locked > 0 && (
@@ -1960,7 +1977,7 @@ function SwapButton({ onClick, label }: { onClick: () => void; label: string }) 
 
 /** The minus at the end of a row: one tap excludes the issuer, and the list is searched again without it (another bond
  *  takes its place). Without the plan feature it is a faint link to the plans, same size, so nothing moves. */
-function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { row: ResultRow; allowed: boolean; signedIn: boolean; onExcluded: () => void; big?: boolean }) {
+function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false, tip }: { row: ResultRow; allowed: boolean; signedIn: boolean; onExcluded: () => void; big?: boolean; tip?: boolean }) {
   const t = useFinderText();
   const [busy, setBusy] = useState(false);
   const size = big ? "h-9 w-9" : "h-6 w-6";
@@ -1971,7 +1988,7 @@ function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { ro
   );
   if (!allowed) {
     return (
-      <Link href={signedIn ? "/pricing" : "/signup"} title={t.excludePaid} aria-label={t.excludePaid} data-testid="exclude-locked" className={`inline-flex ${size} items-center justify-center rounded-full text-mute/40 hover:bg-canvas hover:text-mute`}>
+      <Link href={signedIn ? "/pricing" : "/signup"} title={t.excludePaid} aria-label={t.excludePaid} data-testid="exclude-locked" data-tip={tip ? "blacklist" : undefined} className={`inline-flex ${size} items-center justify-center rounded-full text-red-500/70 hover:bg-canvas hover:text-red-600`}>
         {icon}
       </Link>
     );
@@ -1990,7 +2007,8 @@ function ExcludeButton({ row, allowed, signedIn, onExcluded, big = false }: { ro
       title={label}
       aria-label={label}
       data-testid="exclude-row"
-      className={`inline-flex ${size} items-center justify-center rounded-full text-mute hover:bg-canvas hover:text-red-600 disabled:opacity-40`}
+      data-tip={tip ? "blacklist" : undefined}
+      className={`inline-flex ${size} items-center justify-center rounded-full text-red-500 hover:bg-canvas hover:text-red-600 disabled:opacity-40`}
     >
       {icon}
     </button>

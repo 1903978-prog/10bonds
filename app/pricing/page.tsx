@@ -11,7 +11,10 @@ import { LANG_COOKIE } from "@/lib/seo/locales";
 import { PRICING_TEXT, pricingLang } from "@/lib/pricingText";
 import { loadMatrix } from "@/lib/planFeatures";
 import { MAX_PLAN_LINES, planLines } from "@/lib/features";
-import { SEARCH_LIMITS } from "@/lib/limits";
+import { activePromo } from "@/lib/promoServer";
+import { promoCents, promoEndLabel, promoLine } from "@/lib/promo";
+import { loadFreeLimits } from "@/lib/searchLimits";
+import TrackView from "@/components/TrackView";
 
 export const metadata: Metadata = {
   title: "Plans · 10BONDS",
@@ -31,18 +34,24 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
   const t = PRICING_TEXT[lang];
   // Each card lists what the admin's feature table (/admin/features) ticks for that plan.
   const matrix = await loadMatrix();
-  const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], lines: [...planLines(matrix, key, lang, t, SEARCH_LIMITS.free), ...t.plans[key].extra].slice(0, MAX_PLAN_LINES), highlight: key === "plus" }));
-  const interval: Interval = sp.billing === "year" ? "year" : "month";
+  const freeLimits = await loadFreeLimits();
+  const PLANS = PLAN_KEYS.map((key) => ({ key, ...t.plans[key], lines: [...planLines(matrix, key, lang, t, freeLimits), ...t.plans[key].extra].slice(0, MAX_PLAN_LINES), highlight: key === "plus" }));
+  // Yearly is not sold for now (the owner, 26/10/2026): the page is always monthly, even with ?billing=year.
+  const interval = "month" as Interval;
+  const promo = await activePromo();
   const proApproved = user ? user.isAdmin || (await proStatus(user).catch(() => "none")) === "approved" : false;
   const sub = user?.subscription && ["active", "trialing", "past_due"].includes(user.subscription.status) ? user.subscription : null;
   return (
     <div>
+      <TrackView kind="pricing_viewed" detail={{ signed_in: Boolean(user) }} />
+      {sp.paid && <TrackView kind="paid" flush />}
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">{t.title}</h1>
         <p className="mt-1 text-sm text-mute">
           {t.lead}
         </p>
         {!user && <p className="mt-0.5 text-xs text-mute">{t.visitor}</p>}
+        {promo && <p className="mt-0.5 text-xs text-mute" data-testid="promo-line">{promoLine(lang, promo.percent, promoEndLabel(promo.endsAt, lang))}</p>}
         {sp.paid && (
           <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-800" data-testid="paid-msg">
             {t.paid}
@@ -59,9 +68,9 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
       <div className="mt-3 flex justify-center">
         <div className="inline-flex rounded-full bg-canvas p-1 text-sm" data-testid="billing-toggle">
           <Link href="/pricing" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "month" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-month">{t.monthly}</Link>
-          <Link href="/pricing?billing=year" scroll={false} className={`rounded-full px-4 py-1 font-medium ${interval === "year" ? "bg-white shadow-sm" : "text-mute"}`} data-testid="billing-year">
+          <span className="cursor-default select-none rounded-full px-4 py-1 font-medium text-mute opacity-60" aria-disabled="true" data-testid="billing-year">
             {t.yearly} <span className="text-accent">−{Math.round(YEARLY_DISCOUNT * 100)}%</span>
-          </Link>
+          </span>
         </div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -76,7 +85,9 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
             </h2>
             <p className="text-xs text-mute">{p.tagline}</p>
             <p className="mt-3" data-testid={`price-${p.key}`}>
-              <span className="text-[28px] font-semibold tracking-tight">{p.key === "free" ? "€0" : euro(priceCents(p.key as PaidPlan, interval), lang)}</span>
+              {promo && p.key === "free" && <span className="invisible block text-sm" aria-hidden>€0</span>}
+              {promo && p.key !== "free" && <span className="block text-sm text-mute line-through" data-testid={`old-price-${p.key}`}>{euro(priceCents(p.key as PaidPlan, interval), lang)}</span>}
+              <span className="text-[28px] font-semibold tracking-tight">{p.key === "free" ? "€0" : euro(promo ? promoCents(p.key as PaidPlan, promo.percent) : priceCents(p.key as PaidPlan, interval), lang)}</span>
               {p.key !== "free" && <span className="text-sm text-mute">{interval === "year" ? t.perYear : t.perMonth}</span>}
             </p>
             {/* Always one line here, so Monthly/Yearly never moves the features or buttons. */}
@@ -107,11 +118,11 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
               </button>
             ) : p.key === "pro" && !proApproved ? (
               <Link href="/pro" className="mt-4 rounded-full bg-ink px-4 py-2 text-center text-sm font-medium text-white hover:opacity-90" data-testid="pro-request">
-                {user ? t.proRequest : t.learnMore}
+                {user ? t.proRequest : t.subscribe}
               </Link>
             ) : !user ? (
               <Link href="/signup" className={`mt-4 rounded-full px-4 py-2 text-center text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-ink text-white"} hover:opacity-90`}>
-                {t.freeFirst}
+                {t.subscribe}
               </Link>
             ) : sub ? (
               <>

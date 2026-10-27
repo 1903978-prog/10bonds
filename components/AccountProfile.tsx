@@ -5,6 +5,7 @@ import ExclusionsCard from "./ExclusionsCard";
 import { useState } from "react";
 import { ManageButton, PlanButton } from "@/components/PlanButton";
 import { NEWSLETTER_TEXT, type NewsletterLang } from "@/lib/newsletterText";
+import { promoCents, promoEndLabel, promoLine } from "@/lib/promo";
 import { euro, PLAN_NAMES, priceCents, type Interval, type PaidPlan } from "@/lib/plans";
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
   hasBilling: boolean;
   proApproved: boolean;
   payOn: boolean;
+  promo: { percent: number; end: string } | null;
   newsletter: boolean;
   lang: NewsletterLang;
 };
@@ -118,7 +120,7 @@ export default function AccountProfile(p: Props) {
           <>
             <div className="mt-4 inline-flex rounded-full bg-canvas p-1 text-sm">
               {(["month", "year"] as Interval[]).map((i) => (
-                <button key={i} onClick={() => setInterval(i)} data-testid={`profile-${i}`} className={`rounded-full px-4 py-1.5 ${interval === i ? "bg-white font-medium shadow-sm" : "text-mute"}`}>
+                <button key={i} onClick={() => setInterval(i)} disabled={i === "year"} data-testid={`profile-${i}`} className={`rounded-full px-4 py-1.5 ${i === "year" ? "cursor-default opacity-60" : ""} ${interval === i ? "bg-white font-medium shadow-sm" : "text-mute"}`}>
                   {i === "month" ? "Monthly" : <>Yearly <span className="text-accent">−20%</span></>}
                 </button>
               ))}
@@ -132,10 +134,11 @@ export default function AccountProfile(p: Props) {
                     {k === "pro" && <span className="text-xs text-mute">for professionals</span>}
                     {p.storedPlan === k && <span className="text-xs text-accent">current</span>}
                   </span>
-                  <span className="text-sm">{euro(priceCents(k, interval))}<span className="text-mute">/{interval === "year" ? "year" : "month"}</span></span>
+                  <span className="text-sm">{p.promo && interval === "month" && !sub && <span className="mr-1 text-mute line-through">{euro(priceCents(k, interval))}</span>}{euro(p.promo && interval === "month" && !sub ? promoCents(k, p.promo.percent) : priceCents(k, interval))}<span className="text-mute">/{interval === "year" ? "year" : "month"}</span></span>
                 </label>
               ))}
             </div>
+            {p.promo && !sub && <p className="mt-2 text-xs text-mute">{promoLine("en", p.promo.percent, promoEndLabel(p.promo.end, "en"))}</p>}
             {!p.proApproved && <p className="mt-2 text-xs text-mute">Pro is for approved professionals. <Link href="/pro" className="text-accent">Request access</Link>.</p>}
             {sub ? (
               <>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GPT_PROMPT, isinText, parseGptRatings } from "./gptRatings";
+import { GPT_PROMPT, isinText, parseGptRatings, parseResultLine } from "./gptRatings";
 
 describe("GPT ratings (admin)", () => {
   it("copies the ISINs one per line, with the prompt on top when asked", () => {
@@ -40,5 +40,16 @@ describe("GPT ratings (admin)", () => {
       DE000A1B2C38: { rating: "A", issuerRating: null, basis: null },
       XS0000000017: { rating: "BB-", issuerRating: null, basis: null },
     });
+  });
+});
+
+describe("parseResultLine", () => {
+  it("reads the three core values from the last RESULT line", () => {
+    const text = "Long analysis...\nRESULT: IR=BBB+; BR=BBB; RISKPAY=3.1–20.0×";
+    expect(parseResultLine(text)).toEqual({ issuerRating: "BBB+", rating: "BBB", riskPay: "3.1–20.0×" });
+  });
+  it("treats n/a as missing and returns null without a line", () => {
+    expect(parseResultLine("RESULT: IR=78–87; BR=n/a; RISKPAY=n/a")).toEqual({ issuerRating: "78–87", rating: null, riskPay: null });
+    expect(parseResultLine("no result here")).toBeNull();
   });
 });

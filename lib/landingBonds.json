@@ -1,0 +1,66 @@
+{
+  "asOf": "2026-10-26T06:09:09.733Z",
+  "position": 17,
+  "bonds": [
+    {
+      "name": "Kering S.A.",
+      "year": 2032,
+      "risk": 3,
+      "ytm": 4.4307
+    },
+    {
+      "name": "SPP-Distribucia",
+      "year": 2031,
+      "risk": 3,
+      "ytm": 4.3768
+    },
+    {
+      "name": "Magna International",
+      "year": 2031,
+      "risk": 3,
+      "ytm": 4.3655
+    },
+    {
+      "name": "France",
+      "year": 2032,
+      "risk": 3,
+      "ytm": 4.32
+    },
+    {
+      "name": "Linde Finance",
+      "year": 2030,
+      "risk": 3,
+      "ytm": 4.3021
+    },
+    {
+      "name": "H&M Finance B.V.",
+      "year": 2031,
+      "risk": 3,
+      "ytm": 4.3015
+    },
+    {
+      "name": "Unibail-Rodamco SE",
+      "year": 2030,
+      "risk": 3,
+      "ytm": 4.2984
+    },
+    {
+      "name": "DZ BANK AG Deutsche Zentral-Genossenschaftsbank",
+      "year": 2031,
+      "risk": 2,
+      "ytm": 4.2025
+    },
+    {
+      "name": "Landesbank Hessen-Thüringen Girozentrale",
+      "year": 2031,
+      "risk": 2,
+      "ytm": 4.1922
+    },
+    {
+      "name": "Banque Cantonale de Genève",
+      "year": 2031,
+      "risk": 2,
+      "ytm": 4.1615
+    }
+  ]
+}

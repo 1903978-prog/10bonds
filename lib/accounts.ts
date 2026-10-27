@@ -1,4 +1,5 @@
 import { emailConfigured } from "./email";
+import { purgeUnconfirmed } from "./unconfirmedPurge";
 import postgres from "postgres";
 import { accountsUrl } from "./pgUrl";
 import type { Tier } from "./types";
@@ -92,6 +93,34 @@ async function setup(sql: ReturnType<typeof postgres>) {
       detail jsonb
     )`;
   await sql`create index if not exists events_at_idx on app.events (at)`;
+  // One row per browser that allowed statistics. The code (user001, user002, ...) is the number of the row; no name or
+  // e-mail is ever stored against it. Country comes from a request header or, failing that, an estimate from the browser's timezone.
+  await sql`
+    create table if not exists app.visitors (
+      code_no bigserial unique,
+      visitor_id text primary key,
+      first_seen timestamptz not null default now(),
+      last_seen timestamptz not null default now(),
+      visits integer not null default 1,
+      country text,
+      country_source text,
+      device text,
+      lang text,
+      referrer text,
+      first_path text
+    )`;
+  // Cookieless counts for visitors who did not allow statistics: day, page, country and a number. Nothing that identifies anyone.
+  await sql`
+    create table if not exists app.daily_counts (
+      day date not null,
+      kind text not null,
+      path text not null,
+      country text not null,
+      n integer not null default 0,
+      primary key (day, kind, path, country)
+    )`;
+  await sql`alter table app.users add column if not exists country text`;
+  await sql`alter table app.users add column if not exists country_source text`;
   // Proof of the first-use agreement for the portfolio builder: who (account or browser), which wording, when.
   await sql`
     create table if not exists app.consents (
@@ -191,6 +220,7 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`grant select, update on app.refresh_requests to public`.catch(() => {});
   // Keep 13 months of usage history.
   await sql`delete from app.events where at < now() - interval '13 months'`;
+  await sql`delete from app.visitors where last_seen < now() - interval '13 months'`;
   // The admin account made before confirmation e-mails existed holds its address already: count it as confirmed,
   // so turning e-mails on never locks the owner out of the admin pages.
   if (ADMIN_EMAILS.length) {
@@ -201,6 +231,8 @@ async function setup(sql: ReturnType<typeof postgres>) {
       select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where u.email in ${sql(ADMIN_EMAILS)})`;
     await sql`delete from app.search_usage where user_id in (select id from app.users where email in ${sql(ADMIN_EMAILS)})`;
   }
+  // Never-confirmed, never-paid accounts older than 30 days: removed only when PRIVACY_PURGE_UNCONFIRMED=on (off by default).
+  await purgeUnconfirmed(sql, ADMIN_EMAILS);
 }
 
 type Plan = Exclude<Tier, "visitor">;
@@ -215,7 +247,7 @@ export type User = {
   storedPlan: StoredPlan;
   premiumUntil: string | null;
   emailVerified: boolean;
-  /** Signed up more than CONFIRM_GRACE_MS ago and the address is still not confirmed: treated as a visitor until it is. */
+  /** Address not confirmed yet (e-mails on, not admin): treated as a visitor (names and ISINs blurred) until it is. */
   confirmBlocked: boolean;
   isAdmin: boolean;
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
@@ -251,13 +283,13 @@ function isAdminRow(r: UserRow): boolean {
 export async function forgetVisitor(visitorId: string): Promise<void> {
   const sql = await accountsSql();
   await sql`delete from app.events where visitor_id = ${visitorId}`;
+  await sql`delete from app.visitors where visitor_id = ${visitorId}`;
 }
 
 /** Cookie set on every device that opens the admin page: events from that browser are never recorded, even signed out. */
 export const OWNER_COOKIE = "tb_owner";
 
 /** How long a new account may be used before its e-mail address must be confirmed. */
-export const CONFIRM_GRACE_MS = 3 * 3600_000;
 
 const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, newsletter_opt_in, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
@@ -274,7 +306,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     storedPlan: r.plan,
     premiumUntil: r.premium_until ? new Date(r.premium_until).toISOString() : null,
     emailVerified,
-    confirmBlocked: !emailVerified && emailConfigured() && !!r.created_at && now - new Date(r.created_at).getTime() > CONFIRM_GRACE_MS,
+    confirmBlocked: !emailVerified && !admin && emailConfigured(),
     // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: admin,
@@ -535,6 +567,8 @@ export type AdminUserRow = {
   secondsOnSite: number | null; searches: number | null; isAdmin: boolean;
   /** Where the first recorded visit came from (another site's host, or "direct"); null without usage statistics. */
   cameFrom: string | null;
+  /** Two-letter country, with "~" in front when only estimated from the browser timezone; null when unknown. */
+  country: string | null;
 };
 
 // The site's own hosts: moving between its pages is not where a visitor came from.
@@ -572,6 +606,7 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
            p.last_seen, p.secs, p.searches, p.user_id is not null has_stats, src.host came_from
     from app.users u left join per p on p.user_id = u.id left join src on src.user_id = u.id
     order by u.created_at desc`;
+  const ctry = new Map((await sql<{ id: string; country: string | null; country_source: string | null }[]>`select id, country, country_source from app.users where country is not null`).map((c) => [Number(c.id), `${c.country_source === "estimated" ? "~" : ""}${c.country}`]));
   return rows.map((r) => {
     const last = [r.last_login_at, r.last_seen].filter((x): x is Date => x !== null).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
     return {
@@ -589,14 +624,16 @@ export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
       searches: r.has_stats ? Number(r.searches) : null,
       isAdmin: ADMIN_EMAILS.includes(r.email.trim().toLowerCase()),
       cameFrom: r.has_stats ? (r.came_from ?? "direct") : null,
+      country: ctry.get(Number(r.id)) ?? null,
     };
   });
 }
 
-export async function recordEvents(rows: { visitorId: string; userId: number | null; kind: string; path: string | null; detail: unknown }[]) {
+export async function recordEvents(rows: { visitorId: string; userId: number | null; kind: string; path: string | null; detail: unknown }[], geo?: { country: string | null; source: string | null }) {
   if (rows.length === 0) return;
   const { sql, ready } = db();
   await ready;
+  await touchVisitor(rows, geo);
   await sql`insert into app.events ${sql(
     rows.map((r) => ({ visitor_id: r.visitorId, user_id: r.userId, kind: r.kind, path: r.path, detail: r.detail === null ? null : sql.json(r.detail as never) })),
   )}`;
@@ -784,4 +821,204 @@ export async function subscriptionIdOf(userId: number): Promise<string | null> {
   await ready;
   const r = await sql<{ s: string | null }[]>`select stripe_subscription_id s from app.users where id = ${userId}`;
   return r[0]?.s ?? null;
+}
+
+// Created on first use, not in setup(): keeps this table off the path every account request waits for.
+let discountReady: Promise<void> | null = null;
+export async function discountTable() {
+  const { sql, ready } = db();
+  await ready;
+  discountReady ??= (async () => {
+    await sql`
+    create table if not exists app.discount_codes (
+      code text primary key,
+      user_id bigint references app.users(id) on delete cascade,
+      percent_off numeric,
+      amount_off_cents integer,
+      months integer not null,
+      stripe_coupon_id text,
+      stripe_promo_id text,
+      stripe_mode text,
+      created_by bigint references app.users(id) on delete set null,
+      created_at timestamptz not null default now(),
+      used_at timestamptz
+    )`;
+  })().catch((e) => {
+    discountReady = null;
+    throw e;
+  });
+  await discountReady;
+  return sql;
+}
+
+export type DiscountCode = { code: string; email: string | null; percentOff: number | null; amountOffCents: number | null; months: number; mode: string | null; createdAt: string; usedAt: string | null };
+
+export async function saveDiscountCode(c: { code: string; userId: number; percentOff: number | null; amountOffCents: number | null; months: number; couponId: string; promoId: string; mode: string; createdBy: number }) {
+  const sql = await discountTable();
+  await sql`insert into app.discount_codes (code, user_id, percent_off, amount_off_cents, months, stripe_coupon_id, stripe_promo_id, stripe_mode, created_by)
+    values (${c.code}, ${c.userId}, ${c.percentOff}, ${c.amountOffCents}, ${c.months}, ${c.couponId}, ${c.promoId}, ${c.mode}, ${c.createdBy})`;
+}
+
+export async function markDiscountUsed(code: string) {
+  const sql = await discountTable();
+  await sql`update app.discount_codes set used_at = now() where code = ${code} and used_at is null`;
+}
+
+export async function listDiscountCodes(limit = 200): Promise<(DiscountCode & { promoId: string | null })[]> {
+  const sql = await discountTable();
+  const rows = await sql<{ code: string; email: string | null; percent_off: string | null; amount_off_cents: number | null; months: number; stripe_mode: string | null; created_at: Date; used_at: Date | null; stripe_promo_id: string | null }[]>`
+    select d.code, u.email, d.percent_off, d.amount_off_cents, d.months, d.stripe_mode, d.created_at, d.used_at, d.stripe_promo_id
+    from app.discount_codes d left join app.users u on u.id = d.user_id order by d.created_at desc limit ${limit}`;
+  return rows.map((r) => ({
+    code: r.code, email: r.email, percentOff: r.percent_off === null ? null : Number(r.percent_off), amountOffCents: r.amount_off_cents, months: r.months,
+    mode: r.stripe_mode, createdAt: r.created_at.toISOString(), usedAt: r.used_at ? r.used_at.toISOString() : null, promoId: r.stripe_promo_id,
+  }));
+}
+
+/** Funnel numbers for the admin page: distinct visitors per step per day (consented statistics only), owner devices left out. */
+export async function funnelDaily(days: number, kinds: readonly string[]) {
+  const { sql, ready } = db();
+  await ready;
+  const n = Math.min(Math.max(Math.floor(days) || 30, 1), 90);
+  const notOwner = sql`visitor_id not in (
+    select distinct e.visitor_id from app.events e join app.users u on u.id = e.user_id where lower(u.email) in ${sql(OWNER_EMAILS)})`;
+  const perDay = await sql<{ day: string; kind: string; n: string }[]>`
+    select to_char(date_trunc('day', at), 'YYYY-MM-DD') as day, kind, count(distinct visitor_id) n
+    from app.events where at > now() - make_interval(days => ${n}) and kind in ${sql(kinds as string[])} and ${notOwner}
+    group by 1, 2 order by 1 desc`;
+  const total = await sql<{ kind: string; n: string }[]>`
+    select kind, count(distinct visitor_id) n from app.events
+    where at > now() - make_interval(days => ${n}) and kind in ${sql(kinds as string[])} and ${notOwner} group by kind`;
+  // Real subscriptions, from the accounts table (not from browser events), as a cross-check on the "paid" step.
+  const [paying] = await sql<{ n: string }[]>`
+    select count(*) n from app.users where subscription_status in ('active','trialing','past_due') and lower(email) not in ${sql(OWNER_EMAILS)}`;
+  return {
+    days: n,
+    perDay: perDay.map((r) => ({ day: r.day, kind: r.kind, n: Number(r.n) })),
+    visitors: Object.fromEntries(total.map((r) => [r.kind, Number(r.n)])) as Record<string, number>,
+    payingNow: Number(paying.n),
+  };
+}
+
+
+type Detail = Record<string, unknown> | null;
+/** Creates or updates the visitor row (code, first/last seen, visit count, device, language, referrer, country). */
+async function touchVisitor(rows: { visitorId: string; path: string | null; kind: string; detail: unknown }[], geo?: { country: string | null; source: string | null }) {
+  const { sql } = db();
+  const vid = rows[0].visitorId;
+  const pv = rows.find((r) => r.kind === "page_view");
+  const d = ((pv ?? rows[0]).detail ?? {}) as Detail;
+  const str = (v: unknown, n: number) => (typeof v === "string" && v ? v.slice(0, n) : null);
+  // Update first, insert only for a new visitor, so the numbers user001, user002, … have no gaps (an upsert would burn a number each time).
+  const upd = await sql`
+    update app.visitors set
+      -- a new visit = the last event was over 30 minutes ago
+      visits = visits + case when last_seen < now() - interval '30 minutes' then 1 else 0 end,
+      last_seen = now(),
+      country = coalesce(country, ${geo?.country ?? null}),
+      country_source = case when country is null then ${geo?.source ?? null} else country_source end,
+      device = coalesce(${str(d?.device, 10)}, device),
+      lang = coalesce(lang, ${str(d?.lang, 12)}),
+      referrer = coalesce(referrer, ${str(d?.referrer, 100)})
+    where visitor_id = ${vid}`;
+  if (upd.count === 0)
+    await sql`
+      insert into app.visitors (visitor_id, country, country_source, device, lang, referrer, first_path)
+      values (${vid}, ${geo?.country ?? null}, ${geo?.source ?? null}, ${str(d?.device, 10)}, ${str(d?.lang, 12)}, ${str(d?.referrer, 100)}, ${pv?.path ?? rows[0].path})
+      on conflict (visitor_id) do nothing`;
+}
+
+/** Adds one to today's cookieless count for a page (no identifier stored). */
+export async function countAnonymous(kind: "page_view" | "click", path: string, country: string) {
+  const { sql, ready } = db();
+  await ready;
+  await sql`
+    insert into app.daily_counts (day, kind, path, country, n) values (current_date, ${kind}, ${path}, ${country}, 1)
+    on conflict (day, kind, path, country) do update set n = app.daily_counts.n + 1`;
+}
+
+export async function setUserCountry(userId: number, country: string | null, source: string | null) {
+  if (!country) return;
+  const { sql, ready } = db();
+  await ready;
+  await sql`update app.users set country = ${country}, country_source = ${source} where id = ${userId} and country is null`;
+}
+
+export type VisitorRow = {
+  code: string; firstSeen: string; lastSeen: string; visits: number; country: string | null; countrySource: string | null; device: string | null; lang: string | null;
+  referrer: string | null; pages: number; seconds: number; searches: number; stage: string;
+};
+export type VisitorPage = { path: string; views: number; seconds: number };
+
+export const visitorCode = (n: number) => `user${String(n).padStart(3, "0")}`;
+
+/** Visitors who allowed statistics, newest first, with pages, time and the furthest funnel step reached. No names or e-mails. */
+export async function listVisitors(limit = 300): Promise<VisitorRow[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{
+    code_no: string; first_seen: Date; last_seen: Date; visits: number; country: string | null; country_source: string | null; device: string | null; lang: string | null; referrer: string | null;
+    pages: string; secs: string | null; searches: string; kinds: string[] | null;
+  }[]>`
+    with ev as (
+      select visitor_id, kind, path, at, lead(at) over (partition by visitor_id order by at) - at as stay from app.events
+    )
+    select v.code_no, v.first_seen, v.last_seen, v.visits, v.country, v.country_source, v.device, v.lang, v.referrer,
+      count(distinct ev.path) filter (where ev.kind = 'page_view') pages,
+      -- time on site: gap to the next event, ignoring pauses over 30 minutes (those are separate visits)
+      sum(extract(epoch from least(ev.stay, interval '30 minutes'))) filter (where ev.kind = 'page_view' and ev.stay is not null and ev.stay < interval '30 minutes') secs,
+      count(*) filter (where ev.kind = 'search') searches,
+      array_agg(distinct ev.kind) kinds
+    from app.visitors v left join ev on ev.visitor_id = v.visitor_id
+    where ${notOwnerVisitorOf(sql, "v.visitor_id")}
+    group by v.code_no, v.first_seen, v.last_seen, v.visits, v.country, v.country_source, v.device, v.lang, v.referrer
+    order by v.last_seen desc limit ${Math.min(limit, 1000)}`;
+  const { FUNNEL } = await import("./trackRules");
+  return rows.map((r) => {
+    const kinds = new Set(r.kinds ?? []);
+    const stage = [...FUNNEL].reverse().find((k) => kinds.has(k)) ?? "page_view";
+    return {
+      code: visitorCode(Number(r.code_no)), firstSeen: r.first_seen.toISOString(), lastSeen: r.last_seen.toISOString(), visits: r.visits, country: r.country, countrySource: r.country_source,
+      device: r.device, lang: r.lang, referrer: r.referrer, pages: Number(r.pages), seconds: Math.round(Number(r.secs ?? 0)), searches: Number(r.searches), stage,
+    };
+  });
+}
+
+/** Pages one visitor looked at, with views and seconds spent on each. */
+export async function visitorPages(codeNo: number): Promise<VisitorPage[]> {
+  const { sql, ready } = db();
+  await ready;
+  const rows = await sql<{ path: string; views: string; secs: string | null }[]>`
+    with ev as (
+      select e.path, e.kind, e.at, lead(e.at) over (partition by e.visitor_id order by e.at) - e.at as stay
+      from app.events e join app.visitors v on v.visitor_id = e.visitor_id where v.code_no = ${codeNo}
+    )
+    select path, count(*) views, sum(extract(epoch from stay)) filter (where stay < interval '30 minutes') secs
+    from ev where kind = 'page_view' and path is not null group by path order by secs desc nulls last`;
+  return rows.map((r) => ({ path: r.path, views: Number(r.views), seconds: Math.round(Number(r.secs ?? 0)) }));
+}
+
+/** Visitors by country: identified ones (statistics allowed) and anonymous daily page counts (statistics refused). */
+export async function countryCounts(days: number) {
+  const { sql, ready } = db();
+  await ready;
+  const n = Math.min(Math.max(Math.floor(days) || 30, 1), 90);
+  const known = await sql<{ country: string | null; n: string }[]>`
+    select coalesce(country, '??') country, count(*) n from app.visitors v where last_seen > now() - make_interval(days => ${n}) and ${notOwnerVisitorOf(sql, "v.visitor_id")} group by 1`;
+  const anon = await sql<{ country: string; n: string }[]>`
+    select country, sum(n) n from app.daily_counts where kind = 'page_view' and day > current_date - ${n}::int group by 1`;
+  const users = await sql<{ country: string | null; n: string }[]>`
+    select coalesce(country, '??') country, count(*) n from app.users where lower(email) not in ${sql(OWNER_EMAILS)} group by 1`;
+  const m: Record<string, { visitors: number; anonymousPageViews: number; accounts: number }> = {};
+  const row = (c: string) => (m[c] ??= { visitors: 0, anonymousPageViews: 0, accounts: 0 });
+  for (const r of known) row(r.country ?? "??").visitors = Number(r.n);
+  for (const r of anon) row(r.country).anonymousPageViews = Number(r.n);
+  for (const r of users) row(r.country ?? "??").accounts = Number(r.n);
+  return Object.entries(m).map(([country, v]) => ({ country, ...v })).sort((a, b) => b.visitors + b.accounts + b.anonymousPageViews - (a.visitors + a.accounts + a.anonymousPageViews));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function notOwnerVisitorOf(sql: any, col: string) {
+  return sql`${sql.unsafe(col)} not in (
+    select distinct x.visitor_id from app.events x join app.users u on u.id = x.user_id where lower(u.email) in ${sql(OWNER_EMAILS)})`;
 }

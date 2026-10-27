@@ -1,8 +1,8 @@
 // Local browser check: start the standalone server on :3311 with a throwaway accounts database, then run `node scripts/e2e-local.mjs`.
 import { chromium } from "playwright-core";
 const BASE = "http://127.0.0.1:3311";
-const SHOTS = "/tmp/claude-0/-home-claude/4b337658-00ee-5dac-b7d9-34aa865191b3/scratchpad";
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const SHOTS = process.env.SHOTS ?? "/tmp";
+const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome" });
 let fails = 0;
 const ok = (c, m) => { console.log((c ? "PASS " : "FAIL ") + m); if (!c) fails++; };
 const noSide = async (p, label) => ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${label}: no sideways scroll`);
@@ -16,14 +16,15 @@ for (const w of [1440, 390]) {
   await p.screenshot({ path: `${SHOTS}/cookie-${w}.png` });
   await p.click('[data-testid="cookie-settings"]');
   await p.click('[data-testid="cookie-statistics"]');
-  await p.click('text=Save selection');
+  await p.click('[data-testid="cookie-accept"]');
   ok(!(await p.isVisible('[data-testid="cookie-banner"]')), `${w} banner closes`);
   const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("tb_cookie_consent")));
   ok(stored.statistics === true && stored.marketing === false, `${w} selection stored`);
   await p.goto(BASE + "/cookies"); // cookie settings live on the Cookies page, not in the footer
   await p.click("text=Cookie settings");
   ok(await p.isChecked('[data-testid="cookie-statistics"]'), `${w} reopened with choice`);
-  await p.click("text=Reject all");
+  await p.locator('[data-testid="cookie-statistics"]').uncheck();
+  await p.locator('[data-testid="cookie-accept"]').click();
   ok(await p.evaluate(() => !localStorage.getItem("tb_vid")), `${w} deny removes visitor id`);
   await noSide(p, `${w} home`);
   const signup = async (email, user) => {

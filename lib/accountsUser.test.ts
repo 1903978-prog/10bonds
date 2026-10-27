@@ -28,15 +28,14 @@ describe("toUser", () => {
 
 describe("confirmBlocked", () => {
   afterEach(() => { delete process.env.RESEND_API_KEY; delete process.env.EMAIL_FROM; });
-  it("blocks an unconfirmed account 3 hours after sign-up, once e-mails are on", () => {
+  it("blocks an unconfirmed account right away, once e-mails are on", () => {
     const now = Date.parse("2026-10-19T12:00:00Z");
     const u = (created: string, verified: Date | null = null) =>
       toUser(row({ email: "a@x.com", created_at: new Date(created), email_verified_at: verified }), now);
     expect(u("2026-10-19T08:00:00Z").confirmBlocked).toBe(false); // e-mails off
     process.env.RESEND_API_KEY = "x"; process.env.EMAIL_FROM = "a@b.c";
     markEmailDomainVerified(true);
-    expect(u("2026-10-19T10:00:00Z").confirmBlocked).toBe(false); // 2h: still allowed
-    expect(u("2026-10-19T08:00:00Z").confirmBlocked).toBe(true); // 4h: blocked
+    expect(u("2026-10-19T11:59:00Z").confirmBlocked).toBe(true);
     expect(u("2026-10-19T08:00:00Z", new Date()).confirmBlocked).toBe(false); // confirmed
   });
 });

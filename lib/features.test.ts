@@ -11,6 +11,12 @@ describe("plan features", () => {
     expect(FEATURES.length).toBeLessThanOrEqual(40);
     expect(new Set(FEATURES.map((f) => f.key)).size).toBe(FEATURES.length);
   });
+  it("ISIN search is a paid feature, apart from showing ISINs in lists", () => {
+    const m = defaultMatrix();
+    expect(featuresOf(m, "free")).not.toContain("isin_search");
+    expect(featuresOf(m, "free")).toContain("isin");
+    for (const p of ["plus", "premium", "pro"] as const) expect(featuresOf(m, p)).toContain("isin_search");
+  });
   it("free sees portfolios with ISIN; the blacklist is for paying plans", () => {
     const m = defaultMatrix();
     expect(featuresOf(m, "free")).toEqual(expect.arrayContaining(["isin", "portfolio_sim"]));
@@ -30,16 +36,16 @@ describe("plan features", () => {
   it("Plans page lines follow the ticks", () => {
     const t = PRICING_TEXT.en;
     const m = defaultMatrix();
-    const free = planLines(m, "free", "en", t, { single: 10, portfolio: 3 });
+    const free = planLines(m, "free", "en", t, { daily: 10 });
     expect(free).toContain("Full top 10 with ISIN, coupon, maturity");
-    expect(free).toContain("3 portfolio searches a week");
-    const plus = planLines(m, "plus", "en", t, { single: 10, portfolio: 3 });
+    expect(free).toContain("10 searches a day");
+    const plus = planLines(m, "plus", "en", t, { daily: 10 });
     expect(plus[0]).toBe("Everything in the free account");
     expect(plus).toContain("Excel download, bond swap and blacklist");
     expect(plus).not.toContain("Full top 10 with ISIN, coupon, maturity");
     m.full_top10.free = false;
-    expect(planLines(m, "plus", "en", t, { single: 10, portfolio: 3 })).toContain("Full top 10 with ISIN, coupon, maturity");
-    for (const p of ["free", "plus", "premium", "pro"] as const) expect(planLines(defaultMatrix(), p, "en", t, { single: 10, portfolio: 3 }).length).toBeLessThanOrEqual(7);
+    expect(planLines(m, "plus", "en", t, { daily: 10 })).toContain("Full top 10 with ISIN, coupon, maturity");
+    for (const p of ["free", "plus", "premium", "pro"] as const) expect(planLines(defaultMatrix(), p, "en", t, { daily: 10 }).length).toBeLessThanOrEqual(7);
   });
 });
 

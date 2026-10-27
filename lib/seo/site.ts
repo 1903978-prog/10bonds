@@ -7,9 +7,20 @@ import { listGuides, listPeople, type Guide, type Person } from "./store";
 
 // What the public SEO pages read. Failures give empty lists: a missing database never breaks a public page.
 
+// Public pages are read far more often than they change, and every request used to hit the database and recompute
+// the comparisons. A short memo keeps a crowd of visitors or crawlers from queueing behind the one small server.
+const GUIDES_TTL_MS = 60_000;
+const guideMemo = new Map<string, { at: number; guides: Guide[] }>();
+
 export async function publishedGuides(locale: Locale | null = null): Promise<Guide[]> {
   if (!accountsConfigured()) return [];
-  return listGuides(true, locale).catch(() => []);
+  const key = locale ?? "all";
+  const hit = guideMemo.get(key);
+  if (hit && Date.now() - hit.at < GUIDES_TTL_MS) return hit.guides;
+  const guides = await listGuides(true, locale).catch(() => null);
+  if (!guides) return hit?.guides ?? [];
+  guideMemo.set(key, { at: Date.now(), guides });
+  return guides;
 }
 
 export async function publicPeople(): Promise<Person[]> {
@@ -18,10 +29,18 @@ export async function publicPeople(): Promise<Person[]> {
 }
 
 /** Comparison pages with their data, from the one shared bond copy. */
-export async function comparisonPages(): Promise<{ pages: ComparisonData[]; asOf: string | null; source: "live" | "sample" | null }> {
+type ComparisonResult = { pages: ComparisonData[]; asOf: string | null; source: "live" | "sample" | null };
+const COMPARISONS_TTL_MS = 10 * 60_000;
+let comparisonMemo: { at: number; key: string; result: ComparisonResult } | null = null;
+
+export async function comparisonPages(): Promise<ComparisonResult> {
   const data = await loadBonds().catch(() => null);
   if (!data) return { pages: [], asOf: null, source: null };
-  return { pages: allComparisons(data.bonds), asOf: data.asOf, source: data.source };
+  const key = `${data.source}|${data.asOf}|${data.bonds.length}`;
+  if (comparisonMemo && comparisonMemo.key === key && Date.now() - comparisonMemo.at < COMPARISONS_TTL_MS) return comparisonMemo.result;
+  const result = { pages: allComparisons(data.bonds), asOf: data.asOf, source: data.source };
+  comparisonMemo = { at: Date.now(), key, result };
+  return result;
 }
 
 /** Sample data is never indexable: it is not real. */
@@ -54,6 +73,6 @@ export function guideAlternates(g: Guide, siblings: Guide[]): Metadata["alternat
   return Object.keys(languages).length ? { canonical, languages } : { canonical };
 }
 
-const DATE_LOCALE: Record<Locale, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE" };
-export const fmtDate = (l: Locale, iso: string) => new Date(iso).toLocaleDateString(DATE_LOCALE[l], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome" });
-export const fmtNum = (l: Locale, n: number, d = 2) => n.toLocaleString(DATE_LOCALE[l], { minimumFractionDigits: d, maximumFractionDigits: d });
+const DATE_LOCALE: Record<Locale | "en", string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
+export const fmtDate = (l: Locale | "en", iso: string) => new Date(iso).toLocaleDateString(DATE_LOCALE[l], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome" });
+export const fmtNum = (l: Locale | "en", n: number, d = 2) => n.toLocaleString(DATE_LOCALE[l], { minimumFractionDigits: d, maximumFractionDigits: d });

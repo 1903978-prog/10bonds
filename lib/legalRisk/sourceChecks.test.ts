@@ -84,6 +84,8 @@ describe("data feeds", () => {
   const ALLOWED = new Set([
     "api.resend.com", "api.indexnow.org", "www.linkedin.com", "api.linkedin.com", "oauth2.googleapis.com", "www.googleapis.com",
     "api.stripe.com", "www.bing.com", "x",
+    // admin-only rating calculator (lib/llmProvider.ts); provisional output, never customer-facing
+    "api.openai.com", "api.anthropic.com", "generativelanguage.googleapis.com",
   ]);
   it("fetch() calls go only to allowlisted hosts", () => {
     const files = [...walk("lib"), ...walk("app")].filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f));
@@ -106,15 +108,20 @@ describe("rating agencies", () => {
 });
 
 describe("LLM separation", () => {
-  const ALLOWED_IMPORTERS = ["components/GptRate.tsx", "components/Finder.tsx", "app/api/admin/gpt-ratings/route.ts", "lib/gptRatingsDb.ts", "lib/bondImportDb.ts", "lib/gptStore.ts", "lib/gptRatings.test.ts"];
+  const ALLOWED_IMPORTERS = ["components/GptRate.tsx", "components/GptCalcAll.tsx", "components/GptCalcPopup.tsx", "components/Finder.tsx", "app/api/admin/gpt-ratings/route.ts", "app/api/admin/gpt-calc/route.ts", "app/api/admin/skills/route.ts", "app/admin/skills/page.tsx", "lib/gptRatingsDb.ts", "lib/bondImportDb.ts", "lib/gptStore.ts", "lib/gptRatings.test.ts"];
   it("GPT helper modules are imported only by admin code", () => {
     const files = [...walk("components"), ...walk("app"), ...walk("lib")].filter((f) => /\.tsx?$/.test(f) && !f.startsWith("lib/legalRisk/"));
     const found = files.filter((f) => /from "(@\/lib|\.\/|\.\.\/lib\/|\.\.\/)(lib\/)?(gptRatings|gptStore|gptRatingsDb)"/.test(read(f)) || /from "\.\/(gptRatings|gptStore|gptRatingsDb)"/.test(read(f)));
     expect(found.filter((f) => !ALLOWED_IMPORTERS.includes(f))).toEqual([]);
   });
+  it("the only LLM API call is the admin-only provider module, used by one admin route", () => {
+    const users = [...walk("lib"), ...walk("app"), ...walk("components")].filter((f) => /\.tsx?$/.test(f) && /llmProvider/.test(read(f)) && f !== "lib/llmProvider.ts" && !/\.test\./.test(f));
+    expect(users).toEqual(["app/api/admin/gpt-calc/route.ts"]);
+    expect(read("app/api/admin/gpt-calc/route.ts")).toMatch(/Not found[\s\S]*404/);
+  });
   it("no LLM vendor SDK or API call in the app", () => {
-    const files = [...walk("lib"), ...walk("app"), ...walk("components")].filter((f) => /\.tsx?$/.test(f) && !f.startsWith("lib/legalRisk/") && !/\.test\./.test(f));
-    const found = files.filter((f) => /api\.openai\.com|api\.anthropic\.com|from "openai"|from "@anthropic-ai/.test(read(f)));
+    const files = [...walk("lib"), ...walk("app"), ...walk("components")].filter((f) => /\.tsx?$/.test(f) && !f.startsWith("lib/legalRisk/") && !/\.test\./.test(f) && f !== "lib/llmProvider.ts");
+    const found = files.filter((f) => /api\.openai\.com|generativelanguage\.googleapis|api\.anthropic\.com|from "openai"|from "@anthropic-ai/.test(read(f)));
     expect(found).toEqual([]);
   });
 });

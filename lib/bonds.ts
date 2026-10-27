@@ -1,3 +1,4 @@
+import { classifyRow } from "./classify";
 import postgres from "postgres";
 import { cleanPgUrl } from "./pgUrl";
 import type { PublicBond } from "./types";
@@ -88,12 +89,33 @@ async function reload() {
   const modelled = rows.filter((r) => r.structure_modelled !== false);
   // Imported seniority (admin switch, lib/bondImportDb.ts) only fills bonds whose copy has none; the copy's own value always wins.
   const importedSeniority = await import("./bondImportDb").then((m) => m.importedSeniorityMap()).catch(() => new Map<string, string>());
-  const mapped: (PublicBond & { flaggedDormant: unknown })[] = modelled.map((r) => ({
+  const mapped = modelled.map((r) => rowToBond(r, importedSeniority));
+  // Bonds with a minimum above 200,000 EUR / USD stay in the database but are dormant: never shown or used (the owner, 21/10/2026).
+  const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);
+  // Unrated bonds never appear on the site (the owner, 18/10/2026).
+  // A price that fails the sanity checks (lib/priceIntegrity.ts) keeps the bond out of every ranking; the admin sees the list.
+  const meta = new Map<string, PriceMeta>(modelled.map((r) => [r.isin, priceMetaOf(r)]));
+  const screened = screenPrices(dropStale(bonds), meta, newestQuote(bonds));
+  const current = screened.ok;
+  const rated = current.filter(hasRealRating);
+  // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
+  const [{ total }] = await client`select count(*)::int total from public_bonds`;
+  cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), priceFlagged: screened.flagged, bySd: new Map() };
+}
+
+/** One `public_bonds` row as the site's bond (flaggedDormant = the copy's own dormant flag, applied by the caller). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a raw database row
+function rowToBond(r: Record<string, any>, importedSeniority: Map<string, string>): PublicBond & { flaggedDormant: unknown } {
+  const issuer = cleanIssuer(r.issuer);
+  const cls = classifyRow(r, issuer);
+  return {
     flaggedDormant: r.dormant,
     isin: r.isin,
     name: r.name,
-    issuer: cleanIssuer(r.issuer),
-    country: r.country,
+    issuer,
+    country: cls.country,
+    countrySource: cls.countrySource,
+    feedSector: cls.sectorSource === "feed" ? cls.sector : null,
     currency: r.currency,
     coupon: num(r.coupon),
     maturity: isoDay(r.maturity),
@@ -113,18 +135,19 @@ async function reload() {
     seniority: typeof r.seniority === "string" && r.seniority.trim() ? r.seniority.trim() : (importedSeniority.get(r.isin) ?? null),
     issueDate: isoDay(r.issue_date),
     callable: typeof r.callable === "boolean" ? r.callable : null,
-  }));
-  // Bonds with a minimum above 200,000 EUR / USD stay in the database but are dormant: never shown or used (the owner, 21/10/2026).
-  const bonds: PublicBond[] = mapped.filter((b) => !dormantReason(b, b.flaggedDormant)).map(({ flaggedDormant: _, ...b }) => b);
-  // Unrated bonds never appear on the site (the owner, 18/10/2026).
-  // A price that fails the sanity checks (lib/priceIntegrity.ts) keeps the bond out of every ranking; the admin sees the list.
-  const meta = new Map<string, PriceMeta>(modelled.map((r) => [r.isin, priceMetaOf(r)]));
-  const screened = screenPrices(dropStale(bonds), meta, newestQuote(bonds));
-  const current = screened.ok;
-  const rated = current.filter(hasRealRating);
-  // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
-  const [{ total }] = await client`select count(*)::int total from public_bonds`;
-  cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), priceFlagged: screened.flagged, bySd: new Map() };
+  };
+}
+
+/** Admin only: the bonds of the WHOLE copy with these ISINs, exactly as the site would hold them, with why the site would hide each (null = shown). Bonds not in the copy are simply absent. */
+export async function loadBondsByIsin(isins: string[]): Promise<{ bond: PublicBond; why: string | null }[]> {
+  const client = db();
+  if (!client || !isins.length) return [];
+  const rows = await client`select * from public_bonds where upper(trim(isin)) in ${client(isins)}`;
+  const importedSeniority = await import("./bondImportDb").then((m) => m.importedSeniorityMap()).catch(() => new Map<string, string>());
+  return rows.map((r) => {
+    const { flaggedDormant: _, ...bond } = rowToBond(r, importedSeniority);
+    return { bond, why: whyHidden(r) };
+  });
 }
 
 /** Optional price facts the copy may carry (docs/handover/price-integrity.md). */
@@ -227,12 +250,16 @@ export async function loadAllShown(): Promise<BondSource & { unrated: number; to
 import { cleanIssuer } from "./issuer";
 export { cleanIssuer };
 
-/** Counts over the whole copy (not only what the site shows), for the admin page. The copy holds yields, not prices. */
+/** Counts over the whole copy (not only what the site shows), for the admin page. Age uses the quote's own time (price_as_of) when the copy has it, else the yield date. */
+export type PriceFreshness = { basis: "price_as_of" | "ytm_as_of"; total: number; last24h: number; last48h: number; olderThan7d: number; noDate: number; newest: string | null; oldest: string | null };
+
 export async function bondDataStats(): Promise<{
-  total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number;
+  total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number; freshness: PriceFreshness;
 } | null> {
   const client = db();
   if (!client) return null;
+  const cols = await client`select column_name from information_schema.columns where table_name = 'public_bonds' and column_name = 'price_as_of'`;
+  const basis = cols.length ? "price_as_of" : "ytm_as_of";
   const [r] = await client`
     select count(*) total,
            count(gross_ytm) with_ytm,
@@ -240,6 +267,14 @@ export async function bondDataStats(): Promise<{
            count(*) filter (where gross_ytm is not null and ytm_as_of > now() - interval '24 hours') ytm_24h,
            max(ytm_as_of) newest
     from public_bonds`;
+  const [f] = await client`
+    select count(*) filter (where d > now() - interval '24 hours') h24,
+           count(*) filter (where d > now() - interval '48 hours') h48,
+           count(*) filter (where d <= now() - interval '7 days') d7,
+           count(*) filter (where d is null) nodate,
+           max(d) newest, min(d) oldest
+    from (select ${client.unsafe(basis === "price_as_of" ? "coalesce(price_as_of, ytm_as_of)" : "ytm_as_of")} d from public_bonds) t`;
+  const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : null);
   const shown = await loadAllBonds().then((d) => d.bonds.length).catch(() => 0);
   return {
     total: Number(r.total),
@@ -248,6 +283,7 @@ export async function bondDataStats(): Promise<{
     ytmLast24h: Number(r.ytm_24h),
     newestYtm: r.newest ? new Date(r.newest).toISOString() : null,
     shownOnSite: shown,
+    freshness: { basis, total: Number(r.total), last24h: Number(f.h24), last48h: Number(f.h48), olderThan7d: Number(f.d7), noDate: Number(f.nodate), newest: iso(f.newest), oldest: iso(f.oldest) },
   };
 }
 

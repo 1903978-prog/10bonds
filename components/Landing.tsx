@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
+import LANDING_BONDS from "@/lib/landingBonds.json";
+import ONE_BOND from "@/lib/landingOneBond.json";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { loadMe } from "@/lib/me";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import LandingCarousel, { actionTitle, FrontierScreen, ListScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
+import LandingCarousel, { actionTitle, ListScreen, MultiYearScreen, HeatMapScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
 const NAVY = "#112D3B";
@@ -34,6 +36,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   // The first slide comes from the stored snapshot, so it is there on the first paint and nothing is calculated or fetched
   // for it (the owner, 25/10/2026). Only the top 10 slide's bond names are fetched, once the page is idle.
   const [bonds, setBonds] = useState<BenchmarkBond[] | undefined>(undefined);
+  const snap = LANDING_BONDS as { asOf: string | null; position: number; bonds: BenchmarkBond[] };
   const bench: Bench = { ret: LANDING_SNAPSHOT.ret, risk: LANDING_SNAPSHOT.risk, duration: LANDING_SNAPSHOT.duration, portfolio: LANDING_SNAPSHOT.portfolio };
   useEffect(() => {
     let stop = false;
@@ -56,19 +59,18 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 
   // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
-    <div data-testid="intro" className="landing mx-auto max-w-[1240px] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
-      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.68fr_1.32fr] lg:gap-x-10 lg:w-full lg:gap-y-8">
+    <div data-testid="intro" className="landing finder-wide mx-auto max-w-[1400px] lg:max-w-none lg:!w-[min(calc(100vw_/_var(--z)_-_3rem),1320px)] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
+      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.74fr_1.26fr] lg:gap-x-12 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
-        <div className="mb-1 flex items-baseline justify-between gap-2 sm:mb-2">
-          <p className="text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] sm:text-[12px]" style={{ color: MUTE }} data-testid="landing-eyebrow">{t.eyebrow}</p>
+        <div className="mb-1 flex items-baseline justify-end gap-2 sm:hidden">
           {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
           <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="whitespace-nowrap text-[10.5px] font-semibold leading-none underline underline-offset-2 sm:hidden" style={{ color: GREEN }}>{t.paperShort} ↓</a>
         </div>
-        <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[52px]">
+        <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[68px]">
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>
-        <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-3 lg:text-[17px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
+        <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-4 lg:max-w-[680px] lg:text-[21px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
         <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
@@ -79,23 +81,24 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
                 <Comparison t={t} num={num} bench={bench} />
               </div>
             ) }] : []),
-            { key: "frontier", node: <ScreenSlide title={actionTitle(t.carousel.act.frontier)}><FrontierScreen lang={lang} /></ScreenSlide> },
-            { key: "curve", node: <ScreenSlide title={actionTitle(t.carousel.act.curve)}><OneBondScreen lang={lang} /></ScreenSlide> },
-            { key: "list", node: <ScreenSlide title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={bonds} /></ScreenSlide> },
+            { key: "multi", node: <ScreenSlide title={actionTitle(t.carousel.multi.title)}><MultiYearScreen sub={t.carousel.multi.sub} subShort={t.carousel.multi.subShort} insightShort={t.carousel.multi.insightShort} yLabel={t.carousel.multi.y} xLabel={t.carousel.multi.x} insightK={t.carousel.multi.insightK} insight={t.carousel.multi.insight} /></ScreenSlide> },
+            { key: "heat", node: <ScreenSlide title={actionTitle(t.carousel.heat.title)}><HeatMapScreen sub={t.carousel.heat.sub} subShort={t.carousel.heat.subShort} insightShort={t.carousel.heat.insightShort} insightK={t.carousel.multi.insightK} insight={t.carousel.heat.insight} retLabel={t.carousel.multi.y} yrs={t.carousel.yrs} /></ScreenSlide> },
+            { key: "list", node: <ScreenSlide long title={actionTitle(t.carousel.act.list)}><ListScreen lang={lang} bonds={snap.bonds.length ? snap.bonds : bonds} mix={snap.position} asOf={snap.asOf ? new Date(snap.asOf.slice(0, 10) + "T12:00:00Z").toLocaleDateString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : undefined} /></ScreenSlide> },
+            { key: "one", node: <ScreenSlide title={actionTitle(t.carousel.act.curve)}><OneBondScreen lang={lang} data={ONE_BOND} locale={LANDING_NUM[lang]} asOf={new Date(ONE_BOND.asOf.slice(0, 10) + "T12:00:00Z").toLocaleDateString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })} /></ScreenSlide> },
           ]} />
         </div>
         {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
         <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
         <div className="flex items-center gap-2 sm:gap-3">
           <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
-            className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-3 py-3.5 text-[13px] min-[360px]:px-4 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 font-semibold text-white shadow-sm transition hover:opacity-90"
+            className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-3 py-3.5 text-[13px] min-[360px]:px-4 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 lg:px-7 lg:py-4 lg:text-[17px] font-semibold text-white shadow-sm transition hover:opacity-90"
             style={{ background: NAVY }}>
-            {t.cta} <span aria-hidden className="hidden min-[400px]:inline">↗</span>
+            <span className="flex items-center gap-2 min-w-0"><svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>{t.cta}</span> <span aria-hidden className="hidden min-[400px]:inline">↗</span>
           </button>
         </div>
         {/* The quant methodology paper, for everyone (the owner, 24/10/2026). One small line, so the page still fits one screen. */}
         <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" data-testid="landing-paper"
-          className="mt-3 hidden text-[13px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80 sm:inline-block" style={{ color: GREEN }}>
+          className="mt-3 hidden text-[13px] lg:text-[15px] font-medium underline decoration-1 underline-offset-2 hover:opacity-80 sm:inline-block" style={{ color: GREEN }}>
           {t.paper} ↓
         </a>
         </div>

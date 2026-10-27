@@ -60,10 +60,19 @@ export function suggestLocale(saved: string | null | undefined, acceptLanguage: 
 export const LANG_COOKIE = "tb_lang";
 
 // Words used on the public pages, per language.
-export const T: Record<Locale, Record<string, string>> = {
+export const T: Record<Locale | "en", Record<string, string>> = {
+  // English (US and UK readers): only the words used by the shared comparison table and the call to action.
+  en: {
+    openTool: "Open the bond finder", freeAccount: "Free account: the full top 10",
+    ctaTitle: "Find your 10 bonds", ctaText: "Pick a duration and a target return: 10BONDS shows the 10 closest euro bonds, one per issuer.",
+    issuer: "Issuer", riskCol: "Risk (1-10)", ytm: "Return to maturity (per year)", duration: "Duration", maturity: "Maturity", year: "Year",
+    dataAsOf: "Data as of", sample: "Sample data, not real", bondsCount: "bonds", issuersCount: "issuers", range: "Return min / median / max",
+    avgDuration: "Average duration", moreRows: "The full top 10, with the details of each bond, is in the bond finder.",
+    years: "years", breadcrumb: "Breadcrumb", compare: "Compare",
+  },
   it: {
     home: "Home", guides: "Guide", bonds: "Obbligazioni", tools: "Calcolatori", method: "Metodologia", team: "Redazione", knowledge: "Sapere", plans: "Piani", focus: "Analisi rischio", focusShort: "Rischio",
-    by: "Di", reviewedBy: "Revisione di", editorial: "Redazione 10BONDS", published: "Pubblicata il", reviewed: "Ultima revisione",
+    by: "Di", reviewedBy: "Revisione di", editorial: "Redazione 10BONDS", published: "Pubblicata il", reviewed: "Ultima revisione", updated: "Aggiornata il",
     related: "Guide correlate", liveData: "Dati aggiornati", openTool: "Apri lo strumento", freeAccount: "Account gratuito: top 10 completa",
     ctaTitle: "Trova le tue 10 obbligazioni", ctaText: "Scegli una duration e un rendimento obiettivo: 10BONDS ti mostra le 10 obbligazioni in euro più vicine, una per emittente.",
     risk: "Contenuto informativo ed educativo, non è consulenza finanziaria né un'offerta di acquisto o vendita. Rendimenti lordi e indicativi, possono cambiare. Le obbligazioni possono perdere valore e gli emittenti possono non rimborsare. Il rischio 1-10 è una valutazione interna di 10BONDS, solo informativa e non un rating: verifica i rating ufficiali con le agenzie, l'emittente e il tuo consulente finanziario.",
@@ -76,7 +85,7 @@ export const T: Record<Locale, Record<string, string>> = {
   },
   fr: {
     home: "Accueil", guides: "Guides", bonds: "Obligations", tools: "Calculateurs", method: "Méthodologie", team: "Rédaction", knowledge: "Savoir", plans: "Offres", focus: "Analyse risque", focusShort: "Risque",
-    by: "Par", reviewedBy: "Relu par", editorial: "Rédaction 10BONDS", published: "Publié le", reviewed: "Dernière relecture",
+    by: "Par", reviewedBy: "Relu par", editorial: "Rédaction 10BONDS", published: "Publié le", reviewed: "Dernière relecture", updated: "Mise à jour le",
     related: "Guides associés", liveData: "Données à jour", openTool: "Ouvrir l'outil", freeAccount: "Compte gratuit : le top 10 complet",
     ctaTitle: "Trouvez vos 10 obligations", ctaText: "Choisissez une duration et un rendement cible : 10BONDS affiche les 10 obligations en euros les plus proches, une par émetteur.",
     risk: "Contenu informatif et pédagogique : ce n'est ni un conseil en investissement ni une offre d'achat ou de vente. Rendements bruts et indicatifs, susceptibles de changer. Une obligation peut perdre de la valeur et un émetteur peut faire défaut. Le risque de 1 à 10 est une évaluation interne de 10BONDS, à titre informatif, et non une notation : vérifiez les notations officielles auprès des agences, de l'émetteur et de votre conseiller financier.",
@@ -89,7 +98,7 @@ export const T: Record<Locale, Record<string, string>> = {
   },
   de: {
     home: "Start", guides: "Ratgeber", bonds: "Anleihen", tools: "Rechner", method: "Methodik", team: "Redaktion", knowledge: "Wissen", plans: "Pläne", focus: "Risikoanalyse", focusShort: "Risiko",
-    by: "Von", reviewedBy: "Geprüft von", editorial: "Redaktion 10BONDS", published: "Veröffentlicht am", reviewed: "Zuletzt geprüft",
+    by: "Von", reviewedBy: "Geprüft von", editorial: "Redaktion 10BONDS", published: "Veröffentlicht am", reviewed: "Zuletzt geprüft", updated: "Aktualisiert am",
     related: "Weitere Ratgeber", liveData: "Aktuelle Daten", openTool: "Zum Anleihen-Finder", freeAccount: "Kostenloses Konto: komplette Top 10",
     ctaTitle: "Finden Sie Ihre 10 Anleihen", ctaText: "Wählen Sie eine Duration und eine Zielrendite: 10BONDS zeigt die 10 passendsten Euro-Anleihen, eine je Emittent.",
     risk: "Informations- und Bildungsinhalt, keine Anlageberatung und kein Angebot zum Kauf oder Verkauf. Renditen sind brutto und unverbindlich und können sich ändern. Anleihen können an Wert verlieren, Emittenten können ausfallen. Das Risiko 1-10 ist eine interne Einschätzung von 10BONDS, nur zur Information und kein Rating: Prüfen Sie offizielle Ratings bei den Agenturen, beim Emittenten und bei Ihrem Finanzberater.",

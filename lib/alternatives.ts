@@ -4,11 +4,12 @@ import { bondNotch, bondRisk } from "./ratings";
 import { lossAdjustedYield } from "./expectedLoss";
 import { lgdOf } from "./seniority";
 import { pdOf, type ResultRow } from "./tiers";
+import { sectorOf } from "./sectors";
 import { lifeYears } from "./lifeYears";
 
 /** A bond left out of the top 10 that could take a place in it: Plus swaps it in. */
 export type AltRow = Required<Pick<ResultRow, "issuer" | "ytm" | "name" | "isin" | "duration">> &
-  Pick<ResultRow, "risk" | "sp" | "couponType" | "seniority" | "coupon" | "maturity" | "country" | "minInvestment" | "pd" | "life" | "lgd"> & { adjYtm?: number };
+  Pick<ResultRow, "risk" | "sp" | "couponType" | "seniority" | "coupon" | "maturity" | "country" | "sector" | "minInvestment" | "pd" | "life" | "lgd"> & { adjYtm?: number };
 
 export const MAX_ALTERNATIVES = 40;
 
@@ -43,6 +44,7 @@ export function alternativesFor(bonds: PublicBond[], chosen: RankedBond[], durat
       coupon: b.coupon,
       maturity: b.maturity,
       country: b.country,
+      sector: b.issuer ? sectorOf(b) : null,
       minInvestment: b.minInvestment ?? null,
       pd: pdOf(b),
       lgd: lgdOf(b),

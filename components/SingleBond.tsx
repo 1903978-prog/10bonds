@@ -6,7 +6,7 @@ import { FinderLangContext, useFinderText } from "@/lib/finderText";
 import { callableLabel, couponTypeLabel, FACT_TEXT, seniorityLabel } from "@/lib/bondFacts";
 import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
-import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
+import { LimitReached, QuotaSync, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
 import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
 import { Spread, RiskPayCell } from "./Spread";
@@ -32,15 +32,21 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   const [loading, setLoading] = useState(true);
   const [level, setLevel] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
+  // Reveal progress 0..1: dots appear one after the other (riskiest on the left first) while the counter climbs.
+  const [prog, setProg] = useState(1);
+  const lang = useContext(FinderLangContext);
+  // A failed or late answer is retried by itself (2 s, 4 s, 8 s, then every 8 s) instead of leaving the chart empty.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setLoading(true);
+      let failed = false;
       try {
         const qs = new URLSearchParams({ duration: String(duration), currency, size });
         if (preview) qs.set("preview", preview);
-        const res = await fetch(`/api/bonds/curve?${qs}`, { signal: ctrl.signal });
+        const res = await fetch(`/api/bonds/curve?${qs}`, { signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(30_000)]) });
         const body = await res.json();
         if (res.status === 402 && body.limitReached) {
           setLimit(body.limitReached);
@@ -54,16 +60,39 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         setIndex(0);
         setLevel(null); // a new horizon starts again from the lowest-risk bond
       } catch (e) {
-        if ((e as Error).name !== "AbortError") setError((e as Error).message);
+        if (!ctrl.signal.aborted) { failed = true; setError((e as Error).message); }
       } finally {
-        setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
+        if (failed) retry = setTimeout(() => setAttempt((n) => n + 1), Math.min(8000, 2000 * 2 ** attempt));
       }
-    }, 400);
+    }, attempt ? 0 : 400);
+    let retry: ReturnType<typeof setTimeout> | undefined;
     return () => {
       clearTimeout(t);
+      clearTimeout(retry);
       ctrl.abort();
     };
-  }, [duration, preview, currency, size]);
+  }, [duration, preview, currency, size, attempt]);
+
+  const nDots = dropDominated(data?.points ?? []).filter((p) => p.ytm !== null).length;
+  useEffect(() => {
+    if (!data) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) { setProg(1); return; }
+    const dur = Math.max(900, nDots * 150 + 300);
+    const t0 = performance.now();
+    let raf = 0;
+    setProg(0);
+    const tick = (now: number) => {
+      const v = Math.min(1, (now - t0) / dur);
+      setProg(v);
+      if (v < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [data, nDots]);
+  const running = prog < 1;
+  const visible = running ? Math.floor(prog * (nDots + 1)) : nDots;
+  const scanned = data?.coverage?.count ?? null;
 
   const tier = data?.tier ?? "visitor";
   // Hide a risk step whose best yield is not above every lower-risk step: more risk must pay more.
@@ -74,25 +103,31 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
   const points = dropDominated(all);
   // Until a dot is tapped, show the lowest-risk bond (rightmost dot) so the card is always there.
   const shown = level ?? points.find((p) => p.ytm !== null)?.level ?? null;
-  const point = shown === null ? null : points.find((p) => p.level === shown) ?? null;
+  const point = shown === null ? null : all.find((p) => p.level === shown) ?? null;
   const bond = point?.options[index] ?? null;
 
   if (limit) return <LimitReached quota={limit} />;
-  if (error) return <p className="rounded-2xl bg-canvas p-6 text-center text-sm text-mute">{error}</p>;
 
   return (
     <div className={`transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
       {/* On phones the chart and the bond are two separate rounded cards on the grey page; from sm up they are one box as before. */}
-      <div className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none" data-testid="curve-card">
+      <div className="rounded-[28px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none" data-testid="curve-card" data-tip="chart">
       <div className="flex items-baseline justify-between gap-2 whitespace-nowrap">
         <h2 className="shrink-0 text-[16px] font-semibold sm:text-[17px]">{t.bestByRating}</h2>
         <span className="min-w-0 truncate text-[11px] text-mute sm:text-xs">{t.tapDot}</span>
       </div>
-      <Chart points={points} ghosts={dominatedLevels(all)} axis={all} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      {/* Fixed-height counter line: climbs to the real number of bonds scanned, then stays as a quiet note. */}
+      <div className="mt-1 h-4 text-[11px] tabular-nums text-mute sm:text-xs" aria-live="off" data-testid="scan-counter">
+        {error && !data && <span data-testid="curve-retry">{error}</span>}
+        {data && scanned !== null && scanned > 0 && (running
+          ? `${CHECKED[lang]?.run ?? CHECKED.en.run} ${Math.round(scanned * prog * (2 - prog)).toLocaleString("en-US")}`
+          : `${scanned.toLocaleString("en-US")} ${CHECKED[lang]?.done ?? CHECKED.en.done}`)}
+      </div>
+      <Chart visible={visible} points={points} ghosts={dominatedLevels(all)} axis={all} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
       {dominatedLevels(all).length > 0 && <p className="hidden text-[11px] text-mute sm:block" data-testid="ghost-note">{t.ghostNote}</p>}
       </div>
 
-      <div className="mt-3 min-h-[440px] sm:mt-0 sm:min-h-0">
+      <div className={`mt-3 min-h-[440px] transition-opacity duration-300 sm:mt-0 sm:min-h-0 ${running ? "opacity-0" : "opacity-100"}`}>
       {point && bond ? (
         <BondBox
           currency={currency}
@@ -115,12 +150,19 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         )
       )}
       </div>
-      <QuotaNote quota={data?.quota} />
+      <QuotaSync quota={limit ?? data?.quota} />
     </div>
   );
 }
 
-function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[]; ghosts: CurvePoint[]; axis: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
+const CHECKED: Record<string, { run: string; done: string }> = {
+  en: { run: "Bonds checked", done: "bonds checked" },
+  it: { run: "Obbligazioni analizzate", done: "obbligazioni analizzate" },
+  fr: { run: "Obligations analysées", done: "obligations analysées" },
+  de: { run: "Anleihen geprüft", done: "Anleihen geprüft" },
+};
+
+function Chart({ visible, points, ghosts, axis, selected, onPick }: { visible: number; points: CurvePoint[]; ghosts: CurvePoint[]; axis: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
   const t = useFinderText();
   // PAD keeps the first risk column clear of the y-axis figures.
   // Drawn at the container's real pixel width so text stays readable on phones and the chart fills wide screens.
@@ -146,7 +188,8 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
   // At most ~6 gridlines (~4 on the short phone chart) so the axis figures never crowd each other.
   const step = W < 500 ? (hi - lo > 6 ? 2 : hi - lo > 2.5 ? 1 : 0.5) : hi - lo > 10 ? 2 : hi - lo > 4 ? 1 : 0.5;
   for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 10) / 10);
-  const drawn = points.filter((p) => p.ytm !== null);
+  const drawn = points.filter((p) => p.ytm !== null).sort((a, b) => b.level - a.level).slice(0, visible);
+  const complete = visible >= points.filter((p) => p.ytm !== null).length;
   const path = drawn.map((p, i) => `${i ? "L" : "M"}${x(p.level).toFixed(1)},${y(p.ytm!).toFixed(1)}`).join(" ");
 
   return (
@@ -164,10 +207,11 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
           {admin && <tspan x={x(p.level)} dy={14} fontSize="10" data-testid={`sp-${p.level}`}>{p.band}</tspan>}
         </text>
       ))}
-      {ghosts.map((p) => (
-        <g key={`g${p.level}`} data-testid={`ghost-${p.level}`}>
+      {complete && ghosts.map((p) => (
+        <g key={`g${p.level}`} data-testid={`ghost-${p.level}`} onClick={() => onPick(p.level)} style={{ cursor: "pointer" }}>
           <title>{t.ghostNote}</title>
-          <circle cx={x(p.level)} cy={y(p.ytm!)} r="4" fill="#fff" stroke="#c7c7cc" strokeWidth="2" />
+          <circle cx={x(p.level)} cy={y(p.ytm!)} r="16" fill="transparent" />
+          <circle cx={x(p.level)} cy={y(p.ytm!)} r={selected === p.level ? 6 : 4} fill={selected === p.level ? "#c7c7cc" : "#fff"} stroke="#c7c7cc" strokeWidth="2" />
           <text x={x(p.level)} y={y(p.ytm!) - 10} textAnchor="middle" fontSize="11" fill="#aeaeb2">{p.ytm!.toFixed(1)}%</text>
         </g>
       ))}
@@ -180,9 +224,9 @@ function Chart({ points, ghosts, axis, selected, onPick }: { points: CurvePoint[
           <text x={x(p.level)} y={y(p.ytm!) - 14} textAnchor="middle" fontSize="13" fontWeight="600" fill="#1d1d1f">{p.ytm!.toFixed(1)}%</text>
         </g>
       ))}
-      {ys.length > 0 && points.filter((p) => p.ytm === null).map((p) => (
+      {complete && ys.length > 0 && points.filter((p) => p.ytm === null).map((p) => (
         <g key={p.level} data-testid={`empty-${p.level}`}>
-          <circle cx={x(p.level)} cy={y(lo)} r="4" fill="#fff" stroke="#c7c7cc" strokeWidth="2" strokeDasharray="2 2" />
+          <circle cx={x(p.level)} cy={y(lo)} r="2.5" fill="#c7c7cc" />
           <text x={x(p.level)} y={y(lo) - 20} textAnchor="middle" fontSize="9" fill="#86868b">
             {t.noBond.split(" ").map((w, i) => <tspan key={i} x={x(p.level)} dy={i ? 10 : 0}>{w}</tspan>)}
           </text>
@@ -248,7 +292,7 @@ function BondBox(props: {
       </dl>
       {/* Fixed slots: every control keeps the same place whichever bond is shown. */}
       <div className="mt-2 flex flex-wrap items-center gap-2 whitespace-nowrap">
-        <span className="inline-flex h-7 w-48 shrink-0 items-center">
+        <span className="inline-flex h-7 w-48 shrink-0 items-center" data-tip="change">
           {props.canChange ? (
             <button onClick={props.onChange} className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[#0077ed]">
               {t.change}

@@ -5,6 +5,7 @@ import { useBoxSize } from "@/components/useBoxSize";
 import { shownPoints } from "@/components/LossChart";
 import type { CurvePoint } from "@/lib/lossCurve";
 import type { OptResult } from "@/lib/optimalBuild";
+import { dotTitle, type ShortlistDot } from "@/lib/shortlistStore";
 
 /** A point of a multi-year curve: `target` gives back exactly that list in the search, `dur` is its average duration. */
 export type MPoint = CurvePoint & { target?: number; dur?: number };
@@ -20,7 +21,7 @@ export const COLOURS = ["#0066cc", "#e4572e", "#17a673", "#8e44ad", "#f0a202", "
  * Hovering shows each horizon's expected loss at that target yield. It fills whatever box
  * it is put in (drawn at the box's real pixel size, so text stays readable at any size); the box decides the layout.
  */
-export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel, optimal, selected, onSelect, picked, onPickPoint, onPickOptimal }: { curves: { duration: number; points: MPoint[]; max: number }[]; retLabel: string; lossLabel: string; yearsLabel: string; optimal?: OptResult | null; selected?: number | null; onSelect?: (years: number | null) => void; picked?: PickedPoint | null; onPickPoint?: (duration: number, p: MPoint) => void; onPickOptimal?: (years: number) => void }) {
+export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel, optimal, selected, onSelect, picked, onPickPoint, onPickOptimal, shortlists }: { curves: { duration: number; points: MPoint[]; max: number }[]; retLabel: string; lossLabel: string; yearsLabel: string; optimal?: OptResult | null; selected?: number | null; onSelect?: (years: number | null) => void; picked?: PickedPoint | null; onPickPoint?: (duration: number, p: MPoint) => void; onPickOptimal?: (years: number) => void; shortlists?: ShortlistDot[] }) {
   const [box, size] = useBoxSize<HTMLDivElement>();
   const narrow = size.w < 520;
   const F = narrow ? 12 : 14; // font size in px
@@ -159,6 +160,19 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
           })}
         </g>
       )}
+      {shortlists?.map((d) => {
+        // Admin shortlists (yellow): expected loss across, average return up, like every curve. Off the chart, the dot sits on its edge.
+        const inX = d.lifeLoss! <= lMax, inY = d.avgYtm! >= r0 && d.avgYtm! <= r1;
+        const cx = X(Math.min(d.lifeLoss!, lMax)), cy = Y(Math.min(Math.max(d.avgYtm!, r0), r1));
+        return (
+          <g key={`sl${d.id}`} data-testid="shortlist-dot">
+            <circle cx={cx} cy={cy} r={7} fill="#facc15" stroke="#7a5b00" strokeWidth={2} style={{ cursor: "default" }}>
+              <title>{dotTitle(d, inX && inY ? "" : " · off the chart scale, shown at its edge")}</title>
+            </circle>
+            <text x={Math.min(cx + 11, W - R - F * 3.4)} y={cy + F / 3} fontSize={F - 1} fontWeight={700} className="fill-[#7a5b00]" pointerEvents="none">{d.name}</text>
+          </g>
+        );
+      })}
       {ends.map((e) => (
         <text key={`end${e.i}`} x={e.x} y={e.y + F / 3} fontSize={F - 1} fontWeight={near === e.i ? 600 : 400} fill={COLOURS[e.i]} fillOpacity={near === null || near === e.i ? 1 : 0.35} data-testid={`curve-end-${series[e.i].duration}`}>
           {series[e.i].duration}y

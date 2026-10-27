@@ -1,0 +1,22 @@
+name: Quant baseline
+# Read-only. Freezes the engine's current output for a before/after comparison: saves the bond data actually used
+# (snapshot.json.gz) and the baseline portfolios (baseline.json / baseline.md) as a downloadable run artifact, and
+# prints the summary in the log. Never writes to the database. Manual only (heavy: solves the three EUR horizons).
+on:
+  workflow_dispatch:
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      QUANT_OUT: quant-out
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/quant-baseline.ts
+      - uses: actions/upload-artifact@v4
+        with: { name: quant-baseline, path: quant-out, retention-days: 90 }

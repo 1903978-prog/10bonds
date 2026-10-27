@@ -19,7 +19,7 @@ const nextConfig = {
   output: "standalone",
   // The exact solver (WebAssembly) is loaded from node_modules at run time, so it and its .wasm file ship with the server.
   serverExternalPackages: ["highs"],
-  outputFileTracingIncludes: { "/api/**/*": ["./node_modules/highs/build/**"] },
+  outputFileTracingIncludes: { "/api/**/*": ["./node_modules/highs/build/**", "./lib/highsWorker.mjs"] },
   poweredByHeader: false,
   // Title, description, canonical and hreflang always in the page <head> for every visitor and crawler
   // (no streamed metadata), so every search engine and the SEO check read them without running scripts.

@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 html { -webkit-font-smoothing: antialiased; }
+/* Phones: the page is fixed to the screen. A finger can scroll up and down but never drags the page sideways. */
+html { overflow-x: hidden; overscroll-behavior-x: none; touch-action: pan-y; max-width: 100%; }
+body { overflow-x: clip; overscroll-behavior-x: none; touch-action: pan-y; max-width: 100%; }
 /* Laptops and desktops: everything about 15% smaller, so pages fit without scrolling. Phones keep full size. */
 html { --z: 1; }
 @media (min-width: 768px) { html { --z: 0.85; zoom: var(--z); } }
@@ -119,4 +122,11 @@ html:has(.report) body { overflow-x: clip; }
   .report details > :not(summary) { display: block !important; }
   .report details summary span[aria-hidden] { display: none; }
   @page { margin: 14mm; }
+}
+
+/* Landing carousel, phones: the heat map is a small picture, without figures or legend text. */
+@media (max-width: 639px) {
+  .heat-mini > div { font-size: 9px !important; }
+  .heat-mini [data-testid="heat-cell"] { font-size: 0 !important; }
+  .heat-mini > div > div:last-child { display: none; }
 }

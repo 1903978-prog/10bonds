@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import NewsletterCta from "@/components/NewsletterCta";
 import { isPublished as brokersPublished } from "@/components/brokers/Pages";
 import KnowledgeTools, { FINDER } from "@/components/seo/KnowledgeTools";
 import { JsonLd } from "@/components/seo/Seo";
@@ -7,6 +8,7 @@ import { sectionPath } from "@/lib/brokers/content";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { KC_ORDER } from "@/lib/seo/knowledgeHub";
+import { enBondsPath } from "@/lib/seo/comparisonsEn";
 import { curvePath, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { insightsPath, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import { bondMapPath, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
@@ -35,7 +37,7 @@ export default async function KnowledgePage() {
   items.best.push({ title: k.finder, href: "/" });
   items.calculators.push({ title: CALCULATOR_EN.h1, href: enPath(CALCULATOR_EN.slug) });
   items.government.unshift({ title: CURVE_TEXT.en.h1, href: curvePath("en") });
-  items.best.unshift({ title: INSIGHTS_TEXT.en.h1, href: insightsPath("en") }, { title: BOND_MAP_TEXT.en.h1, href: bondMapPath("en") });
+  items.best.unshift({ title: "Bond comparisons: euro government and corporate bonds", href: enBondsPath() }, { title: INSIGHTS_TEXT.en.h1, href: insightsPath("en") }, { title: BOND_MAP_TEXT.en.h1, href: bondMapPath("en") });
   const published = await Promise.all(LOCALES.map((l) => brokersPublished(l).catch(() => false)));
   LOCALES.forEach((l, i) => published[i] && items.brokers.push({ title: k.brokersIn[l], href: sectionPath(l) }));
   return (
@@ -64,6 +66,7 @@ export default async function KnowledgePage() {
                     <Link href={i.href} className="block h-full rounded-2xl bg-canvas px-4 py-3 text-[15px] font-medium hover:text-accent">{i.title}</Link>
                   </li>
                 ))}
+                {sec === KC_ORDER[0] && <li><NewsletterCta className="flex h-full items-center rounded-2xl bg-canvas px-4 py-3" /></li>}
               </ul>
             )}
           </section>

@@ -17,7 +17,7 @@ const certs = new Map<string, Certificate>();
 const building = new Map<string, Promise<SliderPosition[]>>();
 
 /** The positions if ready, else null (and the build starts in the background). */
-export async function sliderFor(f: BondFilter, duration: number, m: FrontierMethod = "m1"): Promise<{ positions: SliderPosition[] | null; key: string; cert?: Certificate }> {
+export async function sliderFor(f: BondFilter, duration: number, m: FrontierMethod = "spread", wait = false): Promise<{ positions: SliderPosition[] | null; key: string; cert?: Certificate }> {
   const src = await loadBondsFor(f);
   const key = [SLIDER_METHOD, frontierKey(src, f, duration, m)].join("|");
   const hit = ready.get(key);
@@ -37,6 +37,12 @@ export async function sliderFor(f: BondFilter, duration: number, m: FrontierMeth
     })().finally(() => building.delete(key));
     p.catch((e) => console.error("[slider] build failed:", (e as Error).message));
     building.set(key, p);
+  }
+  // The warm-up passes wait = true and so builds one horizon at a time: starting all 30 at once held every problem in
+  // memory together (over 1 GB on a big universe) while the solver works through them one by one anyway.
+  if (wait) {
+    const done = await building.get(key)?.catch(() => null);
+    if (done) return { positions: done, key, cert: certs.get(key) };
   }
   return { positions: null, key };
 }

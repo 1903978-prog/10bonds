@@ -1,0 +1,27 @@
+name: Precompute portfolio lists
+# Solves the spread-rules lists of the default search on a fast runner and saves them in the database, so the live
+# site never has to solve them after a release or a new data copy (a search would otherwise wait several minutes).
+# Saved lists are reused, so a run with nothing new takes seconds.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "10 */3 * * *"
+  push:
+    branches: [main]
+    paths: ["lib/**", "scripts/precompute-frontiers.ts"]
+concurrency:
+  group: precompute-frontiers
+  cancel-in-progress: false
+jobs:
+  precompute:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/precompute-frontiers.ts

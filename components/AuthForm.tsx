@@ -15,6 +15,20 @@ const AGREE = {
 } as const;
 type AgreeLang = keyof typeof AGREE;
 
+const NET_MSG = "We couldn't reach the server. Please check your connection and try again in a moment.";
+
+// fetch that retries on network errors (e.g. server restarting during a deploy) and gives a friendly message.
+async function sturdyFetch(url: string, init?: RequestInit): Promise<Response> {
+  for (let i = 0; ; i++) {
+    try {
+      return await fetch(url, init);
+    } catch {
+      if (i >= 2) throw new Error(NET_MSG);
+      await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+}
+
 export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [email, setEmail] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -45,7 +59,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/2fa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket, code: otp }) });
+      const res = await sturdyFetch("/api/auth/2fa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket, code: otp }) });
       const body = await res.json().catch(() => ({}));
       if (body.expired) setTicket(null);
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
@@ -66,15 +80,15 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       let check: { challenge: string; nonce: string } | null = null;
       if (signup) {
         setStep("Checking you are not a robot…");
-        const c = await fetch("/api/auth/challenge", { cache: "no-store" }).then((r) => r.json());
+        const c = await sturdyFetch("/api/auth/challenge", { cache: "no-store" }).then((r) => r.json());
         if (!c?.challenge) throw new Error(c?.error ?? "Sign-up is not available right now.");
         check = { challenge: c.challenge, nonce: await solveChallenge(c.challenge, c.difficulty) };
         setStep(null);
       }
-      const res = await fetch(`/api/auth/${mode}`, {
+      const res = await sturdyFetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signup ? { email, password, acceptTerms: accept, newsletter, website, code: code.trim() || undefined, ...check } : { email, password }),
+        body: JSON.stringify(signup ? { email, password, acceptTerms: accept, newsletter, website, code: code.trim() || undefined, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, ...check } : { email, password }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");

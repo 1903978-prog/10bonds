@@ -41,6 +41,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Selection", "minimise P such that average return ≥ target"],
       ["Expected loss on your money (shown)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd}%, over the bonds' life"],
       ["Return after expected losses", "y − PD(D) ÷ D × {lgd}%, D = duration (used for ties and for the 1-bond view)"],
+      ["Diversification score (0–100)", "per industry and per country: H = Σ wᵢ² (wᵢ = share of the 10 bonds), score = (1 ÷ H − 1) ÷ 9 × 100; overall = average of the two. 100 = every bond in a different group, 0 = all in one; bonds with no industry or country on record count as one group"],
     ],
     mcHead: "Monte Carlo stress test",
     mc: [
@@ -50,7 +51,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
     ],
     fullHead: "Full explanation",
     full: [
-      ["The Return & risk slider: up to 30 positions", "Each position is a point on the efficient frontier: the list with the lowest expected loss for its return. Position 1 is the lowest-loss list, the last one the highest-return list; the others sit at even distances along the curve. A list that repeats another, or takes more loss for no more return, is left out, so every position is a different list. Each list has 10 issuers and at most 2 bonds at risk score 8 or higher. Every position is worked out in advance for each horizon, currency and minimum order, with the same ranking as every search."],
+      ["The Return & risk slider: up to 30 positions", "Each position is a point on the efficient frontier: the list with the lowest expected loss for its return. Position 1 is the lowest-return, lowest-loss list: it takes the safest bonds there are, all AAA bonds the term has (one per issuer) and, only where fewer than 10 AAA issuers exist, the next rating class for the rest. The last position is the 10 highest-yielding bonds of 10 different issuers at any risk. The others sit at even distances along the curve. A list that repeats another, or takes more loss for no more return, is left out, so every position is a different list. Each list has 10 issuers and between the two ends, at most 2 bonds at risk score 8 or higher. Every position is worked out in advance for each horizon, currency and minimum order, with the same ranking as every search."],
       ["The three return levels", "C_R = the highest average yield of 10 bonds under ceiling R. Ceiling 1 starts at F₁, the yield of the AAA list with the lowest expected loss: targets F₁, F₁ + ½(C₁ − F₁), C₁. Higher ceilings use only the extra return they add: C_(R−1) + ⅓Δ, C_(R−1) + ⅔Δ, C_R, with Δ = C_R − C_(R−1). Low and medium pick the list with the lowest expected loss that reaches the target; high is the top-return list."],
       ["Never going backwards", "Moving right never lowers the return shown. A list that pays less than the previous position, or the same without a lower expected loss, or holds the same bonds, is not shown as new: that position repeats the previous list with identical figures. Ceilings with fewer than 10 different issuers are unavailable; the rules are never relaxed. Expected loss = default chance to maturity × {lgd}% loss in a default (40% recovered)."],
       ["Why not the average risk score", "A list of five very safe and five very risky bonds can have the same average score as ten middle-risk bonds, but it is far more likely to suffer a default: default rates rise much faster than the risk score. Measuring the chance of a loss captures this; the average score does not."],
@@ -86,6 +87,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Selezione", "minimizzare P con rendimento medio ≥ obiettivo"],
       ["Perdita attesa sul capitale (mostrata)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd}%, sulla vita delle obbligazioni"],
       ["Rendimento al netto delle perdite attese", "y − PD(D) ÷ D × {lgd}%, D = duration (per i pareggi e la vista 1 obbligazione)"],
+      ["Punteggio di diversificazione (0–100)", "per settore e per paese: H = Σ wᵢ² (wᵢ = quota delle 10 obbligazioni), punteggio = (1 ÷ H − 1) ÷ 9 × 100; totale = media dei due. 100 = ogni obbligazione in un gruppo diverso, 0 = tutte in uno; senza settore o paese noto contano come un solo gruppo"],
     ],
     mcHead: "Stress test Monte Carlo",
     mc: [
@@ -131,6 +133,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Sélection", "minimiser P avec rendement moyen ≥ cible"],
       ["Perte attendue sur votre capital (affichée)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd} %, sur la durée des obligations"],
       ["Rendement net des pertes attendues", "y − PD(D) ÷ D × {lgd} %, D = duration (pour départager et pour la vue 1 obligation)"],
+      ["Score de diversification (0–100)", "par secteur et par pays : H = Σ wᵢ² (wᵢ = part des 10 obligations), score = (1 ÷ H − 1) ÷ 9 × 100 ; total = moyenne des deux. 100 = chaque obligation dans un groupe différent, 0 = toutes dans un seul ; sans secteur ou pays connu, elles comptent comme un seul groupe"],
     ],
     mcHead: "Test de résistance Monte Carlo",
     mc: [
@@ -176,6 +179,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
       ["Auswahl", "P minimieren mit Durchschnittsrendite ≥ Ziel"],
       ["Erwarteter Verlust auf Ihr Geld (angezeigt)", "(PD₁(T₁) + … + PD₁₀(T₁₀)) ÷ 10 × {lgd} %, über die Laufzeit der Anleihen"],
       ["Rendite nach erwarteten Verlusten", "y − PD(D) ÷ D × {lgd} %, D = Duration (für Gleichstände und die 1-Anleihe-Ansicht)"],
+      ["Diversifikationswert (0–100)", "je Branche und je Land: H = Σ wᵢ² (wᵢ = Anteil der 10 Anleihen), Wert = (1 ÷ H − 1) ÷ 9 × 100; gesamt = Mittel beider. 100 = jede Anleihe in einer anderen Gruppe, 0 = alle in einer; ohne bekannte Branche oder Land zählen sie als eine Gruppe"],
     ],
     mcHead: "Monte-Carlo-Stresstest",
     mc: [

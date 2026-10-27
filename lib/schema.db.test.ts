@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 // The database design is tracked in git: docs/database-schema.txt is what the app's setup code builds in schema "app".
 // CI runs this against an empty Postgres (twice, so setup must be repeatable); any table, column, rule or index change
 // without the matching change to that file fails the build. Locally: TEST_ACCOUNTS_DATABASE_URL=postgres://... npm test
-// To accept a deliberate change: add UPDATE_SCHEMA=1 to that command and commit the file.
+// To accept a deliberate change: npm run schema:update (needs TEST_ACCOUNTS_DATABASE_URL) and commit the file.
+// Everything is sorted with collation "C", so the file is the same on any Postgres whatever its language setting
+// (a database sorting in en_US puts shortlists before shortlist_seeds, a C one the other way round).
 const url = process.env.TEST_ACCOUNTS_DATABASE_URL;
 const FILE = path.join(__dirname, "..", "docs", "database-schema.txt");
 
@@ -16,33 +18,40 @@ async function buildAll() {
   await admin`create schema if not exists app`;
   await admin.end();
   process.env.ACCOUNTS_DATABASE_URL = url;
-  const { accountsSql } = await import("./accounts");
+  const { accountsSql, discountTable } = await import("./accounts");
   const { seoSql } = await import("./seo/store");
   const { brokerTablesReady } = await import("./brokers/store");
   const { proTableReady } = await import("./pro");
+  const { outreachTableReady } = await import("./outreach");
   const { riskTablesReady } = await import("./riskPremium/store");
   const { ytmHistoryReady } = await import("./ytmHistory");
   const { weeklyTablesReady } = await import("./weeklySend");
   const { bondImportTablesReady } = await import("./bondImportDb");
+  const { shortlistTablesReady } = await import("./shortlistDb");
+  const { frontierTableReady } = await import("./frontierStore");
   const sql = await accountsSql();
+  await discountTable();
   await seoSql();
   await brokerTablesReady();
   await proTableReady();
+  await outreachTableReady();
   await riskTablesReady();
   await ytmHistoryReady();
   await weeklyTablesReady();
   await bondImportTablesReady();
+  await shortlistTablesReady();
+  await frontierTableReady();
   return sql;
 }
 
 async function describeSchema(sql: Awaited<ReturnType<typeof buildAll>>): Promise<string> {
   const cols = await sql`
     select table_name t, column_name c, data_type d, is_nullable n, column_default x
-    from information_schema.columns where table_schema = 'app' order by table_name, ordinal_position`;
+    from information_schema.columns where table_schema = 'app' order by table_name collate "C", ordinal_position`;
   const cons = await sql`
     select conrelid::regclass::text t, conname n, pg_get_constraintdef(oid) d
-    from pg_constraint where connamespace = 'app'::regnamespace order by 1, 2`;
-  const idx = await sql`select tablename t, indexdef d from pg_indexes where schemaname = 'app' order by 1, 2`;
+    from pg_constraint where connamespace = 'app'::regnamespace order by conrelid::regclass::text collate "C", conname collate "C"`;
+  const idx = await sql`select tablename t, indexdef d from pg_indexes where schemaname = 'app' order by tablename collate "C", indexdef collate "C"`;
   const lines: string[] = [];
   let table = "";
   for (const r of cols) {
@@ -101,6 +110,37 @@ describe.skipIf(!url)("admin two-factor key on a real database", () => {
     expect(await verifySecondFactor(Number(u.id), totpAt(secret, t0 + 120_000), t0 + 120_000)).toBe(true);
     const [after] = await sql`select totp_secret s from app.users where id = ${u.id}`;
     expect(after.s.startsWith("v1:")).toBe(true);
+  });
+});
+
+describe.skipIf(!url)("clean-up of never-confirmed accounts on a real database", () => {
+  it("does nothing while the flag is off, and when on removes only old, unconfirmed, never-paid, non-admin accounts", async () => {
+    const sql = await buildAll();
+    const { purgeUnconfirmed } = await import("./unconfirmedPurge");
+    const tag = `purge-${Date.now()}`;
+    const add = async (name: string, extra: { verified?: boolean; stripe?: boolean; daysOld: number }) => {
+      const [u] = await sql`insert into app.users (email, password_hash, created_at, email_verified_at, stripe_customer_id)
+        values (${`${name}-${tag}@test.local`}, 'x', now() - make_interval(days => ${extra.daysOld}),
+                ${extra.verified ? sql`now()` : null}, ${extra.stripe ? "cus_test" : null}) returning id`;
+      return String(u.id);
+    };
+    const old = await add("old", { daysOld: 31 });
+    const fresh = await add("fresh", { daysOld: 5 });
+    const confirmed = await add("confirmed", { daysOld: 60, verified: true });
+    const paid = await add("paid", { daysOld: 60, stripe: true });
+    const admin = await add("admin", { daysOld: 60 });
+    const [{ email: adminEmail }] = await sql`select email from app.users where id = ${admin}`;
+    await sql`insert into app.search_usage (user_id, kind) values (${old}, 'single')`;
+    await sql`insert into app.events (visitor_id, user_id, kind) values ('v', ${old}, 'page_view')`;
+    const alive = async () => (await sql`select id from app.users where email like ${`%-${tag}@test.local`}`).map((r) => String(r.id)).sort();
+
+    expect(await purgeUnconfirmed(sql, [adminEmail], {})).toBe(0);
+    expect(await alive()).toHaveLength(5);
+
+    expect(await purgeUnconfirmed(sql, [adminEmail], { PRIVACY_PURGE_UNCONFIRMED: "on" })).toBeGreaterThanOrEqual(1);
+    expect(await alive()).toEqual([fresh, confirmed, paid, admin].sort());
+    expect((await sql`select count(*)::int n from app.events where user_id = ${old}`)[0].n).toBe(0);
+    expect((await sql`select count(*)::int n from app.search_usage where user_id = ${old}`)[0].n).toBe(0);
   });
 });
 

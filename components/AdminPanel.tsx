@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { useCallback, useEffect, useState } from "react";
 import AdminData from "./AdminData";
+import EmailDomainCard from "./EmailDomainCard";
 import AdminUsers from "./AdminUsers";
 
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
@@ -64,7 +65,7 @@ export default function AdminPanel() {
   return (
     <div className="space-y-6">
       <h1 className="text-[32px] font-semibold tracking-tight">Admin</h1>
-      <p className="-mt-4 text-sm text-mute">Only you can see this page. · <Link href="/admin/pro" className="text-accent">Professional access requests</Link> · <Link href="/admin/features" className="text-accent">Plan features</Link> · <Link href="/admin/risk-premium" className="text-accent">Bond engine: Risk Premium Model</Link> · <Link href="/admin/brokers" className="text-accent">Broker management</Link> · <Link href="/admin/seo" className="text-accent">SEO Management</Link> · <Link href="/admin/benchmark" className="text-accent">ETF comparison</Link> · <Link href="/admin/data-quality" className="text-accent">Price checks</Link> · <Link href="/admin/bond-data" className="text-accent">Bond data</Link> · <Link href="/admin/legal-risk" className="text-accent">Legal risk</Link> · <Link href="/admin/assessments" className="text-accent">Assessments &amp; corrections</Link> · <Link href="/admin/welcome-email" className="text-accent">Welcome e-mail</Link> · <Link href="/admin/weekly-email" className="text-accent">Weekly e-mail</Link> · <Link href="/admin/landingpage1" className="text-accent">Landing page 1 (saved)</Link></p>
+      <p className="-mt-4 text-sm text-mute">Only you can see this page. · <Link href="/admin/funnel" className="text-accent">Funnel</Link> · <Link href="/admin/visitors" className="text-accent">Visitors</Link> · <Link href="/admin/pro" className="text-accent">Professional access requests</Link> · <Link href="/admin/outreach" className="text-accent">Pro outreach</Link> · <Link href="/admin/features" className="text-accent">Plan features</Link> · <Link href="/admin/risk-premium" className="text-accent">Bond engine: Risk Premium Model</Link> · <Link href="/admin/brokers" className="text-accent">Broker management</Link> · <Link href="/admin/seo" className="text-accent">SEO Management</Link> · <Link href="/admin/benchmark" className="text-accent">ETF comparison</Link> · <Link href="/admin/data-quality" className="text-accent">Price checks</Link> · <Link href="/admin/bond-data" className="text-accent">Bond data</Link> · <Link href="/admin/classification" className="text-accent">Country &amp; industry</Link> · <Link href="/admin/legal-risk" className="text-accent">Legal risk</Link> · <Link href="/admin/assessments" className="text-accent">Assessments &amp; corrections</Link> · <Link href="/admin/welcome-email" className="text-accent">Welcome e-mail</Link> · <Link href="/admin/weekly-email" className="text-accent">Weekly e-mail</Link> · <Link href="/admin/skills" className="text-accent">Rating skills</Link> · <Link href="/admin/landingpage1" className="text-accent">Landing page 1 (saved)</Link></p>
 
 
       {s && (
@@ -77,6 +78,8 @@ export default function AdminPanel() {
           ))}
         </div>
       )}
+
+      <EmailDomainCard />
 
       <AdminUsers />
 
