@@ -106,23 +106,6 @@ export default function AccountNotices() {
           <button onClick={() => { setConfirmed(null); clearQuery(); }} className="text-mute hover:text-ink" aria-label="Close">✕</button>
         </div>
       )}
-      {false && me && (
-        <div className="mb-2 ml-auto flex w-fit max-w-full flex-wrap items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-900" data-testid="confirm-strip">
-          <span>Please confirm your e-mail ({me.email}).</span>
-          <button
-            disabled={resend === "sending"}
-            onClick={async () => {
-              setResend("sending");
-              const r = await fetch("/api/auth/resend-confirmation", { method: "POST" });
-              const b = await r.json().catch(() => ({}));
-              setResend(r.ok ? "Sent. Please check your inbox (and spam)." : b.error ?? "Could not send.");
-            }}
-            className="font-medium underline"
-          >
-            {resend && resend !== "sending" ? resend : "Send again"}
-          </button>
-        </div>
-      )}
       {welcome && me && !gateOpen && (() => {
         // Not confirmed yet (the owner, 26/10/2026): the pop-up asks to confirm the e-mail first. It is still dismissable
         // ("Continue anyway"), because an unconfirmed account is never locked out.
