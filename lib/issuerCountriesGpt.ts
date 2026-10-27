@@ -381,7 +381,22 @@ Wake Forest Uni,US
 WakeMed,US
 WARF,US
 WMC Finance,US
-XL Grp,US`;
+XL Grp,US
+USC,US
+Eastern Energy,US
+DOC DR,US
+NLG Global Fndg,US
+West Virgina,US
+AIG Sun Glb X,US
+CTR Partnership,US
+Smithson,US
+UniCredit Bank Czech Republic and Slovakia a.s.,IT
+Transp Pas Metro,CL
+WindMW,DE
+GIB International,BH
+ABQ Finance,QA
+Dua Capital,MY
+IEC,IL`;
 
 // Corrected by hand where GPT's answer was wrong or the parent is another country.
 const FIX: Record<string, string> = { "PP SBSN ID III": "ID", Bacardi: "BM", "Mercedes Benz CA": "DE", "ROP Sukuk Trust": "OM", "Credit Suisse US": "CH" };
