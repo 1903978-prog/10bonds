@@ -31,7 +31,7 @@ type Cand = { b: PublicBond; issuer: string; ret: number; pd: number; weak: bool
 export type Gap = (safer: number, riskier: number, years: number) => number;
 export const NO_STEPS: Gap = () => 0;
 
-export type FrontierList = { /** summed return in steps */ u: number; ytm: number; el: number; isins: string[]; rows: RankedBond[] };
+export type FrontierList = { /** Set on the two ends of a coherent frontier (lowest-return AAA end, highest-return end), which follow the end rules, not the rating window. */ end?: "low" | "high"; /** summed return in steps */ u: number; ytm: number; el: number; isins: string[]; rows: RankedBond[] };
 export type ExactFrontier = {
   /** Every efficient list, by return: strictly more return and strictly more expected loss from one to the next. */
   points: FrontierList[];

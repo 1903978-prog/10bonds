@@ -5,7 +5,7 @@ import { lossAdjustedYield, listLifeLoss } from "./expectedLoss";
 import { lgdOf } from "./seniority";
 import { portfolioPool, RESULT_COUNT, UNRATED_NOTCH, withinRisk } from "./ranking";
 import { RETURN_UNIT, type ExactFrontier, type FrontierList } from "./exactFrontier";
-import { activePolicy, checkList, factsOf, policySignature, type CoherenceFacts, type CoherencePolicy } from "./coherence";
+import { activePolicy, checkList, END_POLICY, factsOf, policySignature, type CoherenceFacts, type CoherencePolicy } from "./coherence";
 import { issuerVerified } from "./issuerGroups";
 import { stepGap } from "./stepGap";
 import { lifeYears } from "./lifeYears";
@@ -50,7 +50,7 @@ export type Certificate = {
 };
 export type CoherentFrontier = ExactFrontier & { cert: Certificate; policy: CoherencePolicy };
 
-type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number };
+type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number; /** The two ends of the slider: no spread rule, and at least this many risk 1 bonds. */ end?: { minRisk1: number } };
 type Outcome = { status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] };
 
 export function candidatesOf(bonds: PublicBond[], duration: number, spreadRule = true): Cand[] {
@@ -75,7 +75,7 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   let cs = cs0;
   // A bond whose beating group has no bond in this subproblem can never satisfy the spread rule: out (exact).
   // Repeated until stable: dropping a bond can empty a group that another bond's rule points to.
-  for (let again = true; again; ) {
+  for (let again = !spec.end; again; ) {
     const groups = new Set(cs.map((c) => c.group!));
     const kept = cs.filter((c) => [...c.beatenBy].every((g) => groups.has(g)));
     again = kept.length < cs.length;
@@ -94,6 +94,7 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   if (spec.lossMax !== undefined) add("los", sum(all, (i) => cs[i].pd), "<=", spec.lossMax);
   add("core", sum(all.filter((i) => cs[i].cls >= m - 1), () => 1), ">=", p.minCore);
   add("worst", sum(all.filter((i) => cs[i].cls === m), () => 1), ">=", p.minWorst);
+  if (spec.end) add("risk1", sum(all.filter((i) => cs[i].cls === 1), () => 1), ">=", spec.end.minRisk1);
   add("weak", sum(all.filter((i) => cs[i].weak), () => 1), "<=", p.maxWeak);
   const by = (key: (c: Cand) => string) => {
     const g = new Map<string, number[]>();
@@ -114,7 +115,7 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   // Spread rule: a chosen bond needs every group holding a safer bond that beats it to be chosen too (b <= that group's bonds).
   const members = by((c) => c.group!);
   const spreadRows: string[] = [];
-  for (const i of all) for (const g of cs[i].beatenBy) spreadRows.push(` sp${spreadRows.length}: x${i} - ${joinLines((members.get(g) ?? []).map((j) => `x${j}`), " - ")} <= 0`);
+  if (!spec.end) for (const i of all) for (const g of cs[i].beatenBy) spreadRows.push(` sp${spreadRows.length}: x${i} - ${joinLines((members.get(g) ?? []).map((j) => `x${j}`), " - ")} <= 0`);
   const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows].join("\n")}\nBounds\n S >= 0\nBinary\n ${all.map((i) => `x${i}`).reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
   if (/NaN|Infinity/.test(lp)) throw new Error("Coherent model has a non-finite number");
   await new Promise((r) => setImmediate(r));
@@ -170,6 +171,36 @@ async function bestAt(cands: Cand[], p: CoherencePolicy, duration: number, ceili
   return top;
 }
 
+/**
+ * The two ends of the slider (the owner, 27/10/2026), solved with the end rules instead of the coherence rules:
+ *   high return end = the 10 highest-return bonds of 10 issuer groups, any risk up to the ceiling (no rating window, no
+ *   sector or loss-share cap, no cap on weak bonds, no spread rule), least loss among equals;
+ *   low return end = the least-loss list that takes as many risk 1 (AAA) bonds as there are issuer groups for, up to 10,
+ *   and fills the rest from the next classes only as far as needed (no sector or loss-share cap).
+ * Both keep: 10 bonds, one per issuer group, each bond within +-20% and the average within +-5% of the horizon.
+ */
+
+async function highEnd(cands: Cand[], duration: number, ceiling: number, stats: Certificate): Promise<Cand[] | null> {
+  const cs = cands.filter((c) => c.cls <= ceiling);
+  const r = await solve(cs, ceiling, END_POLICY, duration, { objective: "ret", end: { minRisk1: 0 } }, stats);
+  if (!r.sel.length) return null;
+  const r2 = await solve(cs, ceiling, END_POLICY, duration, { objective: "loss", retMin: retOf(r.sel) - 1e-7, end: { minRisk1: 0 } }, stats);
+  return r2.sel.length ? r2.sel : r.sel;
+}
+
+async function lowEnd(cands: Cand[], duration: number, stats: Certificate): Promise<Cand[] | null> {
+  const risk1 = new Set(cands.filter((c) => c.cls === 1).map((c) => c.group)).size;
+  const need = Math.min(N, risk1);
+  for (let ceil = need >= N ? 1 : 2; ceil <= 10; ceil++) {
+    const cs = cands.filter((c) => c.cls <= ceil);
+    const r = await solve(cs, ceil, END_POLICY, duration, { objective: "loss", end: { minRisk1: need } }, stats);
+    if (!r.sel.length) continue;
+    const r2 = await solve(cs, ceil, END_POLICY, duration, { objective: "ret", lossMax: lossOf(r.sel) + TOL, end: { minRisk1: need } }, stats);
+    return r2.sel.length ? r2.sel : r.sel;
+  }
+  return null;
+}
+
 /** The highest-return list over all classes (least loss among equals). */
 async function topList(cands: Cand[], p: CoherencePolicy, duration: number, ceiling: number, stats: Certificate): Promise<Cand[] | null> {
   let best: Cand[] | null = null;
@@ -208,9 +239,10 @@ export async function coherentFrontier(bonds: PublicBond[], duration: number, p:
   for (let m = 1; m <= ceiling; m++) bound.set(m, 0);
   const first = await bestAt(cands, p, duration, ceiling, undefined, bound, stats);
   if (!first) return finish([]);
-  const top = (await topList(cands, p, duration, ceiling, stats)) ?? first.sel;
-  const points: FrontierList[] = [listOf(first.sel)];
-  const lo = retOf(first.sel), hi = retOf(top);
+  const low = (await lowEnd(cands, duration, stats)) ?? first.sel;
+  const top = (await highEnd(cands, duration, ceiling, stats)) ?? (await topList(cands, p, duration, ceiling, stats)) ?? first.sel;
+  const points: FrontierList[] = [{ ...listOf(low), end: "low" }];
+  const lo = retOf(low), hi = retOf(top);
   let reached = lo;
   for (let k = 1; k < GRID && reached < hi - 1e-6; k++) {
     const T = Math.max(lo + ((hi - lo) * k) / GRID, reached + 1e-4);
@@ -220,11 +252,11 @@ export async function coherentFrontier(bonds: PublicBond[], duration: number, p:
     points.push(listOf(r.sel));
     reached = Math.max(reached, retOf(r.sel));
   }
-  points.push(listOf(top));
+  points.push({ ...listOf(top), end: "high" });
   const out = finish(points);
   // Last guard: every list returned really satisfies every rule.
   for (const pt of out.points) {
-    const bad = checkList(pt.rows.map((r) => factsOf(r)), p, ceiling).filter((c) => !c.ok);
+    const bad = checkList(pt.rows.map((r) => factsOf(r)), pt.end ? END_POLICY : p, ceiling).filter((c) => !c.ok);
     const avgDur = pt.rows.reduce((s, r) => s + r.modifiedDuration!, 0) / pt.rows.length;
     if (bad.length || Math.abs(avgDur - duration) > duration * 0.05 + 1e-6) throw new Error(`Coherent list breaks a rule: ${bad.map((c) => c.rule + " " + c.detail).join("; ") || "average duration " + avgDur}`);
   }
