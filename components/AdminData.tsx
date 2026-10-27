@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { LINDE_PRICE_NOTE, SCENARIO_CAVEAT, SCENARIO_SOURCE } from "@/lib/scenarioText";
 import { reloadGptRatings } from "@/lib/gptStore";
 
-type Stats = { total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number } | { error: string } | null;
+type Stats = { total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number; freshness: { basis: string; total: number; last24h: number; last48h: number; olderThan7d: number; noDate: number; newest: string | null; oldest: string | null } } | { error: string } | null;
 type Req = { id: number; requestedAt: string; status: string; pickedUpAt: string | null; finishedAt: string | null; note: string | null };
 
 const card = "rounded-2xl border border-line bg-white p-5";
@@ -73,6 +73,13 @@ function ProvisionalScenarios() {
   );
 }
 
+const pct = (n: number, t: number) => (t ? `${Math.round((n / t) * 100)}%` : "–");
+function age(iso: string | null) {
+  if (!iso) return "–";
+  const h = (Date.now() - new Date(iso).getTime()) / 36e5;
+  return h < 48 ? `${Math.max(0, Math.round(h))} h ago` : `${Math.round(h / 24)} days ago`;
+}
+
 export default function AdminData() {
   const [data, setData] = useState<{ bonds: Stats; requests: Req[] } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -111,6 +118,16 @@ export default function AdminData() {
                 <p className="mt-1 text-2xl font-semibold" data-testid={`stat-${String(k).split(" ")[0].toLowerCase()}`}>{v}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-3 rounded-xl bg-canvas p-3" data-testid="price-freshness">
+            <p className="text-xs text-mute">Prices updated in the last 24h</p>
+            <p className="mt-1 text-2xl font-semibold">{ok.freshness.last24h} of {ok.freshness.total} bonds ({pct(ok.freshness.last24h, ok.freshness.total)})</p>
+            <p className="mt-1 text-xs text-mute">
+              Last 48h: {ok.freshness.last48h} ({pct(ok.freshness.last48h, ok.freshness.total)}) · Older than 7 days: {ok.freshness.olderThan7d} ({pct(ok.freshness.olderThan7d, ok.freshness.total)}) · No date: {ok.freshness.noDate}
+            </p>
+            <p className="mt-1 text-xs text-mute">
+              Newest price: {age(ok.freshness.newest)} · Oldest price: {age(ok.freshness.oldest)} · Based on the {ok.freshness.basis === "price_as_of" ? "price's own date" : "yield date (the copy has no price date yet)"}.
+            </p>
           </div>
           <p className="mt-2 text-xs text-mute">
             Shown on the site: {ok.shownOnSite} (EUR and USD, rated, fresh, modelled). Newest yield: {when(ok.newestYtm)}. The copy holds yields, not prices, so a price refresh shows here as an updated yield.
