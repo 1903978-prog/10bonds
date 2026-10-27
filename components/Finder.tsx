@@ -65,6 +65,11 @@ type Response = ResultsPayload & {
   outliers?: { sd: number; liveSd: number; count: number; liveCount: number };
   coherence?: CoherenceView; // Admin, spread rules: the rating profile and rule checks of this list
   engine?: { method: string; version: string | null; weight: number; liveWeight: number; preview?: boolean; premiums?: Record<string, number> };
+  /** Risk-band position (lib/riskBands.ts): its band, the list's actual figures, and whether the exact solve proved it best. */
+  band?: { k: number; min: number; max: number; avgRisk?: number; ytm?: number; el?: number; optimal?: boolean; source?: "stored" | "live"; phase?: string; none?: boolean };
+  /** Progressive search: what changed in this step; the row numbers to highlight for a moment. */
+  step?: { phase: string; out?: string; in?: string; changed?: number[] };
+  flash?: number[];
 };
 
 const pct = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `${n.toFixed(d)}%`);
@@ -87,6 +92,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const preview = useRef<string | null>(null);
   const searchSeq = useRef(0);
   const appliedSeq = useRef(0);
+  const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const hasData = useRef(false);
   hasData.current = data !== null;
   const [risk, setRisk] = useState<number>(LIMITS.risk.initial);
@@ -194,12 +200,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [mix, setMix] = useState(SLIDER_START);
   const [positions, setPositions] = useState<SliderPosition[] | null>(null);
   const [diagOpen, setDiagOpen] = useState(false);
-  const firstOpen = positions?.find((p) => !p.unavailable)?.position ?? 1;
+  // Risk bands: every band can be picked (an empty band says so); other positions start at the first one with a list.
+  const firstOpen = positions?.[0]?.band ? 1 : positions?.find((p) => !p.unavailable)?.position ?? 1;
   // As many positions as distinct frontier lists (30 until they are ready); the search then uses the frontier's guard.
   const mixMax = positions?.length || SLIDER_POSITIONS;
   // Advanced (admin): a frontier dot picked on the chart sets the sliders to its query, and then searches like it too.
   const advAt = simple ? 0 : positions?.find((p) => p.query && p.query.ytm === ytm && p.query.risk === risk)?.position ?? 0;
   const guard = !!positions?.length && (simple || advAt > 0);
+  // Risk-band mode (owner 27/10/2026): the position's band number, searched as band=n.
+  const bandQ = simple && mode === "portfolio" ? positions?.[mix - 1]?.query?.band : undefined;
   const applyMix = (pos: number) => {
     const p = positions?.[Math.min(pos, positions.length) - 1];
     if (p?.query) {
@@ -330,6 +339,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
         if (method === "m1") qs.set("m", method);
+        // Risk-band position: the stored portfolio of this band, or a stream of improving lists when none is stored (blacklist, cold start).
+        if (bandQ && !heatOn) { qs.set("band", String(bandQ)); qs.set("stream", "1"); }
         if (heatOn) {
           // The heat map cell's list: the same exact frontier the map is built from, with the map's methodology.
           qs.set("duration", String(heatPick.duration));
@@ -348,14 +359,51 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         // A busy or waking server can answer with an error page instead of the list: try again a few times before saying so.
         let res: globalThis.Response | null = null;
         let body = null;
-        // The spread-rules lists are built in the background (202 until ready): keep asking, up to a few minutes.
+        const streamed = (r: globalThis.Response) => (r.headers.get("content-type") ?? "").includes("ndjson");
         // A busy answer (429) is waited out like a pending one, never shown as an error.
         const wait = (r: globalThis.Response | null) => !r ? 1500 : r.status === 202 ? 3000 : r.status === 429 ? 5000 : 1500;
         for (let i = 0; i < 4 || ((res?.status === 202 || res?.status === 429) && i < 90); i++) {
           if (i) await new Promise((done) => setTimeout(done, wait(res)));
           res = await fetch(`/api/bonds?${qs}`, { signal: ctrl.signal });
+          if (streamed(res)) break;
           body = await res.json().catch(() => null);
           if (body && res.status < 500 && res.status !== 202 && res.status !== 429) break;
+        }
+        // One answer: a slower, older search never replaces a newer answer already on screen.
+        let counted = false;
+        const apply = (b: Response) => {
+          if (seq < appliedSeq.current) return;
+          appliedSeq.current = seq;
+          const changed = b.step?.changed;
+          setData(changed?.length ? { ...b, flash: changed } : b);
+          setLimit(null);
+          setError(null);
+          if (seq === searchSeq.current) setLoading(false);
+          if (changed?.length) {
+            clearTimeout(flashTimer.current);
+            flashTimer.current = setTimeout(() => setData((d) => (d ? { ...d, flash: undefined } : d)), 1400);
+          }
+          if (!counted) { counted = true; track("search", { duration, ytm, risk, tier: b.tier, results: b.rows.length + b.lockedCount }); }
+        };
+        if (res && streamed(res) && res.body) {
+          // Lines of JSON, one complete answer each; every line replaces the list at once (rows in place).
+          const reader = res.body.getReader();
+          const dec = new TextDecoder();
+          let buf = "";
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream: true });
+            for (let nl = buf.indexOf("\n"); nl >= 0; nl = buf.indexOf("\n")) {
+              const line = buf.slice(0, nl).trim();
+              buf = buf.slice(nl + 1);
+              if (!line) continue;
+              const b = JSON.parse(line);
+              if (b.error) throw new Error(b.error);
+              apply(b);
+            }
+          }
+          return;
         }
         if (!res || !body) throw new Error(errText);
         if (res.status === 202 || res.status === 429) throw new Error("The lists are still being calculated. Try again in a minute.");
@@ -368,10 +416,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           return;
         }
         if (!res.ok) throw new Error(body.error ?? errText);
-        setData(body);
-        setLimit(null);
-        setError(null);
-        track("search", { duration, ytm, risk, tier: body.tier, results: body.rows.length + body.lockedCount });
+        apply(body);
       } catch (e) {
         if ((e as Error).name !== "AbortError") setError((e as Error).message);
       } finally {
@@ -384,7 +429,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       // While nothing is on screen yet the search already sent keeps going, so the first list shows as soon as possible.
       if (hasData.current) ctrl.abort();
     };
-  }, [duration, ytm, risk, guard, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl]);
+  }, [duration, ytm, risk, guard, bandQ, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl]);
   useEffect(() => { setHeatPick(null); setPicked(null); setSelDur(null); }, [duration, ytm, risk, mix, adv, spread, showHeat, showAll]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
@@ -493,7 +538,18 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   }, [canHeat, currency, size, heatMethod, heatBl]);
   const summary = list ? listSummary(list) : data?.summary;
   // Return and loss of every slider position come with the preloaded positions: the two boxes follow the thumb at once.
-  const live = simple && paid && mode === "portfolio" ? tileFigures(positions?.[mix - 1]) : null;
+  // A list worked out on the spot (blacklist, cold start) shows its own figures as they improve; a stored one shows the preloaded exact figures.
+  const bandPos = simple && mode === "portfolio" ? positions?.[mix - 1] : undefined;
+  const num1 = (x: number) => x.toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const bandCaption: ReactNode | undefined = bandPos?.band
+    ? (() => {
+        const b = data?.band?.k === mix ? data.band : undefined;
+        const actual = b?.avgRisk ?? bandPos.avgRisk;
+        if (b?.none || (bandPos.unavailable && !b)) return t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max));
+        return `${t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max))}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
+      })()
+    : undefined;
+  const live = simple && paid && mode === "portfolio" && data?.band?.source !== "live" ? tileFigures(positions?.[mix - 1]) : null;
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
   const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
@@ -585,6 +641,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 </div>
               )}
               <ResultBoxes
+                caption={bandCaption}
                 ret={!paid && data ? null : live ? live.ret : !data ? "—" : pct(summary?.avgYtm)}
                 loss={!paid && data ? null : live ? live.loss : !data ? "—" : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
                 lock={lockTo}
@@ -785,8 +842,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 currency={currency}
                 message={
                   limit ? <LimitReached quota={limit} />
-                  : error ? <p className="text-sm text-mute">{error}</p>
-                  : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? t.noOptimised : t.none}</p>
+                  : error ? <ErrorRetry text={error} onRetry={() => setRerun((n) => n + 1)} />
+                  : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? (data.band ? t.noBand : t.noOptimised) : t.none}</p>
                   : null
                 }
               />
@@ -833,8 +890,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             currency={currency}
             message={
               limit ? <LimitReached quota={limit} />
-              : error ? <p className="text-sm text-mute">{error}</p>
-              : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? t.noOptimised : t.none}</p>
+              : error ? <ErrorRetry text={error} onRetry={() => setRerun((n) => n + 1)} />
+              : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? (data.band ? t.noBand : t.noOptimised) : t.none}</p>
               : null
             }
           />
@@ -872,6 +929,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       {sheet && mode === "portfolio" && createPortal(
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
+            caption={bandCaption}
             currency={currency}
             arrows={simple}
             title={phoneTitle}
@@ -889,8 +947,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             onExcluded={() => setExcludedAt(Date.now())}
             message={
               limit ? <LimitReached quota={limit} />
-              : error ? <p className="text-sm text-mute">{error}</p>
-              : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? t.noOptimised : t.none}</p>
+              : error ? <ErrorRetry text={error} onRetry={() => setRerun((n) => n + 1)} />
+              : data && data.rows.length === 0 ? <p className="text-sm text-mute" data-testid={data.status === "INFEASIBLE" ? "no-optimised-portfolio" : undefined}>{data.status === "INFEASIBLE" ? (data.band ? t.noBand : t.noOptimised) : t.none}</p>
               : null
             }
           />
@@ -1171,7 +1229,7 @@ function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null;
 }
 
 /** Under the slider (the owner, 24/10/2026): the list's return and expected loss, shown as soon as the list arrives. Fixed sizes, "—" before the first list. */
-function ResultBoxes({ ret, loss, lock }: { ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string } }) {
+function ResultBoxes({ ret, loss, lock, caption }: { ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; caption?: ReactNode }) {
   const t = useFinderText();
   return (
     <div className="mt-3" data-testid="result-boxes">
@@ -1179,6 +1237,19 @@ function ResultBoxes({ ret, loss, lock }: { ret: ReactNode | null; loss: ReactNo
         <Stat value={ret} label={t.retYear} lock={lock} h="h-[64px]" />
         <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[64px]" />
       </div>
+      {/* Risk bands: the band of the position and the list's actual average risk, one fixed-height line (nothing moves when it fills). */}
+      {caption !== undefined && <div className="mt-1.5 h-[15px] truncate text-[11px] leading-[15px] text-mute tabular-nums" data-testid="band-caption">{caption}</div>}
+    </div>
+  );
+}
+
+/** A failed list request: what went wrong and a button to ask again (owner 27/10/2026: never an empty list without a reason). */
+function ErrorRetry({ text, onRetry }: { text: string; onRetry: () => void }) {
+  const t = useFinderText();
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm text-mute" role="alert" data-testid="finder-error">
+      <span>{text || t.loadFailed}</span>
+      <button type="button" onClick={onRetry} className="rounded-full border border-line px-3 py-0.5 text-xs font-medium text-ink hover:bg-canvas" data-testid="finder-retry">{t.retry}</button>
     </div>
   );
 }
@@ -1334,7 +1405,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.rank} className={`border-b border-line/60${hide(i)}`} style={{ height: rowH }}>
+            <tr key={r.rank} className={`border-b border-line/60 transition-colors duration-700${hide(i)}${data?.flash?.includes(r.rank) ? " bg-accent/10" : ""}`} style={{ height: rowH }}>
               <td className="py-0 pl-2 text-mute tabular-nums">{r.rank}</td>
               <td className="truncate py-0 pr-3 font-medium" title={admin && narrow ? `${r.issuer} · ${r.isin} · ${adminFacts(r)}` : r.issuer}>
                 {r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}
@@ -1386,7 +1457,7 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
       {/* Phone cards */}
       <ul className="space-y-2 sm:hidden">
         {rows.map((r, i) => (
-          <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-lg border border-line/70 px-4${hide(i)}`} style={{ height: CARD_H }}>
+          <li key={r.rank} className={`flex items-center gap-3 overflow-hidden rounded-lg border border-line/70 px-4 transition-colors duration-700${hide(i)}${data?.flash?.includes(r.rank) ? " bg-accent/10" : ""}`} style={{ height: CARD_H }}>
             <span className="w-5 text-sm text-mute tabular-nums">{r.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</div>
@@ -1507,7 +1578,7 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
  * Top to bottom: return and expected loss, the 10 bonds with a few large columns, over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency }: { arrows: boolean; title: (text: string) => ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ caption, arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency }: { caption?: ReactNode; arrows: boolean; title: (text: string) => ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
@@ -1559,6 +1630,7 @@ function PhoneResults({ arrows, title, onClose, data, list, setList, features, s
         <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[62px]" />
       </div>
       <div className="flex h-5 shrink-0 items-center">
+        {caption !== undefined && !(data && (ret === null || !signedIn)) && <span className="truncate text-[11px] text-mute tabular-nums" data-testid="band-caption-phone">{caption}</span>}
         {data && (ret === null || !signedIn) && (
           <Link href={lock.href} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent" data-testid="phone-unlock"><Lock /> {lock.label}</Link>
         )}

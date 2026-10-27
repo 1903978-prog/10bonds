@@ -63,3 +63,8 @@ export function positionsOfBands(sv: ServedBands): SliderPosition[] {
     };
   });
 }
+
+/** The bands without figures (no stored set yet): the finder still shows 30 positions and searches each one live. */
+export function bareBandPositions(cfg: BandConfig): SliderPosition[] {
+  return cfg.bands.map((b) => ({ position: b.k, target: null, query: { ytm: 4, risk: 10, guard: true, band: b.k }, ytm: null, expectedLoss: null, avgRisk: null, worstRisk: null, isins: [], sameAs: null, unavailable: false, band: { min: b.min, max: b.max } }));
+}

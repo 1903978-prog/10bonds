@@ -5,6 +5,8 @@ import { currentUser } from "@/lib/currentUser";
 import { TERMS } from "@/lib/limits";
 import { sliderFor } from "@/lib/sliderCache";
 import { parseMethod } from "@/lib/frontierCache";
+import { bareBandPositions, positionsOfBands, servedBands } from "@/lib/riskBandsServe";
+import { loadBandConfig } from "@/lib/riskBandsStore";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,17 @@ export async function GET(req: Request) {
   const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
   let out;
   try {
-    out = await sliderFor(parseFilter(url.searchParams), duration, method);
+    const filter = parseFilter(url.searchParams);
+    // Everyone: the 30 risk-band positions (lib/riskBands.ts), read from storage. A cold start without a stored set gets the bands without figures.
+    if (method === "spread") {
+      const sv = await servedBands(filter, duration);
+      const cfg = sv?.cfg ?? (await loadBandConfig());
+      const all = sv ? positionsOfBands(sv) : bareBandPositions(cfg);
+      // The bonds themselves come with the list (tier-shaped); the positions carry figures only, so no ISIN reaches a visitor here.
+      const positions = user?.isAdmin ? all : all.map(({ isins: _isins, ...p }) => ({ ...p, isins: [] as string[] }));
+      return NextResponse.json({ positions, ...(sv?.stale ? { stale: true } : {}), ...(sv && user?.isAdmin ? { flags: { nonMonotonic: sv.stored.nonMonotonic, candidates: sv.stored.candidates } } : {}) }, { headers: { "Cache-Control": "private, max-age=60" } });
+    }
+    out = await sliderFor(filter, duration, method);
   } catch {
     return NextResponse.json({ error: "Bond data is not available right now. Please try again later." }, { status: 503 });
   }
