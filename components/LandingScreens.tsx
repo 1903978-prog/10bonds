@@ -223,8 +223,16 @@ export function OneBondScreen({ lang, data, asOf, locale }: { lang: FinderLang; 
         {wide && <Controls f={f} single horizon={data.duration} mix={8} />}
         <Panel className={wide ? "" : "!p-3"}>
           {wide && <div className="mb-1 text-[22px] font-semibold tracking-tight">{f.bestByRating}</div>}
-          <div className={wide ? "min-h-0 flex-1" : "min-h-[170px] flex-1"}><BestByRisk f={f} data={data} /></div>
-          <div className={`shrink-0 rounded-[12px] border border-[#e5e5ea] text-[15px] ${wide ? "mt-3 px-4 py-3" : "mt-2 px-3 py-2"}`}>
+          <div className={wide ? "min-h-0 flex-1" : "min-h-[240px] flex-1"}><BestByRisk f={f} data={data} /></div>
+          {!wide && (
+            <div className="mt-2 flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-[12px] border border-[#e5e5ea] px-3 py-2 text-[14px] tabular-nums">
+              <span className="min-w-0 truncate font-semibold">{b.issuer}</span>
+              <RiskBadge risk={b.risk} />
+              <span className="font-semibold">{num(b.ytm, 2)}%</span>
+              <span className="text-[#6b6b72]">{date}</span>
+            </div>
+          )}
+          {wide && <div className="mt-3 shrink-0 rounded-[12px] border border-[#e5e5ea] px-4 py-3 text-[15px]">
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 truncate"><span className="font-semibold">{b.issuer}</span>{!wide && <span className="ml-2 align-middle"><RiskBadge risk={b.risk} /></span>}{wide && b.name !== b.issuer && <span className="text-[13px] text-[#6b6b72]"> · {b.name}</span>}</span>
               <span className={`shrink-0 font-semibold tabular-nums ${wide ? "text-[26px]" : "text-[22px]"}`}>{num(b.ytm, 2)}% <span className="text-[13px] font-normal text-[#6b6b72]">{f.yieldLower}</span></span>
@@ -235,7 +243,7 @@ export function OneBondScreen({ lang, data, asOf, locale }: { lang: FinderLang; 
               ))}
             </dl>
             {asOf && <div className="mt-0.5 text-right text-[12px] text-[#6b6b72]">{asOf}</div>}
-          </div>
+          </div>}
         </Panel>
       </Chrome>
     )} />
