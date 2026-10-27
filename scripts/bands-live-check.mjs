@@ -38,6 +38,7 @@ for (const [label, d] of TERMS) for (const n of POINTS) {
 const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : process.env.CHROME_CHANNEL ? { channel: process.env.CHROME_CHANNEL } : {});
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await ctx.newPage();
+await page.addInitScript(() => { localStorage.setItem("tb_agree", "2026-10-26.1"); localStorage.setItem("tb_agree_id", crypto.randomUUID()); });
 await page.addInitScript(() => localStorage.setItem("tb_cookie_consent", JSON.stringify({ necessary: true, preferences: false, statistics: false, marketing: false })));
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
