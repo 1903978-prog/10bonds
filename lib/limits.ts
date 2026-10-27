@@ -42,12 +42,12 @@ export function riskLevel(level: number) {
   return { ...RISK_LEVELS[i], allowUnrated: false };
 }
 
-// Weekly search allowances per plan (rolling 7 days). null = unlimited. Free's numbers are only the defaults: the admin edits them in /admin/features (lib/searchLimits.ts).
+// Daily search allowances per plan (one counter for one-bond and portfolio searches together, reset at midnight Rome time). null = unlimited. Free's numbers are only the defaults: the admin edits them in /admin/features (lib/searchLimits.ts).
 // A "search" is a session: moving the sliders for SEARCH_SESSION_MINUTES after a counted search does not count again.
 export const SEARCH_LIMITS = {
-  free: { single: 10, portfolio: 10 },
-  plus: { single: null, portfolio: null },
-  premium: { single: null, portfolio: null },
-} as const satisfies Record<"free" | "plus" | "premium", { single: number | null; portfolio: number | null }>;
+  free: { daily: 10 },
+  plus: { daily: null },
+  premium: { daily: null },
+} as const satisfies Record<"free" | "plus" | "premium", { daily: number | null }>;
 export const SEARCH_SESSION_MINUTES = 15;
 export type SearchKind = "single" | "portfolio";

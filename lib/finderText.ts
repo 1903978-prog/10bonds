@@ -29,7 +29,7 @@ const en = {
   error: "Something went wrong.", signUp: "Sign up", avgSignUp: "Sign up free to see the averages", namesSignUp: "Sign up free: bond names + weekly top 10 by email", avgPlus: "Get Plus to see the averages",
   issuer: "Issuer", bond: "Bond", yield: "Return", duration: "Duration", yrs: "yrs",
   isinPlus: "ISIN with Plus", freeAccount: "Free account", detailsFree: "Details with a free account",
-  plusPitch: "Unlimited searches, Excel, bond swaps and exclusions with Plus.", seePlans: "See plans", excel: "Download Excel",
+  plusPitch: "Unlimited searches, Excel, bond swaps and exclusions with Plus.", seePlans: "See plans", excel: "Download Excel", excelUpTitle: "Upgrade to download", excelUpBody: "Excel export is included in Plus.", upgrade: "Upgrade",
   swap: "Replace with a similar bond", swapTitle: (who: string) => `Replace ${who}`, swapHint: "Similar duration and risk, issuers not already in your list.", swapPick: "Swap", swapNone: "No similar bond left to swap in.", neverShow: "Never show:", thisBond: "This bond", thisIssuer: "This issuer", myExclusions: "My exclusions", close: "Close", exclude: "Blacklist this issuer", excludePaid: "Blacklist: upgrade to unlock",
   resetList: "Back to the original list",
  
@@ -39,11 +39,11 @@ const en = {
   withPlus: "with Plus", freeAccountLower: "free account", ratingStep: "Risk", option: "option", yieldLower: "return",
   coupon: "Coupon", maturity: "Maturity", currency: "Currency", minOrder: "Minimum order", small: "1k–10k", allSizes: "All", minInvest: "Min. investment", minNoData: "Minimum sizes are not in the data yet, so every bond is shown.", country: "Country", change: "Change", signUpOthers: "Sign up to see other bonds",
   noOther: "No other bond with this risk.", backBest: "Back to the best", changeHint: "Change shows the next bond with the same risk, with a lower return.",
-  quotaLeft: (left: number, limit: number, single: boolean) => `${left} of ${limit} ${single ? "single-bond" : "portfolio"} searches left this week`,
-  limitTitle: "You've used this week's free searches",
-  limitBody: (limit: number, single: boolean, date: string) => `The free account includes ${limit} ${single ? "single-bond" : "portfolio"} searches a week. Your next one is available on ${date}.`,
+  quotaLeft: (left: number) => `${left} ${left === 1 ? "search" : "searches"} left today`, quotaUnlimited: "Unlimited searches",
+  limitTitle: "You've used today's free searches",
+  limitBody: (limit: number) => `The free account includes ${limit} searches a day. They renew at midnight, Rome time.`,
   riskWhy: (w: RiskWhy) => `Spread over German government bonds: ${w.spreadBp} bp. Minimum our comparison method requires for this credit risk: ${w.requiredBp} bp. Surplus: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} bp. Risk-adjusted score ${w.adjYtm.toFixed(2)}% (a comparison measure, not a return you earn). Method v${w.version}.`,
-  limitCta: "See the Plus plan", limitPlus: "Plus (€9 a month, VAT included) removes the weekly limit and adds Excel export, charts and ISIN search. Cancel any time.", limitFree: "Your free account stays free: no card is needed and it keeps working.", locale: "en-GB",
+  limitCta: "See the Plus plan", limitPlus: "Plus (€9 a month, VAT included) removes the daily limit and adds Excel export, charts and ISIN search. Cancel any time.", limitFree: "Your free account stays free: no card is needed and it keeps working.", locale: "en-GB",
   back: "Back", sheetTitle: "Top 10 bonds",
 };
 export type FinderText = typeof en;
@@ -72,7 +72,7 @@ const it: FinderText = {
   error: "Qualcosa è andato storto.", signUp: "Registrati", avgSignUp: "Registrati gratis per vedere le medie", namesSignUp: "Registrati gratis: nomi + top 10 settimanale via email", avgPlus: "Passa a Plus per vedere le medie",
   issuer: "Emittente", bond: "Obbligazione", yield: "Rendimento", duration: "Duration", yrs: "anni",
   isinPlus: "ISIN con Plus", freeAccount: "Account gratuito", detailsFree: "Dettagli con un account gratuito",
-  plusPitch: "Con Plus: ricerche illimitate, Excel, sostituzioni ed esclusioni.", seePlans: "Vedi i piani", excel: "Scarica Excel",
+  plusPitch: "Con Plus: ricerche illimitate, Excel, sostituzioni ed esclusioni.", seePlans: "Vedi i piani", excel: "Scarica Excel", excelUpTitle: "Passa a un piano superiore per scaricare", excelUpBody: "L'export Excel è incluso in Plus.", upgrade: "Vedi i piani",
   swap: "Sostituisci con un bond simile", swapTitle: (who: string) => `Sostituisci ${who}`, swapHint: "Durata e rischio simili, emittenti non già in lista.", swapPick: "Sostituisci", swapNone: "Nessun bond simile da inserire.", neverShow: "Non mostrare più:", thisBond: "Questo bond", thisIssuer: "Questo emittente", myExclusions: "Le mie esclusioni", close: "Chiudi", exclude: "Blacklist: escludi questo emittente", excludePaid: "Blacklist: passa a un piano superiore",
   resetList: "Torna alla lista originale",
  
@@ -82,11 +82,11 @@ const it: FinderText = {
   withPlus: "con Plus", freeAccountLower: "account gratuito", ratingStep: "Rischio", option: "opzione", yieldLower: "rendimento",
   coupon: "Cedola", maturity: "Scadenza", currency: "Valuta", minOrder: "Taglio minimo", small: "1k–10k", allSizes: "Tutti", minInvest: "Taglio minimo", minNoData: "I tagli minimi non sono ancora nei dati: mostriamo tutte le obbligazioni.", country: "Paese", change: "Cambia", signUpOthers: "Registrati per vedere altre obbligazioni",
   noOther: "Nessun'altra obbligazione con questo rischio.", backBest: "Torna alla migliore", changeHint: "«Cambia» mostra l'obbligazione successiva con lo stesso rischio e un rendimento più basso.",
-  quotaLeft: (left: number, limit: number, single: boolean) => `${left} di ${limit} ricerche ${single ? "di singole obbligazioni" : "di portafoglio"} rimaste questa settimana`,
-  limitTitle: "Hai usato le ricerche gratuite di questa settimana",
-  limitBody: (limit: number, single: boolean, date: string) => `L'account gratuito include ${limit} ricerche ${single ? "di singole obbligazioni" : "di portafoglio"} a settimana. La prossima sarà disponibile il ${date}.`,
+  quotaLeft: (left: number) => `${left} ${left === 1 ? "ricerca rimasta" : "ricerche rimaste"} oggi`, quotaUnlimited: "Ricerche illimitate",
+  limitTitle: "Hai usato le ricerche gratuite di oggi",
+  limitBody: (limit: number) => `L'account gratuito include ${limit} ricerche al giorno. Si rinnovano a mezzanotte, ora di Roma.`,
   riskWhy: (w: RiskWhy) => `Spread sui titoli di Stato tedeschi: ${w.spreadBp} pb. Minimo richiesto dal nostro metodo di confronto per questo rischio di credito: ${w.requiredBp} pb. Eccedenza: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} pb. Punteggio corretto per il rischio ${w.adjYtm.toFixed(2)}% (una misura di confronto, non un rendimento che si ottiene). Metodo v${w.version}.`,
-  limitCta: "Scopri il piano Plus", limitPlus: "Plus (9 € al mese, IVA inclusa) toglie il limite settimanale e aggiunge export Excel, grafici e ricerca per ISIN. Disdici quando vuoi.", limitFree: "Il tuo account gratuito resta gratuito: nessuna carta richiesta.", locale: "it-IT",
+  limitCta: "Scopri il piano Plus", limitPlus: "Plus (9 € al mese, IVA inclusa) toglie il limite giornaliero e aggiunge export Excel, grafici e ricerca per ISIN. Disdici quando vuoi.", limitFree: "Il tuo account gratuito resta gratuito: nessuna carta richiesta.", locale: "it-IT",
   back: "Indietro", sheetTitle: "Le 10 obbligazioni",
 };
 
@@ -114,7 +114,7 @@ const fr: FinderText = {
   error: "Une erreur s'est produite.", signUp: "S'inscrire", avgSignUp: "Inscrivez-vous gratuitement pour voir les moyennes", namesSignUp: "Inscription gratuite : noms + top 10 hebdo par e-mail", avgPlus: "Passez à Plus pour voir les moyennes",
   issuer: "Émetteur", bond: "Obligation", yield: "Rendement", duration: "Duration", yrs: "ans",
   isinPlus: "ISIN avec Plus", freeAccount: "Compte gratuit", detailsFree: "Détails avec un compte gratuit",
-  plusPitch: "Avec Plus : recherches illimitées, Excel, remplacements et exclusions.", seePlans: "Voir les offres", excel: "Télécharger Excel",
+  plusPitch: "Avec Plus : recherches illimitées, Excel, remplacements et exclusions.", seePlans: "Voir les offres", excel: "Télécharger Excel", excelUpTitle: "Passez à une offre supérieure pour télécharger", excelUpBody: "L'export Excel est inclus dans Plus.", upgrade: "Voir les offres",
   swap: "Remplacer par une obligation similaire", swapTitle: (who: string) => `Remplacer ${who}`, swapHint: "Duration et risque proches, émetteurs absents de votre liste.", swapPick: "Remplacer", swapNone: "Aucune obligation similaire disponible.", neverShow: "Ne plus afficher :", thisBond: "Cette obligation", thisIssuer: "Cet émetteur", myExclusions: "Mes exclusions", close: "Fermer", exclude: "Liste noire : exclure cet émetteur", excludePaid: "Liste noire : passez à une offre supérieure",
   resetList: "Revenir à la liste d'origine",
  
@@ -124,11 +124,11 @@ const fr: FinderText = {
   withPlus: "avec Plus", freeAccountLower: "compte gratuit", ratingStep: "Risque", option: "option", yieldLower: "rendement",
   coupon: "Coupon", maturity: "Échéance", currency: "Devise", minOrder: "Montant minimum", small: "1k–10k", allSizes: "Tous", minInvest: "Montant minimum", minNoData: "Les montants minimums ne sont pas encore dans les données : toutes les obligations sont affichées.", country: "Pays", change: "Changer", signUpOthers: "Inscrivez-vous pour voir d'autres obligations",
   noOther: "Aucune autre obligation à ce risque.", backBest: "Retour à la meilleure", changeHint: "« Changer » affiche l'obligation suivante au même risque, avec un rendement plus bas.",
-  quotaLeft: (left: number, limit: number, single: boolean) => `${left} recherche${left === 1 ? "" : "s"} ${single ? "d'obligation" : "de portefeuille"} sur ${limit} restante${left === 1 ? "" : "s"} cette semaine`,
-  limitTitle: "Vous avez utilisé les recherches gratuites de la semaine",
-  limitBody: (limit: number, single: boolean, date: string) => `Le compte gratuit comprend ${limit} recherches ${single ? "d'obligation" : "de portefeuille"} par semaine. La prochaine sera disponible le ${date}.`,
+  quotaLeft: (left: number) => `${left} recherche${left === 1 ? "" : "s"} restante${left === 1 ? "" : "s"} aujourd'hui`, quotaUnlimited: "Recherches illimitées",
+  limitTitle: "Vous avez utilisé les recherches gratuites d'aujourd'hui",
+  limitBody: (limit: number) => `Le compte gratuit comprend ${limit} recherches par jour. Elles se renouvellent à minuit, heure de Rome.`,
   riskWhy: (w: RiskWhy) => `Écart sur les emprunts d'État allemands : ${w.spreadBp} pb. Minimum exigé par notre méthode de comparaison pour ce risque de crédit : ${w.requiredBp} pb. Excédent : ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} pb. Score ajusté du risque ${w.adjYtm.toFixed(2)} % (une mesure de comparaison, pas un rendement obtenu). Méthode v${w.version}.`,
-  limitCta: "Voir le plan Plus", limitPlus: "Plus (9 € par mois, TVA incluse) supprime la limite hebdomadaire et ajoute l'export Excel, les graphiques et la recherche par ISIN. Résiliable à tout moment.", limitFree: "Votre compte gratuit reste gratuit : aucune carte demandée.", locale: "fr-FR",
+  limitCta: "Voir le plan Plus", limitPlus: "Plus (9 € par mois, TVA incluse) supprime la limite quotidienne et ajoute l'export Excel, les graphiques et la recherche par ISIN. Résiliable à tout moment.", limitFree: "Votre compte gratuit reste gratuit : aucune carte demandée.", locale: "fr-FR",
   back: "Retour", sheetTitle: "Les 10 obligations",
 };
 
@@ -156,7 +156,7 @@ const de: FinderText = {
   error: "Etwas ist schiefgelaufen.", signUp: "Registrieren", avgSignUp: "Kostenlos registrieren, um die Durchschnitte zu sehen", namesSignUp: "Kostenlos: Namen + wöchentliche Top 10 per E-Mail", avgPlus: "Mit Plus die Durchschnitte sehen",
   issuer: "Emittent", bond: "Anleihe", yield: "Rendite", duration: "Duration", yrs: "J.",
   isinPlus: "ISIN mit Plus", freeAccount: "Kostenloses Konto", detailsFree: "Details mit kostenlosem Konto",
-  plusPitch: "Mit Plus: unbegrenzte Suchen, Excel, Tausch und Ausschlüsse.", seePlans: "Tarife ansehen", excel: "Excel herunterladen",
+  plusPitch: "Mit Plus: unbegrenzte Suchen, Excel, Tausch und Ausschlüsse.", seePlans: "Tarife ansehen", excel: "Excel herunterladen", excelUpTitle: "Upgrade zum Herunterladen", excelUpBody: "Der Excel-Export ist in Plus enthalten.", upgrade: "Tarife ansehen",
   swap: "Durch eine ähnliche Anleihe ersetzen", swapTitle: (who: string) => `${who} ersetzen`, swapHint: "Ähnliche Duration und ähnliches Risiko, Emittenten noch nicht in Ihrer Liste.", swapPick: "Tauschen", swapNone: "Keine ähnliche Anleihe zum Tauschen übrig.", neverShow: "Nie mehr zeigen:", thisBond: "Diese Anleihe", thisIssuer: "Dieser Emittent", myExclusions: "Meine Ausschlüsse", close: "Schließen", exclude: "Sperrliste: diesen Emittenten ausschließen", excludePaid: "Sperrliste: auf einen höheren Tarif wechseln",
   resetList: "Zurück zur ursprünglichen Liste",
  
@@ -166,11 +166,11 @@ const de: FinderText = {
   withPlus: "mit Plus", freeAccountLower: "kostenloses Konto", ratingStep: "Risiko", option: "Option", yieldLower: "Rendite",
   coupon: "Kupon", maturity: "Fälligkeit", currency: "Währung", minOrder: "Mindestanlage", small: "1k–10k", allSizes: "Alle", minInvest: "Mindestanlage", minNoData: "Mindestanlagen sind noch nicht in den Daten, daher werden alle Anleihen gezeigt.", country: "Land", change: "Wechseln", signUpOthers: "Registrieren, um weitere Anleihen zu sehen",
   noOther: "Keine weitere Anleihe mit diesem Risiko.", backBest: "Zurück zur besten", changeHint: "„Wechseln“ zeigt die nächste Anleihe mit demselben Risiko und niedrigerer Rendite.",
-  quotaLeft: (left: number, limit: number, single: boolean) => `Noch ${left} von ${limit} ${single ? "Einzelanleihe" : "Portfolio"}-Suchen diese Woche`,
-  limitTitle: "Sie haben die kostenlosen Suchen dieser Woche genutzt",
-  limitBody: (limit: number, single: boolean, date: string) => `Das kostenlose Konto umfasst ${limit} ${single ? "Einzelanleihe" : "Portfolio"}-Suchen pro Woche. Die nächste ist ab ${date} verfügbar.`,
+  quotaLeft: (left: number) => `Noch ${left} ${left === 1 ? "Suche" : "Suchen"} heute`, quotaUnlimited: "Unbegrenzte Suchen",
+  limitTitle: "Sie haben die kostenlosen Suchen von heute genutzt",
+  limitBody: (limit: number) => `Das kostenlose Konto umfasst ${limit} Suchen pro Tag. Sie erneuern sich um Mitternacht, Rom-Zeit.`,
   riskWhy: (w: RiskWhy) => `Aufschlag auf Bundesanleihen: ${w.spreadBp} Bp. Mindestaufschlag unserer Vergleichsmethode für dieses Kreditrisiko: ${w.requiredBp} Bp. Überschuss: ${w.surplusBp > 0 ? "+" : ""}${w.surplusBp} Bp. Risikobereinigter Wert ${w.adjYtm.toFixed(2)} % (eine Vergleichsgröße, keine erzielbare Rendite). Methode v${w.version}.`,
-  limitCta: "Plan Plus ansehen", limitPlus: "Plus (9 € im Monat, inkl. MwSt.) hebt das Wochenlimit auf und bringt Excel-Export, Diagramme und ISIN-Suche. Jederzeit kündbar.", limitFree: "Ihr kostenloses Konto bleibt kostenlos: keine Karte nötig.", locale: "de-DE",
+  limitCta: "Plan Plus ansehen", limitPlus: "Plus (9 € im Monat, inkl. MwSt.) hebt das Tageslimit auf und bringt Excel-Export, Diagramme und ISIN-Suche. Jederzeit kündbar.", limitFree: "Ihr kostenloses Konto bleibt kostenlos: keine Karte nötig.", locale: "de-DE",
   back: "Zurück", sheetTitle: "Die 10 Anleihen",
 };
 
