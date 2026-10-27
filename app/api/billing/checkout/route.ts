@@ -56,6 +56,9 @@ export async function POST(req: Request) {
       metadata: { user_id: user.id, plan },
       ...(coupon ? { discounts: [{ coupon }] } : { allow_promotion_codes: true }),
       billing_address_collection: "auto",
+      // Always charge in EUR: no local-currency conversion (and no conversion fee) at checkout.
+      currency: "eur",
+      adaptive_pricing: { enabled: false },
       // Business customers can add their VAT number, so the invoice is made out to the firm.
       ...(plan === "pro" ? { tax_id_collection: { enabled: true }, customer_update: { name: "auto", address: "auto" } } : {}),
       success_url: `${siteUrl()}/pricing?paid=1`,

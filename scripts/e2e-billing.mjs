@@ -46,6 +46,7 @@ for (const w of [1440, 390]) {
   st = await mock();
   const sess = st.sessions.at(-1), plusPrice = st.prices.find((x) => x.lookup_key.includes("plus"));
   ok(sess.price === plusPrice.id && sess.customer && sess.user_id, `${w} checkout for the Plus price with customer and user id`);
+  ok(sess.currency === "eur" && sess.adaptive === "false", `${w} checkout is EUR only, adaptive pricing off`);
   const subId = `sub_${w}`;
   const subObj = (status, lk, extra = {}) => ({ id: subId, object: "subscription", customer: sess.customer, status, metadata: { user_id: sess.user_id }, cancel_at_period_end: false, current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400, items: { data: [{ price: { id: "x", lookup_key: lk } }] }, ...extra });
   await fetch(MOCK + "/__sub", { method: "POST", headers: KEY, body: new URLSearchParams({ json: JSON.stringify(subObj("active", "tenbonds_plus_monthly_eur")) }) });
