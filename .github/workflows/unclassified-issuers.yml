@@ -15,4 +15,4 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
-      - run: npx vite-node -c vitest.config.ts scripts/unclassified-issuers.ts
+      - run: TOP=1300 FROM=80 npx vite-node -c vitest.config.ts scripts/unclassified-issuers.ts
