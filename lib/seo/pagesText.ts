@@ -18,7 +18,7 @@ export const HOME: Record<Locale, Home> = {
     points: ["Rendimento a scadenza, duration e rischio in un'unica lista.", "BTP, titoli di Stato europei e obbligazioni societarie a confronto.", "Dati aggiornati ogni giorno, con la data sempre in vista."],
     govId: "gov-it", govTitle: "I BTP oggi", compareTitle: "Confronta le obbligazioni", guidesTitle: "Guide per capire i numeri",
     plansTitle: "Piani", plans: [
-      { name: "Gratis", price: "0 €", text: "Con un account: 10 ricerche di singole obbligazioni e 3 di portafoglio a settimana, la top 10 completa con emittente, rendimento, rischio e duration." },
+      { name: "Gratis", price: "0 €", text: "Con un account: 10 ricerche al giorno, la top 10 completa con emittente, rendimento, rischio e duration." },
       { name: "Plus", price: "9 € al mese o 86,40 € all'anno", text: "Codici ISIN visibili, ricerche illimitate, nome, cedola e scadenza di ogni obbligazione, medie della lista." },
       { name: "Premium", price: "19 € al mese o 182,40 € all'anno", text: "Tutto Plus, più avvisi via e-mail sui cambiamenti, ricerche salvate e analisi del rischio." },
       { name: "Pro", price: "89 € al mese o 854,40 € all'anno", text: "Solo per professionisti: analisi del portafoglio dei clienti e obbligazioni simili con rendimento più alto." },

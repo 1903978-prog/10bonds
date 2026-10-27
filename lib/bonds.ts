@@ -1,3 +1,4 @@
+import { classifyRow } from "./classify";
 import postgres from "postgres";
 import { cleanPgUrl } from "./pgUrl";
 import type { PublicBond } from "./types";
@@ -105,12 +106,16 @@ async function reload() {
 /** One `public_bonds` row as the site's bond (flaggedDormant = the copy's own dormant flag, applied by the caller). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a raw database row
 function rowToBond(r: Record<string, any>, importedSeniority: Map<string, string>): PublicBond & { flaggedDormant: unknown } {
+  const issuer = cleanIssuer(r.issuer);
+  const cls = classifyRow(r, issuer);
   return {
     flaggedDormant: r.dormant,
     isin: r.isin,
     name: r.name,
-    issuer: cleanIssuer(r.issuer),
-    country: r.country,
+    issuer,
+    country: cls.country,
+    countrySource: cls.countrySource,
+    feedSector: cls.sectorSource === "feed" ? cls.sector : null,
     currency: r.currency,
     coupon: num(r.coupon),
     maturity: isoDay(r.maturity),

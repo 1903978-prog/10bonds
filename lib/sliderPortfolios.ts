@@ -36,6 +36,12 @@ export type SliderPosition = {
   belowHurdle?: number;
 };
 
+/** The two figures under the slider for a position, worked out in the browser while sliding (same text as the list's boxes). */
+export function tileFigures(p: Pick<SliderPosition, "ytm" | "expectedLoss" | "unavailable"> | null | undefined): { ret: string; loss: string } | null {
+  if (!p || p.unavailable || p.ytm == null || p.expectedLoss == null) return null;
+  return { ret: `${p.ytm.toFixed(2)}%`, loss: `${p.expectedLoss.toFixed(2)}%` };
+}
+
 const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const r3 = (n: number) => Math.round(n * 1000) / 1000;

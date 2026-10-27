@@ -6,7 +6,7 @@ import { FinderLangContext, useFinderText } from "@/lib/finderText";
 import { callableLabel, couponTypeLabel, FACT_TEXT, seniorityLabel } from "@/lib/bondFacts";
 import type { CurvePoint } from "@/lib/singleBond";
 import type { Tier } from "@/lib/types";
-import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
+import { LimitReached, QuotaSync, type Quota } from "./SearchQuota";
 import { RiskBadge } from "./RiskBadge";
 import { GptRate, BR_HEAD, IR_HEAD } from "./GptRate";
 import { Spread, RiskPayCell } from "./Spread";
@@ -150,7 +150,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
         )
       )}
       </div>
-      <div data-tip="quota"><QuotaNote quota={data?.quota} /></div>
+      <QuotaSync quota={limit ?? data?.quota} />
     </div>
   );
 }

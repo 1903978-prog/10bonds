@@ -9,7 +9,7 @@ const PLAN_LABEL: Record<FeaturePlan, string> = { free: "Free", plus: "Plus", pr
 /** The admin's feature table: one row per feature, one tick per plan. Each click is saved at once. */
 export default function FeatureAdmin() {
   const [m, setM] = useState<Matrix | null>(null);
-  const [limits, setLimits] = useState<{ single: number; portfolio: number } | null>(null);
+  const [limits, setLimits] = useState<{ daily: number } | null>(null);
   const [state, setState] = useState<"" | "saving" | "saved" | "error" | "load">("");
 
   useEffect(() => {
@@ -28,10 +28,10 @@ export default function FeatureAdmin() {
     setState(r?.ok ? "saved" : "error");
   }
 
-  async function setLimit(kind: "single" | "portfolio", raw: string) {
+  async function setLimit(raw: string) {
     const n = Math.round(Number(raw));
     if (!limits || !Number.isFinite(n) || n < 1 || n > 1000) return;
-    const next = { ...limits, [kind]: n };
+    const next = { ...limits, daily: n };
     setLimits(next);
     setState("saving");
     const r = await fetch("/api/admin/features", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limits: next }) }).catch(() => null);
@@ -40,26 +40,24 @@ export default function FeatureAdmin() {
 
   const numbers = (
     <div className="mt-4 rounded-[20px] bg-white p-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)]" data-testid="free-limits">
-      <h2 className="text-sm font-semibold">Free searches per week</h2>
-      <p className="text-[11px] text-mute">Used when &ldquo;Unlimited&rdquo; is not ticked for Free. Counts the last 7 days. Changes the site, counters and Plans page within a minute.</p>
+      <h2 className="text-sm font-semibold">Free searches per day</h2>
+      <p className="text-[11px] text-mute">One counter for one-bond and portfolio searches together. Used when &ldquo;Unlimited&rdquo; is not ticked for Free. Resets at midnight, Rome time. Changes the site, counter and Plans page within a minute.</p>
       <div className="mt-2 flex gap-6 text-[12px]">
-        {([["portfolio", "Portfolio searches"], ["single", "One-bond searches"]] as const).map(([k, label]) => (
-          <label key={k} className="flex items-center gap-2">
-            <span>{label}</span>
-            <input
-              key={limits?.[k] ?? "x"}
-              type="number"
-              min={1}
-              max={1000}
-              disabled={!limits}
-              defaultValue={limits?.[k] ?? ""}
-              onBlur={(e) => setLimit(k, e.target.value)}
-              aria-label={`Free ${label} per week`}
-              data-testid={`free-limit-${k}`}
-              className="w-16 rounded-lg border border-line px-2 py-1 text-center tabular-nums"
-            />
-          </label>
-        ))}
+        <label className="flex items-center gap-2">
+          <span>Searches per day</span>
+          <input
+            key={limits?.daily ?? "x"}
+            type="number"
+            min={1}
+            max={1000}
+            disabled={!limits}
+            defaultValue={limits?.daily ?? ""}
+            onBlur={(e) => setLimit(e.target.value)}
+            aria-label="Free searches per day"
+            data-testid="free-limit-daily"
+            className="w-16 rounded-lg border border-line px-2 py-1 text-center tabular-nums"
+          />
+        </label>
       </div>
     </div>
   );

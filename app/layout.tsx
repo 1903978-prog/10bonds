@@ -10,6 +10,7 @@ import AccountNotices from "@/components/AccountNotices";
 import KnowledgeNavLink from "@/components/KnowledgeNavLink";
 import HomeNavLink from "@/components/HomeNavLink";
 import CalculatorNavLink from "@/components/CalculatorNavLink";
+import DailyCounter from "@/components/DailyCounter";
 import TutorialNavButton from "@/components/TutorialNavButton";
 import PlansNavLink from "@/components/PlansNavLink";
 import DropsNavLink from "@/components/DropsNavLink";
@@ -75,6 +76,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </div>
             </div>
           </nav>
+          {/* Searches left today: for signed-in accounts on the finder pages, fixed height so nothing moves. */}
+          {hasSession && /^\/((it|fr|de)\/?)?$|^\/isin-search/.test(path) && <DailyCounter />}
         </header>
         <main className="mx-auto max-w-6xl px-4 pb-6 pt-3 sm:px-6 sm:pt-5">
           <AccountNotices />

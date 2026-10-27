@@ -8,7 +8,7 @@ import { isEuMarket, SEO_MARKETS, type SeoMarket } from "./input";
 import { mergeManual, overallScore, round2, type CriterionResult } from "./rubric";
 import { recordRefresh } from "./summary";
 import {
-  clearStale, getSeoSetting, guideLogCounts, latestManual, listBacklinks, listGuides, listKeywords, listOpportunities, listPeople, saveAssessment, setSeoSetting,
+  ANALYST_NAME, clearStale, getSeoSetting, guideLogCounts, latestManual, listBacklinks, listGuides, listKeywords, listOpportunities, listPeople, saveAssessment, setSeoSetting,
 } from "./store";
 
 const PSI_MAX_AGE_DAYS = 7;
@@ -70,6 +70,7 @@ export async function runAssessment(by: string, trigger: string, opts: { psi?: b
     listKeywords(),
     loadBonds().catch(() => null),
   ]);
+  const analyst = people.find((p) => p.name === ANALYST_NAME && p.isPublic);
   const markets = [];
   for (const m of SEO_MARKETS) {
     const auto = evaluate({
@@ -79,7 +80,7 @@ export async function runAssessment(by: string, trigger: string, opts: { psi?: b
       crawl,
       guides: isEuMarket(m)
         ? guides.filter((g) => g.locale === m).map((g) => ({ ...g, logCount: logs[g.id] ?? 0 }))
-        : EN_GUIDES.map((g) => ({ slug: g.slug, seoTitle: g.seoTitle, metaDescription: g.metaDescription, primaryKeyword: g.primaryKeyword, relatedKeywords: g.relatedKeywords ?? [], reviewerId: null, reviewedAt: null, logCount: g.revisions?.length ?? 0 })),
+        : EN_GUIDES.map((g) => ({ slug: g.slug, seoTitle: g.seoTitle, metaDescription: g.metaDescription, primaryKeyword: g.primaryKeyword, relatedKeywords: g.relatedKeywords ?? [], reviewerId: analyst?.id ?? null, reviewedAt: analyst ? (g.updated ?? g.published ?? null) : null, logCount: g.revisions?.length ?? 0 })),
       people,
       dataSource: data?.source ?? null,
       backlinks,

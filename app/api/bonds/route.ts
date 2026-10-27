@@ -68,10 +68,10 @@ export async function GET(req: Request) {
   const features = own ? await featuresFor(user) : tierFeatures(tier);
   const has = (k: (typeof features)[number]) => features.includes(k);
 
-  // Weekly allowance per plan (Free: limited unless the table says unlimited; see SEARCH_LIMITS). Visitors keep their short preview.
+  // Daily allowance per plan (Free: limited unless the table says unlimited; see SEARCH_LIMITS). Visitors keep their short preview.
   const usage = own ? await consumeSearch(user!, "portfolio", has("unlimited_portfolio")) : null;
   if (usage && !usage.allowed)
-    return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ error: "Daily search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   const tryW = user?.isAdmin ? parseWeight(url.searchParams.get("rw")) : null;
   // The bonds and issuers this customer excluded never enter the list.
   const excl = own && has("blacklist") && !(user?.isAdmin && url.searchParams.get("bl") === "0") ? await exclusionsOrNone(user!.id) : [];
