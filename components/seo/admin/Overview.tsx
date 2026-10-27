@@ -90,7 +90,7 @@ export default function Overview({ market, onMarket }: { market: SeoMarket; onMa
         <div className={card}>
           <p className="text-xs text-mute">Average of {data.markets.length} markets</p>
           <p className="mt-1 text-2xl font-semibold">{data.global === null ? "—" : num(data.global, 1)}<span className="text-sm font-normal text-mute"> /100</span></p>
-          <p className="mt-1 text-[11px] text-mute">Internal metric, equal weights.</p>
+          <p className="mt-1 text-[11px] text-mute">Internal metric, equal weights.{data.markets.find((x) => x.at) && <> Last evaluation {when(data.markets.find((x) => x.at)!.at!)}.</>}</p>
         </div>
       </section>
 
