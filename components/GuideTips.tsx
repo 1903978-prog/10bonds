@@ -27,6 +27,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "return", title: "4. Set your desired return", body: "The return per year you are after, before costs." },
       { tip: "risk", title: "5. Choose the highest risk", body: "1 is the safest. Your top 10 appears on the right." },
       { tip: "views", title: "6. Switch the result view", body: "List shows your 10 bonds. Chart plots expected loss against return. Multi-year chart compares horizons of 2–10 years. Heat map colours expected loss by return and term.", late: true },
+      { tip: "blacklist", title: "7. Blacklist", body: "The red minus removes this issuer from your lists, and another bond takes its place.", over: true, optional: true },
     ],
     single: [
       { tip: "horizon", title: "1. Choose the term", body: "How many years you want to stay invested." },
@@ -49,6 +50,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "return", title: "4. Imposta il rendimento desiderato", body: "Il rendimento annuo che cerchi, prima di costi e tasse." },
       { tip: "risk", title: "5. Scegli il rischio massimo", body: "1 è il più sicuro. La tua top 10 appare a destra." },
       { tip: "views", title: "6. Cambia la vista dei risultati", body: "Elenco mostra le tue 10 obbligazioni. Grafico confronta perdita attesa e rendimento. Grafico pluriennale confronta orizzonti da 2 a 10 anni. Mappa di calore colora la perdita attesa per rendimento e durata.", late: true },
+      { tip: "blacklist", title: "7. Blacklist", body: "Il meno rosso toglie questo emittente dalle tue liste e un altro bond prende il suo posto.", over: true, optional: true },
     ],
     single: [
       { tip: "horizon", title: "1. Scegli la durata", body: "Per quanti anni vuoi restare investito." },
@@ -71,6 +73,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "return", title: "4. Fixez le rendement souhaité", body: "Le rendement par an que vous visez, avant frais et impôts." },
       { tip: "risk", title: "5. Choisissez le risque maximal", body: "1 est le plus sûr. Votre top 10 apparaît à droite." },
       { tip: "views", title: "6. Changez la vue des résultats", body: "Liste montre vos 10 obligations. Graphique compare perte attendue et rendement. Graphique pluriannuel compare des horizons de 2 à 10 ans. Carte thermique colore la perte attendue selon rendement et durée.", late: true },
+      { tip: "blacklist", title: "7. Liste noire", body: "Le moins rouge retire cet émetteur de vos listes, et une autre obligation prend sa place.", over: true, optional: true },
     ],
     single: [
       { tip: "horizon", title: "1. Choisissez la durée", body: "Combien d'années vous voulez rester investi." },
@@ -93,6 +96,7 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
       { tip: "return", title: "4. Gewünschte Rendite festlegen", body: "Die Rendite pro Jahr, die Sie suchen, vor Kosten und Steuern." },
       { tip: "risk", title: "5. Höchstes Risiko wählen", body: "1 ist am sichersten. Ihre Top 10 erscheint rechts." },
       { tip: "views", title: "6. Ergebnisansicht wechseln", body: "Liste zeigt Ihre 10 Anleihen. Diagramm stellt erwarteten Verlust und Rendite gegenüber. Mehrjahres-Diagramm vergleicht Horizonte von 2 bis 10 Jahren. Heatmap färbt den erwarteten Verlust nach Rendite und Laufzeit.", late: true },
+      { tip: "blacklist", title: "7. Sperrliste", body: "Das rote Minus entfernt diesen Emittenten aus Ihren Listen, eine andere Anleihe rückt nach.", over: true, optional: true },
     ],
     single: [
       { tip: "horizon", title: "1. Laufzeit wählen", body: "Wie viele Jahre Sie investiert bleiben möchten." },
@@ -148,7 +152,7 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
   useLayoutEffect(() => {
     if (!step) return;
     const place = () => {
-      const el = document.querySelector<HTMLElement>(`[data-tip="${step.tip}"]`);
+      const el = Array.from(document.querySelectorAll<HTMLElement>(`[data-tip="${step.tip}"]`)).find((e) => e.getBoundingClientRect().height > 0) ?? null;
       if (!el || el.getBoundingClientRect().height === 0) {
         // A step whose target is not there (e.g. no quota counter) is skipped.
         if (step.optional) { if (i !== null && i < steps.length - 1) setI(i + 1); else finish(); return; }
