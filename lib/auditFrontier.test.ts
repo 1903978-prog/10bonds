@@ -63,8 +63,11 @@ describe("frontier built from a raw feed", () => {
       expect(p.el, `point ${i}`).toBeGreaterThan(f.points[i - 1].el);
     });
     expect(new Set(f.points.map((p) => p.isins.join())).size).toBe(f.points.length);
-    for (const a of f.points) for (const b of f.points) if (a !== b) expect(a.ytm >= b.ytm && a.el <= b.el, "dominated").toBe(false);
-  });
+    // sorted by return with loss rising, so no point can be dominated: checked in one pass instead of pair by pair
+    let dominated = 0;
+    for (const a of f.points) for (const b of f.points) if (a !== b && a.ytm >= b.ytm && a.el <= b.el) dominated++;
+    expect(dominated).toBe(0);
+  }, 30000);
   it("the 30 shown positions are evenly spread along the curve (no gap beyond twice the median except where the curve itself jumps) and keep both ends", () => {
     const pts = pickEven(efficientPoints(f.points), FRONTIER_POINTS);
     expect(pts[0]).toBe(f.points[0]);
