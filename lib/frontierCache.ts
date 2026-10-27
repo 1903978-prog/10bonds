@@ -51,7 +51,7 @@ export function coherentBuild(src: BondSource, f: BondFilter, duration: number, 
         const saved = await loadSavedFrontier(key);
         if (saved?.data.points?.length) {
           const pts = saved.data.points;
-          const hit: CoherentFrontier = { ...saved.data, at: (t: number) => pts.find((x) => x.ytm >= t - 1e-9) ?? null };
+          const hit: CoherentFrontier = { ...saved.data, at: (t: number) => pts.find((x) => x.ytm >= t - 1e-9) ?? null, ...(saved.stale ? { stale: true } : {}) };
           // Saved for slightly older prices: serve it now, and work out the exact list in the background (low priority).
           if (saved.stale) {
             void runLow(() => coherentFrontier(src.bonds, duration))

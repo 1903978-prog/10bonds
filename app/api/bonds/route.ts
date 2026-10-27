@@ -17,6 +17,7 @@ import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
 import { frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
+import { activeFallback } from "@/lib/enginePolicy";
 import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, activePolicy } from "@/lib/coherence";
 import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
@@ -102,7 +103,7 @@ export async function GET(req: Request) {
         }
       }
     } catch (e) {
-      if (e instanceof FrontierPending) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
+      if (e instanceof FrontierPending) return NextResponse.json({ pending: true, status: "PENDING" }, { status: 202, headers: { "Cache-Control": "no-store" } });
       throw e;
     }
   }
@@ -115,6 +116,8 @@ export async function GET(req: Request) {
       frontierResults = [];
     }
   }
+  if (coherent && !frontierResults?.length && activeFallback() === "none")
+    return NextResponse.json({ status: "INFEASIBLE", results: [], inputs: { duration, ytm, risk }, source: data.source, scanned: data.bonds.length, asOf: data.asOf }, { headers: { "Cache-Control": "no-store" } });
   const { results, band, engine } = frontierResults?.length
     ? {
         results: frontierResults,
@@ -122,6 +125,10 @@ export async function GET(req: Request) {
         engine: { method: "current" as const, version: null, weight: 0, liveWeight: 0 },
       }
     : await pickRanking(data.bonds, data.asOf, duration, ytm, risk, tryW, tryW !== null ? parseShifts(url.searchParams.get("rp")) : null, skip);
+  // Honest state of the answer (quant correction, brief section 11): READY = exact optimised list; UPDATING = optimised list saved for slightly
+  // older prices; NEAREST_POINT = the asked position had no list, the nearest optimised one is shown; FALLBACK_RANKING = no optimised list at
+  // all, the plain ranker (which knows none of the optimiser's rules) filled in; INFEASIBLE = nothing (only when the fallback is switched off).
+  const status = coherent ? (frontierResults?.length ? (nearest ? "NEAREST_POINT" : coherent.stale ? "UPDATING" : "READY") : "FALLBACK_RANKING") : undefined;
   const outliers = user?.isAdmin
     ? { sd, liveSd, count: (await loadOutliers(sd)).length, liveCount: (await loadOutliers(liveSd)).length }
     : undefined;
@@ -140,7 +147,7 @@ export async function GET(req: Request) {
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
