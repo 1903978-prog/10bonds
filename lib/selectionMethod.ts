@@ -46,7 +46,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
     mcHead: "Monte Carlo stress test",
     mc: [
       "Each of the {paths} scenarios draws, for every bond, whether it defaults within your horizon (using the same default probability as every other figure) and when.",
-      "A bond grows at its return until it defaults, then returns {recovery}% of its value. The list is equally weighted.",
+      "A bond grows at its return until it defaults, then returns {recovery}% of its value (less for senior non-preferred bonds). The list is equally weighted.",
       "We report the average return across all scenarios and the return that 95% of scenarios beat. The draw is seeded, so the same list always gives the same result. The simulation only reports on the list: it does not choose the bonds.",
     ],
     fullHead: "Full explanation",
@@ -92,7 +92,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
     mcHead: "Stress test Monte Carlo",
     mc: [
       "In ciascuno dei {paths} scenari estraiamo, per ogni obbligazione, se va in default entro il tuo orizzonte (con la stessa probabilità di default di ogni altro dato) e quando.",
-      "Un'obbligazione cresce al suo rendimento fino al default, poi restituisce il {recovery}% del suo valore. La lista è a pesi uguali.",
+      "Un'obbligazione cresce al suo rendimento fino al default, poi restituisce il {recovery}% del suo valore (meno per le senior non-preferred). La lista è a pesi uguali.",
       "Riportiamo il rendimento medio su tutti gli scenari e il rendimento superato dal 95% degli scenari. L'estrazione usa un seme fisso: la stessa lista dà sempre lo stesso risultato. La simulazione descrive soltanto la lista: non sceglie le obbligazioni.",
     ],
     fullHead: "Spiegazione completa",
@@ -138,7 +138,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
     mcHead: "Test de résistance Monte Carlo",
     mc: [
       "Dans chacun des {paths} scénarios, nous tirons pour chaque obligation si elle fait défaut avant votre horizon (avec la même probabilité de défaut que tous les autres chiffres) et à quel moment.",
-      "Une obligation croît à son rendement jusqu'au défaut, puis rend {recovery} % de sa valeur. La liste est équipondérée.",
+      "Une obligation croît à son rendement jusqu'au défaut, puis rend {recovery} % de sa valeur (moins pour les senior non préférées). La liste est équipondérée.",
       "Nous indiquons le rendement moyen de tous les scénarios et le rendement dépassé par 95 % d'entre eux. Le tirage utilise une graine fixe : la même liste donne toujours le même résultat. La simulation ne fait que décrire la liste : elle ne choisit pas les obligations.",
     ],
     fullHead: "Explication complète",
@@ -184,7 +184,7 @@ export const SELECTION_TEXT: Record<MethodLang, SelectionText> = {
     mcHead: "Monte-Carlo-Stresstest",
     mc: [
       "In jedem der {paths} Szenarien wird für jede Anleihe gezogen, ob sie innerhalb Ihres Horizonts ausfällt (mit derselben Ausfallwahrscheinlichkeit wie bei allen anderen Zahlen) und wann.",
-      "Eine Anleihe wächst mit ihrer Rendite bis zum Ausfall und bringt dann {recovery} % ihres Werts zurück. Die Liste ist gleich gewichtet.",
+      "Eine Anleihe wächst mit ihrer Rendite bis zum Ausfall und bringt dann {recovery} % ihres Werts zurück (weniger bei Senior Non-Preferred). Die Liste ist gleich gewichtet.",
       "Wir zeigen die Durchschnittsrendite über alle Szenarien und die Rendite, die 95 % der Szenarien übertreffen. Die Ziehung nutzt einen festen Startwert: Dieselbe Liste ergibt immer dasselbe Ergebnis. Die Simulation beschreibt nur die Liste: Sie wählt die Anleihen nicht aus.",
     ],
     fullHead: "Vollständige Erklärung",
