@@ -106,6 +106,8 @@ export async function sendWeekly(): Promise<{ status: "off" | "no-data" | "done"
     const claimed = await sql`insert into app.weekly_email_sends (week, user_id, status) values (${week}, ${id}, 'sending') on conflict do nothing returning user_id`;
     if (!claimed.length) { skipped++; continue; }
     const unsub = unsubscribeUrl(siteUrl(), id);
+    // Never send marketing mail without a working unsubscribe link.
+    if (!unsub) { await sql`update app.weekly_email_sends set status = 'no-unsubscribe', at = now() where week = ${week} and user_id = ${id}`; failed++; continue; }
     const m = weeklyEmail(u.email_lang, picks, unsub);
     const r = await sendEmail(u.email, m.subject, m.html, m.text, process.env.EMAIL_REPLY_TO || undefined, listHeaders(unsub));
     await sql`update app.weekly_email_sends set status = ${r}, at = now() where week = ${week} and user_id = ${id}`;
