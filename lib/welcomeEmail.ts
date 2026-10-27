@@ -60,7 +60,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "The plans",
     plans: [
-      ["Free", "{s} one-bond and {p} portfolio searches a week, without ISINs."],
+      ["Free", "{n} searches a day, without ISINs."],
       ["Plus · €9/month", "ISINs and unlimited searches."],
       ["Premium · €19/month", "Everything in Plus, plus e-mail alerts and more features."],
       ["Pro · €89/month", "For professionals only: portfolio analysis and similar bonds to compare."],
@@ -87,7 +87,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "I piani",
     plans: [
-      ["Free", "{s} ricerche di singole obbligazioni e {p} di portafoglio a settimana, senza ISIN."],
+      ["Free", "{n} ricerche al giorno, senza ISIN."],
       ["Plus · 9 €/mese", "ISIN e ricerche illimitate."],
       ["Premium · 19 €/mese", "Tutto di Plus, più avvisi via e-mail e altre funzioni."],
       ["Pro · 89 €/mese", "Solo per professionisti: analisi del portafoglio e obbligazioni simili da confrontare."],
@@ -114,7 +114,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "Les offres",
     plans: [
-      ["Free", "{s} recherches d'une obligation et {p} de portefeuille par semaine, sans ISIN."],
+      ["Free", "{n} recherches par jour, sans ISIN."],
       ["Plus · 9 €/mois", "ISIN et recherches illimitées."],
       ["Premium · 19 €/mois", "Tout Plus, avec les alertes par e-mail et d'autres fonctions."],
       ["Pro · 89 €/mois", "Réservé aux professionnels : analyse de portefeuille et obligations similaires à comparer."],
@@ -141,7 +141,7 @@ const TEXT: Record<WelcomeLang, Text> = {
     },
     plansTitle: "Die Pläne",
     plans: [
-      ["Free", "{s} Einzelanleihen- und {p} Portfolio-Suchen pro Woche, ohne ISIN."],
+      ["Free", "{n} Suchen pro Tag, ohne ISIN."],
       ["Plus · 9 €/Monat", "ISIN und unbegrenzte Suchen."],
       ["Premium · 19 €/Monat", "Alles aus Plus, dazu E-Mail-Alerts und weitere Funktionen."],
       ["Pro · 89 €/Monat", "Nur für Profis: Portfolio-Analyse und ähnliche Anleihen zum Vergleich."],
@@ -163,8 +163,8 @@ export function accessDaysLeft(premiumUntil: string | null | undefined, now = Da
 }
 
 /** trialDays: days of free full access from a promo code; null for everyone else (no trial is promised). */
-export function welcomeEmail(lang: WelcomeLang, username: string, trialDays: number | null, base = siteUrl(), free: { single: number; portfolio: number } = { single: 10, portfolio: 10 }) {
-  const t = { ...TEXT[lang], plans: TEXT[lang].plans.map(([n, w]) => [n, w.replace("{s}", String(free.single)).replace("{p}", String(free.portfolio))] as [string, string]) };
+export function welcomeEmail(lang: WelcomeLang, username: string, trialDays: number | null, base = siteUrl(), free: { daily: number } = { daily: 10 }) {
+  const t = { ...TEXT[lang], plans: TEXT[lang].plans.map(([n, w]) => [n, w.replace("{n}", String(free.daily))] as [string, string]) };
   const intro = trialDays ? t.trial(trialDays) : t.noTrial;
   const p = welcomePaths(lang);
   const u = (path: string) => `${base}${path}`;

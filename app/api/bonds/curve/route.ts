@@ -41,10 +41,10 @@ export async function GET(req: Request) {
   // What this plan includes (the admin's feature table, /admin/features); a sample preview uses the default ticks.
   const own = !!user && tier === user.plan;
   const features = own ? await featuresFor(user) : tierFeatures(tier);
-  // Weekly allowance per plan (Free: limited unless the table says unlimited; see SEARCH_LIMITS). Visitors keep their short preview.
+  // Daily allowance per plan (Free: limited unless the table says unlimited; see SEARCH_LIMITS). Visitors keep their short preview.
   const usage = own ? await consumeSearch(user!, "single", features.includes("unlimited_single")) : null;
   if (usage && !usage.allowed)
-    return NextResponse.json({ error: "Weekly search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ error: "Daily search limit reached.", limitReached: publicQuota(usage), tier }, { status: 402, headers: { "Cache-Control": "no-store" } });
   // How many bonds this filter has at all, and their duration span, so an empty chart can say why.
   const durs = data.bonds.map((b) => b.modifiedDuration).filter((d): d is number => d !== null);
   const coverage = { count: durs.length, min: durs.length ? Math.min(...durs) : null, max: durs.length ? Math.max(...durs) : null };

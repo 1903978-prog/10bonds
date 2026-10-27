@@ -36,16 +36,16 @@ describe("plan features", () => {
   it("Plans page lines follow the ticks", () => {
     const t = PRICING_TEXT.en;
     const m = defaultMatrix();
-    const free = planLines(m, "free", "en", t, { single: 10, portfolio: 10 });
+    const free = planLines(m, "free", "en", t, { daily: 10 });
     expect(free).toContain("Full top 10 with ISIN, coupon, maturity");
-    expect(free).toContain("10 portfolio searches a week");
-    const plus = planLines(m, "plus", "en", t, { single: 10, portfolio: 10 });
+    expect(free).toContain("10 searches a day");
+    const plus = planLines(m, "plus", "en", t, { daily: 10 });
     expect(plus[0]).toBe("Everything in the free account");
     expect(plus).toContain("Excel download, bond swap and blacklist");
     expect(plus).not.toContain("Full top 10 with ISIN, coupon, maturity");
     m.full_top10.free = false;
-    expect(planLines(m, "plus", "en", t, { single: 10, portfolio: 10 })).toContain("Full top 10 with ISIN, coupon, maturity");
-    for (const p of ["free", "plus", "premium", "pro"] as const) expect(planLines(defaultMatrix(), p, "en", t, { single: 10, portfolio: 10 }).length).toBeLessThanOrEqual(7);
+    expect(planLines(m, "plus", "en", t, { daily: 10 })).toContain("Full top 10 with ISIN, coupon, maturity");
+    for (const p of ["free", "plus", "premium", "pro"] as const) expect(planLines(defaultMatrix(), p, "en", t, { daily: 10 }).length).toBeLessThanOrEqual(7);
   });
 });
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
-import { LimitReached, QuotaNote, type Quota } from "./SearchQuota";
+import { LimitReached, QuotaSync, type Quota } from "./SearchQuota";
 import { DURATION_STEPS, LIMITS, TERMS, isOpenEnded, termOf } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
@@ -84,9 +84,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState<Quota | null>(null);
   // Searches left this week, read before the first search and kept in step with every answer (nothing is counted by reading).
-  const [peek, setPeek] = useState<{ single: Quota | null; portfolio: Quota | null }>({ single: null, portfolio: null });
-  useEffect(() => { fetch("/api/search-quota", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => j && setPeek(j)).catch(() => {}); }, []);
-  const quotaOf = (kind: "single" | "portfolio") => (data?.quota?.kind === kind ? data.quota : peek[kind]);
+  // The counter itself lives in the header (components/DailyCounter.tsx); the quota of each search and of a refusal is handed to it.
   const [loading, setLoading] = useState(true);
   const preview = useRef<string | null>(null);
   const searchSeq = useRef(0);
@@ -806,7 +804,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                 }
               />
               </div>
-              <div className="mt-1 h-4">{!limit && <QuotaNote quota={quotaOf("single")} className="" />}</div>
+              <QuotaSync quota={limit ?? data?.quota} />
             </div>
           </div>
         ) : (
@@ -853,7 +851,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               : null
             }
           />
-          <div className="mt-1 h-4">{!limit && <QuotaNote quota={quotaOf("portfolio")} className="" />}</div>
+          <QuotaSync quota={limit ?? data?.quota} />
           {loading && !simple && <Spinner />}
         </div>
         </>

@@ -2,46 +2,58 @@ import { SEARCH_LIMITS, SEARCH_SESSION_MINUTES, type SearchKind } from "./limits
 import type { User } from "./accounts";
 import { loadFreeLimits } from "./searchLimits";
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
 export type Quota = { kind: SearchKind; limit: number | null; used: number; resetsAt: string | null };
 export type Decision = Quota & { allowed: boolean; record: boolean };
 
+/** Start of the current day in Rome (the allowance resets at midnight there). Off by an hour on the two clock-change days. */
+export function romeDayStart(now: Date): Date {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Rome", hourCycle: "h23", hour: "numeric", minute: "numeric", second: "numeric" }).formatToParts(now);
+  const n = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  return new Date(now.getTime() - ((n("hour") * 60 + n("minute")) * 60 + n("second")) * 1000 - now.getMilliseconds());
+}
+const nextRomeMidnight = (now: Date) => romeDayStart(new Date(romeDayStart(now).getTime() + 25 * 3600_000));
+
 /**
- * Pure rule. `past` = times of this user's counted searches of this kind (any order).
- * Unlimited: allowed, nothing recorded. Within a session of the last counted search: allowed, not counted again.
- * Otherwise counted if fewer than `limit` in the last 7 days, else refused until the oldest one is 7 days old.
+ * Pure rule. One counter for both kinds of search: `today` = times of this user's counted searches since Rome midnight
+ * (any kind, any order); `sameKind` = the ones of this kind (default: all), used for the session rule.
+ * Unlimited: allowed, nothing recorded. Within a session of the last counted search of this kind: allowed, not counted
+ * again. Otherwise counted if fewer than `limit` today, else refused until Rome midnight.
  */
-export function decideSearch(past: Date[], now: Date, limit: number | null, kind: SearchKind, sessionMin = SEARCH_SESSION_MINUTES): Decision {
-  const week = past.filter((t) => now.getTime() - t.getTime() < WEEK_MS).sort((a, b) => a.getTime() - b.getTime());
-  if (limit === null) return { kind, limit, used: week.length, resetsAt: null, allowed: true, record: false };
-  const resetsAt = (list: Date[]) => (list.length ? new Date(list[0].getTime() + WEEK_MS).toISOString() : null);
-  const last = week[week.length - 1];
+export function decideSearch(today: Date[], now: Date, limit: number | null, kind: SearchKind, sessionMin = SEARCH_SESSION_MINUTES, sameKind: Date[] = today): Decision {
+  const start = romeDayStart(now).getTime();
+  const day = today.filter((t) => t.getTime() >= start);
+  const resetsAt = nextRomeMidnight(now).toISOString();
+  if (limit === null) return { kind, limit, used: day.length, resetsAt: null, allowed: true, record: false };
+  const last = sameKind.filter((t) => t.getTime() >= start).reduce<Date | null>((a, t) => (!a || t > a ? t : a), null);
   if (last && now.getTime() - last.getTime() < sessionMin * 60_000) {
-    return { kind, limit, used: week.length, resetsAt: resetsAt(week), allowed: true, record: false };
+    return { kind, limit, used: day.length, resetsAt, allowed: true, record: false };
   }
-  if (week.length >= limit) return { kind, limit, used: week.length, resetsAt: resetsAt(week), allowed: false, record: false };
-  const after = [...week, now];
-  return { kind, limit, used: after.length, resetsAt: resetsAt(after), allowed: true, record: true };
+  if (day.length >= limit) return { kind, limit, used: day.length, resetsAt, allowed: false, record: false };
+  return { kind, limit, used: day.length + 1, resetsAt, allowed: true, record: true };
 }
 
 /** `unlimited`: what the admin's feature table says for this plan ("unlimited_single" / "unlimited_portfolio"); a plan
- * without it gets the free allowance. Left out: the plan's own allowance in SEARCH_LIMITS. */
-export function limitFor(user: Pick<User, "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean, free: Record<SearchKind, number> = SEARCH_LIMITS.free): number | null {
+ * without it gets the free daily allowance. Left out: the plan's own allowance in SEARCH_LIMITS. */
+export function limitFor(user: Pick<User, "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean, free: number = SEARCH_LIMITS.free.daily): number | null {
   if (user.isAdmin) return null;
-  if (unlimited !== undefined) return unlimited ? null : free[kind];
-  return SEARCH_LIMITS[user.plan][kind];
+  if (unlimited !== undefined) return unlimited ? null : free;
+  return SEARCH_LIMITS[user.plan].daily;
+}
+
+async function todays(userId: string | number) {
+  const { accountsSql } = await import("./accounts");
+  const sql = await accountsSql();
+  const since = romeDayStart(new Date());
+  const rows = await sql<{ at: Date; kind: SearchKind }[]>`select at, kind from app.search_usage where user_id = ${userId} and at >= ${since}`;
+  return { sql, rows: rows.map((r) => ({ at: new Date(r.at), kind: r.kind })) };
 }
 
 /** Checks and, when a new search starts, records it. Fails open (allowed) if the accounts database is unreachable. */
 export async function consumeSearch(user: Pick<User, "id" | "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean): Promise<Decision> {
-  const limit = limitFor(user, kind, unlimited, await loadFreeLimits());
-  const { accountsSql } = await import("./accounts");
+  const limit = limitFor(user, kind, unlimited, (await loadFreeLimits()).daily);
   try {
-    const sql = await accountsSql();
-    const rows = await sql<{ at: Date }[]>`
-      select at from app.search_usage where user_id = ${user.id} and kind = ${kind} and at > now() - interval '7 days'`;
-    const d = decideSearch(rows.map((r) => new Date(r.at)), new Date(), limit, kind);
+    const { sql, rows } = await todays(user.id);
+    const d = decideSearch(rows.map((r) => r.at), new Date(), limit, kind, undefined, rows.filter((r) => r.kind === kind).map((r) => r.at));
     if (d.record && !user.isAdmin) await sql`insert into app.search_usage (user_id, kind) values (${user.id}, ${kind})`;
     return d;
   } catch (e) {
@@ -56,15 +68,11 @@ export function publicQuota(d: Decision): Quota {
 
 /** Where the user stands now, without counting a search (the counter shown before and between searches). */
 export async function peekSearch(user: Pick<User, "id" | "plan" | "isAdmin">, kind: SearchKind, unlimited?: boolean): Promise<Quota> {
-  const limit = limitFor(user, kind, unlimited, await loadFreeLimits());
+  const limit = limitFor(user, kind, unlimited, (await loadFreeLimits()).daily);
   if (limit === null) return { kind, limit, used: 0, resetsAt: null };
   try {
-    const { accountsSql } = await import("./accounts");
-    const sql = await accountsSql();
-    const rows = await sql<{ at: Date }[]>`
-      select at from app.search_usage where user_id = ${user.id} and kind = ${kind} and at > now() - interval '7 days'`;
-    const week = rows.map((r) => new Date(r.at)).sort((a, b) => a.getTime() - b.getTime());
-    return { kind, limit, used: week.length, resetsAt: week.length ? new Date(week[0].getTime() + WEEK_MS).toISOString() : null };
+    const { rows } = await todays(user.id);
+    return { kind, limit, used: rows.length, resetsAt: nextRomeMidnight(new Date()).toISOString() };
   } catch {
     return { kind, limit, used: 0, resetsAt: null };
   }
