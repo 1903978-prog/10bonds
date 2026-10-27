@@ -8,6 +8,9 @@ on:
         description: "Send a test reset e-mail to the owner when the domain is verified"
         type: boolean
         default: false
+      to:
+        description: "Recipient of the plain test e-mail (when the key cannot list domains)"
+        default: "1903978@gmail.com"
 jobs:
   check:
     runs-on: ubuntu-24.04
@@ -15,6 +18,7 @@ jobs:
     env:
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       DOMAIN: 10bonds.com
+      TEST_TO: ${{ inputs.to }}
     steps:
       - name: DNS as the world sees it
         run: |
@@ -32,7 +36,7 @@ jobs:
           id=$(echo "$list" | head -n -1 | jq -r --arg d "$DOMAIN" '.data[]? | select(.name==$d) | .id')
           if [ -z "$id" ]; then
             echo "This key can only send, so the domain is tested by sending one e-mail from no-reply@$DOMAIN:"
-            r=$(curl -sS -w '\n%{http_code}' -X POST -H "$H" -H 'Content-Type: application/json' -d '{"from":"10BONDS <no-reply@10bonds.com>","to":"1903978@gmail.com","subject":"10BONDS e-mail test","text":"If you read this, 10BONDS e-mails work."}' https://api.resend.com/emails)
+            r=$(curl -sS -w '\n%{http_code}' -X POST -H "$H" -H 'Content-Type: application/json' -d "{\"from\":\"10BONDS <no-reply@10bonds.com>\",\"to\":\"${TEST_TO:-1903978@gmail.com}\",\"subject\":\"10BONDS e-mail test\",\"text\":\"If you read this, 10BONDS e-mails work.\"}" https://api.resend.com/emails)
             echo "send: HTTP $(echo "$r" | tail -1) $(echo "$r" | head -n -1 | jq -c '{name,message}' 2>/dev/null)"
             [ "$(echo "$r" | tail -1)" = 200 ] && echo "status=verified" >> "$GITHUB_OUTPUT"
             exit 0
