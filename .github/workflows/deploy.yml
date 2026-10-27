@@ -167,14 +167,22 @@ jobs:
       - name: "Accounts database: tables and permissions"
         if: env.ok == '1' && env.ACCOUNTS_DATABASE_URL != ''
         run: |
-          body=$(curl -sS --max-time 60 -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/accounts); echo "$body"
-          echo "$body" | grep -q '"stage":"ok"'
+          for i in 1 2 3 4; do
+            body=$(curl -sS --max-time 60 -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/accounts || true); echo "try $i: $body"
+            echo "$body" | grep -q '"stage":"ok"' && exit 0
+            sleep 15
+          done
+          exit 1
       - name: Robot check answers
         if: env.ok == '1'
         run: |
-          code=$(curl -sS --max-time 60 -o /dev/null -w '%{http_code}' https://10bonds.fly.dev/api/auth/challenge)
-          echo "challenge HTTP $code"
-          [ "$code" = "200" ]
+          for i in 1 2 3 4; do
+            code=$(curl -sS --max-time 60 -o /dev/null -w '%{http_code}' https://10bonds.fly.dev/api/auth/challenge || true)
+            echo "try $i: challenge HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 15
+          done
+          exit 1
       - name: "Payments: Stripe prices, portal and webhook"
         if: env.ok == '1' && env.STRIPE_SECRET_KEY != ''
         run: |
