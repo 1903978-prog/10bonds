@@ -6,6 +6,7 @@ import { exactFrontier, NO_STEPS, type ExactFrontier } from "./exactFrontier";
 import { stepGap, stepSignature } from "./stepGap";
 import { coherentFrontier, type CoherentFrontier } from "./coherentFrontier";
 import { policySignature } from "./coherence";
+import { engineSignature } from "./enginePolicy";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
 import { loadSavedFrontier, saveFrontier } from "./frontierStore";
 import { runLow } from "./highsSolver";
@@ -35,7 +36,7 @@ const coherentBuilding = new Map<string, Promise<CoherentFrontier>>();
 export type Without = { key: string; fn: (b: PublicBond) => boolean };
 
 export const frontierKey = (src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1", without?: Without | null) =>
-  [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature(), GROUP_TABLE_VERSION] : []), ...(without ? [`x:${without.key}`] : [])].join("|");
+  [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature() + engineSignature(), GROUP_TABLE_VERSION] : []), ...(without ? [`x:${without.key}`] : [])].join("|");
 
 /** The coherent frontier for this copy, filter and horizon once built; started in the background if not. */
 export function coherentBuild(src: BondSource, f: BondFilter, duration: number, without?: Without | null): Promise<CoherentFrontier> {

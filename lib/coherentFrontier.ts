@@ -6,6 +6,7 @@ import { lgdOf } from "./seniority";
 import { portfolioPool, RESULT_COUNT, UNRATED_NOTCH, withinRisk } from "./ranking";
 import { RETURN_UNIT, type ExactFrontier, type FrontierList } from "./exactFrontier";
 import { activePolicy, checkList, END_POLICY, factsOf, policySignature, type CoherenceFacts, type CoherencePolicy } from "./coherence";
+import { activeEngine, engineSignature, type EnginePolicy } from "./enginePolicy";
 import { issuerVerified } from "./issuerGroups";
 import { stepGap } from "./stepGap";
 import { lifeYears } from "./lifeYears";
@@ -220,10 +221,13 @@ async function topList(cands: Cand[], p: CoherencePolicy, duration: number, ceil
  * out, blacklist out). Each point is the exact least-loss list for its return under every rule, with the solver's
  * certificate in `cert`. Takes some seconds to minutes; yields to the server between solves.
  */
-export async function coherentFrontier(bonds: PublicBond[], duration: number, p: CoherencePolicy = activePolicy(), ceiling: number = LIMITS.risk.max, opts: { /** Diagnostics only: leave the spread rule out to see which rule binds. */ noSpreadRule?: boolean } = {}): Promise<CoherentFrontier> {
+export async function coherentFrontier(bonds: PublicBond[], duration: number, p: CoherencePolicy = activePolicy(), ceiling: number = LIMITS.risk.max, opts: { /** Diagnostics only: leave the spread rule out to see which rule binds. */ noSpreadRule?: boolean; /** Versioned spread / composition switches (lib/enginePolicy.ts); default = the active engine policy. */ engine?: EnginePolicy } = {}): Promise<CoherentFrontier> {
   const t0 = Date.now();
-  const stats: Certificate = { policy: policySignature(p), solves: 0, optimal: 0, infeasible: 0, uncertified: 0, absGap: TOL, relGap: 0, seconds: 0, certified: true };
-  const cands = candidatesOf(bonds, duration, !opts.noSpreadRule);
+  const engine = opts.engine ?? activeEngine();
+  // Composition "ceiling_only": no rating window, core or worst-class rule; only the ceiling limits the classes.
+  if (engine.composition === "ceiling_only") p = { ...p, maxDispersion: 9, minCore: 0, minWorst: 1 };
+  const stats: Certificate = { policy: policySignature(p) + engineSignature(engine), solves: 0, optimal: 0, infeasible: 0, uncertified: 0, absGap: TOL, relGap: 0, seconds: 0, certified: true };
+  const cands = candidatesOf(bonds, duration, engine.spread === "hard_constraint" && !opts.noSpreadRule);
   const finish = (points: FrontierList[]): CoherentFrontier => {
     stats.seconds = Math.round((Date.now() - t0) / 100) / 10;
     stats.certified = stats.uncertified === 0;

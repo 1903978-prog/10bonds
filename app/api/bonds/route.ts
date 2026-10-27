@@ -95,7 +95,7 @@ export async function GET(req: Request) {
       // Never empty: if the exact point is missing or fails the check below, use the nearest frontier point that passes.
       if (method === "spread") {
         const pts = (fr as CoherentFrontier).points.filter((p) => p.rows.length > 0);
-        const ok = (rows: RankedBond[]) => checkList(rows.map((r) => factsOf(r)), isEnd(pts, rows) ? END_POLICY : activePolicy(), LIMITS.risk.max).every((c) => c.ok);
+        const ok = (rows: RankedBond[]) => checkList(rows.map((r) => factsOf(r)), isEnd(pts, rows) ? END_POLICY : (coherent?.policy ?? activePolicy()), LIMITS.risk.max).every((c) => c.ok);
         if (!frontierResults.length || !ok(frontierResults)) {
           const near = [...pts].sort((a, b) => Math.abs(a.ytm - ytm) - Math.abs(b.ytm - ytm)).find((p) => ok(p.rows));
           if (near) { frontierResults = near.rows; nearest = true; }
@@ -109,7 +109,7 @@ export async function GET(req: Request) {
   // Mandatory last check: a list that breaks any rule is never returned (the page, chart data and Excel all come from this list).
   // No relaxing to reach ten bonds: it is reported as unavailable.
   if (coherent && frontierResults?.length) {
-    const bad = checkList(frontierResults.map((r) => factsOf(r)), isEnd(coherent.points, frontierResults) ? END_POLICY : activePolicy(), LIMITS.risk.max).filter((c) => !c.ok);
+    const bad = checkList(frontierResults.map((r) => factsOf(r)), isEnd(coherent.points, frontierResults) ? END_POLICY : coherent.policy, LIMITS.risk.max).filter((c) => !c.ok);
     if (bad.length) {
       console.error("coherent list refused", bad.map((c) => `${c.rule}: ${c.detail}`).join("; "));
       frontierResults = [];
@@ -140,7 +140,7 @@ export async function GET(req: Request) {
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), activePolicy()).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: policySignature(), cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent ? withoutListEdits(features) : features, excluded: skip !== null && !coherent, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, monteCarlo, found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, engine, outliers },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
