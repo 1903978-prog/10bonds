@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CloseButton from "@/components/CloseButton";
 import { UsageStatsSetting } from "@/components/UsageStats";
 import { COMPANY } from "@/lib/legal";
 
@@ -20,8 +21,9 @@ const ROWS: [string, string, string, string, string][] = [
 
 export default function Cookies() {
   return (
-    <article className="mx-auto max-w-6xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="cookies-page">
-      <h1 className="text-3xl font-semibold tracking-tight">Cookie policy</h1>
+    <article className="relative mx-auto max-w-6xl rounded-[28px] bg-white p-7 text-[15px] leading-relaxed shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10" data-testid="cookies-page">
+      <CloseButton />
+      <h1 className="pr-10 text-3xl font-semibold tracking-tight">Cookie policy</h1>
       <p className="mt-2 text-mute">Which cookies and similar storage 10BONDS uses, and how to change your choice.</p>
       <h2 className="mt-8 text-lg font-semibold">Categories</h2>
       <ul className="mt-2 list-disc space-y-1.5 pl-5">
