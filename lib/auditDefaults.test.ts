@@ -22,7 +22,7 @@ describe("default table", () => {
     });
   });
   it("reads the published figures exactly at the published years", () => {
-    DEFAULT_RATES.forEach(([, , row], n) => DEFAULT_YEARS.forEach((y, k) => expect(cumulativeDefault(Math.min(n, 17), y)).toBeCloseTo(DEFAULT_RATES[Math.min(n, 17)][2][k], 10)));
+    DEFAULT_RATES.forEach((_, n) => DEFAULT_YEARS.forEach((y, k) => expect(cumulativeDefault(Math.min(n, 17), y)).toBeCloseTo(DEFAULT_RATES[Math.min(n, 17)][2][k], 10)));
     SOVEREIGN_RATES.forEach(([, row]) => SOVEREIGN_YEARS.forEach((y, k) => expect(linearCumulative(row, SOVEREIGN_YEARS, y)).toBeCloseTo(row[k], 10)));
   });
   it("interpolates in straight lines between published years, from 0 at t = 0", () => {

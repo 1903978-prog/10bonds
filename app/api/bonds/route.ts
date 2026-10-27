@@ -7,7 +7,7 @@ import { shapeForTier, tierFeatures } from "@/lib/tiers";
 import { alternativesFor } from "@/lib/alternatives";
 import { simulateCached } from "@/lib/monteCarlo";
 import { lgdOf } from "@/lib/seniority";
-import { bondNotch, bondRisk } from "@/lib/ratings";
+import { bondNotch } from "@/lib/ratings";
 import type { RankedBond, Tier } from "@/lib/types";
 import { LIMITS } from "@/lib/limits";
 import { currentUser } from "@/lib/currentUser";
