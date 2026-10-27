@@ -70,6 +70,10 @@ jobs:
           else
             echo "No ACCOUNTS_DATABASE_URL secret yet: sign-up shows 'opens very soon'."
           fi
+          # Reply inbox for the Pro outreach e-mails (an address, not a secret). Sending itself stays a manual click in /admin/outreach.
+          flyctl secrets set OUTREACH_REPLY_TO=privacy@10bonds.com -a 10bonds --stage >/dev/null
+          # Reply inbox for the Pro outreach e-mails (an address, not a secret). Sending itself stays a manual click in /admin/outreach.
+          flyctl secrets set OUTREACH_REPLY_TO=privacy@10bonds.com -a 10bonds --stage >/dev/null
           # The key that signs sign-in cookies is made once on the server and never printed.
           if ! flyctl secrets list -a 10bonds | grep -qw SESSION_SECRET; then
             printf 'SESSION_SECRET=%s\n' "$(openssl rand -hex 32)" | flyctl secrets import -a 10bonds --stage >/dev/null
