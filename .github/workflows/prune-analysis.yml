@@ -1,7 +1,11 @@
 name: Prune analysis
-# Read-only, manual. Counts EUR bonds kept by top-N-per-cell rules and checks whether the lists change. Temporary: delete after use.
+# run 1
+# Read-only. Runs when this file is pushed on the thread branch. Counts EUR bonds kept by top-N-per-cell rules and checks whether the lists change. Temporary: delete after use.
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/project-thread-2k81fb]
+    paths: [.github/workflows/prune-analysis.yml]
 jobs:
   prune:
     runs-on: ubuntu-24.04
