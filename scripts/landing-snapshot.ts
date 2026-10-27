@@ -30,8 +30,8 @@ const DURATION = 2;
 const [data, table] = await Promise.all([loadBondsFor(DEFAULT_FILTER), bestTableFor(DEFAULT_FILTER)]);
 const curve = shapeCurve(curveAt(table, DURATION).map((c) => ({ ...c, label: RISK_LEVELS[c.level - 1].label })), "plus");
 const onLine = dropDominated(curve).filter((c) => c.ytm !== null).map((c) => c.level);
-const top = Math.max(2, ...onLine);
-const all = curve.filter((c) => c.level <= top);
+const top = Math.min(7, Math.max(2, ...onLine));
+const all = curve.filter((c) => c.level <= Math.min(top, 7)); // landing curve stops at risk 7 (owner, 27/10/2026)
 const ghosts = new Set(dominatedLevels(all).map((c) => c.level));
 const kept = dropDominated(all).filter((c) => c.ytm !== null);
 // The example is the kept step closest to risk 4, so it is a typical middle bond.
