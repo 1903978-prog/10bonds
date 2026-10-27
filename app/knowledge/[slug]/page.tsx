@@ -15,7 +15,7 @@ import { EN_GUIDES } from "@/lib/seo/guidesEn";
 import { calcLangs, CALCULATOR_EN, enGuide, enPath, KC_TEXT_EN, withEnglish } from "@/lib/seo/knowledgeEn";
 import { pathOf, type Locale } from "@/lib/seo/locales";
 import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
-import { listGuides } from "@/lib/seo/store";
+import { ANALYST_NAME, listGuides } from "@/lib/seo/store";
 import { enBondsPath, enComparisons, enText } from "@/lib/seo/comparisonsEn";
 import { comparisonPages, shown } from "@/lib/seo/site";
 
@@ -132,7 +132,7 @@ export default async function EnglishKnowledgePage({ params }: Props) {
       {crumbs(g.title, enPath(g.slug))}
       <div className="rounded-[28px] bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] sm:p-10">
         <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{g.title}</h1>
-        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{g.published && <> · <time dateTime={g.published}>{new Date(g.published).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}{g.updated && g.updated !== g.published && <> · Updated <time dateTime={g.updated}>{new Date(g.updated).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}</p>
+        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{(g.updated ?? g.published) && <> · Reviewed on <time dateTime={(g.updated ?? g.published)!}>{new Date((g.updated ?? g.published)!).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time> by {ANALYST_NAME}</>}{g.published && <> · <time dateTime={g.published}>{new Date(g.published).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}{g.updated && g.updated !== g.published && <> · Updated <time dateTime={g.updated}>{new Date(g.updated).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</time></>}</p>
         <div className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: body }} />
       </div>
       {g.revisions && g.revisions.length > 0 && (
