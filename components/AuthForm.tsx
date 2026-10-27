@@ -102,7 +102,7 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       if (body.codeError) alert(body.codeError);
       // Straight back to where sign-up was opened (the saved result is restored there); no intermediate page.
       const back = after();
-      const q = body.codeApplied ? "welcome=code" : "welcome=1";
+      const q = (body.codeApplied ? "welcome=code" : "welcome=1") + (body.emailSent === false ? "&mail=0" : "");
       window.location.href = signup ? `${back}${back.includes("?") ? "&" : "?"}${q}` : back;
     } catch (err) {
       setStep(null);
