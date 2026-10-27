@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   push:
     paths: [".github/workflows/unclassified-issuers.yml", "scripts/unclassified-issuers.ts"]
-permissions:
-  contents: write
 jobs:
   list:
     runs-on: ubuntu-24.04
@@ -17,8 +15,4 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
-      - run: CSV=1 TOP=0 npx vite-node -c vitest.config.ts scripts/unclassified-issuers.ts
-      - run: |
-          git config user.name "github-actions"; git config user.email "actions@github.com"
-          mkdir -p classification && mv issuers-without-country.csv classification/
-          git add classification/issuers-without-country.csv && git commit -m "Issuers without country CSV" && git push || true
+      - run: TOP=1300 FROM=80 npx vite-node -c vitest.config.ts scripts/unclassified-issuers.ts

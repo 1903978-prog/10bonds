@@ -1,4 +1,5 @@
 import { issuerKey } from "./ranking";
+import { GPT_ISSUER_COUNTRIES } from "./issuerCountriesGpt";
 
 // Country of risk by issuer, entered by hand (the owner confirmed the list, 27/10/2026). Used only when the feed has no country.
 // Second batch (27/10/2026): clear cases only, country of the group (parent for finance arms). Supranationals (EIB, EU, EFSF, IBRD, IDB, ADB) have no country and are left out on purpose.
@@ -118,6 +119,7 @@ const SMALL: Record<string, string[]> = {
 const BY_KEY = new Map<string, string>();
 for (const [code, names] of Object.entries(SMALL)) for (const n of names) BY_KEY.set(issuerKey({ issuer: n, isin: "" }), code);
 for (const [code, names] of Object.entries(MORE)) for (const n of names) BY_KEY.set(issuerKey({ issuer: n, isin: "" }), code);
+for (const [name, code] of GPT_ISSUER_COUNTRIES) BY_KEY.set(issuerKey({ issuer: name, isin: "" }), code);
 for (const [code, names] of Object.entries(TABLE)) for (const n of names) BY_KEY.set(issuerKey({ issuer: n, isin: "" }), code);
 
 /** ISO country code of an issuer from the hand-made table, or null. */
