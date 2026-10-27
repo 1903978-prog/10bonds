@@ -10,12 +10,7 @@ jobs:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: |
-          for i in 1 2 3 4 5 6; do
-            for u in /api/health / "/api/bonds/frontier" "/api/bonds?duration=4&ytm=5&currency=EUR"; do
-              curl -s -o /dev/null -w "$u %{http_code} %{time_total}s\n" -m 30 "https://10bonds.com$u"
-            done
-            sleep 8
-          done
       - run: flyctl status -a 10bonds || true
-      - run: timeout 60 flyctl ssh console -a 10bonds -C "sh -c 'cat /proc/pressure/cpu; free -m; uptime'" 2>&1 | tail -8 || true
+      - run: flyctl logs -a 10bonds --no-tail 2>&1 | tail -70 | cut -c1-260 || true
+      - run: timeout 80 flyctl ssh console -a 10bonds -C "sh -c 'cat /proc/pressure/cpu; free -m; uptime; top -bn1 | head -12; ss -tn state established | wc -l; ss -tn state established | awk \"{print \\\$4}\" | sort | uniq -c | sort -rn | head -5'" 2>&1 | tail -30 || true
+      - run: for u in /api/health /; do curl -s -o /dev/null -w "$u %{http_code} %{time_total}s\n" -m 25 https://10bonds.com$u || true; done
