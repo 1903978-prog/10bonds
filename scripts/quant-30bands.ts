@@ -33,7 +33,11 @@ for (const t of TERMS) {
   md.push("", `Summary ${t.key}: feasible bands ${n("feasible") + n("dominated")}; surviving Pareto ${kept.length}; yield and expected loss both strictly rise across the final list: ${rising ? "yes" : "NO"}; max average-duration deviation ${(maxDurErr * 100).toFixed(2)}% (limit 5%); endpoints: ${results.filter((r) => r.policy === "endpoint" && r.regular !== undefined).map((r) => `band ${r.k} ${r.status}${r.regular ? `, regular rules give ${f2(r.regular.ytm)}% vs ${r.ytm == null ? "–" : f2(r.ytm)}%` : ", infeasible under regular rules"}`).join("; ")}.`);
   md.push("", `Existing slider (same data): ${sl.length} positions, return ${sl.length ? f2(sl[0].ytm!) + "% to " + f2(sl[sl.length - 1].ytm!) + "%" : "–"}.`, "", "| Slider pos | Return % | Expected loss % | Avg risk | Band |", "|---|---|---|---|---|");
   const lists = fr.points.map((p) => ({ ytm: p.ytm, el: p.el, risk: avgRisk(p.rows) }));
-  sl.forEach((s, i) => { const l = lists.find((x) => Math.abs(x.ytm - s.ytm!) < 1e-9 && Math.abs(x.el - s.expectedLoss!) < 1e-9); const b = l && results.find((r) => l.risk >= r.lo - 1e-9 && l.risk <= r.hi + 1e-9); md.push(`| ${i + 1} | ${f2(s.ytm!)} | ${f3(s.expectedLoss!)} | ${l ? l.risk.toFixed(2) : "–"} | ${b?.k ?? "–"} |`); });
+  sl.forEach((s, i) => {
+    const l = lists.reduce((a, x) => (Math.abs(x.ytm - s.ytm!) + Math.abs(x.el - s.expectedLoss!) < Math.abs(a.ytm - s.ytm!) + Math.abs(a.el - s.expectedLoss!) ? x : a), lists[0]);
+    const b = l && results.find((r) => l.risk >= r.lo - 1e-9 && l.risk <= r.hi + 1e-9);
+    md.push(`| ${i + 1} | ${f2(s.ytm!)} | ${f3(s.expectedLoss!)} | ${l ? l.risk.toFixed(2) : "–"} | ${b ? `${b.k} (${b.status})` : "–"} |`);
+  });
   md.push("");
   json.horizons[t.key] = { duration: t.duration, candidates, cert, certEndpoints, results, slider: sl.map((s) => ({ ytm: s.ytm, el: s.expectedLoss })) };
 }

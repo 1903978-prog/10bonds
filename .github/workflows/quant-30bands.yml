@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       baseline_run_id: { description: "Run id of a 'Quant baseline' run", required: true }
-      horizons: { description: "Comma list: Short,Medium,Long (empty = all)", required: false, default: "" }
+      horizons: { description: "Comma list: short,mid,long (empty = all)", required: false, default: "" }
 jobs:
   bands:
     runs-on: ubuntu-24.04
