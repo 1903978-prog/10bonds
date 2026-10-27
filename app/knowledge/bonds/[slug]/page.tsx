@@ -36,7 +36,7 @@ export default async function EnglishComparisonPage({ params }: Props) {
   const { pages, asOf, source } = await comparisonPages();
   const c = pages.find((p) => p.def.id === def.id);
   if (!c || !shown(c, source)) notFound();
-  const related = def.related.map(comparisonById).map((d) => d && pages.find((p) => p.def.id === d.id)).filter((p) => p && shown(p, source) && comparisonEnBySlug(enText(p.def).slug));
+  const related = def.related.map(comparisonById).map((d) => d && pages.find((p) => p.def.id === d.id)).filter((p) => p && shown(p, source) && enText(p.def) && comparisonEnBySlug(enText(p.def).slug));
   const guides = guidesFor(def).map(enGuide).filter((g): g is NonNullable<typeof g> => !!g);
   const crumbs = [["Home", "/"], ["Knowledge", enPath()], ["Bond comparisons", EN_BONDS_BASE], [x.h1, enBondsPath(x.slug)]];
   return (

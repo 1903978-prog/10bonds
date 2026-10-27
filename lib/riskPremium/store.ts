@@ -369,14 +369,25 @@ let modeCache: { at: number; live: Live } | null = null;
 /** Mode, active curve and review decisions for the public ranking. Without an accounts database: shadow, no curve. */
 export async function liveRiskConfig(): Promise<Live> {
   if (!accountsConfigured()) return { params: cleanParams(null), weight: 0, outlierSd: OUTLIER_SD.default, curve: null, reviews: new Map(), spreadMatrix: null, policy: null };
-  if (modeCache && Date.now() - modeCache.at < 60_000) return modeCache.live;
-  const [weight, outlierSd, versions, reviews, spreadMatrix, params, policy] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews(), getSpreadMatrix(), getRiskParams(), getCoherencePolicy()]);
-  const live: Live = { params, weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])), spreadMatrix, policy };
-  modeCache = { at: Date.now(), live };
-  setSpreadMatrix(live.spreadMatrix);
-  setRiskParams(live.params);
-  setPolicy(live.policy?.policy, live.policy ? `v${live.policy.version}` : null);
-  return live;
+  if (!modeCache) return refreshLive();
+  // A minute-old copy is served at once while a new one is read in the background: before this, every request that found
+  // it expired waited for seven database reads (seconds when the database was asleep), all of them at the same time.
+  if (Date.now() - modeCache.at >= 60_000) refreshLive().catch((e) => console.error("[risk] refresh failed:", (e as Error).message));
+  return modeCache.live;
+}
+
+let refreshing: Promise<Live> | null = null;
+function refreshLive(): Promise<Live> {
+  refreshing ??= (async () => {
+    const [weight, outlierSd, versions, reviews, spreadMatrix, params, policy] = await Promise.all([getWeight(), getOutlierSd(), listVersions(), latestReviews(), getSpreadMatrix(), getRiskParams(), getCoherencePolicy()]);
+    const live: Live = { params, weight, outlierSd, curve: versions.find((v) => v.status === "active") ?? null, reviews: new Map(reviews.map((r) => [r.isin, r.decision])), spreadMatrix, policy };
+    modeCache = { at: Date.now(), live };
+    setSpreadMatrix(live.spreadMatrix);
+    setRiskParams(live.params);
+    setPolicy(live.policy?.policy, live.policy ? `v${live.policy.version}` : null);
+    return live;
+  })().finally(() => { refreshing = null; });
+  return refreshing;
 }
 
 /** The outlier setting users get (cached with the rest for a minute). */
