@@ -86,13 +86,13 @@ const MORE: Record<Lang, string> = { en: "And more", it: "E altro", fr: "Et plus
 
 /**
  * Lines for one plan's card on the Plans page, from the ticks, as a checklist of at most MAX_PLAN_LINES: the Free card
- * lists its groups and its weekly limits; each paid card says "everything in" the plan before it and lists the groups
+ * lists its groups and its daily search limit; each paid card says "everything in" the plan before it and lists the groups
  * it adds.
  */
 export function planLines(
   m: Matrix, plan: FeaturePlan, lang: Lang,
-  words: { everything: Record<Exclude<FeaturePlan, "free">, string>; limit: (n: number, kind: "single" | "portfolio") => string },
-  limits: { single: number; portfolio: number },
+  words: { everything: Record<Exclude<FeaturePlan, "free">, string>; limit: (n: number) => string },
+  limits: { daily: number },
 ): string[] {
   const mine = new Set(featuresOf(m, plan));
   const i = FEATURE_PLANS.indexOf(plan);
@@ -103,10 +103,8 @@ export function planLines(
   const grouped = new Set(GROUPS.flatMap((g) => g.keys));
   if (FEATURES.some((f) => f.built && !grouped.has(f.key) && fresh(f.key))) lines.push(MORE[lang]);
   if (plan === "free" && !mine.has("loss_chart")) lines.push(BLURRED[lang]);
-  // A plan without unlimited searches says how many it has a week (once: the next plans say "everything in").
-  for (const kind of ["single", "portfolio"] as const) {
-    const k = kind === "single" ? "unlimited_single" : "unlimited_portfolio";
-    if (!mine.has(k) && (i === 0 || prev.has(k))) lines.push(words.limit(limits[kind], kind));
-  }
+  // A plan without unlimited searches says how many it has a day, one shared number (once: the next plans say "everything in").
+  const capped = (k: FeatureKey) => !mine.has(k) && (i === 0 || prev.has(k));
+  if (capped("unlimited_single") || capped("unlimited_portfolio")) lines.push(words.limit(limits.daily));
   return lines;
 }

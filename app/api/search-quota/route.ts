@@ -5,7 +5,7 @@ import { peekSearch } from "@/lib/searchQuota";
 
 export const dynamic = "force-dynamic";
 
-/** Searches left this week for the signed-in account (nothing is counted). Empty for visitors. */
+/** Searches left today (one counter for both kinds) for the signed-in account (nothing is counted). Empty for visitors. */
 export async function GET() {
   const user = await currentUser();
   if (!user) return NextResponse.json({ single: null, portfolio: null }, { headers: { "Cache-Control": "no-store" } });
