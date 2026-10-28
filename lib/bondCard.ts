@@ -7,9 +7,8 @@ import { pdOf } from "./tiers";
 import { lifeYears } from "./lifeYears";
 import { sectorOf, UNCLASSIFIED } from "./sectors";
 import { issuerKey } from "./ranking";
-import { bundCurve, yearsToMaturity } from "./riskPremium/benchmark";
+import { bundCurve } from "./riskPremium/benchmark";
 import { spreadBp, type BundPt } from "./bundSpread";
-import { countryCode } from "./seo/classify";
 import { issuerOf } from "./seo/bondPages";
 
 // The Bond Card: one bond with every figure the site holds for it. Only re-arranges stored data (no solver).
@@ -35,21 +34,16 @@ const score = (b: PublicBond): number | null => {
 
 const near = (x: PublicBond, d: number) => x.modifiedDuration !== null && Math.abs(x.modifiedDuration - d) <= d * 0.2;
 
-/** EUR: German Bund curve (AAA government); USD: US Treasuries in the copy. Points are (years to maturity, yield %). */
-export function benchmarkCurve(all: PublicBond[], asOf: string | null, currency: string): { kind: "bund" | "treasury"; points: BundPt[] } {
-  if (currency === "USD") {
-    const points: BundPt[] = [];
-    for (const b of all) {
-      if (b.currency !== "USD" || b.grossYtm === null || countryCode(b) !== "US" || !isSovereignBond(b)) continue;
-      const years = yearsToMaturity(b.maturity, asOf);
-      if (years !== null && years > 0) points.push({ years, ytm: b.grossYtm });
-    }
-    return { kind: "treasury", points: points.sort((a, b) => a.years - b.years) };
-  }
-  return { kind: "bund", points: bundCurve(all, asOf).points.map((p) => ({ years: p.years, ytm: p.ytm })) };
+export type Benchmark = { kind: "bund" | "treasury"; points: BundPt[] };
+
+/** The government curve for a currency: EUR = official Bund curve (else the Bunds in the copy), USD = Fed Treasury curve; other currencies have none. Chosen by currency, never by issuer. */
+export function benchmarkFor(currency: string, all: PublicBond[], asOf: string | null, official: { bund: BundPt[] | null; us: BundPt[] | null }): Benchmark {
+  if (currency === "USD") return { kind: "treasury", points: official.us ?? [] };
+  if (currency !== "EUR") return { kind: "bund", points: [] };
+  return { kind: "bund", points: official.bund?.length ? official.bund : bundCurve(all, asOf).points.map((p) => ({ years: p.years, ytm: p.ytm })) };
 }
 
-export function cardOf(b: PublicBond, all: PublicBond[], asOf: string | null): CardBond {
+export function cardOf(b: PublicBond, all: PublicBond[], curve: Benchmark): CardBond {
   const own = score(b);
   const d = b.modifiedDuration;
   let rank: number | null = null, peers: number | null = null, eff: number | null = null;
@@ -60,7 +54,6 @@ export function cardOf(b: PublicBond, all: PublicBond[], asOf: string | null): C
     eff = peers > 1 ? Math.round(100 * (1 - (rank - 1) / (peers - 1))) : 100;
   }
   const life = lifeYears(b);
-  const curve = benchmarkCurve(all, asOf, b.currency);
   const industry = sectorOf(b);
   const pd = bondNotch(b) === null ? null : pdOf(b);
   return {
