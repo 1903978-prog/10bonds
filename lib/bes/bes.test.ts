@@ -4,7 +4,7 @@ import { SP_CORPORATE, SP_CORPORATE_YEARS, spCorporateRow } from "./spReference"
 import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, cumulativePdExtended, curveYield, curveYieldExtended, grossSpreadBp, percentileRank } from "./math";
 import { STALE_DAYS } from "../bonds";
 import { BES_STALE_DAYS, calculateBes } from "./calc";
-import { EUR_BENCHMARK } from "./benchmarkTables";
+import { EUR_BENCHMARK, FIXED_BENCHMARKS, USD_BENCHMARK, benchmarkLabel, setOfficialBenchmark } from "./benchmarkTables";
 
 const sp = (c: string) => SP_CORPORATE.find(([k]) => k === c)![1];
 
@@ -172,6 +172,23 @@ describe("BES on a synthetic universe", () => {
     expect(EUR_BENCHMARK.points).toHaveLength(30);
     expect(EUR_BENCHMARK.points.filter((p) => p.status === "Verified").map((p) => p.years)).toEqual([1, 2, 3, 5, 7, 10, 15, 20, 30]);
     expect(EUR_BENCHMARK.points[9].yield).toBe(3.42);
+  });
+  it("USD benchmark is the owner's interim Treasury table (27 Oct 2026), flagged interim", () => {
+    expect(USD_BENCHMARK.interim).toBe(true);
+    expect(USD_BENCHMARK.points).toHaveLength(30);
+    expect(USD_BENCHMARK.points.filter((p) => p.status === "Verified").map((p) => p.years)).toEqual([1, 2, 3, 5, 7, 10, 20, 30]);
+    expect(USD_BENCHMARK.points[9].yield).toBe(4.99);
+    expect(USD_BENCHMARK.points[29].yield).toBe(5.3);
+  });
+  it("an official import replaces the owner's EUR table for the run, and the label says so", () => {
+    const owner = FIXED_BENCHMARKS.EUR;
+    expect(benchmarkLabel("EUR", "EUR benchmark table")).toMatch(/fallback/);
+    try {
+      setOfficialBenchmark("EUR", "2026-10-27", Array.from({ length: 30 }, (_, i) => ({ years: i + 1, ytm: 2 + i * 0.05 })), "Deutsche Bundesbank (BBSIS ZAR)", "bundesbank-zar");
+      const c = calculateBes(universe(), TODAY).find((r) => r.isin === "XS0")!;
+      expect(c.benchmarkYield!).toBeCloseTo(2.2, 3); // 5 years
+      expect(c.benchmarkSource).toMatch(/Bundesbank.*bundesbank-zar-2026-10-27/);
+    } finally { FIXED_BENCHMARKS.EUR = owner; }
   });
   it("a bond 9 days behind the newest quote is still scored (site limit is 10 days)", () => {
     const u = universe();

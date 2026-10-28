@@ -1,0 +1,28 @@
+name: Bund curve
+# German Bund benchmark from the Bundesbank API (lib/bundCurve): every Monday 09:00 Europe/Berlin. GitHub cron is UTC only, so it fires at 07:00 and
+# 08:00 UTC and the script acts only when Berlin local time is Monday 09:xx (07:00 UTC in summer time, 08:00 UTC in winter time). Idempotent.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * 1"
+    - cron: "0 8 * * 1"
+concurrency:
+  group: bund-curve
+  cancel-in-progress: false
+jobs:
+  bund:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - name: Import
+        run: set -o pipefail; npx vite-node -c vitest.config.ts scripts/bund-import.ts ${{ github.event_name == 'schedule' && '--scheduled' || '' }} | tee bund.txt
+      - name: Summary
+        if: always()
+        run: cat bund.txt >> "$GITHUB_STEP_SUMMARY" || true
