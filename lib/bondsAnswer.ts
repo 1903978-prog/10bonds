@@ -106,7 +106,7 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   // A slider position (guard=1): the exact frontier's list for this target (lib/exactFrontier.ts), the one on the chart.
   const filter = parseFilter(url.searchParams);
   const exclusionKey = skip ? `u${user!.id}:${excl.map((e) => `${e.kind}:${e.value}`).sort().join(",")}` : "";
-  // Everyone searches the methodology chosen at /admin/methodology; the admin can add m=1..4 to compare.
+  // Everyone searches the methodology chosen at /admin/methodology; the admin can add m=1..5 to compare.
   const meth = await methodologyFor(url.searchParams.get("m"), user?.isAdmin === true);
   const method = engineOf(meth);
   const bandCfg = usesBands(meth) ? await bandTableOf(meth) : null;

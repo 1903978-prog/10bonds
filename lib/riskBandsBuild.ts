@@ -12,6 +12,8 @@ import { solveBand } from "./riskBandsSolve";
 // Works out and shapes the 30 stored band portfolios of one horizon (owner, 27/10/2026): run by the precompute job after each data copy,
 // read by the website.
 
+/** Methodology 5 only: the portfolio's economic figures (bp per year, equal weight) and its Portfolio BES (null = unavailable, with the reason). */
+export type PortfolioEff = { netBp: number; grossBp: number; lossBp: number; avgBondBes: number | null; portfolioBes: number | null; besReason: string | null; stale?: boolean };
 export type StoredBand = {
   k: number; min: number; max: number;
   /** "none" = no list of 10 exists for this band (shown as "No portfolio for this risk level"). */
@@ -27,6 +29,7 @@ export type StoredBand = {
   /** Methodology 4: lowest and highest bond risk class in the list, and the earlier position that holds exactly this list (a repeat, not a new result). */
   minRisk?: number; maxRisk?: number; repeatOf?: number;
   seconds: number;
+  eff?: PortfolioEff;
 };
 export type StoredBands = {
   sig: string; duration: number;

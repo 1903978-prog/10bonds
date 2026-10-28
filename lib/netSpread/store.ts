@@ -5,6 +5,7 @@ import { RISK_MATRIX_VERSION } from "../riskMatrix";
 import { buildAll, NS_METHOD, type BesBond, type PositionResult, type PreviousPortfolio, type Reference, type HorizonName } from "./build";
 import { REFERENCE_POLICY } from "./reference";
 import { HORIZON_NAMES } from "./build";
+import { publishBands } from "./publishBands";
 import { TERMS } from "../limits";
 import type { BondSource } from "../bonds";
 import { bandsKey } from "../riskBandsServe";
@@ -143,6 +144,9 @@ export async function runPe(src: BondSource, trigger: string, force = false, log
       await tx`update app.pe_runs set status = 'published', finished_at = now(), runtime_ms = ${Date.now() - t0}, price_as_of = ${bonds.reduce<string | null>((m, b) => (b.ytmAsOf && (!m || b.ytmAsOf > m) ? b.ytmAsOf : m), null)}, stats = ${tx.json(stats as never)} where id = ${id}`;
       await tx`delete from app.pe_runs where id not in (select id from app.pe_runs order by id desc limit 8) and status in ('superseded','failed')`;
     });
+    // The same lists, for the finder (Methodology 5): saved after the run is published, so a failed save never blocks the 90-row record.
+    const sets = await publishBands(src, { currency: "EUR", size: "100k" }, results).catch((e) => { log(`Stored lists not saved: ${(e as Error).message}`); return 0; });
+    log(`Stored lists for the finder: ${sets}/3 terms`);
     return { status: "published", runId: id, message: `Run #${id}: ${stats.optimal}/90 proven optimal, ${stats.infeasible} infeasible, ${stats.errors} errors, ${stats.calibrated} with calibrated Portfolio BES.`, stats };
   } catch (e) {
     await s`update app.pe_runs set status = 'failed', finished_at = now(), error = ${(e as Error).message.slice(0, 500)} where id = ${id}`;

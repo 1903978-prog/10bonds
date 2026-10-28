@@ -4,7 +4,7 @@ import { SP_CORPORATE, SP_CORPORATE_YEARS, spCorporateRow } from "./spReference"
 import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, cumulativePdExtended, curveYield, curveYieldExtended, grossSpreadBp, percentileRank } from "./math";
 import { STALE_DAYS } from "../bonds";
 import { BES_STALE_DAYS, calculateBes } from "./calc";
-import { EUR_BENCHMARK } from "./benchmarkTables";
+import { EUR_BENCHMARK, USD_BENCHMARK } from "./benchmarkTables";
 
 const sp = (c: string) => SP_CORPORATE.find(([k]) => k === c)![1];
 
@@ -172,6 +172,13 @@ describe("BES on a synthetic universe", () => {
     expect(EUR_BENCHMARK.points).toHaveLength(30);
     expect(EUR_BENCHMARK.points.filter((p) => p.status === "Verified").map((p) => p.years)).toEqual([1, 2, 3, 5, 7, 10, 15, 20, 30]);
     expect(EUR_BENCHMARK.points[9].yield).toBe(3.42);
+  });
+  it("USD benchmark is the owner's interim Treasury table (27 Oct 2026), flagged interim", () => {
+    expect(USD_BENCHMARK.interim).toBe(true);
+    expect(USD_BENCHMARK.points).toHaveLength(30);
+    expect(USD_BENCHMARK.points.filter((p) => p.status === "Verified").map((p) => p.years)).toEqual([1, 2, 3, 5, 7, 10, 20, 30]);
+    expect(USD_BENCHMARK.points[9].yield).toBe(4.99);
+    expect(USD_BENCHMARK.points[29].yield).toBe(5.3);
   });
   it("a bond 9 days behind the newest quote is still scored (site limit is 10 days)", () => {
     const u = universe();
