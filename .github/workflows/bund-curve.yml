@@ -26,3 +26,9 @@ jobs:
       - name: Summary
         if: always()
         run: cat bund.txt >> "$GITHUB_STEP_SUMMARY" || true
+      - name: US Treasury import (Federal Reserve + Treasury, lib/usTreasury; same Monday 09:00 Berlin guard)
+        if: always()
+        run: set -o pipefail; npx vite-node -c vitest.config.ts scripts/ust-import.ts ${{ github.event_name == 'schedule' && '--scheduled' || '' }} | tee ust.txt
+      - name: US Treasury summary
+        if: always()
+        run: cat ust.txt >> "$GITHUB_STEP_SUMMARY" || true
