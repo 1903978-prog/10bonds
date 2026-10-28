@@ -1,0 +1,44 @@
+name: Live link check
+# Checks that pages answer on the live site. Run it after a deploy: Actions > "Live link check" > Run workflow, then paste the URLs (one per line).
+# Each URL is retried for up to 10 minutes (the deploy may still be settling). Passes on 200. For /admin URLs a redirect to sign-in also counts as "route exists".
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "URLs to check, one per line (full https:// links or paths such as /knowledge/german-bund-yield-curve)"
+        required: true
+        type: string
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check URLs
+        env:
+          URLS: ${{ inputs.urls }}
+        run: |
+          fail=0
+          while IFS= read -r raw; do
+            u="$(echo "$raw" | tr -d '\r' | xargs)"
+            [ -z "$u" ] && continue
+            case "$u" in /*) u="https://10bonds.com$u" ;; esac
+            case "$u" in https://10bonds.com/*|https://www.10bonds.com/*) ;; *) echo "SKIP (not a 10bonds.com link): $u"; fail=1; continue ;; esac
+            ok=0
+            for i in $(seq 1 40); do
+              out="$(curl -s -o /dev/null -m 30 -w '%{http_code} %{time_total}s %{redirect_url}' "$u" || echo '000 0s ')"
+              code="${out%% *}"
+              rest="${out#* }"
+              if [ "$code" = 200 ]; then echo "OK   $code $rest  $u"; ok=1; break; fi
+              case "$u" in
+                */admin*)
+                  case "$code" in
+                    301|302|303|307|308)
+                      case "$out" in *login*|*sign*) echo "OK   admin route exists ($code -> sign-in)  $u"; ok=1; break ;; esac ;;
+                  esac ;;
+              esac
+              echo "wait $code (try $i/40)  $u"
+              sleep 15
+            done
+            [ "$ok" = 1 ] || { echo "FAIL $u"; fail=1; }
+          done <<< "$URLS"
+          exit $fail
