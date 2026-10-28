@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { BundCurveText } from "@/lib/seo/bundCurve";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 const W = 760, H = 300, L = 46, R = 14, T = 12, B = 28;
 const sx = (y: number) => L + ((y - 1) / 29) * (W - L - R);
 
 /** Bund curve, 1-30 years. Hover or tap a year to read its yield in a fixed slot (no layout shift). */
-export default function BundCurveChart({ locale, text, points: rows }: { locale: string; text: BundCurveText; points: { years: number; yield: number }[] }) {
+export default function BundCurveChart({ locale, text, points: rows }: { locale: string; text: { chartTitle: string; years: string }; points: { years: number; yield: number }[] }) {
   const [sel, setSel] = useState(10);
   const Y0 = Math.floor(Math.min(...rows.map((r) => r.yield)) * 2) / 2, Y1 = Math.max(Y0 + 0.5, Math.ceil(Math.max(...rows.map((r) => r.yield)) * 2) / 2);
   const sy = (v: number) => T + (1 - (v - Y0) / (Y1 - Y0)) * (H - T - B);
