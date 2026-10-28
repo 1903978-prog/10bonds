@@ -1,0 +1,32 @@
+name: Portfolio Efficiency
+# Portfolio Efficiency Optimization (Methodology 5, lib/netSpread): runs on a runner, never in the website process. Nightly after the Efficient Database (23:00 UTC)
+# and Bond Efficiency (23:30 UTC) jobs, i.e. 06:00 Asia/Bangkok plus a margin, and every 3 hours to pick up an admin "Recalculate" request.
+# It needs the Bond Efficiency run of the same price batch (it runs that first if missing). A price batch that is already optimised is skipped.
+on:
+  workflow_dispatch:
+    inputs:
+      force: { description: "Recalculate even if this price batch is done", type: boolean, default: false }
+  schedule:
+    - cron: "10 0 * * *"
+    - cron: "40 */3 * * *"
+concurrency:
+  group: portfolio-efficiency
+  cancel-in-progress: false
+jobs:
+  portfolio-efficiency:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      PE_TRIGGER: ${{ github.event_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - name: Portfolio Efficiency run
+        run: npx vite-node -c vitest.config.ts scripts/portfolio-efficiency.ts ${{ inputs.force && '--force' || '' }} | tee pe.txt
+      - name: Summary
+        if: always()
+        run: cat pe.txt >> "$GITHUB_STEP_SUMMARY" || true
