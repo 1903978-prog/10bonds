@@ -8,15 +8,26 @@ const errors = [];
 page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 let status = 0;
 let api = 0;
-page.on("response", (r) => { if (r.url().includes("/api/bonds?")) api = r.status(); });
+let bes = "none";
+page.on("response", async (r) => {
+  if (!r.url().includes("/api/bonds?")) return;
+  api = r.status();
+  try { const j = await r.json(); bes = JSON.stringify({ bes: j.bes ?? null, rows: j.rows?.length ?? null, status: j.status ?? null }); } catch { bes = "not json"; }
+});
 const res = await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 60000 });
 status = res?.status() ?? 0;
 console.log(`page status ${status}`);
 await page.getByRole("button", { name: /Pareto efficient portfolio/i }).first().click();
 const tile = page.getByText(/efficiency score/i).first();
-await tile.waitFor({ timeout: 120000 });
+try { await tile.waitFor({ timeout: 60000 }); } catch {
+  console.log(`TILE NOT FOUND. list api status ${api}; api answer ${bes}`);
+  console.log(`body: ${(await page.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 800)}`);
+  await page.screenshot({ path: "bes-tile.png" });
+  await browser.close();
+  process.exit(1);
+}
 const box = tile.locator("xpath=..");
-console.log(`list api status ${api}`);
+console.log(`list api status ${api}; api answer ${bes}`);
 console.log(`tile text: ${(await box.innerText()).replace(/\s+/g, " ")}`);
 await page.screenshot({ path: "bes-tile.png" });
 console.log(`console errors: ${errors.length}`);
