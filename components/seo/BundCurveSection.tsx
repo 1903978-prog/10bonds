@@ -19,7 +19,7 @@ export default async function BundCurveSection({ locale, text }: { locale: strin
   return (
     <>
       <p className="mt-2 text-sm text-mute">{text.asOf}: <time dateTime={curve.asOf}>{d}</time> · EUR · {text.source}</p>
-      <BundCurveChart locale={locale} text={text} points={curve.points.map((p) => ({ years: p.years, yield: p.yield }))} />
+      <BundCurveChart locale={locale} text={{ chartTitle: text.chartTitle, years: text.years }} points={curve.points.map((p) => ({ years: p.years, yield: p.yield }))} />
       <p className="mt-3 text-[15px]">{text.key(d, at(2), at(5), at(10), at(30))}</p>
       <p className="mt-2 text-xs text-mute">{text.note}</p>
       <p className="mt-3 text-[15px]"><Link href={home} className="text-accent hover:underline">{text.cta} ›</Link></p>
