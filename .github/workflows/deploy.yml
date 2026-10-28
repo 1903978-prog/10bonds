@@ -1,34 +1,20 @@
-# Deploys the public 10BONDS site to Fly.io on every push to main.
+# Deploys the public 10BONDS site to Fly.io on every push to main (docs-only pushes skipped), and on manual dispatch.
+# Restored 28/10/2026: the cloud sessions cannot reach fly.dev, so this workflow (health checks + automatic rollback) is how merged work ships.
 # Needs one repo secret: FLY_API_TOKEN (a Fly token the owner creates himself).
 # The build runs on Fly's remote builder; the runner only waits.
 name: Deploy to Fly
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**", "public/**/*.png", "public/**/*.jpg"]
   workflow_dispatch:
 concurrency: deploy
 jobs:
   # Nothing reaches the live site unless all checks pass (types, lint, tests, database design, browser check).
   test:
     uses: ./.github/workflows/ci.yml
-  # Builds the image on Fly's builder while the checks run (the image is only released after they pass).
-  build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
-        with:
-          version: 0.4.118
-      - name: Build and push the image (not released yet)
-        run: |
-          [ -n "$FLY_API_TOKEN" ] || { echo "No Fly token: nothing built."; exit 0; }
-          flyctl apps list 2>/dev/null | grep -qw 10bonds || { echo "App does not exist yet: built during deploy."; exit 0; }
-          flyctl deploy --build-only --push --remote-only -a 10bonds --image-label "${GITHUB_SHA}"
   deploy:
-    needs: [test, build]
+    needs: test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -162,9 +148,7 @@ jobs:
       - name: Deploy
         id: deploy
         if: env.ok == '1'
-        run: |
-          # Releases the image built in parallel; if that image is missing, builds as before.
-          flyctl deploy --image "registry.fly.io/10bonds:${GITHUB_SHA}" -a 10bonds --ha=false || flyctl deploy --remote-only -a 10bonds --ha=false
+        run: flyctl deploy --remote-only -a 10bonds --ha=false
       # Read-only checks after the deploy. Each step fails on its own, so the run's step list says where
       # sign-up is broken without anyone opening the log. The answer holds a stage and a Postgres code only.
       - name: Wait for the site to answer
