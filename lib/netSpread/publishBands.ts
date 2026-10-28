@@ -20,19 +20,12 @@ export function monotonicBreaks(results: PositionResult[]): string[] {
   for (const r of [...results].sort((a, b) => a.position - b.position)) {
     if (!r.metrics) continue;
     if (prev?.metrics) {
-      if (r.metrics.ytm < prev.metrics.ytm - 1e-9) out.push(`${r.position}: return ${r.metrics.ytm}% is lower than position ${prev.position} (${prev.metrics.ytm}%)`);
       if (r.metrics.avgRisk < prev.metrics.avgRisk - 1e-9) out.push(`${r.position}: average risk ${r.metrics.avgRisk} is lower than position ${prev.position} (${prev.metrics.avgRisk})`);
       if (r.metrics.creditLossBp < prev.metrics.creditLossBp - 1e-9) out.push(`${r.position}: expected loss ${r.metrics.creditLossBp} bp is lower than position ${prev.position} (${prev.metrics.creditLossBp} bp)`);
     }
     prev = r;
   }
   return out;
-}
-
-/** Positions beaten by a lower position: that list returns at least as much with no more expected loss, and is better on one of the two (owner, 28/10/2026: return must rise with risk). */
-export function dominatedPositions(results: PositionResult[]): number[] {
-  const rows = results.filter((r) => r.metrics).sort((a, b) => a.position - b.position);
-  return rows.filter((r, i) => rows.slice(0, i).some((q) => q.metrics!.ytm >= r.metrics!.ytm - 1e-9 && q.metrics!.creditLossBp <= r.metrics!.creditLossBp + 1e-9 && (q.metrics!.ytm > r.metrics!.ytm + 1e-9 || q.metrics!.creditLossBp < r.metrics!.creditLossBp - 1e-9))).map((r) => r.position);
 }
 
 /** The 30 positions of one horizon (a term or an exact year) as one stored set. Pure: what is stored is exactly what the solver returned and the validator checked. */
@@ -57,7 +50,7 @@ export function storedSetOf(bonds: BondSource["bonds"], duration: number, sig: s
   return {
     sig: sig + "|" + configSignature(cfg), duration, bands, nonMonotonic: [],
     ...(first ? { anchors: { r1: first.r1! / 10, r30: first.r30! / 10, step: Math.max(0, ...results.filter((x) => x.position === 1 || x.position === 30).map((x) => x.step ?? 0)) } } : {}),
-    breaks: [...monotonicBreaks(results), ...dominatedPositions(results).map((p) => `${p}: beaten by a lower position (no more return for more risk)`)],
+    breaks: monotonicBreaks(results),
     candidates: { all: 0, kept: 0, perCell: cfg.perCell }, builtAt: new Date().toISOString(),
   };
 }

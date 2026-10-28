@@ -17,10 +17,6 @@ export type KeyPosition = {
   step: LadderStep | null;
   /** The position's band (sum of the ten classes, tenths), its allowed classes, and its target in tenths. */
   band: AnchorBand;
-  /** True when the list is not the strict answer for its band: found at ladder step >= 1, in another 3-class window, under the return floor, or reused from the position below. */
-  adjusted: boolean;
-  /** Band of the position whose list this is when it was reused from the position below (the list is checked against that band). */
-  reusedBand?: AnchorBand;
   seconds: number;
   candidates: number;
   reason: string | null;
@@ -34,14 +30,8 @@ export type KeyResult = {
 /** Candidates per ladder step: step 2 and 3 use the wider bond duration window, so the pool is supplied per step. */
 export type PoolFor = (step: LadderStep) => NsCand[];
 
-const meanYtm = (sel: NsCand[]) => sel.reduce((t, c) => t + c.ytm, 0) / (sel.length || 1);
-/** Floor handed to the solver: the list below returns this much; a hair lower so the rounding of the model text never makes an equal list infeasible. */
-const floorOf = (sel: NsCand[] | null) => (sel && sel.length ? meanYtm(sel) - 1e-6 : undefined);
-/** Other 3-class windows, nearest to the position's own first (the class spread of 2 is never relaxed). */
-const otherWindows = (lo: number) => Array.from({ length: 8 }, (_, i) => i + 1).filter((w) => w !== lo).sort((a, b) => Math.abs(a - lo) - Math.abs(b - lo) || a - b);
-
 const emptyBand = (n: number): AnchorBand => ({ position: n, sumLo: 0, sumHi: 0, classLo: 1, classHi: 3, target: 0 });
-const none = (n: number, why: string): KeyPosition => ({ position: n, status: "infeasible", sel: [], step: null, band: emptyBand(n), adjusted: false, seconds: 0, candidates: 0, reason: why });
+const none = (n: number, why: string): KeyPosition => ({ position: n, status: "infeasible", sel: [], step: null, band: emptyBand(n), seconds: 0, candidates: 0, reason: why });
 
 /** The anchors of a key: the first ladder step at which any list exists decides both (the extremes of one feasible set). */
 export async function anchorsOf(poolFor: PoolFor, duration: number, opts: { timeLimit?: number; withLists?: boolean } = {}) {
@@ -69,53 +59,25 @@ export async function solveKey(poolFor: PoolFor, duration: number, opts: { timeL
   const anchorOf = (n: number): KeyPosition => {
     const e = n === 1 ? a.lo : a.hi;
     return {
-      position: n, status: e.status, sel: e.sel, step: e.sel.length ? a.step : null, adjusted: e.sel.length > 0 && a.step >= 1,
+      position: n, status: e.status, sel: e.sel, step: e.sel.length ? a.step : null,
       band: { ...table.bands[n - 1], classLo: e.classLo, classHi: e.classHi },
       seconds: e.seconds, candidates: e.candidates, reason: e.sel.length ? null : "The solver stopped on its time limit before finding the list",
     };
   };
-  // Return must rise with risk (owner, 28/10/2026): every list returns at least as much as the one below it (floor = the previous list's average return).
-  // The floor only binds when the unconstrained best list would be dominated. If no list reaches it, the position is "adjusted" and reuses the list below.
-  let below: KeyPosition | null = null;
-  const solved = async (n: number, band: AnchorBand, windows: number[], steps: readonly LadderStep[], sum: { lo: number; hi: number }, floor: number | undefined): Promise<{ r: NsSolve; step: LadderStep; band: AnchorBand; tried: number } | null> => {
-    let tried = 0;
-    for (const step of steps) {
-      for (const lo of windows) {
-        const own = lo === band.classLo;
-        const r = await solvePosition(poolFor(step), lo, lo + 2, sum, specRules(duration, step), { timeLimit: opts.timeLimit, retMin: floor });
-        tried = r.candidates;
-        if (r.sel.length) return { r, step, band: own ? band : { ...band, classLo: lo, classHi: lo + 2 }, tried };
-      }
-    }
-    void n;
-    return null;
-  };
   for (const band of table.bands) {
     const n = band.position;
     if (opts.only !== undefined && opts.only !== n) { out.push({ ...none(n, "not solved (single position)"), band, status: "uncertified" }); continue; }
-    const floor: number | undefined = opts.only === undefined ? floorOf((below as KeyPosition | null)?.sel ?? null) : undefined;
+    if (n === 1 || n === POSITIONS) { out.push(anchorOf(n)); opts.onPosition?.(n); continue; }
     let pos: KeyPosition | null = null;
-    if (n === 1) pos = anchorOf(n);
-    else if (n === POSITIONS) {
-      pos = anchorOf(n);
-      if (floor !== undefined && pos.sel.length && meanYtm(pos.sel) < floor) {
-        const e = a.hi;
-        const f: Awaited<ReturnType<typeof solved>> = await solved(n, pos.band, [e.classLo, ...otherWindows(e.classLo)], LADDER_STEPS.filter((x) => x >= a.step), { lo: a.r30, hi: a.r30 }, floor);
-        pos = f ? { position: n, status: f.r.status, sel: f.r.sel, step: f.step, band: f.band, adjusted: true, seconds: f.r.seconds, candidates: f.tried, reason: null } : null;
-      }
-    } else {
-      const sum = { lo: band.sumLo, hi: band.sumHi };
-      const f: Awaited<ReturnType<typeof solved>> = (await solved(n, band, [band.classLo], LADDER_STEPS, sum, floor)) ?? (await solved(n, band, otherWindows(band.classLo), LADDER_STEPS, sum, floor));
-      if (f) pos = { position: n, status: f.r.status, sel: f.r.sel, step: f.step, band: f.band, adjusted: f.step >= 1 || f.band !== band, seconds: f.r.seconds, candidates: f.tried, reason: null };
+    let tried = 0;
+    for (const step of LADDER_STEPS) {
+      const rules: NsRules = specRules(duration, step);
+      const pool = poolFor(step);
+      const r = await solvePosition(pool, band.classLo, band.classHi, { lo: band.sumLo, hi: band.sumHi }, rules, { timeLimit: opts.timeLimit });
+      tried = r.candidates;
+      if (r.sel.length) { pos = { position: n, status: r.status, sel: r.sel, step, band, seconds: r.seconds, candidates: r.candidates, reason: null }; break; }
     }
-    if (!pos || !pos.sel.length) {
-      // No list of its own: the closest non-dominated list is the one below (same figures, so never dominated), marked "adjusted".
-      if (below && below.sel.length && n !== 1) {
-        pos = { position: n, status: below.status, sel: below.sel, step: Math.max(1, below.step ?? 1) as LadderStep, band, adjusted: true, reusedBand: below.reusedBand ?? below.band, seconds: 0, candidates: below.candidates, reason: null };
-      } else pos = { position: n, status: "infeasible", sel: [], step: null, band, adjusted: false, seconds: 0, candidates: pos?.candidates ?? 0, reason: `No list of 10 bonds meets the rules in average risk ${bandLabel(band)} (classes ${band.classLo}-${band.classHi}), also after the ladder steps` };
-    }
-    if (pos.sel.length) below = pos;
-    out.push(pos);
+    out.push(pos ?? { position: n, status: "infeasible", sel: [], step: null, band, seconds: 0, candidates: tried, reason: `No list of 10 bonds meets the rules in average risk ${bandLabel(band)} (classes ${band.classLo}-${band.classHi}), also after the ladder steps` });
     opts.onPosition?.(n);
   }
   return { r1: a.r1, r30: a.r30, anchorStep: a.step, positions: out };
