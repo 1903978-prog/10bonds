@@ -2,11 +2,9 @@ import type { PublicBond } from "../types";
 import type { BandCand } from "../coherentFrontier";
 import { loadAllShown } from "../bonds";
 import { batchIdOf } from "../bes/store";
-import { allowedClasses } from "../riskMatrix";
-import { specRules } from "../portfolioSpec";
 import { specCandidates } from "./candidates";
-import { nsCandidates, windowsOfMatrix, type BesBond } from "./build";
-import { solveWindow } from "./solve";
+import { poolsFor, type BesBond } from "./build";
+import { solveKey } from "./anchored";
 import { loadBes } from "./store";
 
 // The live path of the unified engine: ONLY for a customer's blacklist, advanced filters or a cold start (every standard list is read from storage,
@@ -28,13 +26,10 @@ export type SpecLive = { sel: BandCand[]; optimal: boolean };
 export async function liveSpecList(bonds: PublicBond[], duration: number, k: number): Promise<SpecLive | null> {
   const figures = await besNow();
   if (!figures) return null;
-  const group = windowsOfMatrix().find((g) => g.includes(k));
-  if (!group) return null;
-  const cands = nsCandidates(bonds, duration, figures);
-  const win = await solveWindow(cands, [...allowedClasses(k)], specRules(duration), group.length, { only: group.indexOf(k), timeLimit: 20 });
-  const r = win.results[group.indexOf(k)];
+  // The key's two anchors first (cheap: sums only), then the one position asked for.
+  const r = (await solveKey(poolsFor(bonds, duration, figures), duration, { only: k, timeLimit: 20 })).positions[k - 1];
   if (!r?.sel.length) return null;
-  const byIsin = new Map(specCandidates(bonds, duration).map((c) => [c.b.isin, c]));
+  const byIsin = new Map(specCandidates(bonds, duration, 3).map((c) => [c.b.isin, c]));
   const sel = r.sel.map((c) => byIsin.get(c.isin));
   return sel.every((c): c is BandCand => !!c) ? { sel, optimal: r.status === "optimal" } : null;
 }

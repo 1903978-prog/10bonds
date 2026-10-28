@@ -603,12 +603,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         const b = data?.band?.k === mix ? data.band : undefined;
         const actual = b?.avgRisk ?? bandPos.avgRisk;
         // Risk matrix positions name the bond risk classes they may hold; the older average-risk bands name their average range.
-        const head = bandPos.classes?.length ? t.bandClasses(Math.min(...bandPos.classes), Math.max(...bandPos.classes)) : t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max));
+        // Anchored bands: the label shows the classes the list really holds (its actual risk range), not the classes it was allowed.
+        const held = bandPos.riskMin != null && bandPos.riskMax != null ? [bandPos.riskMin, bandPos.riskMax] : bandPos.classes?.length ? [Math.min(...bandPos.classes), Math.max(...bandPos.classes)] : null;
+        const head = held ? t.bandClasses(held[0], held[1]) : t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max));
         if (b?.none || (bandPos.unavailable && !b)) return head;
         // The ten bonds shown: their lowest and highest individual score (always at most 2 apart).
         const scores = list && list.length === 10 ? list.map((r) => r.risk).filter((x): x is number => typeof x === "number") : [];
         const range = bandPos.classes?.length ? "" : scores.length === 10 ? ` · ${t.bandRange(Math.min(...scores), Math.max(...scores))}` : bandPos.riskMin != null && bandPos.riskMax != null && b?.source !== "live" ? ` · ${t.bandRange(bandPos.riskMin, bandPos.riskMax)}` : "";
-        return `${head}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${range}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
+        const text = `${head}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${range}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
+        return bandPos.adjusted ? <>{text} · <span title={t.adjustedTip} className="border-b border-dotted border-mute" data-testid="adjusted-badge">{t.adjusted}</span></> : text;
       })()
     : undefined;
   const live = simple && paid && mode === "portfolio" && data?.band?.source !== "live" ? tileFigures(positions?.[mix - 1]) : null;
