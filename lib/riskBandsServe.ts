@@ -6,6 +6,7 @@ import { signatureOf } from "./bestTable";
 import { policySignature } from "./coherence";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
 import { bondRisk } from "./ratings";
+import { riskConsistent } from "./riskWindow";
 import { configSignature, type BandConfig } from "./riskBands";
 import { loadBandConfig, loadStoredBands } from "./riskBandsStore";
 import type { StoredBand, StoredBands } from "./riskBandsBuild";
@@ -38,7 +39,10 @@ export async function servedBands(f: BondFilter, duration: number, config?: Band
 /** The bonds of a stored list, in the order of its ISINs, or null if any bond is no longer in the data (a stale set after bonds matured). */
 export function bondsOfBand(sb: StoredBand, byIsin: Map<string, PublicBond>): PublicBond[] | null {
   const out = sb.isins.map((i) => byIsin.get(i));
-  return out.every((b): b is PublicBond => !!b) ? out : null;
+  if (!out.every((b): b is PublicBond => !!b)) return null;
+  // A stored list is served only if its bonds still sit inside one risk window (older lists from before the rule are dropped here).
+  const scores = out.map((b) => bondRisk(b));
+  return scores.every((x): x is number => x !== null) && riskConsistent(scores) ? out : null;
 }
 
 /** Slider positions (the chart dots and tiles) from a stored set. A band with no list is `unavailable`. */
@@ -55,6 +59,8 @@ export function positionsOfBands(sv: ServedBands): SliderPosition[] {
       expectedLoss: ok ? b.el : null,
       avgRisk: ok ? b.avgRisk : null,
       worstRisk: ok ? Math.max(...bonds!.map((x) => bondRisk(x) ?? 10)) : null,
+      riskMin: ok ? Math.min(...bonds!.map((x) => bondRisk(x) ?? 10)) : null,
+      riskMax: ok ? Math.max(...bonds!.map((x) => bondRisk(x) ?? 10)) : null,
       isins: ok ? b.isins : [],
       sameAs: null,
       unavailable: !ok,

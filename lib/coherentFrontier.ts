@@ -1,3 +1,4 @@
+import { windowModel } from "./riskWindow";
 import type { PublicBond, RankedBond } from "./types";
 import { bondNotch } from "./ratings";
 import { LIMITS } from "./limits";
@@ -147,6 +148,9 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   for (const [, idx] of by((c) => c.group!)) if (idx.length > p.maxPerIssuer) add(`grp${k++}`, sum(idx, () => 1), "<=", p.maxPerIssuer);
   k = 0;
   for (const [, idx] of by((c) => c.sector)) if (idx.length > p.maxPerSector) add(`sec${k++}`, sum(idx, () => 1), "<=", p.maxPerSector);
+  // Risk consistency: all ten bonds inside one window of three consecutive risk classes (lib/riskWindow.ts), also at the slider ends.
+  const win = windowModel(cs.map((c) => c.cls), (i) => `x${i}`);
+  rows.push(...win.rows);
   const objective = spec.objective === "loss" ? `Minimize\n obj: ${sum(all, (i) => cs[i].pd)}` : `Maximize\n obj: ${sum(all, (i) => cs[i].ret)}`;
 
   // Loss share: S = the list's summed default chance, and every bond's own default chance <= share x S (sparse rows).
@@ -174,7 +178,7 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
     cvarRows.push(` cvar: eta${used.map((s, k) => `${k % 8 === 0 ? " +\n  " : " + "}${num(1 / ((1 - ALPHA) * cv.S))} xi${s}`).join("")} <= ${num(cv.setting.C)}`);
     cvarBounds = " eta >= 0\n";
   }
-  const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows, ...cvarRows].join("\n")}\nBounds\n S >= 0\n${cvarBounds}Binary\n ${all.map((i) => `x${i}`).reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
+  const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows, ...cvarRows].join("\n")}\nBounds\n S >= 0\n${cvarBounds}Binary\n ${[...all.map((i) => `x${i}`), ...win.binaries].reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
   if (/NaN|Infinity/.test(lp)) throw new Error("Coherent model has a non-finite number");
   await new Promise((r) => setImmediate(r));
   stats.solves++;

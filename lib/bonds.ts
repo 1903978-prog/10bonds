@@ -403,3 +403,11 @@ export async function siteBondsByIsin(isins: string[]): Promise<Record<string, {
     dormant: Boolean(dormantReason({ currency: r.currency, minInvestment: correctedMin(r.isin, r.issuer, r.currency, minInvestmentOf(num(r.min_denomination), num(r.min_lot), r.currency)) }, r.dormant)),
   }]));
 }
+
+/** Identity of EVERY bond in the copy (shown or not), for the permanent bond codes (lib/bondCodes.ts). Null when the copy is not connected. */
+export async function loadBondIdentities(): Promise<{ isin: string; name: string | null; issuer: string | null; currency: string | null; maturity: string | null }[] | null> {
+  const client = db();
+  if (!client) return null;
+  const rows = await client`select isin, name, issuer, currency, maturity from public_bonds`;
+  return rows.map((r) => ({ isin: String(r.isin).trim().toUpperCase(), name: r.name ?? null, issuer: r.issuer ?? null, currency: r.currency ? String(r.currency).trim().toUpperCase() : null, maturity: isoDay(r.maturity) }));
+}

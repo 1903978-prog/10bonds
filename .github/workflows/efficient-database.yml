@@ -1,0 +1,30 @@
+name: Efficient Database
+# Rebuilds the 90-position Efficient Database every day at 06:00 Asia/Bangkok (23:00 UTC), on a runner, never in the website process:
+# bond codes for new bonds, the 30 risk-band lists of each term for the current price batch, then the checked 90-position snapshot.
+# A batch that is already built is skipped. The "Precompute portfolio lists" job also builds it after every price copy it sees (every 3 hours).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 23 * * *"
+concurrency:
+  group: precompute-frontiers
+  cancel-in-progress: false
+jobs:
+  efficient-database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - name: Risk-band lists
+        run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts EUR:100k | tee bands.txt
+      - name: Efficient Database (90 positions)
+        run: npx vite-node -c vitest.config.ts scripts/build-slider-snapshot.ts | tee snapshot.txt
+      - name: Summary
+        if: always()
+        run: cat snapshot.txt >> "$GITHUB_STEP_SUMMARY" || true
