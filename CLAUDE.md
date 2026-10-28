@@ -6,3 +6,4 @@
 - Deploys: sessions run `fly deploy` directly. No workflow may deploy on push (a "Deploy to Fly" workflow, if kept, is manual-only).
 - A failing check is diagnosed from its logs and fixed at the cause (or removed if redundant). Never re-run a failed workflow just to see if it passes.
 - Failure emails: only a nightly live-check failure on the production site may email Livio (one summary, sent by the app). Branch and PR check failures never email him.
+- Draft PRs do not run CI (it starts when the PR is marked ready). `nightly-live-check.yml` is the one production check that e-mails: it posts to `/api/admin/live-check-alert` (HMAC with ACCOUNTS_DATABASE_URL, no new secret), which e-mails the first ADMIN_EMAILS address once.
