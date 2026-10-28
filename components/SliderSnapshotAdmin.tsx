@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Row = { [bond: `bond_${number}`]: string | null; row_no: number; horizon: string; position: number; avg_ytm: string | null; avg_duration: string | null; avg_risk: string | null; filled: boolean; status: string | null; error: string | null; shared_with: number | null; mapped_from: number | null; band_min?: string | null; band_max?: string | null; class_lo?: number | null; class_hi?: number | null; ladder_step?: number | null };
+type Row = { [bond: `bond_${number}`]: string | null; row_no: number; horizon: string; position: number; avg_ytm: string | null; avg_duration: string | null; avg_risk: string | null; filled: boolean; status: string | null; error: string | null; shared_with: number | null; mapped_from: number | null; band_min?: string | null; band_max?: string | null; class_lo?: number | null; class_hi?: number | null; ladder_step?: number | null; avg_bond_bes?: string | null; bes_scored?: number | null; portfolio_bes?: string | null; portfolio_bes_status?: string | null; portfolio_bes_reason?: string | null };
 type Snap = { id: number; batch_id: string; status: string; data_as_of: string | null; calculated_at: string; published_at: string | null; runtime_ms: number | null; filled_count: number; distinct_portfolios: number; error: string | null; methodology: string; empty_policy: string };
 type Job = { id: number; trigger: string; status: string; attempt: number; started_at: string; finished_at: string | null; message: string | null };
 type Data = { id: number | null; snapshots: Snap[]; rows: Row[]; report: { problems?: string[]; blockers?: string[] } | null; jobs: Job[] };
-type Detail = { row: Row; bonds: { ord: number; isin: string; issuer: string | null; name: string; coupon: string | null; maturity: string | null; rating: string | null; ytm: string; duration: string; risk: string; clean_price: string | null }[]; snapshot: { batch_id: string; methodology: string; calculated_at: string }; sharedWith: number[] };
+type Detail = { row: Row; bonds: { ord: number; isin: string; issuer: string | null; name: string; coupon: string | null; maturity: string | null; rating: string | null; ytm: string; duration: string; risk: string; clean_price: string | null; bes_score?: string | null; bes_status?: string | null }[]; snapshot: { batch_id: string; methodology: string; calculated_at: string }; sharedWith: number[] };
 
 const GROUPS = [["SHORT", "SHORT — 2 years: rows 1–30"], ["MEDIUM", "MEDIUM — 4 years: rows 31–60"], ["LONG", "LONG — 10 years: rows 61–90"]] as const;
 const when = (x: string | null) => (x ? new Date(x).toLocaleString("en-GB", { timeZone: "Europe/Rome" }) : "–");
@@ -96,10 +96,11 @@ export default function SliderSnapshotAdmin() {
         <div className="rounded-xl border border-line p-4 text-sm" data-testid="slider-row-detail">
           <div className="flex items-center justify-between"><div className="font-semibold">{detail.row.horizon} {String(detail.row.position).padStart(2, "0")} (row {detail.row.row_no})</div><button onClick={() => setDetail(null)} className="text-xs underline">Close</button></div>
           <div className="mt-1 text-mute">Price batch {detail.snapshot.batch_id} · method {detail.snapshot.methodology} · calculated {when(detail.snapshot.calculated_at)}</div>
+          <div className="text-mute">Average bond BES: {detail.row.avg_bond_bes != null ? Number(detail.row.avg_bond_bes).toFixed(1) : `unavailable (${detail.row.bes_scored ?? 0} of 10 bonds scored)`} · Portfolio BES: {detail.row.portfolio_bes != null ? Number(detail.row.portfolio_bes).toFixed(1) : (detail.row.portfolio_bes_reason ?? "unavailable")}</div>
           <div className="text-mute">{detail.row.error ?? "All checks passed (10 bonds, issuer and sector caps, duration window, figures recomputed from the bond rows)."} {detail.sharedWith.length ? `Same portfolio as position(s) ${detail.sharedWith.join(", ")}.` : "Not shared with another position."}</div>
           {detail.bonds.length > 0 && (
-            <table className="mt-2 w-full text-xs"><thead><tr className="text-left text-mute"><th>ISIN</th><th>Issuer</th><th>Rating</th><th>YTM</th><th>Dur.</th><th>Risk</th><th>Price</th></tr></thead>
-              <tbody>{detail.bonds.map((b) => <tr key={b.isin} className="border-t border-line"><td>{b.isin}</td><td>{b.issuer ?? b.name}</td><td>{b.rating ?? "–"}</td><td>{Number(b.ytm).toFixed(2)}%</td><td>{Number(b.duration).toFixed(2)}</td><td>{b.risk}</td><td>{b.clean_price ?? "–"}</td></tr>)}</tbody></table>
+            <table className="mt-2 w-full text-xs"><thead><tr className="text-left text-mute"><th>ISIN</th><th>Issuer</th><th>Rating</th><th>YTM</th><th>Dur.</th><th>Risk</th><th>BES</th><th>Price</th></tr></thead>
+              <tbody>{detail.bonds.map((b) => <tr key={b.isin} className="border-t border-line"><td>{b.isin}</td><td>{b.issuer ?? b.name}</td><td>{b.rating ?? "–"}</td><td>{Number(b.ytm).toFixed(2)}%</td><td>{Number(b.duration).toFixed(2)}</td><td>{b.risk}</td><td>{b.bes_score != null ? `${Number(b.bes_score).toFixed(1)}${b.bes_status === "limited" ? " (limited)" : ""}` : "unavailable"}</td><td>{b.clean_price ?? "–"}</td></tr>)}</tbody></table>
           )}
         </div>
       )}

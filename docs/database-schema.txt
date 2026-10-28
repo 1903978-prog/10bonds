@@ -153,6 +153,9 @@ table app.efficient_portfolio_holdings
   risk numeric
   clean_price numeric
   price_as_of text
+  bes_score numeric
+  bes_status text
+  bes_run_id bigint
 
 table app.efficient_portfolio_jobs
   id bigint not null default nextval(...)
@@ -208,6 +211,11 @@ table app.efficient_portfolio_positions
   class_lo smallint
   class_hi smallint
   band_target numeric
+  avg_bond_bes numeric
+  bes_scored smallint
+  portfolio_bes numeric
+  portfolio_bes_status text
+  portfolio_bes_reason text
 
 table app.efficient_portfolio_snapshots
   id bigint not null default nextval(...)

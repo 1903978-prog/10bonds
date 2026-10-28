@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { accountsConfigured, accountsSql } from "./accounts";
 import { assignBondCodes, bondCodeTablesReady, codesFor } from "./bondCodes";
 import { loadBondsFor } from "./bonds";
+import { besTablesReady } from "./bes/store";
 import type { BondFilter } from "./bondFilter";
 import { signatureOf } from "./bestTable";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
@@ -86,6 +87,9 @@ async function sql() {
       issuer text, name text, currency text, coupon numeric, maturity text, rating text,
       ytm numeric, duration numeric, risk numeric, clean_price numeric, price_as_of text,
       primary key (snapshot_id, portfolio_id, horizon, ord))`;
+    // Bond Efficiency Score stored with each holding and position (28/10/2026). Portfolio BES stays NULL + 'unavailable' until it is calibrated; never invented.
+    await s`alter table app.efficient_portfolio_holdings add column if not exists bes_score numeric(5,1), add column if not exists bes_status text, add column if not exists bes_run_id bigint`;
+    await s`alter table app.efficient_portfolio_positions add column if not exists avg_bond_bes numeric(5,1), add column if not exists bes_scored smallint, add column if not exists portfolio_bes numeric(5,1), add column if not exists portfolio_bes_status text, add column if not exists portfolio_bes_reason text`;
     await s`create table if not exists app.efficient_portfolio_jobs (
       id bigserial primary key,
       snapshot_id bigint references app.efficient_portfolio_snapshots(id) on delete set null,
@@ -111,6 +115,29 @@ async function progress(jobId: number, message: string) {
 }
 
 const pidHash = (key: string) => createHash("sha1").update(key).digest("hex").slice(0, 16);
+
+export const PORTFOLIO_BES_REASON = "Unavailable - needs 20 trading days of reference portfolios (calibration not complete yet)";
+
+/** Copies the bond BES of the latest published Bond Efficiency run onto the holdings of a snapshot and sets the average per position. Portfolio BES stays unavailable. Repeatable. */
+export async function applyBes(snapshotId?: number): Promise<{ holdings: number; scored: number }> {
+  const s = await sql();
+  await besTablesReady();
+  const [run] = await s`select id from app.bes_runs where status = 'published' order by id desc limit 1`;
+  const ids = snapshotId ? [snapshotId] : (await s`select id from app.efficient_portfolio_snapshots where status = 'published'`).map((x) => Number(x.id));
+  let holdings = 0, scored = 0;
+  for (const sid of ids) {
+    await s`update app.efficient_portfolio_holdings h set bes_score = b.efficiency_score, bes_status = coalesce(b.efficiency_status, 'unavailable'), bes_run_id = ${run?.id ?? null}
+      from (select h2.isin, x.efficiency_score, x.efficiency_status from app.efficient_portfolio_holdings h2 left join app.bes_bonds x on x.run_id = ${run?.id ?? 0} and x.isin = h2.isin where h2.snapshot_id = ${sid}) b
+      where h.snapshot_id = ${sid} and h.isin = b.isin`;
+    await s`update app.efficient_portfolio_positions p set
+        avg_bond_bes = case when a.n = 10 and a.sc = 10 then round(a.m, 1) end, bes_scored = a.sc, portfolio_bes = null, portfolio_bes_status = 'unavailable', portfolio_bes_reason = ${PORTFOLIO_BES_REASON}
+      from (select horizon, portfolio_id, count(*)::int n, count(bes_score)::int sc, avg(bes_score) m from app.efficient_portfolio_holdings where snapshot_id = ${sid} group by 1, 2) a
+      where p.snapshot_id = ${sid} and p.horizon = a.horizon and p.portfolio_id = a.portfolio_id`;
+    const [c] = await s`select count(*)::int n, count(bes_score)::int sc from app.efficient_portfolio_holdings where snapshot_id = ${sid}`;
+    holdings += c.n; scored += c.sc;
+  }
+  return { holdings, scored };
+}
 
 export type BuildResult = { status: "published" | "incomplete" | "skipped" | "failed"; snapshotId: number | null; message: string; filled: number; blockers: string[] };
 
@@ -184,6 +211,7 @@ async function once(trigger: string, f: Pick<BondFilter, "currency" | "size">, f
   });
   if (id === null) return { status: "skipped", snapshotId: null, message: "The same price batch was saved by another run", filled: 0, blockers: [] };
   await s`update app.efficient_portfolio_jobs set snapshot_id = ${id} where id = ${jobId}`;
+  try { await applyBes(id); } catch (e) { console.error("[slider-snapshot] BES copy failed:", (e as Error).message); }
   active.delete(filterKey(f));
   return publish
     ? { status: "published", snapshotId: id, message: `Published snapshot ${id}: ${a.filled}/90 valid, ${a.rows.filter((r) => r.status === "INFEASIBLE").length} infeasible (no list exists under the approved rules)`, filled: a.filled, blockers: [] }
@@ -315,7 +343,7 @@ export async function rowDetail(id: number, rowNo: number) {
   const s = await sql();
   const r = (await s`select * from app.efficient_portfolio_positions where snapshot_id = ${id} and row_no = ${rowNo}`)[0];
   if (!r) return null;
-  const bonds = r.portfolio_id ? await s`select ord, isin, issuer, name, currency, coupon, maturity, rating, ytm, duration, risk, clean_price, price_as_of from app.efficient_portfolio_holdings where snapshot_id = ${id} and portfolio_id = ${r.portfolio_id} and horizon = ${r.horizon} order by ord` : [];
+  const bonds = r.portfolio_id ? await s`select ord, isin, issuer, name, currency, coupon, maturity, rating, ytm, duration, risk, clean_price, price_as_of, bes_score, bes_status from app.efficient_portfolio_holdings where snapshot_id = ${id} and portfolio_id = ${r.portfolio_id} and horizon = ${r.horizon} order by ord` : [];
   const snap = (await s`select batch_id, methodology, calculated_at, data_as_of from app.efficient_portfolio_snapshots where id = ${id}`)[0];
   const shared = r.portfolio_id ? await s`select position from app.efficient_portfolio_positions where snapshot_id = ${id} and horizon = ${r.horizon} and portfolio_id = ${r.portfolio_id} and row_no <> ${rowNo} order by position` : [];
   return { row: r, bonds, snapshot: snap, sharedWith: shared.map((x) => Number(x.position)) };
