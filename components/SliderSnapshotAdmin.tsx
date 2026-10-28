@@ -46,8 +46,8 @@ export default function SliderSnapshotAdmin() {
   return (
     <div className="mt-6 space-y-6">
       <div className={`rounded-xl border px-4 py-3 ${ready ? "border-green-300 bg-green-50 text-green-900" : "border-amber-300 bg-amber-50 text-amber-900"}`} data-testid="slider-snapshot-status">
-        <div className="text-lg font-semibold">{ready ? `PUBLISHED: ${filled}/90 valid, ${infeasible} infeasible` : `${filled}/90 valid, ${unresolved} unresolved: not published`}</div>
-        <div className="text-sm">{ready ? `All 90 rows resolved. Valid per term: short ${perH("SHORT")}, medium ${perH("MEDIUM")}, long ${perH("LONG")}. Infeasible rows are empty on the website (no list exists under the approved rules).` : active ? `The website keeps serving the last complete snapshot (#${active.id}, data of ${when(active.data_as_of)}).` : "No complete snapshot is published yet, so the website uses the older per-term path (also instant, from stored lists)."}</div>
+        <div className="text-lg font-semibold">{ready ? `PUBLISHED: ${filled}/90 valid, ${infeasible} infeasible` : `Snapshot #${cur?.id ?? "?"} is ${cur?.status ?? "missing"}: ${filled}/90 valid, ${unresolved} unresolved${active ? `. The website serves the published snapshot #${active.id}` : ". Nothing is published yet"}`}</div>
+        <div className="text-sm">{ready ? `All 90 rows resolved. Valid per term: short ${perH("SHORT")}, medium ${perH("MEDIUM")}, long ${perH("LONG")}. Infeasible rows are empty on the website (no list exists under the approved rules).` : active ? `The website serves snapshot #${active.id} (published ${when(active.published_at)}, data of ${when(active.data_as_of)}). Use the snapshot list to view it.` : "No complete snapshot is published yet, so the website uses the older per-term path (also instant, from stored lists)."}</div>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {stat("Active snapshot", active ? `#${active.id}` : "none")}
