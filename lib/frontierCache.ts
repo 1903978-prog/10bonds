@@ -27,7 +27,7 @@ const memo = new Map<string, ExactFrontier>();
 // seconds to minutes, so they are built in the background, one solve per turn, and cached by data copy, filter,
 // horizon, rules version and issuer-group table. Until ready, frontierFor throws FrontierPending (HTTP 202 callers).
 export class FrontierPending extends Error {
-  constructor() { super("The coherent lists are still being calculated."); }
+  constructor() { super("Being prepared, try again in a minute."); }
 }
 const coherentMemo = new Map<string, CoherentFrontier>();
 const coherentBuilding = new Map<string, Promise<CoherentFrontier>>();
