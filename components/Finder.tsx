@@ -575,7 +575,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         const b = data?.band?.k === mix ? data.band : undefined;
         const actual = b?.avgRisk ?? bandPos.avgRisk;
         if (b?.none || (bandPos.unavailable && !b)) return t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max));
-        return `${t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max))}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
+        // The ten bonds shown: their lowest and highest individual score (always at most 2 apart).
+        const scores = list && list.length === 10 ? list.map((r) => r.risk).filter((x): x is number => typeof x === "number") : [];
+        const range = scores.length === 10 ? ` · ${t.bandRange(Math.min(...scores), Math.max(...scores))}` : bandPos.riskMin != null && bandPos.riskMax != null && b?.source !== "live" ? ` · ${t.bandRange(bandPos.riskMin, bandPos.riskMax)}` : "";
+        return `${t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max))}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${range}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
       })()
     : undefined;
   const live = simple && paid && mode === "portfolio" && data?.band?.source !== "live" ? tileFigures(positions?.[mix - 1]) : null;

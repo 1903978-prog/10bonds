@@ -7,6 +7,7 @@ import { signatureOf } from "./bestTable";
 import { policySignature } from "./coherence";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
 import { TERMS } from "./limits";
+import { MAX_SPREAD } from "./riskWindow";
 import { bondRisk } from "./ratings";
 import { configSignature } from "./riskBands";
 import { loadBandConfig, loadStoredBands } from "./riskBandsStore";
@@ -56,6 +57,8 @@ async function sql() {
       position smallint not null check (position between 1 and 30),
       duration_target numeric not null,
       avg_ytm numeric, avg_duration numeric, avg_risk numeric, expected_loss numeric, worst_risk numeric,
+      risk_min smallint, risk_max smallint, risk_spread smallint, risk_consistency text check (risk_consistency in ('PASS','FAIL')),
+      check (not filled or (risk_consistency = 'PASS' and risk_spread <= 2)),
       band_min numeric not null, band_max numeric not null,
       optimal boolean not null default false,
       filled boolean not null default false,
@@ -148,7 +151,7 @@ async function once(trigger: string, f: Pick<BondFilter, "currency" | "size">, f
       on conflict do nothing returning id`;
     if (!ins[0]) return null; // another run saved the same batch a moment ago
     const sid = Number(ins[0].id);
-    const rows = a.rows.map((r) => ({ snapshot_id: sid, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.durationTarget, avg_ytm: r.ytm, avg_duration: r.duration, avg_risk: r.risk, expected_loss: r.expectedLoss, worst_risk: r.worstRisk, band_min: r.bandMin, band_max: r.bandMax, optimal: r.optimal, filled: r.filled, error: r.error, portfolio_id: r.portfolioId ? pidHash(r.horizon + r.portfolioId) : null, shared_with: r.sharedWith, mapped_from: r.mappedFrom, ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`bond_${i + 1}`, [...r.isins].map((x) => codes.get(x)!).sort()[i] ?? null])) }));
+    const rows = a.rows.map((r) => ({ snapshot_id: sid, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.durationTarget, avg_ytm: r.ytm, avg_duration: r.duration, avg_risk: r.risk, risk_min: r.riskMin, risk_max: r.riskMax, risk_spread: r.riskSpread, risk_consistency: r.riskConsistency, expected_loss: r.expectedLoss, worst_risk: r.worstRisk, band_min: r.bandMin, band_max: r.bandMax, optimal: r.optimal, filled: r.filled, error: r.error, portfolio_id: r.portfolioId ? pidHash(r.horizon + r.portfolioId) : null, shared_with: r.sharedWith, mapped_from: r.mappedFrom, ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`bond_${i + 1}`, [...r.isins].map((x) => codes.get(x)!).sort()[i] ?? null])) }));
     await tx`insert into app.efficient_portfolio_positions ${tx(rows)}`;
     const seen = new Set<string>();
     const hold: Record<string, unknown>[] = [];
@@ -229,6 +232,7 @@ const toPosition = (r: Record<string, unknown>, isins: string[]): SliderPosition
     query: ok ? { ytm: Number(r.avg_ytm), risk: 10, guard: true, band: k } : null,
     ytm: ok ? Number(r.avg_ytm) : null, expectedLoss: ok ? Number(r.expected_loss) : null, avgRisk: ok ? Math.round(Number(r.avg_risk) * 10) / 10 : null,
     worstRisk: ok ? Number(r.worst_risk) : null, isins, sameAs: null, unavailable: !ok,
+    riskMin: ok ? Number(r.risk_min) : null, riskMax: ok ? Number(r.risk_max) : null,
     band: { min: Number(r.band_min), max: Number(r.band_max) }, optimal: ok ? r.optimal === true : undefined,
   };
 };
@@ -246,6 +250,12 @@ export async function activeSnapshot(f: Pick<BondFilter, "currency" | "size">): 
     const id = Number(head[0].id);
     if (hit && hit.id === id) { hit.at = Date.now(); return hit.v; }
     const rows = await s`select * from app.efficient_portfolio_positions where snapshot_id = ${id} order by row_no`;
+    // Served only if every position still passes today's rules (a snapshot from before a rule, or edited, is never shown); the older one stays for diagnostics.
+    if (rows.length !== 90 || rows.some((r) => r.filled !== true || r.risk_consistency !== "PASS" || Number(r.risk_spread) > MAX_SPREAD || Number(r.risk_max) - Number(r.risk_min) > MAX_SPREAD)) {
+      console.error(`[slider-snapshot] snapshot ${id} fails the current rules; not served`);
+      active.delete(key);
+      return null;
+    }
     const horizons = { short: [], mid: [], long: [] } as unknown as ActiveSnapshot["horizons"];
     for (const r of rows) horizons[KEYS[HORIZONS.indexOf(r.horizon as Horizon)]].push(toPosition(r, []));
     const v: ActiveSnapshot = { id, batchId: String(head[0].batch_id), dataAsOf: head[0].data_as_of ? new Date(head[0].data_as_of as string).toISOString() : null, publishedAt: new Date(head[0].published_at as string).toISOString(), methodology: String(head[0].methodology), horizons };

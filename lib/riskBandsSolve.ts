@@ -1,5 +1,6 @@
 import type { BandCand } from "./coherentFrontier";
 import { loadSolver, SOLVER_OPTIONS } from "./highsSolver";
+import { windowModel } from "./riskWindow";
 import { LIST_SIZE, sumRange, type RiskBand, type Rules } from "./riskBands";
 
 // The exact answer for one band (owner, 27/10/2026): of all lists of 10 bonds with the average risk inside the band, one bond per issuer
@@ -35,8 +36,11 @@ async function stage(cs: BandCand[], sr: { lo: number; hi: number }, rules: Rule
   for (const idx of by((c) => c.group ?? c.b.isin).values()) if (idx.length > rules.perIssuer) add(`grp${k++}`, idx, () => 1, "<=", rules.perIssuer);
   k = 0;
   for (const idx of by((c) => c.sector).values()) if (idx.length > rules.perSector) add(`sec${k++}`, idx, () => 1, "<=", rules.perSector);
+  // Risk consistency: all ten bonds inside one window of three consecutive risk classes (lib/riskWindow.ts).
+  const win = windowModel(cs.map((c) => c.cls), (i) => `x${i}`);
+  rows.push(...win.rows);
   const objective = st.objective === "ret" ? `Maximize\n obj: ${terms(all, (i) => cs[i].ret)}` : `Minimize\n obj: ${terms(all, (i) => cs[i].pd)}`;
-  const lp = `${objective}\nSubject To\n${rows.join("\n")}\nBinary\n ${all.map((i) => `x${i}`).reduce((out, t, j) => out + (j === 0 ? "" : j % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
+  const lp = `${objective}\nSubject To\n${rows.join("\n")}\nBinary\n ${[...all.map((i) => `x${i}`), ...win.binaries].reduce((out, t, j) => out + (j === 0 ? "" : j % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
   if (/NaN|Infinity/.test(lp)) throw new Error("Band model has a non-finite number");
   await new Promise((r) => setImmediate(r));
   const highs = await loadSolver();

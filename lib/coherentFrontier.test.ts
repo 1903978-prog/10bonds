@@ -1,3 +1,4 @@
+import { riskConsistent } from "./riskWindow";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PublicBond } from "./types";
 import { candidatesOf, coherentFrontier } from "./coherentFrontier";
@@ -36,6 +37,7 @@ function bruteLists(bonds: PublicBond[], duration: number, p: CoherencePolicy = 
       const dur = sel.reduce((s, c) => s + c.dur, 0) / 10;
       if (Math.abs(dur - duration) > duration * 0.05 + 1e-9) return;
       if (!checkList(sel.map((c) => c), p, 10).every((c) => c.ok)) return;
+      if (!riskConsistent(sel.map((c) => c.cls))) return; // risk window: scores at most 2 apart
       const groups = new Set(sel.map((c) => c.group));
       if (spread && sel.some((c) => [...c.beatenBy].some((g) => !groups.has(g)))) return; // spread rule
       out.push({ ret: sel.reduce((s, c) => s + c.ret, 0) / 10, loss: (sel.reduce((s, c) => s + c.pd, 0) / 10) * 0.6 });

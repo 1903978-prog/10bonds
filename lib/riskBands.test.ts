@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PublicBond } from "./types";
 import { candidatesOf } from "./coherentFrontier";
-import { atLeastAsGood, cleanConfig, defaultBands, defaultConfig, greedyStart, improveSteps, inBand, listOk, nonMonotonic, pruneCandidates, statOf, sumRange, type Rules } from "./riskBands";
+import { atLeastAsGood, cleanConfig, defaultBands, defaultConfig, bestGreedy, improveSteps, inBand, listOk, nonMonotonic, pruneCandidates, statOf, sumRange, type Rules } from "./riskBands";
 import { solveBand } from "./riskBandsSolve";
 
 const bond = (isin: string, issuer: string, ytm: number, rating: string, dur = 4): PublicBond => ({
@@ -95,13 +95,14 @@ describe("progressive fallback", () => {
     const cs = candidatesOf(universe(23), 4, false);
     let checked = 0;
     for (const b of bands) {
-      const g = greedyStart(cs, b, rules);
+      const gg = bestGreedy(cs, b, rules);
+      const g = gg?.sel ?? null;
       const exact = await solveBand(cs, b, rules);
       if (exact.status === "infeasible") { continue; }
       if (!g) continue; // a hard band can need the exact solve to start
       checked++;
       expect(listOk(g, b, rules)).toBe(true);
-      const steps = improveSteps(g, cs, b, rules);
+      const steps = improveSteps(g, gg!.pool, b, rules);
       let prev = statOf(g);
       for (const st of steps) {
         expect(listOk(st.sel, b, rules)).toBe(true);
@@ -120,7 +121,7 @@ describe("progressive fallback", () => {
     const rnd = (() => { let s = 7; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
     const cs = Array.from({ length: 2000 }, (_, i) => ({ b: bond(`X${i}`, `G${i}`, 2, "A"), group: `G${i}`, ret: 2 + rnd() * 6, cls: 1 + Math.floor(rnd() * 10), dur: 3.7 + rnd() * 0.6, pd: rnd() * 5, sector: `S${i % 12}`, weak: false, ci: i, u: 0, notch: 5, years: 4, beatenBy: new Set<string>() }));
     const t0 = Date.now();
-    const g = greedyStart(cs, bands[14], rules);
+    const g = bestGreedy(cs, bands[14], rules)?.sel ?? null;
     expect(Date.now() - t0).toBeLessThan(300);
     expect(g).not.toBeNull();
     expect(listOk(g!, bands[14], rules)).toBe(true);

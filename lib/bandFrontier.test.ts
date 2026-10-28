@@ -1,3 +1,4 @@
+import { riskConsistent } from "./riskWindow";
 import { describe, expect, it } from "vitest";
 import type { PublicBond } from "./types";
 import { buildFrontier, dominates, nondominated, pickPositions, verifyList } from "./bandFrontier";
@@ -37,6 +38,7 @@ describe("revised 30-band frontier", () => {
         const dur = sel.reduce((s, c) => s + c.dur, 0) / 10;
         if (Math.abs(dur - 4) > 4 * 0.05 + 1e-9) return;
         if (!checkList(sel, P, 10).every((c) => c.ok)) return;
+        if (!riskConsistent(sel.map((c) => c.cls))) return; // risk window: scores at most 2 apart
         all.push({ ret: sel.reduce((s, c) => s + c.ret, 0) / 10, loss: sel.reduce((s, c) => s + c.pd, 0) });
         return;
       }
@@ -46,7 +48,7 @@ describe("revised 30-band frontier", () => {
     };
     go(0);
     const truth = nondominated(all);
-    expect(truth.length).toBeGreaterThan(2);
+    expect(truth.length).toBeGreaterThan(0);
     expect(f.efficient.length).toBe(truth.length);
     for (const t of truth) expect(f.efficient.some((p) => Math.abs(p.ret - t.ret) < 1e-5 && Math.abs(p.loss - t.loss) < 1e-5)).toBe(true);
     for (const p of f.efficient) {

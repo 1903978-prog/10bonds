@@ -181,6 +181,10 @@ table app.efficient_portfolio_positions
   avg_risk numeric
   expected_loss numeric
   worst_risk numeric
+  risk_min smallint
+  risk_max smallint
+  risk_spread smallint
+  risk_consistency text
   band_min numeric not null
   band_max numeric not null
   optimal boolean not null default false
@@ -634,9 +638,11 @@ constraints
   app.efficient_portfolio_positions efficient_portfolio_positions_bond_7_fkey: FOREIGN KEY (bond_7) REFERENCES app.bond_codes(bond_code)
   app.efficient_portfolio_positions efficient_portfolio_positions_bond_8_fkey: FOREIGN KEY (bond_8) REFERENCES app.bond_codes(bond_code)
   app.efficient_portfolio_positions efficient_portfolio_positions_bond_9_fkey: FOREIGN KEY (bond_9) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_check: CHECK (((NOT filled) OR ((risk_consistency = 'PASS'::text) AND (risk_spread <= 2))))
   app.efficient_portfolio_positions efficient_portfolio_positions_horizon_check: CHECK ((horizon = ANY (ARRAY['SHORT'::text, 'MEDIUM'::text, 'LONG'::text])))
   app.efficient_portfolio_positions efficient_portfolio_positions_pkey: PRIMARY KEY (snapshot_id, row_no)
   app.efficient_portfolio_positions efficient_portfolio_positions_position_check: CHECK ((("position" >= 1) AND ("position" <= 30)))
+  app.efficient_portfolio_positions efficient_portfolio_positions_risk_consistency_check: CHECK ((risk_consistency = ANY (ARRAY['PASS'::text, 'FAIL'::text])))
   app.efficient_portfolio_positions efficient_portfolio_positions_row_no_check: CHECK (((row_no >= 1) AND (row_no <= 90)))
   app.efficient_portfolio_positions efficient_portfolio_positions_snapshot_id_fkey: FOREIGN KEY (snapshot_id) REFERENCES app.efficient_portfolio_snapshots(id) ON DELETE CASCADE
   app.efficient_portfolio_positions efficient_portfolio_positions_snapshot_id_horizon_position_key: UNIQUE (snapshot_id, horizon, "position")
