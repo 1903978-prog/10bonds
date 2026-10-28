@@ -13,4 +13,15 @@ describe("finder translations", () => {
       }
     }
   });
+
+  it("short tile labels fit on one line in the finder tiles (about 150 px wide on a 390 px phone)", () => {
+    for (const [lang, t] of Object.entries(FINDER_TEXT)) {
+      for (const k of ["retYear", "avgYield", "avgDuration", "found", "besShort"] as const) {
+        expect(t[k].length, `${lang}.${k}`).toBeLessThanOrEqual(26);
+      }
+      for (const k of ["lifeLoss", "chartX", "chartY", "chartSlope"] as const) {
+        expect(t[k].length, `${lang}.${k}`).toBeLessThanOrEqual(44);
+      }
+    }
+  });
 });
