@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { PublicBond } from "../types";
 import { SP_CORPORATE, SP_CORPORATE_YEARS, spCorporateRow } from "./spReference";
-import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, curveYield, grossSpreadBp, percentileRank } from "./math";
-import { calculateBes } from "./calc";
+import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, cumulativePdExtended, curveYield, curveYieldExtended, grossSpreadBp, percentileRank } from "./math";
+import { STALE_DAYS } from "../bonds";
+import { BES_STALE_DAYS, calculateBes } from "./calc";
+import { EUR_BENCHMARK } from "./benchmarkTables";
 
 const sp = (c: string) => SP_CORPORATE.find(([k]) => k === c)![1];
 
@@ -48,6 +50,30 @@ describe("probability maths", () => {
     expect(annualEquivalentPd(0.0286, 10)).not.toBeCloseTo(0.00286, 6);
     expect(annualEquivalentPd(0, 5)).toBe(0);
   });
+});
+
+describe("documented extensions (flagged limited)", () => {
+  const row = sp("BBB"), hz = SP_CORPORATE_YEARS;
+  it("default table: yearly hazard of the last segment is held flat beyond 15 years", () => {
+    const e = cumulativePdExtended(row, hz, 20)!;
+    expect(e.extended).toBe(true);
+    const h = 1 - Math.pow((1 - 0.0401) / (1 - 0.0378), 1 / 1);
+    expect(e.pd).toBeCloseTo(1 - (1 - 0.0401) * Math.pow(1 - h, 5), 10);
+    expect(e.pd).toBeGreaterThan(0.0401);
+    expect(cumulativePdExtended(row, hz, 10)!.extended).toBe(false);
+    expect(cumulativePdExtended(row, hz, 60)).toBeNull();
+  });
+  it("a zero-default row stays zero beyond the table", () => {
+    expect(cumulativePdExtended([0, 0, 0], [1, 2, 3], 9)!.pd).toBe(0);
+  });
+  it("benchmark curve: end yield held flat for a limited distance, otherwise unavailable", () => {
+    const c = [{ years: 1, ytm: 2 }, { years: 10, ytm: 3 }];
+    expect(curveYieldExtended(c, 5)).toEqual({ y: expect.closeTo(2.444, 2), extended: false });
+    expect(curveYieldExtended(c, 15)).toEqual({ y: 3, extended: true });
+    expect(curveYieldExtended(c, 0.5)).toEqual({ y: 2, extended: true });
+    expect(curveYieldExtended(c, 25)).toBeNull();
+  });
+  it("uses the site's own stale limit", () => { expect(BES_STALE_DAYS).toBe(STALE_DAYS); });
 });
 
 describe("spreads and losses", () => {
@@ -106,6 +132,13 @@ describe("BES on a synthetic universe", () => {
     expect(r.liquidityCostBp).toBeNull();
     expect(r.fullyAdjustedBp).toBeNull();
   });
+  it("a yield far below the government curve is flagged limited", () => {
+    const u = universe();
+    u.push({ ...u[20], isin: "XSLOW", name: "Low", issuer: "Low AG", grossYtm: 0.5 } as PublicBond);
+    const r = calculateBes(u, TODAY).find((x) => x.isin === "XSLOW")!;
+    expect(r.status).toBe("limited");
+    expect(r.notes.join(" ")).toMatch(/100 bp below/);
+  });
   it("is reproducible", () => {
     expect(calculateBes(universe(), TODAY)).toEqual(rows);
   });
@@ -118,11 +151,33 @@ describe("BES on a synthetic universe", () => {
     const r = calculateBes(universe().map((b) => (b.isin.startsWith("XS") ? { ...b, currency: "CHF" } : b)), TODAY).filter((x) => x.isin.startsWith("XS"));
     expect(r.every((x) => x.bes === null && x.benchmarkYield === null)).toBe(true);
   });
-  it("floating notes and maturities beyond 15 years are not scored", () => {
+  it("floating notes are not scored; a 20-year bond gets a limited score with both extensions noted", () => {
     const u = universe();
     u.push({ ...u[20], isin: "FRN1", couponType: "floating" } as PublicBond, { ...u[20], isin: "LONG1", maturity: "2046-10-28" } as PublicBond);
     const r = calculateBes(u, TODAY);
     expect(r.find((x) => x.isin === "FRN1")!.status).toBe("unavailable");
-    expect(r.find((x) => x.isin === "LONG1")!.bes).toBeNull();
+    const l = r.find((x) => x.isin === "LONG1")!;
+    expect(l.status).toBe("limited");
+    expect(l.bes).not.toBeNull();
+    expect(l.notes.join(" ")).toMatch(/extended beyond 15 years/);
+    expect(l.notes.join(" ")).not.toMatch(/Benchmark extended/); // EUR table covers 20 years (owner's table 1-30y)
+    const v = calculateBes([...u, { ...u[20], isin: "VLONG", maturity: "2062-10-28" } as PublicBond], TODAY).find((x) => x.isin === "VLONG")!;
+    expect(v.status).toBe("unavailable"); // 36 years: no verified EUR benchmark
+    expect(v.notes.join(" ")).toMatch(/No verified benchmark/);
+  });
+  it("EUR benchmark is the owner's table (reference date 27 Oct 2026), not the daily copy", () => {
+    const c = rows.find((r) => r.isin === "XS0")!;
+    expect(c.benchmarkSource).toMatch(/eur-bench-2026-10-27/);
+    expect(c.benchmarkYield!).toBeCloseTo(3.16, 3); // 5 years, Verified row
+    expect(EUR_BENCHMARK.points).toHaveLength(30);
+    expect(EUR_BENCHMARK.points.filter((p) => p.status === "Verified").map((p) => p.years)).toEqual([1, 2, 3, 5, 7, 10, 15, 20, 30]);
+    expect(EUR_BENCHMARK.points[9].yield).toBe(3.42);
+  });
+  it("a bond 9 days behind the newest quote is still scored (site limit is 10 days)", () => {
+    const u = universe();
+    u.push({ ...u[20], isin: "OLD9", ytmAsOf: "2026-10-19T00:00:00.000Z" } as PublicBond);
+    expect(calculateBes(u, TODAY).find((x) => x.isin === "OLD9")!.bes).not.toBeNull();
+    u.push({ ...u[20], isin: "OLD12", ytmAsOf: "2026-10-16T00:00:00.000Z" } as PublicBond);
+    expect(calculateBes(u, TODAY).find((x) => x.isin === "OLD12")!.status).toBe("unavailable");
   });
 });

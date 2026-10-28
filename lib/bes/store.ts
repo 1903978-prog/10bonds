@@ -1,6 +1,6 @@
 import { accountsSql } from "../accounts";
 import type { PublicBond } from "../types";
-import { BES_METHOD, BES_REFERENCE_VERSION, calculateBes, type BesRow } from "./calc";
+import { BES_METHOD, BES_REFERENCE_VERSION, benchmarkReport, calculateBes, type BesRow } from "./calc";
 import { SP_CORPORATE, SP_CORPORATE_SOURCE, SP_CORPORATE_VERSION, SP_CORPORATE_YEARS } from "./spReference";
 import { SOVEREIGN_RATES, SOVEREIGN_YEARS } from "../sovereign";
 import { DEFAULT_RATES, DEFAULT_YEARS } from "../seo/defaultRates";
@@ -86,7 +86,8 @@ export async function runBes(bonds: PublicBond[], trigger: string, force = false
     const med = (xs: number[]) => (xs.length ? xs[Math.floor(xs.length / 2)] : null);
     const bs = scored.map((r) => r.bes!).sort((a, b) => a - b);
     const newest = bonds.reduce<string | null>((m, b) => (b.ytmAsOf && (!m || b.ytmAsOf > m) ? b.ytmAsOf : m), null);
-    const stats = { ...counts, meanNetBp: mean(nets), medianNetBp: med(nets), meanBes: mean(bs), medianBes: med(bs), invalidInputs: rows.filter((r) => r.status === "unavailable" && r.notes.some((n) => /Stale|plausible|possible price error/.test(n))).length };
+    const today = new Date().toISOString().slice(0, 10);
+    const stats = { ...counts, benchmarks: benchmarkReport(bonds, rows, today), meanNetBp: mean(nets), medianNetBp: med(nets), meanBes: mean(bs), medianBes: med(bs), invalidInputs: rows.filter((r) => r.status === "unavailable" && r.notes.some((n) => /Stale|plausible|possible price error/.test(n))).length };
     await s.begin(async (tx) => {
       await tx`update app.bes_runs set status = 'superseded' where status = 'published'`;
       await tx`update app.bes_runs set status = 'superseded', finished_at = now() where status = 'requested'`;
