@@ -1,0 +1,16 @@
+name: tmp measure
+on:
+  push:
+    branches: [claude/tmp-measure]
+jobs:
+  m:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          for i in 1 2 3 4 5 6 7 8; do
+            curl -s -o /tmp/s.json -w "snapshot HTTP %{http_code} %{time_total}s %{size_download}B\n" https://10bonds.com/api/slider-snapshot
+          done
+          head -c 400 /tmp/s.json; echo
+          curl -s -o /dev/null -w "home HTTP %{http_code} %{time_total}s\n" https://10bonds.com/
+          curl -s -o /dev/null -w "legacy slider short HTTP %{http_code} %{time_total}s\n" "https://10bonds.com/api/bonds/slider?duration=2"
+          curl -s -o /dev/null -w "etag304 test:" -H 'If-None-Match: x' https://10bonds.com/api/slider-snapshot; echo
