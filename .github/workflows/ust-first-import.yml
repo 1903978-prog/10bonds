@@ -55,3 +55,4 @@ jobs:
         if: always()
         run: |
           { echo '## Run 1'; cat run1.txt; echo; echo '## Run 2'; head -n 3 run2.txt; } >> "$GITHUB_STEP_SUMMARY" || true
+# rerun after jsonb fix
