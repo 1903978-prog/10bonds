@@ -19,7 +19,7 @@ const r1 = (x: number) => Math.round(x * 10) / 10;
 export const defaultBands = (): RiskBand[] =>
   Array.from({ length: BAND_COUNT }, (_, i) => ({ k: i + 1, min: r1(1 + 0.3 * i), max: i === BAND_COUNT - 1 ? 10 : r1(1.2 + 0.3 * i) }));
 
-export type BandConfig = { bands: RiskBand[]; perCell: number };
+export type BandConfig = { bands: RiskBand[]; perCell: number; /** Separates the stored lists of a methodology that shares the band table of another (Methodology 5). */ tag?: string };
 export const defaultConfig = (): BandConfig => ({ bands: defaultBands(), perCell: DEFAULT_PER_CELL });
 
 /** A clean config from what the admin sent, or null when anything is out of range. Bands need 1 <= min <= max <= 10, at 0.1 steps, and 1..30 in order. */
@@ -38,7 +38,7 @@ export function cleanConfig(raw: unknown): BandConfig | null {
   return { bands, perCell };
 }
 
-export const configSignature = (c: BandConfig) => `rb2:${c.perCell}:${c.bands.map((b) => `${b.min}-${b.max}${b.allowed ? `a${b.allowed.join("")}s${b.step?.i}of${b.step?.m}` : ""}`).join(",")}`;
+export const configSignature = (c: BandConfig) => `${c.tag ? `${c.tag}:` : ""}rb2:${c.perCell}:${c.bands.map((b) => `${b.min}-${b.max}${b.allowed ? `a${b.allowed.join("")}s${b.step?.i}of${b.step?.m}` : ""}`).join(",")}`;
 
 /** Sum of the 10 scores that puts the average inside the band (whole numbers): null if no whole sum fits. */
 export function sumRange(b: RiskBand): { lo: number; hi: number } | null {

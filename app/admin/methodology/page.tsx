@@ -24,7 +24,7 @@ export default async function AdminMethodology() {
   const f = { currency: "EUR", size: "100k" } as const;
   const src = await loadBondsFor(f).catch(() => null);
   if (src) {
-    for (const n of [3, 4] as const) {
+    for (const n of [3, 4, 5] as const) {
       const cfg = await bandTableOf(n);
       const row: StoredCount = {};
       for (const t of TERMS) {

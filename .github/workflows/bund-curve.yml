@@ -2,9 +2,6 @@ name: Bund curve
 # German Bund benchmark from the Bundesbank API (lib/bundCurve): every Monday 09:00 Europe/Berlin. GitHub cron is UTC only, so it fires at 07:00 and
 # 08:00 UTC and the script acts only when Berlin local time is Monday 09:xx (07:00 UTC in summer time, 08:00 UTC in winter time). Idempotent.
 on:
-  push:
-    branches: [claude/project-thread-014tk7]
-    paths: [".github/workflows/bund-curve.yml"]
   workflow_dispatch:
   schedule:
     - cron: "0 7 * * 1"
