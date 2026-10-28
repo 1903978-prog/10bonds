@@ -22,10 +22,10 @@ export type CardBond = {
   risk: number | null; lrScore: number | null; ret: number | null; duration: number | null; lifeYears: number;
   defaultChance: number | null; lossGivenDefault: number; expectedLoss: number | null; afterLoss: number | null;
   benchmark: "bund" | "treasury"; spreadBp: number | null;
-  efficiency: number | null; peerRank: number | null; peers: number | null;
+  efficiency: number | null; netSpreadBp?: number | null; peerRank: number | null; peers: number | null;
 };
 
-export type CardAlt = { isin: string; issuer: string; coupon: number | null; maturity: string | null; ret: number; duration: number; risk: number | null; afterLoss: number; efficiency: number | null };
+export type CardAlt = { isin: string; issuer: string; coupon: number | null; maturity: string | null; ret: number; duration: number; risk: number | null; afterLoss: number; efficiency: number | null; netSpreadBp?: number | null };
 
 const score = (b: PublicBond): number | null => {
   const n = bondNotch(b);
