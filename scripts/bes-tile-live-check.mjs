@@ -17,7 +17,11 @@ page.on("response", async (r) => {
 const res = await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 60000 });
 status = res?.status() ?? 0;
 console.log(`page status ${status}`);
+const listed = page.waitForResponse((r) => r.url().includes("/api/bonds?"), { timeout: 120000 }).catch(() => null);
 await page.getByRole("button", { name: /Pareto efficient portfolio/i }).first().click();
+const lr = await listed;
+if (lr) await lr.finished().catch(() => null);
+await page.waitForTimeout(3000);
 const tile = page.getByText(/efficiency score/i).first();
 try { await tile.waitFor({ timeout: 60000 }); } catch {
   console.log(`TILE NOT FOUND. list api status ${api}; api answer ${bes}`);
