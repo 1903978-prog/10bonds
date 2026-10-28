@@ -3,6 +3,9 @@ name: Portfolio Efficiency
 # and Bond Efficiency (23:30 UTC) jobs, i.e. 06:00 Asia/Bangkok plus a margin, and every 3 hours to pick up an admin "Recalculate" request.
 # It needs the Bond Efficiency run of the same price batch (it runs that first if missing). A price batch that is already optimised is skipped.
 on:
+  push: # TEMPORARY: first real-data run from this branch (removed before merge)
+    branches: [claude/project-thread-gh01rl]
+    paths: [".github/workflows/portfolio-efficiency.yml"]
   workflow_dispatch:
     inputs:
       force: { description: "Recalculate even if this price batch is done", type: boolean, default: false }
