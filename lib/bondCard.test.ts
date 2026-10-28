@@ -25,4 +25,14 @@ describe("bond card", () => {
     expect(notShownReason(true, whyHidden({ ...row, structure_modelled: true, modified_duration: 3, rating_sp: null, rating_moodys: null, rating_fitch: null, rating_resolved: null }))).toBe("no_rating");
     expect(notShownReason(true, whyHidden({ ...row, structure_modelled: true, modified_duration: 3 }))).toBe("quality");
   });
+
+  it("builds a card for an inflation-linked bond with no duration and no yield model (FR0000186413) without crashing", () => {
+    const b = { ...all[0], isin: "FR0000186413", grossYtm: 5.03, modifiedDuration: null, couponType: "inflation", seniority: null, maturity: "2029-07-25" };
+    const c = cardOf(b, all, { kind: "bund", points: [] });
+    expect(c.duration).toBeNull();
+    expect(c.efficiency).toBeNull();
+    expect(c.afterLoss).toBeNull();
+    expect(c.spreadBp).toBeNull();
+    expect(alternativesOf(b, all)).toEqual([]);
+  });
 });
