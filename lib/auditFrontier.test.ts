@@ -90,22 +90,23 @@ describe("frontier built from a raw feed", () => {
 describe("outlier rule (methodology: return > mean + k sd of comparable bonds)", () => {
   const peers = (n: number, dur = 4) => Array.from({ length: n }, (_, i) => mk(`P${i}`, `Peer ${i}`, 3 + (i % 5) * 0.1, dur, "A"));
   const sd = (xs: number[]) => { const m = xs.reduce((s, x) => s + x, 0) / xs.length; return Math.sqrt(xs.reduce((s, x) => s + (x - m) ** 2, 0) / xs.length); };
-  it("default k is 2 and the cut is mean + k x population standard deviation of the peers, the bond itself excluded", () => {
+  it("default k is 2 and the cut is mean + k x population standard deviation of the peers (at least the minimum gap), the bond itself excluded", () => {
     expect(OUTLIER_SD.default).toBe(2);
-    const p = peers(10);
+    // Spread wide enough that 2 sd is above the minimum gap (lib/outliers.ts OUTLIER_MIN_GAP), so only the statistics decide.
+    const p = Array.from({ length: 10 }, (_, i) => mk(`W${i}`, `Wide ${i}`, 3 + (i % 5) * 0.8, 4, "A"));
     const ys = p.map((b) => b.grossYtm!);
     const cut = ys.reduce((s, x) => s + x, 0) / 10 + 2 * sd(ys);
     expect(findOutliers([...p, mk("HI", "Hi", cut + 0.01, 4, "A")]).map((o) => o.bond.isin)).toEqual(["HI"]);
     expect(findOutliers([...p, mk("OK", "Ok", cut - 0.01, 4, "A")])).toHaveLength(0);
   });
-  it("needs 8 comparable bonds, same currency and risk score, duration within +-20% (at least +-1 year)", () => {
-    expect(findOutliers([...peers(7), mk("HI", "Hi", 9, 4, "A")])).toHaveLength(0);
-    expect(findOutliers([...peers(8), mk("HI", "Hi", 9, 4, "A")]).map((o) => o.bond.isin)).toEqual(["HI"]);
-    expect(findOutliers([...peers(12), mk("HI", "Hi", 9, 4, "A", { currency: "USD" })])).toHaveLength(0); // other currency: no peers
-    expect(findOutliers([...peers(12), mk("HI", "Hi", 9, 4, "BBB")])).toHaveLength(0); // other risk score: no peers
-    expect(findOutliers([...peers(12, 4), mk("HI", "Hi", 9, 4.9, "A")]).map((o) => o.bond.isin)).toEqual(["HI"]); // 1 year apart: still peers (max(1, 20% of 4.9) = 1)
-    expect(findOutliers([...peers(12, 4), mk("HI", "Hi", 9, 5.2, "A")])).toHaveLength(0); // 1.2 years apart: not peers
-    expect(findOutliers([...peers(12, 20), mk("HI", "Hi", 9, 23.9, "A")]).map((o) => o.bond.isin)).toEqual(["HI"]); // 20% of 23.9 = 4.78 > 3.9
+  it("(strict cohort, no widening) needs 8 comparable bonds, same currency and risk score, duration within +-20% (at least +-1 year)", () => {
+    expect(findOutliers([...peers(7), mk("HI", "Hi", 9, 4, "A")], 2, false)).toHaveLength(0);
+    expect(findOutliers([...peers(8), mk("HI", "Hi", 9, 4, "A")], 2, false).map((o) => o.bond.isin)).toEqual(["HI"]);
+    expect(findOutliers([...peers(12), mk("HI", "Hi", 9, 4, "A", { currency: "USD" })], 2, false)).toHaveLength(0); // other currency: no peers
+    expect(findOutliers([...peers(12), mk("HI", "Hi", 9, 4, "BBB")], 2, false)).toHaveLength(0); // other risk score: no peers
+    expect(findOutliers([...peers(12, 4), mk("HI", "Hi", 9, 4.9, "A")], 2, false).map((o) => o.bond.isin)).toEqual(["HI"]); // 1 year apart: still peers (max(1, 20% of 4.9) = 1)
+    expect(findOutliers([...peers(12, 4), mk("HI", "Hi", 9, 5.2, "A")], 2, false)).toHaveLength(0); // 1.2 years apart: not peers
+    expect(findOutliers([...peers(12, 20), mk("HI", "Hi", 9, 23.9, "A")], 2, false).map((o) => o.bond.isin)).toEqual(["HI"]); // 20% of 23.9 = 4.78 > 3.9
   });
   it("seniority field and name both leave a bond out before any statistics", () => {
     const o = findOutliers([mk("S", "S", 3, 4, "A", { seniority: "Tier 2" }), mk("N", "N Perpetual", 3, 4, "A"), mk("U", "U", 3, 4, "A", { seniority: "Senior Unsubordinated" })]);

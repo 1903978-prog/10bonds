@@ -16,7 +16,9 @@ describe("outlier rule", () => {
   it("keeps a bond within k standard deviations of its cohort's average", () => {
     // peers: average 3.275%, std dev about 0.173
     expect(findOutliers([...peers, bond("OK", 3.6)])).toEqual([]);
-    expect(findOutliers([...peers, bond("OK", 3.6)], 1).map((o) => o.bond.isin)).toContain("OK");
+    // k = 1 would cut at 3.45, but a yield must also sit at least 1 point above the average (3.275 + 1).
+    expect(findOutliers([...peers, bond("OK", 3.6)], 1)).toEqual([]);
+    expect(findOutliers([...peers, bond("HIGH", 4.4)], 1).map((o) => o.bond.isin)).toEqual(["HIGH"]);
     expect(findOutliers([...peers, bond("HIGH", 4.1)], 5)).toEqual([]);
     expect(findOutliers([...peers, bond("HIGH", 4.3)], 5).map((o) => o.bond.isin)).toEqual(["HIGH"]);
   });
@@ -31,6 +33,22 @@ describe("outlier rule", () => {
     expect(findOutliers([bond("A", 3), bond("B", 3.1), bond("HIGH", 7)])).toEqual([]);
     expect(findOutliers([...peers, bond("BB", 6.8, 5, "Corp BB 2031", "BB")])).toEqual([]);
     expect(findOutliers([...peers, { ...bond("USD", 6.8), currency: "USD" }])).toEqual([]);
+  });
+  it("judges a thin cohort against a wider one (risk 8, short bond, 10.77% like BCP V Modular Services Finance II)", () => {
+    // Only three risk-8 bonds near 2 years, so the old rule did not judge; with the neighbouring risk scores and a wider duration window it does.
+    const mk = (id: string, y: number, r: string, d: number) => bond(id, y, d, `Corp ${id} 2028`, r);
+    const cohort = [
+      ...Array.from({ length: 5 }, (_, i) => mk(`S${i}`, 6.2 + i * 0.1, "BB", 2 + i * 0.1)),
+      ...Array.from({ length: 4 }, (_, i) => mk(`E${i}`, 6.8 + i * 0.1, "B", 2.2 + i * 0.1)),
+    ];
+    const high = mk("BCP", 10.77, "B", 2);
+    expect(findOutliers([...cohort, high], 2, false)).toEqual([]);
+    expect(findOutliers([...cohort, high]).map((o) => o.bond.isin)).toEqual(["BCP"]);
+    expect(findOutliers([...cohort, mk("OK", 7.0, "B", 2)])).toEqual([]);
+  });
+  it("near-identical peers cannot flag a bond that is only slightly higher (EBRD: peers sd 0.08, bond 0.4 above)", () => {
+    const tight = Array.from({ length: 12 }, (_, i) => bond(`T${i}`, 5.05 + (i % 3) * 0.04, 7, `Agency Peer${i} 2035`, "AAA"));
+    expect(findOutliers([...tight, bond("EBRD", 5.5, 7, "Agency EBRD 2035", "AAA")])).toEqual([]);
   });
   it("dropOutliers removes exactly those bonds", () => {
     expect(dropOutliers([...peers, bond("HIGH", 6.8)]).map((b) => b.isin)).toEqual(peers.map((b) => b.isin));

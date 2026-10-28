@@ -1,6 +1,6 @@
 // Which bonds the outlier rule (lib/outliers.ts) leaves out on the live copy, the 5-year top 10 after it, and the
 // admin "why in or out" reasons for the 4-6y bracket. Read-only. Usage: npx vite-node -c vitest.config.ts scripts/outliers-live-check.ts
-import { loadBonds, loadOutliers } from "@/lib/bonds";
+import { loadAllShown, loadBonds, loadOutliers } from "@/lib/bonds";
 import { bondRisk } from "@/lib/ratings";
 import { rankBonds } from "@/lib/ranking";
 import { V1_CURVE } from "@/lib/riskPremium/curve";
@@ -26,4 +26,21 @@ const cmp = compareScenario(data.bonds, contextFor(data.bonds, data.asOf, V1_CUR
 console.log(`\n== 4-6y bracket, Pareto and Romania rows (${cmp.bracket.length} bonds)`);
 for (const r of cmp.bracket.filter((r) => /Pareto/.test(r.why) || /romania/i.test(r.issuer)).slice(0, 40))
   console.log(`${r.issuer.slice(0, 30).padEnd(30)} ytm ${r.ytm.toFixed(2)} risk ${r.risk} dur ${r.duration.toFixed(1)} · ${r.why}`);
+// Thin cohorts (28/10/2026): the old rule (no widening) against the new one, on every shown bond, and the BCP V bond itself.
+{
+  const { findOutliers } = await import("@/lib/outliers");
+  // loadAllShown is already cut by the rule: add the cut bonds back to get every rated bond.
+  const raw = [...(await loadAllShown()).bonds, ...(await loadOutliers()).map((o) => o.bond)];
+  const all = [...new Map(raw.map((b) => [b.isin, b])).values()];
+  const before = new Set(findOutliers(all, 2, false).map((o) => o.bond.isin));
+  const after = findOutliers(all, 2, true);
+  const added = after.filter((o) => !before.has(o.bond.isin));
+  console.log(`\n== outlier rule, ${all.length} rated bonds: old rule ${before.size} left out, new rule ${after.length}, newly left out ${added.length}`);
+  for (const o of added.sort((a, b) => b.bond.grossYtm! - a.bond.grossYtm!).slice(0, 60))
+    console.log(`NEW ${o.bond.currency} risk ${bondRisk(o.bond)} dur ${o.bond.modifiedDuration?.toFixed(1)} ytm ${o.bond.grossYtm?.toFixed(2)} peers avg ${o.peerMean?.toFixed(2)} sd ${o.peerSd?.toFixed(2)} ${o.bond.name.slice(0, 60)}`);
+  for (const b of all.filter((x) => /BCP V|Modular Services/i.test(x.name))) {
+    const hit = after.find((o) => o.bond.isin === b.isin);
+    console.log(`BCP ${b.name} ${b.currency} risk ${bondRisk(b)} dur ${b.modifiedDuration?.toFixed(2)} ytm ${b.grossYtm?.toFixed(2)} old rule: ${before.has(b.isin) ? "left out" : "passed"} · new rule: ${hit ? `left out (peers avg ${hit.peerMean?.toFixed(2)} sd ${hit.peerSd?.toFixed(2)})` : "passed"} · seniority ${b.seniority ?? "-"}`);
+  }
+}
 process.exit(0);

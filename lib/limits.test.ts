@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DURATION_STEPS, nearHorizon, snapDuration } from "./limits";
+import { DURATION_STEPS, nearHorizon, selectedTerm, snapDuration } from "./limits";
 
 describe("horizon slider stops", () => {
   it("runs every year to 15, then 20, 25 and 30+", () => {
@@ -21,5 +21,14 @@ describe("exact-year horizon", () => {
     for (const t of TERMS) expect(isExactYear(t.duration) && isTermHorizon(t.duration)).toBe(true);
     expect(isExactYear(16)).toBe(false);
     expect(isTermHorizon(3)).toBe(false);
+  });
+});
+
+describe("exact year versus horizon buttons", () => {
+  it("shows no horizon button while an exact year is in use, even at 2, 4 or 10 years", () => {
+    for (const y of [2, 4, 10]) expect(selectedTerm(true, y)).toBeNull();
+  });
+  it("clicking a horizon drops the exact year and selects that term", () => {
+    expect([2, 4, 10].map((d) => selectedTerm(false, d))).toEqual(["short", "mid", "long"]);
   });
 });

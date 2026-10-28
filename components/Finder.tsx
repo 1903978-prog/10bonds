@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaSync, type Quota } from "./SearchQuota";
-import { DURATION_STEPS, EXACT_YEARS, LIMITS, TERMS, isExactYear, isOpenEnded, isTermHorizon, termOf } from "@/lib/limits";
+import { DURATION_STEPS, EXACT_YEARS, LIMITS, TERMS, isExactYear, isOpenEnded, isTermHorizon, selectedTerm, termOf } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
@@ -671,7 +671,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         )}
         {simple ? (
           <>
-            <TermPicker value={yearMode ? null : termOf(duration)} onChange={(d) => { setYearMode(false); changeDuration(d); }} year={yearMode ? duration : null} canYear={canYear} onYear={(y) => { setYearMode(true); changeDuration(y); }} onLocked={() => setYearUp(true)} />
+            <TermPicker value={selectedTerm(yearMode, duration)} onChange={(d) => { setYearMode(false); changeDuration(d); }} year={yearMode ? duration : null} canYear={canYear} onYear={(y) => { setYearMode(true); changeDuration(y); }} onLocked={() => setYearUp(true)} />
             {yearUp && <ExcelUpsell onClose={() => setYearUp(false)} title={t.yearUpTitle} body={t.yearUpBody} />}
             {/* In 1-bond mode the slider stays in place, hidden, so nothing above or beside it moves. */}
             <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
