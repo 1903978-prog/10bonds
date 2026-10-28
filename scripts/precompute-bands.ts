@@ -1,23 +1,30 @@
 // Works out the 30 risk-band portfolios (lib/riskBands.ts) for every search the finder offers (EUR and USD, all sizes and small orders; short,
 // medium and long term) with the exact solver and saves them in the database, so the finder shows a clicked point from storage in a few
 // milliseconds. A set already saved for exactly the current data and band table is kept.
-// Usage: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts [EUR:100k ...]
+// With --years it works out the exact years 1 to 15 instead (Plus and above pick one; the three terms are years 2, 4 and 10 and are skipped).
+// Usage: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts [--years] [EUR:100k ...]
 process.env.ALLOW_LIVE_SOLVE = "1";
 import { loadBondsFor } from "@/lib/bonds";
-import { TERMS } from "@/lib/limits";
+import { EXACT_YEARS, TERMS } from "@/lib/limits";
 import { buildBands } from "@/lib/riskBandsBuild";
 import { bandsKey } from "@/lib/riskBandsServe";
 import { loadBandConfig, loadStoredBands, saveStoredBands } from "@/lib/riskBandsStore";
 
 const ALL = ["EUR:100k", "EUR:1k", "USD:100k", "USD:1k"];
-const want = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
+const args = process.argv.slice(2);
+const yearsRun = args.includes("--years");
+const filters = args.filter((a) => !a.startsWith("--"));
+const want = filters.length ? filters : ALL;
+const horizons = yearsRun
+  ? EXACT_YEARS.filter((y) => !TERMS.some((t) => t.duration === y)).map((y) => ({ key: `year ${y}`, duration: y }))
+  : TERMS;
 const cfg = await loadBandConfig();
 for (const w of want) {
   const [currency, size] = w.split(":") as ["EUR" | "USD", "100k" | "1k"];
   const f = { currency, size } as const;
   const src = await loadBondsFor(f);
   console.log(`\n${w}: ${src.bonds.length} bonds`);
-  for (const t of TERMS) {
+  for (const t of horizons) {
     const key = bandsKey(src, f, t.duration, cfg);
     const saved = await loadStoredBands(key);
     if (saved && !saved.stale) { console.log(`${t.key} (${t.duration}y): already saved`); continue; }
@@ -32,6 +39,7 @@ for (const w of want) {
     }
   }
 }
+if (!yearsRun) {
 // The stored lists for EUR, all sizes: position x horizon (average risk, average return, expected loss), for the run summary.
 {
   const f = { currency: "EUR", size: "100k" } as const;
@@ -44,6 +52,7 @@ for (const w of want) {
     console.log(`| ${b.k} | ${b.min.toFixed(1)}–${b.max.toFixed(1)} | ${cells.join(" | ")} |`);
   }
   console.log("\n* = valid list, not proven optimal by the solver within its time limit");
+}
 }
 await new Promise((done) => setTimeout(done, 2000)); // let the saves finish
 process.exit(0);

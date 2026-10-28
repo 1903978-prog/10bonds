@@ -1,5 +1,5 @@
 import type { BondFilter } from "./bondFilter";
-import { TERMS } from "./limits";
+import { isExactYear, isTermHorizon } from "./limits";
 import { SLIDER_POSITIONS } from "./sliderPortfolios";
 
 // The finder's choices kept across sign-up (the owner, 24/10/2026): saved in this browser when a visitor opens
@@ -33,7 +33,7 @@ export function parseResume(raw: string | null, now: number): Resume | null {
     return null;
   }
   if (!v || typeof v !== "object" || typeof v.at !== "number" || now - v.at > RESUME_MS || now < v.at) return null;
-  if (!TERMS.some((x) => x.duration === v.duration)) return null;
+  if (!isTermHorizon(v.duration) && !isExactYear(v.duration)) return null;
   if (!Number.isInteger(v.mix) || v.mix < 1 || v.mix > SLIDER_POSITIONS) return null;
   if (v.currency !== "EUR" && v.currency !== "USD") return null;
   if (v.size !== "1k" && v.size !== "100k") return null;

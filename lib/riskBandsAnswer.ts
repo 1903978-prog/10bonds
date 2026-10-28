@@ -1,7 +1,7 @@
 import type { BondSource } from "./bonds";
 import type { BondFilter } from "./bondFilter";
 import type { PublicBond, RankedBond } from "./types";
-import { TERMS } from "./limits";
+import { isExactYear, isTermHorizon } from "./limits";
 import { loadBandConfig } from "./riskBandsStore";
 import type { BandConfig } from "./riskBands";
 import { bondsOfBand, servedBands } from "./riskBandsServe";
@@ -31,7 +31,9 @@ export const bandNumber = (raw: string | null): number | null => {
   const n = Number(raw);
   return raw !== null && Number.isInteger(n) && n >= 1 && n <= 30 ? n : null;
 };
-export const bandTerm = (duration: number) => TERMS.some((t) => t.duration === duration);
+export const bandTerm = (duration: number) => isTermHorizon(duration);
+/** A stored horizon: a term, or an exact year (only for plans that have it, checked by the caller). */
+export const bandHorizon = (duration: number) => isTermHorizon(duration) || isExactYear(duration);
 
 export function metaOfSel(band: RiskBand, sel: BandCand[], optimal: boolean, extra: Partial<BandMeta> = {}): BandMeta {
   const s = statOf(sel);

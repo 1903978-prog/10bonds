@@ -13,3 +13,13 @@ describe("horizon slider stops", () => {
     expect(nearHorizon(45, 25, 5)).toBe(false);
   });
 });
+
+describe("exact-year horizon", () => {
+  it("offers years 1 to 15, and the three terms are among them", async () => {
+    const { EXACT_YEARS, TERMS, isExactYear, isTermHorizon } = await import("./limits");
+    expect(EXACT_YEARS).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
+    for (const t of TERMS) expect(isExactYear(t.duration) && isTermHorizon(t.duration)).toBe(true);
+    expect(isExactYear(16)).toBe(false);
+    expect(isTermHorizon(3)).toBe(false);
+  });
+});
