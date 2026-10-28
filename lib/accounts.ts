@@ -250,6 +250,8 @@ export type User = {
   /** Address not confirmed yet (e-mails on, not admin): treated as a visitor (names and ISINs blurred) until it is. */
   confirmBlocked: boolean;
   isAdmin: boolean;
+  /** Test admin of the link check: admin pages open for reading (GET), every other request is treated as an ordinary account. */
+  readOnly?: boolean;
   /** Admin pages: only with two-factor login done ("ok"). "setup" = not set up yet, "needed" = code not entered this browser. */
   adminState?: "ok" | "setup" | "needed";
   /** The admin chose "Admin no": the site treats them as an ordinary signed-in customer until they switch back. */
@@ -262,6 +264,7 @@ export type User = {
 };
 
 import { OWNER_EMAILS } from "./ownerExclusion";
+import { READONLY_ADMIN_EMAIL } from "./linkCheckAccounts";
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "1903978@gmail.com")
   .split(",")
@@ -277,6 +280,10 @@ type UserRow = {
 };
 function isAdminRow(r: UserRow): boolean {
   return ADMIN_EMAILS.includes(r.email.trim().toLowerCase()) && (r.email_verified_at !== null || !emailConfigured());
+}
+/** The read-only test admin of the link check (lib/linkCheckAccounts.ts): sees the admin pages, can change nothing. It must be confirmed first. */
+function isReadOnlyAdminRow(r: UserRow): boolean {
+  return r.email.trim().toLowerCase() === READONLY_ADMIN_EMAIL && r.email_verified_at !== null;
 }
 
 /** Forgets the usage events of one browser (used for the owner's devices, so their visits never count). */
@@ -294,7 +301,8 @@ export const OWNER_COOKIE = "tb_owner";
 const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, newsletter_opt_in, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
-  const admin = isAdminRow(r);
+  const readOnly = isReadOnlyAdminRow(r);
+  const admin = isAdminRow(r) || readOnly;
   const trial = r.premium_until !== null && new Date(r.premium_until).getTime() > now;
   const emailVerified = r.email_verified_at !== null;
   return {
@@ -310,6 +318,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
     // Admin needs the address to be confirmed once confirmation e-mails are switched on. Until then the one
     // account holding the admin address is admin (an address can be used by one account only).
     isAdmin: admin,
+    readOnly,
     twoFactorOn: Boolean(r.totp_enabled_at),
     newsletter: r.newsletter_opt_in === true,
     stripeCustomerId: r.stripe_customer_id ?? null,

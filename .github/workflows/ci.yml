@@ -44,6 +44,21 @@ jobs:
           for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3311/api/health && up=1 && break; sleep 1; done
           [ "$up" = 1 ] || { echo "The site did not start within 60 seconds"; exit 1; }
           BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/page-check.mjs
+      # Link gate: the new build, opened as a visitor, a free user and the read-only test admin (accounts on the CI Postgres).
+      # Any 404/500 on a page that must work fails the check, so a broken link never reaches the live site.
+      - name: "Link check (3 roles, new build)"
+        run: |
+          export LINKCHECK_PASSWORD="ci-link-check-password-0123456789"
+          export ACCOUNTS_DATABASE_URL="$TEST_ACCOUNTS_DATABASE_URL"
+          npx vite-node -c vitest.config.ts scripts/link-accounts.ts
+          (cd .next/standalone && PORT=3312 HOSTNAME=127.0.0.1 ALLOW_SAMPLE_DATA=1 SKIP_WARMUP=1 NODE_ENV=production SESSION_SECRET=ci-session-secret-0123456789abcdef ACCOUNTS_DATABASE_URL="$TEST_ACCOUNTS_DATABASE_URL" node server.js > ../../server-links.log 2>&1 &)
+          up=0
+          for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3312/api/health && up=1 && break; sleep 1; done
+          [ "$up" = 1 ] || { echo "The site did not start within 60 seconds"; exit 1; }
+          BASE=http://127.0.0.1:3312 MAX_PAGES=250 BOND_SAMPLE=5 CHROME_CHANNEL=chrome node scripts/link-crawl.mjs
+      - name: Link check report
+        if: always()
+        run: cat link-check-out/link-check.md >> "$GITHUB_STEP_SUMMARY" || true
       - name: Server log (on failure)
         if: failure()
-        run: tail -100 server.log || true
+        run: tail -100 server.log || true; tail -60 server-links.log || true

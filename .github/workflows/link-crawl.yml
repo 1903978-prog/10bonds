@@ -1,0 +1,61 @@
+name: Link check (all roles)
+# Opens the live site in a real browser as a visitor, a free user and the read-only test admin, follows every internal link,
+# sitemap page and admin page, and lists every 404/500, console error and empty page. Nightly at 02:10 UTC and on demand.
+# On any broken page it e-mails the owner (free: the Resend key the site already uses). Read-only: GET requests only, plus sign-in.
+# The two test accounts are made by scripts/link-accounts.ts; their password is derived from a repository secret inside the run and never printed.
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Site to check"
+        default: "https://10bonds.com"
+      roles:
+        description: "Roles (comma separated)"
+        default: "visitor,free,admin"
+  schedule:
+    - cron: "10 2 * * *"
+concurrency:
+  group: link-crawl
+  cancel-in-progress: false
+jobs:
+  crawl:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      BASE: ${{ inputs.base || 'https://10bonds.com' }}
+      ROLES: ${{ inputs.roles || 'visitor,free,admin' }}
+      OUT: link-check-out
+      CHROME_CHANNEL: chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - name: Test accounts
+        run: |
+          pw="$(printf 'linkcheck-v1:%s' "$ACCOUNTS_DATABASE_URL" | sha256sum | cut -c1-48)"
+          echo "::add-mask::$pw"
+          echo "LINKCHECK_PASSWORD=$pw" >> "$GITHUB_ENV"
+          LINKCHECK_PASSWORD="$pw" npx vite-node -c vitest.config.ts scripts/link-accounts.ts
+      - name: Crawl
+        id: crawl
+        run: node scripts/link-crawl.mjs
+      - name: Summary
+        if: always()
+        run: cat "$OUT/link-check.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: link-check
+          path: link-check-out/
+      - name: E-mail the owner when something is broken
+        if: failure() && github.event_name == 'schedule'
+        run: |
+          [ -n "$RESEND_API_KEY" ] || { echo "no RESEND_API_KEY"; exit 0; }
+          body="$(head -c 6000 "$OUT/link-check.md" 2>/dev/null || echo 'The link check could not finish. See the run log.')"
+          jq -n --arg t "$body" --arg u "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{from:"10BONDS <no-reply@10bonds.com>", to:"1903978@gmail.com", subject:"10BONDS nightly link check: broken pages found", text: ($t + "\n\nFull report: " + $u)}' \
+            | curl -sS -X POST https://api.resend.com/emails -H "Authorization: Bearer $RESEND_API_KEY" -H "Content-Type: application/json" -d @- -w '\nHTTP %{http_code}\n'

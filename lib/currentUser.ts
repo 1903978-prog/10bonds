@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { accountsConfigured, findUserById, type User } from "./accounts";
 import { readSession, SESSION_COOKIE } from "./session";
 import { adminStateOf, MFA_COOKIE } from "./twoFactor";
@@ -18,6 +18,11 @@ export async function currentUser(): Promise<User | null> {
   try {
     const u = await findUserById(id);
     if (!u) return null;
+    // The read-only test admin has admin powers for reading only: any request that is not GET or HEAD sees an ordinary account.
+    if (u.readOnly) {
+      const method = (await headers()).get("x-method") ?? "";
+      if (method !== "GET" && method !== "HEAD") return { ...u, isAdmin: false, adminState: undefined };
+    }
     const adminState = adminStateOf(u, jar.get(MFA_COOKIE)?.value);
     if (adminState === undefined) return u;
     if (adminState === "ok" && jar.get(AS_USER_COOKIE)?.value === "1") return { ...u, isAdmin: false, adminState: undefined, asUser: true };
