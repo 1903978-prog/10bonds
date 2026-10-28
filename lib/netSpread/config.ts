@@ -1,5 +1,6 @@
 import type { BandConfig } from "../riskBands";
 import { riskClassConfig } from "../riskClassBands";
+import { PORTFOLIO_SPEC } from "../portfolioSpec";
 
-/** Methodology 5 uses Methodology 4's risk matrix; the tag keeps its stored lists apart from Methodology 4's. */
-export const netSpreadConfig = (): BandConfig => ({ ...riskClassConfig(), tag: "ns5" });
+/** The band table of the unified engine: the risk matrix's 30 positions. The tag keeps its stored lists apart from any other methodology's and carries the spec version, so a new spec never serves old lists. */
+export const specConfig = (): BandConfig => ({ ...riskClassConfig(), tag: `spec:${PORTFOLIO_SPEC.version}` });

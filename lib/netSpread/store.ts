@@ -1,15 +1,17 @@
 import { accountsConfigured, accountsSql } from "../accounts";
 import { assignBondCodes, bondCodeTablesReady, codesFor } from "../bondCodes";
 import { batchIdOf, besTablesReady, runBes } from "../bes/store";
+import { loadAllShown } from "../bonds";
 import { RISK_MATRIX_VERSION } from "../riskMatrix";
-import { buildAll, NS_METHOD, type BesBond, type PositionResult, type PreviousPortfolio, type Reference, type HorizonName } from "./build";
+import { buildAll, NS_METHOD, type BesBond, type PositionResult, type PreviousPortfolio, type Reference } from "./build";
 import { REFERENCE_POLICY } from "./reference";
 import { HORIZON_NAMES } from "./build";
 import { publishBands } from "./publishBands";
 import { TERMS } from "../limits";
 import type { BondSource } from "../bonds";
 import { bandsKey } from "../riskBandsServe";
-import { loadBandConfig, loadStoredBands } from "../riskBandsStore";
+import { loadStoredBands } from "../riskBandsStore";
+import { specConfig } from "./config";
 
 // Storage and daily run of Methodology 5 ("Portfolio Efficiency Optimization", owner brief 28/10/2026). Migration id: portfolio_efficiency_001 (additive tables
 // app.pe_*). Written only by scripts/portfolio-efficiency.ts on a runner; the website only reads the published run. A run is published in ONE transaction
@@ -61,7 +63,7 @@ export async function loadBes(batch: string): Promise<{ runId: number; bonds: Ma
 }
 
 /** Reference samples of earlier price batches (never today's), per position. */
-async function loadReference(batch: string): Promise<(h: HorizonName, p: number) => Reference> {
+async function loadReference(batch: string): Promise<(h: string, p: number) => Reference> {
   const s = await accountsSql();
   const rows = await s`select horizon, position, batch_id, nets from app.pe_reference_samples where version = ${REFERENCE_POLICY.version} and filter_key = ${FILTER} and batch_id <> ${batch}`;
   const m = new Map<string, { days: Set<string>; samples: number[] }>();
@@ -80,11 +82,11 @@ async function loadPrevious(src: BondSource): Promise<Map<string, PreviousPortfo
   const out = new Map<string, PreviousPortfolio>();
   // Positions the published snapshot does not hold (it needs 90/90) fall back to the stored lists of the live methodology for this price batch.
   const f = { currency: "EUR", size: "100k" } as const;
-  const cfg = await loadBandConfig();
+  const cfg = specConfig();
   for (const t of TERMS) {
     const got = await loadStoredBands(bandsKey(src, f, t.duration, cfg));
     if (!got) continue;
-    for (const b of got.data.bands) if (b.status === "ok") out.set(`${HORIZON_NAMES[t.key]}:${b.k}`, { isins: [...b.isins], source: `stored lists of the live methodology${got.stale ? " (older prices)" : ""}` });
+    for (const b of got.data.bands) if (b.status === "ok") out.set(`${HORIZON_NAMES[t.key]}:${b.k}`, { isins: [...b.isins], source: `stored lists of the live engine${got.stale ? " (older prices)" : ""}` });
   }
   const [snap] = await s`select id, methodology from app.efficient_portfolio_snapshots where filter_key = ${FILTER} and status = 'published'`.catch(() => []);
   if (!snap) return out;
@@ -105,12 +107,15 @@ export async function runPe(src: BondSource, trigger: string, force = false, log
   const s = await accountsSql();
   const bonds = src.bonds;
   const batch = batchIdOf(bonds);
-  let bes = await loadBes(batch);
+  // Bond-level figures do not depend on the finder's filter: the Bond Efficiency run of the whole copy (scripts/bes-run.ts) serves every filter.
+  const everything = (await loadAllShown()).bonds;
+  const besBatch = batchIdOf(everything);
+  let bes = await loadBes(besBatch);
   if (!bes) {
     log("Bond Efficiency run for this price batch missing: running it first");
-    const r = await runBes(bonds, `pe-${trigger}`, false);
+    const r = await runBes(everything, `pe-${trigger}`, false);
     if (r.status === "failed") return { status: "failed", runId: null, message: `Bond Efficiency run failed: ${r.message}` };
-    bes = await loadBes(batch);
+    bes = await loadBes(besBatch);
     if (!bes) return { status: "skipped", runId: null, message: "No Bond Efficiency run for this price batch yet; nothing optimised." };
   }
   const requested = await s`select id from app.pe_runs where status = 'requested' order by id`;

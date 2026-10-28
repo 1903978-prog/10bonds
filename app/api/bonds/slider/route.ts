@@ -6,7 +6,7 @@ import { isExactYear, isTermHorizon } from "@/lib/limits";
 import { canExactYear } from "@/lib/planFeatures";
 import { sliderFor } from "@/lib/sliderCache";
 import { bandTableOf, engineOf, methodologyFor, usesBands } from "@/lib/methodologyChoice";
-import { bareBandPositions, positionsOfBands, servedBands } from "@/lib/riskBandsServe";
+import { bareBandPositions, positionsOfBands, publicPositions, servedBands } from "@/lib/riskBandsServe";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
       const cfg = sv?.cfg ?? bandCfg;
       const all = sv ? positionsOfBands(sv) : bareBandPositions(cfg);
       // The bonds themselves come with the list (tier-shaped); the positions carry figures only, so no ISIN reaches a visitor here.
-      const positions = user?.isAdmin ? all : all.map(({ isins: _isins, ...p }) => ({ ...p, isins: [] as string[] }));
+      const positions = user?.isAdmin ? all : (sv ? publicPositions(all) : all).map(({ isins: _isins, ...p }) => ({ ...p, isins: [] as string[] }));
       return NextResponse.json({ positions, ...tag, ...(sv?.stale ? { stale: true } : {}), ...(sv && user?.isAdmin ? { flags: { nonMonotonic: sv.stored.nonMonotonic, candidates: sv.stored.candidates } } : {}) }, { headers: { "Cache-Control": "private, max-age=60" } });
     }
     out = await sliderFor(filter, duration, method);

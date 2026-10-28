@@ -41,7 +41,7 @@ export default function PortfolioEfficiencyAdmin() {
             {stat("Latest optimisation", when(d.run.finished_at))}{stat("Price batch", String(d.run.batch_id))}{stat("Reference version", String(d.run.reference_version))}{stat("Runtime / solver", `${f(Number(d.run.runtime_ms) / 1000, 0)} s / ${f(st.solverSeconds, 0)} s`)}
             {stat("Compared with previous", `${st.compared ?? 0} positions`)}{stat("Mean / median change", `${f(st.meanImprovementBp, 1)} / ${f(st.medianImprovementBp, 1)} bp`)}{stat("Largest change", `${f(st.maxImprovementBp, 1)} bp`)}{stat("Lists changed", String(st.changed ?? "–"))}
           </div>
-          {Array.isArray(st.regressions) && st.regressions.length > 0 && <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm">Lower net spread than the previous list under the same data and rules at: {st.regressions.join(", ")}. Investigate before relying on Methodology 5.</p>}
+          {Array.isArray(st.regressions) && st.regressions.length > 0 && <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm">Lower net spread than the previous list under the same data and rules at: {st.regressions.join(", ")}. Investigate before relying on these lists.</p>}
           <section>
             <div className="flex items-center gap-3"><h2 className="font-medium">Portfolios</h2>
               <select className="rounded border border-line px-1 py-0.5 text-sm" value={hz} onChange={(e) => setHz(e.target.value)}><option value="">all horizons</option><option>SHORT</option><option>MEDIUM</option><option>LONG</option></select></div>
@@ -49,11 +49,11 @@ export default function PortfolioEfficiencyAdmin() {
               <thead className="text-mute"><tr><th>#</th><th>Term</th><th>Pos</th><th>Classes</th><th>Risk</th><th>Return %</th><th>Dur</th><th>Gross bp</th><th>Credit loss bp</th><th>Net bp</th><th>Previous net</th><th>Change</th><th>Avg bond BES</th><th>Portfolio BES</th><th>Status</th></tr></thead>
               <tbody>{rows.map((p) => { const pv = j<Prev>(p.previous); return (
                 <tr key={String(p.row_no)} className="cursor-pointer border-t border-line hover:bg-slate-50" onClick={() => setOpen(Number(p.row_no))}>
-                  <td>{String(p.row_no)}</td><td>{String(p.horizon)}</td><td>{String(p.position)}{p.repeat_of ? ` = ${p.repeat_of}` : ""}</td><td>{(p.allowed as number[]).join(",")}</td><td>{f(p.risk_min, 0)}–{f(p.risk_max, 0)}</td>
+                  <td>{String(p.row_no)}</td><td>{String(p.horizon)}</td><td>{String(p.position)}{p.repeat_of && Number(p.repeat_of) !== Number(p.position) ? ` = ${p.repeat_of}` : ""}</td><td>{(p.allowed as number[]).join(",")}</td><td>{f(p.risk_min, 0)}–{f(p.risk_max, 0)}</td>
                   <td>{f(p.ytm, 2)}</td><td>{f(p.duration, 2)}</td><td>{f(p.gross_spread_bp, 0)}</td><td>{f(p.credit_loss_bp, 0)}</td><td className="font-semibold">{f(p.net_spread_bp, 0)}</td>
                   <td>{pv?.reproducible ? f(pv.netSpreadBp, 0) : "n/a"}</td><td>{pv?.reproducible && pv.feasibleUnderSameRules ? `${Number(pv.improvementBp) >= 0 ? "+" : ""}${f(pv.improvementBp, 1)}` : "–"}</td>
                   <td>{f(p.avg_bond_bes)}</td><td title={String(p.portfolio_bes_reason ?? "")}>{p.portfolio_bes === null ? "n/a" : f(p.portfolio_bes)}</td>
-                  <td>{String(p.status)}{p.stale ? " · STALE" : ""}{p.data_status === "limited" ? " · limited" : ""}</td>
+                  <td title={String(p.failure ?? "")}>{String(p.status).toUpperCase()}{p.status === "infeasible" && p.failure ? ` · ${String(p.failure)}` : ""}{p.repeat_of && Number(p.repeat_of) !== Number(p.position) ? " · repeat" : ""}{p.stale ? " · STALE" : ""}{p.data_status === "limited" ? " · limited" : ""}</td>
                 </tr>); })}</tbody></table></div>
             <p className="mt-2 text-xs text-mute">n/a under Portfolio BES = “Unavailable – insufficient calibration data”: it needs a frozen reference of earlier price batches (20 days, 2,000 comparable portfolios). Today’s sample is stored as history from this run on. Equal positions that share the same allowed risk classes have the same exact optimum (shown “= position”).</p>
           </section>
