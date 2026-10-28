@@ -26,6 +26,12 @@ describe("parse", () => {
     expect(parseBundesbankCsv(sdmx([[seriesId("ZAR", 10), "2026-10-27", "3.4"], [seriesId("ZAR", 10), "2026-10-27", "3.5"]])).errors.length).toBe(1);
     expect(parseBundesbankCsv(sdmx([["BBSIS.D.I.XXX.ZI", "2026-10-27", "3.4"]])).errors.length).toBe(1);
   });
+  it("ignores fractional maturities of the same family (R005X) without failing", () => {
+    const r = parseBundesbankCsv(sdmx([["BBSIS.D.I.ZST.ZI.EUR.S1311.B.A604.R005X.R.A.A._Z._Z.A", "2026-10-27", "2.9"], [seriesId("ZST", 1), "2026-10-27", "2.9"]]));
+    expect(r.errors).toEqual([]);
+    expect(r.obs.length).toBe(1);
+    expect(r.ignored).toBe(1);
+  });
   it("rejects malformed files", () => {
     expect(parseBundesbankCsv("").errors.length).toBe(1);
     expect(parseBundesbankCsv("hello;world\n1;2").errors.length).toBe(1);

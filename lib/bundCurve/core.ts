@@ -14,12 +14,14 @@ export const seriesId = (type: CurveType, years: number) => `BBSIS.D.I.${type}.Z
 const ID_RE = /^BBSIS\.D\.I\.(ZAR|ZST)\.ZI\.EUR\.S1311\.B\.A604\.R(\d{2})XX\.R\.A\.A\._Z\._Z\.A$/;
 
 export type Obs = { type: CurveType; years: number; date: string; value: number; seriesId: string };
-export type ParseResult = { obs: Obs[]; errors: string[]; missing: number };
+export type ParseResult = { obs: Obs[]; errors: string[]; missing: number; ignored?: number };
 
 const MIN_PCT = -2, MAX_PCT = 15;
 
 function addObs(r: ParseResult, seen: Map<string, number>, id: string, date: string, raw: string) {
   const m = ID_RE.exec(id.trim());
+  // The wildcard download also returns fractional maturities (e.g. R005X = 0.5 years) of the same family: not integer years, so not used.
+  if (!m && /^BBSIS\.D\.I\.(ZAR|ZST)\.ZI\.EUR\.S1311\.B\.A604\.R\d{3,4}[A-Z0-9]\.R\.A\.A\._Z\._Z\.A$/.test(id.trim())) { r.ignored = (r.ignored ?? 0) + 1; return; }
   if (!m) { r.errors.push(`Unexpected series id: ${id.slice(0, 80)}`); return; }
   const years = Number(m[2]);
   if (years < 1 || years > 30) { r.errors.push(`Maturity out of range: ${id}`); return; }
