@@ -8,7 +8,7 @@ import type { FinderLang } from "./finderText";
 const en = {
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
   tagline: "Mathematics instead of guesswork. More yield for the same modeled risk. Or less risk for the same yield. Discover the power of Pareto optimization.",
-  cardTitleBench: "Average Bond ETF vs Model portfolio",
+  cardTitleBench: "Model portfolio vs bond ETF",
   cardTitleBenchShort: "Average Bond ETF vs Model",
   bench: "Bond ETF benchmark",
   benchShort: "ETF benchmark",
@@ -70,6 +70,15 @@ const en = {
   paper: "Scientific methodology (PDF)",
   paperShort: "Methodology (PDF)",
   // The carousel on the right (the owner, 24/10/2026): one bond's curve first, the reason to sign up.
+  // Comparison card copy (the owner, 28/10/2026). The "same risk level" wording is used only when the stored data match (lib/landingCompare.ts).
+  compare: {
+    sub: "Same risk level, similar duration. How much more yield a 10-bond list can offer than a typical bond ETF today.",
+    subNeutral: "Risk level and duration of both sides are shown below. Gross yield difference today.",
+    same: (r: string, d: string) => `more gross yield per year, at the same risk level (${r}) and similar duration (about ${d} years)`,
+    diff: (r1: string, r2: string, d1: string, d2: string) => `gross yield per year, list vs ETF. Risk level ${r1} vs ${r2}, duration ${d1} vs ${d2} years`,
+    net: (pp: string) => `${pp} pp after expected credit losses`,
+    fine: "Illustrative, based on today's data. Gross yields, before taxes, broker costs and expected credit losses. The ETF benchmark is provisional and names no provider. Bond lists and ETFs differ in diversification and liquidity. Not a recommendation.",
+  },
   carousel: {
     // Action titles, one per slide (the owner, 24/10/2026): [desktop, phone].
     act: {
@@ -158,6 +167,14 @@ const it: LandingText = {
   stepsTitle: "Tre passi. Dieci obbligazioni.",
   paper: "Metodologia scientifica (PDF, in inglese)",
   paperShort: "Metodologia (PDF)",
+  compare: {
+    sub: "Stesso livello di rischio, durata simile. Quanto rendimento in più può offrire oggi una lista di 10 obbligazioni rispetto a un tipico ETF obbligazionario.",
+    subNeutral: "Livello di rischio e durata dei due lati sono indicati qui sotto. Differenza di rendimento lordo oggi.",
+    same: (r, d) => `di rendimento lordo in più all'anno, allo stesso livello di rischio (${r}) e con durata simile (circa ${d} anni)`,
+    diff: (r1, r2, d1, d2) => `di rendimento lordo all'anno, lista vs ETF. Livello di rischio ${r1} vs ${r2}, durata ${d1} vs ${d2} anni`,
+    net: (pp) => `${pp} pp dopo le perdite attese su crediti`,
+    fine: "A titolo illustrativo, sulla base dei dati di oggi. Rendimenti lordi, al lordo di imposte, costi di intermediazione e perdite attese su crediti. Il benchmark ETF è provvisorio e non cita alcun fornitore. Liste di obbligazioni ed ETF differiscono per diversificazione e liquidità. Non è una raccomandazione.",
+  },
   carousel: {
     act: {
       compare: ["Portafoglio del modello vs ETF", "Modello vs ETF"],
@@ -244,6 +261,14 @@ const fr: LandingText = {
   stepsTitle: "Trois étapes. Dix obligations.",
   paper: "Méthodologie scientifique (PDF, en anglais)",
   paperShort: "Méthodologie (PDF)",
+  compare: {
+    sub: "Même niveau de risque, durée similaire. Combien de rendement en plus une liste de 10 obligations peut offrir aujourd'hui par rapport à un ETF obligataire typique.",
+    subNeutral: "Le niveau de risque et la durée des deux côtés sont indiqués ci-dessous. Écart de rendement brut aujourd'hui.",
+    same: (r, d) => `de rendement brut en plus par an, au même niveau de risque (${r}) et avec une durée similaire (environ ${d} ans)`,
+    diff: (r1, r2, d1, d2) => `de rendement brut par an, liste vs ETF. Niveau de risque ${r1} vs ${r2}, durée ${d1} vs ${d2} ans`,
+    net: (pp) => `${pp} pp après pertes de crédit attendues`,
+    fine: "À titre illustratif, sur la base des données du jour. Rendements bruts, avant impôts, frais de courtage et pertes de crédit attendues. La référence ETF est provisoire et ne nomme aucun fournisseur. Les listes d'obligations et les ETF diffèrent par la diversification et la liquidité. Ne constitue pas une recommandation.",
+  },
   carousel: {
     act: {
       compare: ["Portefeuille du modèle vs ETF", "Modèle vs ETF"],
@@ -330,6 +355,14 @@ const de: LandingText = {
   stepsTitle: "Drei Schritte. Zehn Anleihen.",
   paper: "Wissenschaftliche Methodik (PDF, auf Englisch)",
   paperShort: "Methodik (PDF)",
+  compare: {
+    sub: "Gleiche Risikostufe, ähnliche Laufzeit. Wie viel mehr Rendite eine Liste aus 10 Anleihen heute gegenüber einem typischen Anleihen-ETF bieten kann.",
+    subNeutral: "Risikostufe und Laufzeit beider Seiten stehen unten. Brutto-Renditeunterschied heute.",
+    same: (r, d) => `mehr Brutto-Rendite pro Jahr, bei gleicher Risikostufe (${r}) und ähnlicher Laufzeit (etwa ${d} Jahre)`,
+    diff: (r1, r2, d1, d2) => `Brutto-Rendite pro Jahr, Liste vs ETF. Risikostufe ${r1} vs ${r2}, Laufzeit ${d1} vs ${d2} Jahre`,
+    net: (pp) => `${pp} pp nach erwarteten Kreditverlusten`,
+    fine: "Zur Illustration, auf Basis der heutigen Daten. Brutto-Renditen, vor Steuern, Brokerkosten und erwarteten Kreditverlusten. Der ETF-Vergleichswert ist vorläufig und nennt keinen Anbieter. Anleihelisten und ETFs unterscheiden sich in Diversifikation und Liquidität. Keine Empfehlung.",
+  },
   carousel: {
     act: {
       compare: ["Modell-Portfolio vs ETF", "Modell vs ETF"],

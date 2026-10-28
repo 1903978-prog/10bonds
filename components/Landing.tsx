@@ -9,6 +9,7 @@ import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { loadMe } from "@/lib/me";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
+import { compareCopy, listFigures } from "@/lib/landingCompare";
 import LandingCarousel, { actionTitle, ListScreen, MultiYearScreen, HeatMapScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
@@ -75,10 +76,10 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
           <LandingCarousel t={t} slides={[
-            ...(showBench ? [{ key: "compare", node: LANDING_SNAPSHOT.verified ? <Comparison t={t} num={num} bench={bench} /> : (
+            ...(showBench ? [{ key: "compare", node: LANDING_SNAPSHOT.verified ? <Comparison t={t} lang={lang} num={num} bench={bench} /> : (
               <div className="rounded-lg ring-2 ring-yellow-300" data-testid="bench-admin-only">
                 <p className="rounded-t-3xl bg-yellow-200 px-3 py-1 text-center text-[11px] font-medium text-ink">Admin only: hidden from customers until the benchmark is verified</p>
-                <Comparison t={t} num={num} bench={bench} />
+                <Comparison t={t} lang={lang} num={num} bench={bench} />
               </div>
             ) }] : []),
             { key: "multi", node: <ScreenSlide title={actionTitle(t.carousel.multi.title)}><MultiYearScreen sub={t.carousel.multi.sub} subShort={t.carousel.multi.subShort} insightShort={t.carousel.multi.insightShort} yLabel={t.carousel.multi.y} xLabel={t.carousel.multi.x} insightK={t.carousel.multi.insightK} insight={t.carousel.multi.insight} /></ScreenSlide> },
@@ -109,8 +110,11 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 
 type Num = (n: number, d?: number) => string;
 
-function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench | null }) {
-  const p = bench?.portfolio ?? null;
+function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang; num: Num; bench: Bench | null }) {
+  // The 10bonds side is the stored top-10 list shown on the carousel's list slide, so both slides tell the same story.
+  const stored = listFigures((LANDING_BONDS as { bonds: BenchmarkBond[] }).bonds);
+  const p = bench?.portfolio ? { ...bench.portfolio, ...(stored ? { ytm: stored.ytm, avgRisk: stored.risk } : {}) } : null;
+  const copy = p && bench && p.duration != null ? compareCopy(lang, { ytm: p.ytm, risk: p.avgRisk, duration: p.duration }, { ytm: bench.ret, risk: bench.risk, duration: bench.duration }, stored?.riskScores) : null;
   const dp = (d: number) => (Number.isInteger(Math.round(d * 100) / 10) ? 1 : 2);
   const yrs = (d: number | null | undefined) => (d == null ? ["–", "–"] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
   const rows = (dark: boolean, duration: number | null | undefined, risk: string | null, word: string) => (
@@ -136,7 +140,8 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
     <SlideCard title={actionTitle(t.carousel.act.compare)}>
       {/* Centred in the card, which now grows with the free height. */}
       <div className="flex flex-1 flex-col justify-center">
-      <div className="mt-1 grid grid-cols-2 gap-2.5 lg:gap-3">
+      {copy && <p className="text-[12px] leading-snug lg:text-[13px]" style={{ color: MUTE }} data-testid="compare-sub">{copy.sub}</p>}
+      <div className="mt-2 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
           <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] sm:line-clamp-2 sm:min-h-[2.6em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
           {big(bench?.ret, false)}
@@ -150,9 +155,12 @@ function Comparison({ t, num, bench }: { t: LandingText; num: Num; bench: Bench 
           {rows(true, p?.duration, p ? num(p.avgRisk, 1) : null, t.modelEstimated)}
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-center gap-4 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3">
-        <p className="shrink-0 text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : ""}${num(p.ytm - bench.ret)}` : "–"}<span className="text-[0.7em]"> pp</span></p>
+      <div className="mt-3 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-2.5 text-center">
+        <p className="text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : "−"}${num(Math.abs(p.ytm - bench.ret))}` : "–"}<span className="text-[0.7em]"> pp</span></p>
+        {copy && <p className="text-[11.5px] leading-snug lg:text-[12.5px]" style={{ color: MUTE }} data-testid="compare-gross">{copy.gross}</p>}
+        {copy && <p className="mt-1 text-[12px] font-semibold leading-snug lg:text-[13px]" style={{ color: NAVY }} data-testid="compare-net">{copy.net}</p>}
       </div>
+      {copy && <p className="mt-2 text-[9.5px] leading-snug lg:text-[10px]" style={{ color: MUTE }} data-testid="compare-fine">{copy.fine}</p>}
       </div>
     </SlideCard>
   );
