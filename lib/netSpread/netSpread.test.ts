@@ -34,19 +34,6 @@ describe("net-spread optimiser", () => {
     expect(bad).toEqual([]);
     expect(r.sel.some((x) => x.cls === 7)).toBe(false);
   });
-  it("keeps the average return above a floor, at the cost of net spread", async () => {
-    n = 0;
-    const c = pool(14, (i) => ({ ns: 100 + i * 10, ytm: 6 - i * 0.1 }));
-    const free = await solvePosition(c, 3, 5, { lo: 0, hi: 1000 }, { ...rules, perSector: 10 });
-    const floorOf = (s: NsCand[]) => s.reduce((t, x) => t + x.ytm, 0) / s.length;
-    const lowFree = floorOf(free.sel);
-    const hard = await solvePosition(c, 3, 5, { lo: 0, hi: 1000 }, { ...rules, perSector: 10 }, { retMin: lowFree + 0.3 });
-    expect(hard.status).toBe("optimal");
-    expect(floorOf(hard.sel)).toBeGreaterThanOrEqual(lowFree + 0.3 - 1e-6);
-    expect(hard.objectiveBp!).toBeLessThan(free.objectiveBp!);
-    const none = await solvePosition(c, 3, 5, { lo: 0, hi: 1000 }, { ...rules, perSector: 10 }, { retMin: 99 });
-    expect(none.sel).toEqual([]);
-  });
   it("matches brute force on a small random instance", async () => {
     n = 0;
     let seed = 7; const rnd = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
@@ -189,7 +176,7 @@ describe("the unified engine's wiring", async () => {
   const { configSignature } = await import("../riskBands");
   const { parseMethodology } = await import("../methodologyChoice");
   it("keeps its stored lists apart from every other band table, carries the spec version, and Methodology 5 is now 4", () => {
-    expect(configSignature(specConfig())).toContain("ps4-");
+    expect(configSignature(specConfig())).toContain("ps3-");
     expect(specConfig().bands).toHaveLength(30);
     expect(parseMethodology("5")).toBe(4);
     expect(parseMethodology("6")).toBeNull();

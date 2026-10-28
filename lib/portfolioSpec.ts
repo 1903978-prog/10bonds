@@ -5,7 +5,7 @@ import { termOf } from "./limits";
 // (lib/netSpread/check.ts, lib/sliderSnapshotBuild.ts), the nightly job (scripts/portfolio-build.ts) and the admin rebuild. Nothing
 // else holds a portfolio rule: change a number here, bump SPEC_VERSION, and every stored list is rebuilt. Written out in docs/PORTFOLIO_SPEC.md.
 
-export const SPEC_VERSION = "ps4-2026-10-28";
+export const SPEC_VERSION = "ps3-2026-10-28";
 
 export const PORTFOLIO_SPEC = {
   version: SPEC_VERSION,
