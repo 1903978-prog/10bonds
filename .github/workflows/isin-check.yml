@@ -8,8 +8,6 @@ on:
         description: "ISINs, one per line or separated by spaces"
         required: true
         default: "FR0000186413"
-  pull_request:
-    paths: [".github/workflows/isin-check.yml"]
 jobs:
   check:
     runs-on: ubuntu-24.04
