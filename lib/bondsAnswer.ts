@@ -4,6 +4,7 @@ import { currentOutlierSd, loadBondsFor, loadOutliers } from "@/lib/bonds";
 import { cleanSd } from "@/lib/outliers";
 import { parseFilter } from "@/lib/bondFilter";
 import { shapeForTier, tierFeatures } from "@/lib/tiers";
+import { besTileFor } from "@/lib/bes/portfolio";
 import { alternativesFor } from "@/lib/alternatives";
 import { lgdOf } from "@/lib/seniority";
 import { bondNotch } from "@/lib/ratings";
@@ -29,6 +30,7 @@ import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
 import { bandLiveOnce, bandHorizon, bandNumber, bandStored, bandTerm, liveKey, lowMemory, metaOfSel, RowSlots, type BandMeta } from "@/lib/riskBandsAnswer";
+import { isSpecConfig } from "@/lib/riskBandsServe";
 import { liveBand, rememberLive } from "@/lib/riskBandsLive";
 import type { BondFilter } from "@/lib/bondFilter";
 import type { BondSource } from "@/lib/bonds";
@@ -129,7 +131,8 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
     if (step) { frontierResults = step.results; bandMeta = step.meta; bandNone = step.none ?? null; } else {
       try {
         const found = await bandStored(data, filter, duration, bandN, skip, exclusionKey, bandCfg!);
-        if (!found && exactYear && !skip) {
+        // No public interaction solves: a list that is not stored yet (exact years, and the spec's standard lists on live data) is answered "being prepared". Only a customer's own exclusions are solved.
+        if (!found && !skip && (exactYear || (isSpecConfig(bandCfg!) && data.source === "live"))) {
           if (usage) await refundSearch(user!, usage);
           return NextResponse.json({ error: "This portfolio is being prepared. Please try again in a few minutes." }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "60" } });
         }
@@ -225,8 +228,9 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent || bandMode ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
+  const bes = await besTileFor(results.map((r) => r.isin));
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent || bandMode ? withoutListEdits(features) : features, excluded: skip !== null && !coherent && !bandMode, band: bandMeta ?? undefined, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, manifest, found: bandMode ? undefined : found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers, ...(user?.isAdmin ? { methodology: meth } : {}) },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), bes, features: coherent || bandMode ? withoutListEdits(features) : features, excluded: skip !== null && !coherent && !bandMode, band: bandMeta ?? undefined, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, manifest, found: bandMode ? undefined : found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers, ...(user?.isAdmin ? { methodology: meth } : {}) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

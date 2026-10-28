@@ -54,6 +54,7 @@ import { profileParts, type CoherenceView } from "@/lib/creditProfileText";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
+  bes?: { avg: number | null; scored: number; total: number }; // Bond Efficiency Score tile above the list
   source: "live" | "sample";
   scanned?: number;
   issuers?: number; // Different issuers among the bonds searched
@@ -183,8 +184,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
   const [adv, setAdv] = useState(false);
   // Admin only (yellow): the Methodology with spread rules (what everyone gets) or Methodology 1 (lib/stepGap.ts).
-  // null = the methodology the site uses (/admin/methodology); 1..4 = forced here to compare (sent as m=n).
-  const [adminM, setAdminM] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
+  // null = the production engine (Methodology 4); 1..3 = forced here to compare (sent as m=n).
+  const [adminM, setAdminM] = useState<1 | 2 | 3 | 4 | null>(null);
   const [siteM, setSiteM] = useState<number | null>(null);
   const method = isAdmin && adminM ? String(adminM) : "";
   // Admin only: the risk heat map in chart mode, its methodology, and the cell clicked on it (that return and horizon);
@@ -601,15 +602,17 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     ? (() => {
         const b = data?.band?.k === mix ? data.band : undefined;
         const actual = b?.avgRisk ?? bandPos.avgRisk;
-        if (b?.none || (bandPos.unavailable && !b)) return t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max));
+        // Risk matrix positions name the bond risk classes they may hold; the older average-risk bands name their average range.
+        const head = bandPos.classes?.length ? t.bandClasses(Math.min(...bandPos.classes), Math.max(...bandPos.classes)) : t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max));
+        if (b?.none || (bandPos.unavailable && !b)) return head;
         // The ten bonds shown: their lowest and highest individual score (always at most 2 apart).
         const scores = list && list.length === 10 ? list.map((r) => r.risk).filter((x): x is number => typeof x === "number") : [];
-        const range = scores.length === 10 ? ` · ${t.bandRange(Math.min(...scores), Math.max(...scores))}` : bandPos.riskMin != null && bandPos.riskMax != null && b?.source !== "live" ? ` · ${t.bandRange(bandPos.riskMin, bandPos.riskMax)}` : "";
-        return `${t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max))}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${range}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
+        const range = bandPos.classes?.length ? "" : scores.length === 10 ? ` · ${t.bandRange(Math.min(...scores), Math.max(...scores))}` : bandPos.riskMin != null && bandPos.riskMax != null && b?.source !== "live" ? ` · ${t.bandRange(bandPos.riskMin, bandPos.riskMax)}` : "";
+        return `${head}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${range}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
       })()
     : undefined;
   const live = simple && paid && mode === "portfolio" && data?.band?.source !== "live" ? tileFigures(positions?.[mix - 1]) : null;
-  // Methodology 5: the position's Portfolio Efficiency figures (stored with the list); shown to paid plans and the admin like the two boxes above.
+  // Production engine: the position's Portfolio Efficiency figures (stored with the list); shown to paid plans and the admin like the two boxes above.
   const effNode: ReactNode = bandPos?.eff && (paid || isAdmin) ? <PortfolioEfficiency eff={bandPos.eff} lang={lang} /> : undefined;
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
@@ -686,9 +689,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
-                  {/* Five-option switch, fixed width: the filled side is the methodology shown (the site's choice unless one is forced here). */}
-                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Methodology 1 to 5. The site's choice is set at /admin/methodology; click one to compare (admin only)" className="flex w-[10.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
-                    {([1, 2, 3, 4, 5] as const).map((k) => (
+                  {/* Four-option switch, fixed width: the filled side is the methodology shown (the site's choice unless one is forced here). */}
+                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="The site runs Methodology 4 (the portfolio spec). 1 to 3 are admin-only, for comparison" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
+                    {([1, 2, 3, 4] as const).map((k) => (
                       <button key={k} type="button" role="radio" aria-checked={(adminM ?? siteM) === k} data-testid={`admin-method-${k}`} onClick={() => setAdminM(k === siteM && adminM === null ? null : k)} className={`flex-1 whitespace-nowrap rounded-full px-1 ${(adminM ?? siteM) === k ? "bg-amber-500 text-white" : "text-amber-900"}`}>
                         M{k}
                       </button>
@@ -916,12 +919,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         ) : (
         <>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
           {/* The ETF benchmark shows on the landing page only (the owner, 24/10/2026). */}
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? (summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—") : null} label={t.lifeLoss} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
+          <Stat value={!data ? "—" : data.bes?.avg != null ? Math.round(data.bes.avg) : "—"} label={`${t.besTile}${data?.bes ? ` · ${data.bes.scored}/${data.bes.total}` : ""}`} />
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">

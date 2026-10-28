@@ -130,9 +130,9 @@ for (const [w, h] of WIDTHS) {
   await p.waitForTimeout(800);
   // The slider's own position counts too: the page text can stay the same while no list is prepared (sample data).
   let moved = (await p.locator("main").innerText()) !== before || (await sliders.first().inputValue()) !== valueBefore;
-  // The sample data holds so few bonds that the spread-rules methodology leaves one slider position for the middle term (by design,
+  // The sample data holds so few bonds that the portfolio spec leaves one slider position for a term (by design,
   // the rules are never relaxed): the slider then has nowhere to go, so a different term must change the page instead.
-  if (!moved && w >= 640) {
+  if (!moved) {
     await p.locator('[data-testid="term-picker"] [role="radio"]').last().click();
     await p.waitForTimeout(800);
     moved = (await p.locator("main").innerText()) !== before;

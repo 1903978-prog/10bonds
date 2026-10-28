@@ -8,8 +8,6 @@ import { portfolioPool, RESULT_COUNT, UNRATED_NOTCH, withinRisk } from "./rankin
 import { RETURN_UNIT, type ExactFrontier, type FrontierList } from "./exactFrontier";
 import { activePolicy, checkList, END_POLICY, factsOf, policySignature, type CoherenceFacts, type CoherencePolicy } from "./coherence";
 import { activeEngine, engineSignature, type EnginePolicy } from "./enginePolicy";
-import { generateScenarios, portfolioRisk, PRESETS, CORRELATION_MODEL_VERSION, type FactorPreset } from "./correlatedLoss";
-import { pdOf } from "./tiers";
 import { issuerVerified } from "./issuerGroups";
 import { stepGap } from "./stepGap";
 import { lifeYears } from "./lifeYears";
@@ -52,47 +50,14 @@ export type Certificate = {
   seconds: number;
   /** True only when every solve that produced a list ended Optimal within the tolerances. */
   certified: boolean;
-  /** Present only when the experimental CVaR constraint was active: its setting and the model it was drawn from. */
-  cvar?: CvarSetting & { model: string; calibrated: false; constraintTrainingS: number };
 };
 export type CoherentFrontier = ExactFrontier & { cert: Certificate; policy: CoherencePolicy; /** Served from a list saved for slightly older prices while the exact one is rebuilt (lib/frontierCache.ts). */ stale?: boolean };
-
-/**
- * EXPERIMENTAL tail-risk constraint (paper 7.3, eq. 33-34): CVaR95 of the list's loss <= C, on a representative scenario sample drawn
- * from the factor model of lib/correlatedLoss.ts (NOT calibrated). C is in % of the money and must be given: the project has no
- * approved budget. Off unless asked for; production never passes it.
- */
-export type CvarSetting = { /** budget C, % of the money */ C: number; /** scenarios used inside the optimiser */ scenarios: number; seed: number; preset: FactorPreset["id"]; /** scenarios of the independent validation sample */ validationScenarios?: number };
-export type CvarCtx = { setting: CvarSetting; S: number; byScenario: { ci: number; loss: number }[][] };
-const cvarOf = new WeakMap<object, CvarCtx>();
-const ALPHA = 0.95;
-
-/** The scenario sample the optimiser constrains on, for these candidates (also used by tests to enumerate the true optimum). */
-export function cvarContext(cands: Cand[], setting: CvarSetting): CvarCtx {
-  const sc = generateScenarios(cands.map((c) => ({ pd: pdOf(c.b) / 100, lgd: lgdOf(c.b), sector: c.sector, country: c.b.country ?? "n/a" })), PRESETS[setting.preset], setting.scenarios, setting.seed);
-  const byScenario: CvarCtx["byScenario"] = Array.from({ length: sc.S }, () => []);
-  for (const e of sc.events) byScenario[e.s].push({ ci: e.i, loss: e.loss });
-  return { setting, S: sc.S, byScenario };
-}
-
-/** CVaR95 (% of the money) of the list of candidate positions `ci` on a scenario sample. */
-export function listCvar(ctx: CvarCtx, ci: Set<number>): number {
-  const L = new Float64Array(ctx.S);
-  ctx.byScenario.forEach((ev, s) => { for (const e of ev) if (ci.has(e.ci)) L[s] += (e.loss * 100) / N; });
-  const sorted = Float64Array.from(L).sort();
-  const tail = (1 - ALPHA) * ctx.S;
-  const whole = Math.floor(tail + 1e-9);
-  let sum = 0;
-  for (let k = 0; k < whole; k++) sum += sorted[ctx.S - 1 - k];
-  if (tail - whole > 1e-9) sum += (tail - whole) * sorted[ctx.S - 1 - whole];
-  return sum / tail;
-}
 
 type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number; /** 30-band mode: average risk class of the list within [lo, hi]. */ riskBand?: { lo: number; hi: number }; /** The two ends of the slider: no spread rule, and at least this many risk 1 bonds. */ end?: { minRisk1: number } };
 type Outcome = { status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] };
 
-export function candidatesOf(bonds: PublicBond[], duration: number, spreadRule = true): Cand[] {
-  const { pool } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), duration, N);
+export function candidatesOf(bonds: PublicBond[], duration: number, spreadRule = true, window?: number): Cand[] {
+  const { pool } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), duration, N, window);
   const cands = pool
     .filter((b) => b.grossYtm !== null && b.grossYtm > 0 && Number.isFinite(b.grossYtm) && b.modifiedDuration !== null && Number.isFinite(b.modifiedDuration) && issuerVerified(b))
     .map((b) => ({ ...factsOf(b), ci: 0, b, ret: b.grossYtm!, dur: b.modifiedDuration!, u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9), notch: bondNotch(b) ?? UNRATED_NOTCH, years: lifeYears(b), beatenBy: new Set<string>() }));
@@ -162,23 +127,7 @@ async function solve(cs0: Cand[], m: number, p: CoherencePolicy, duration: numbe
   const members = by((c) => c.group!);
   const spreadRows: string[] = [];
   if (!spec.end) for (const i of all) for (const g of cs[i].beatenBy) spreadRows.push(` sp${spreadRows.length}: x${i} - ${joinLines((members.get(g) ?? []).map((j) => `x${j}`), " - ")} <= 0`);
-  // Tail risk (eq. 33-34): xi_s >= L_s - eta, eta + sum(xi)/((1-alpha) S) <= C; scenarios with no default among the bonds here need no row (eta >= 0).
-  const cv = cvarOf.get(stats);
-  const cvarRows: string[] = [];
-  let cvarBounds = "";
-  if (cv) {
-    const local = new Map(cs.map((c, i) => [c.ci, i]));
-    const used: number[] = [];
-    cv.byScenario.forEach((ev, s) => {
-      const terms = ev.filter((e) => local.has(e.ci)).map((e) => `${num((e.loss * 100) / N)} x${local.get(e.ci)}`);
-      if (!terms.length) return;
-      used.push(s);
-      cvarRows.push(` cv${s}: xi${s} + eta - ${joinLines(terms, " - ")} >= 0`);
-    });
-    cvarRows.push(` cvar: eta${used.map((s, k) => `${k % 8 === 0 ? " +\n  " : " + "}${num(1 / ((1 - ALPHA) * cv.S))} xi${s}`).join("")} <= ${num(cv.setting.C)}`);
-    cvarBounds = " eta >= 0\n";
-  }
-  const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows, ...cvarRows].join("\n")}\nBounds\n S >= 0\n${cvarBounds}Binary\n ${[...all.map((i) => `x${i}`), ...win.binaries].reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
+  const lp = `${objective}\nSubject To\n${[...rows, ...shareRows, ...spreadRows].join("\n")}\nBounds\n S >= 0\nBinary\n ${[...all.map((i) => `x${i}`), ...win.binaries].reduce((out, t, k) => out + (k === 0 ? "" : k % 20 === 0 ? "\n " : " ") + t, "")}\nEnd`;
   if (/NaN|Infinity/.test(lp)) throw new Error("Coherent model has a non-finite number");
   await new Promise((r) => setImmediate(r));
   stats.solves++;
@@ -282,7 +231,7 @@ async function topList(cands: Cand[], p: CoherencePolicy, duration: number, ceil
  * out, blacklist out). Each point is the exact least-loss list for its return under every rule, with the solver's
  * certificate in `cert`. Takes some seconds to minutes; yields to the server between solves.
  */
-export async function coherentFrontier(bonds: PublicBond[], duration: number, p: CoherencePolicy = activePolicy(), ceiling: number = LIMITS.risk.max, opts: { /** Diagnostics only: leave the spread rule out to see which rule binds. */ noSpreadRule?: boolean; /** Versioned spread / composition switches (lib/enginePolicy.ts); default = the active engine policy. */ engine?: EnginePolicy; /** EXPERIMENTAL tail-risk constraint (see CvarSetting); never passed by production code. */ cvar?: CvarSetting } = {}): Promise<CoherentFrontier> {
+export async function coherentFrontier(bonds: PublicBond[], duration: number, p: CoherencePolicy = activePolicy(), ceiling: number = LIMITS.risk.max, opts: { /** Diagnostics only: leave the spread rule out to see which rule binds. */ noSpreadRule?: boolean; /** Versioned spread / composition switches (lib/enginePolicy.ts); default = the active engine policy. */ engine?: EnginePolicy; } = {}): Promise<CoherentFrontier> {
   const t0 = Date.now();
   const engine = opts.engine ?? activeEngine();
   // The loss model is read from the active engine policy deep inside the bond figures: a different one must be activated with setEngine first.
@@ -291,11 +240,6 @@ export async function coherentFrontier(bonds: PublicBond[], duration: number, p:
   if (engine.composition === "ceiling_only") p = { ...p, maxDispersion: 9, minCore: 0, minWorst: 1 };
   const stats: Certificate = { policy: policySignature(p) + engineSignature(engine), solves: 0, optimal: 0, infeasible: 0, uncertified: 0, absGap: TOL, relGap: 0, seconds: 0, certified: true };
   const cands = candidatesOf(bonds, duration, engine.spread === "hard_constraint" && !opts.noSpreadRule);
-  if (opts.cvar && cands.length >= N) {
-    const ctx = cvarContext(cands, opts.cvar);
-    cvarOf.set(stats, ctx);
-    stats.cvar = { ...opts.cvar, model: CORRELATION_MODEL_VERSION, calibrated: false, constraintTrainingS: ctx.S };
-  }
   const finish = (points: FrontierList[]): CoherentFrontier => {
     stats.seconds = Math.round((Date.now() - t0) / 100) / 10;
     stats.certified = stats.uncertified === 0;
@@ -326,16 +270,6 @@ export async function coherentFrontier(bonds: PublicBond[], duration: number, p:
   }
   points.push({ ...listOf(top), end: "high" });
   const out = finish(points);
-  const cv = cvarOf.get(stats);
-  if (cv) {
-    const ciOf = new Map(cands.map((c) => [c.b.isin, c]));
-    for (const pt of out.points) {
-      const members = pt.rows.map((r) => ciOf.get(r.isin)!);
-      const exposures = members.map((c) => ({ pd: pdOf(c.b) / 100, lgd: lgdOf(c.b), sector: c.sector, country: c.b.country ?? "n/a" }));
-      pt.cvar = { training: listCvar(cv, new Set(members.map((c) => c.ci))), validation: portfolioRisk(exposures, PRESETS[cv.setting.preset], cv.setting.validationScenarios ?? 200_000, cv.setting.seed + 1000).cvar95Pct };
-      if (pt.cvar.training > cv.setting.C + 1e-6) throw new Error(`CVaR constraint violated on its own scenarios: ${pt.cvar.training} > ${cv.setting.C}`);
-    }
-  }
   // Last guard: every list returned really satisfies every rule.
   for (const pt of out.points) {
     const bad = checkList(pt.rows.map((r) => factsOf(r)), pt.end ? END_POLICY : p, ceiling).filter((c) => !c.ok);

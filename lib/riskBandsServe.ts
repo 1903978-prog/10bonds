@@ -15,8 +15,11 @@ import type { SliderPosition } from "./sliderPortfolios";
 // What the website serves for the 30 band positions (owner, 27/10/2026): the stored set, read from the database (the web server never
 // solves a standard list). A set saved for slightly older prices is served at once; the precompute job replaces it after the next data copy.
 
+/** The unified engine's band table (lib/netSpread/config.ts): its lists follow the portfolio spec, never the editable coherence policy of the admin-only methodologies. */
+export const isSpecConfig = (cfg: BandConfig) => !!cfg.tag?.startsWith("spec");
+
 export const bandsKey = (src: BondSource, f: BondFilter, duration: number, cfg: BandConfig) =>
-  [signatureOf(src), f.currency, f.size, duration, configSignature(cfg), policySignature(), GROUP_TABLE_VERSION].join("|");
+  [signatureOf(src), f.currency, f.size, duration, configSignature(cfg), isSpecConfig(cfg) ? "spec" : policySignature(), GROUP_TABLE_VERSION].join("|");
 
 export type ServedBands = { stored: StoredBands; stale: boolean; src: BondSource; cfg: BandConfig; key: string };
 
@@ -62,16 +65,29 @@ export function positionsOfBands(sv: ServedBands): SliderPosition[] {
       riskMin: ok ? Math.min(...bonds!.map((x) => bondRisk(x) ?? 10)) : null,
       riskMax: ok ? Math.max(...bonds!.map((x) => bondRisk(x) ?? 10)) : null,
       isins: ok ? b.isins : [],
-      sameAs: null,
+      sameAs: ok && b.repeatOf ? b.repeatOf : null,
       unavailable: !ok,
       band: { min: b.min, max: b.max },
+      ...(b.allowed ? { classes: b.allowed } : {}),
+      slot: b.k,
       optimal: ok ? b.optimal : undefined,
       ...(ok && b.eff ? { eff: b.eff } : {}),
     };
   });
 }
 
+/**
+ * What visitors and plans get as the slider (owner, 28/10/2026): only the positions that have a valid list, renumbered 1..n per horizon, with the
+ * risk classes they hold. An infeasible position is never shown or filled; a position that repeats an earlier list (flag `sameAs`) is not a new
+ * choice and is left out of the public slider (the admin sees it flagged). `query.band` keeps the stored position the list is read from.
+ */
+export function publicPositions(all: SliderPosition[]): SliderPosition[] {
+  return all
+    .filter((p) => !p.unavailable && p.sameAs == null)
+    .map((p, i) => ({ ...p, position: i + 1, slot: p.slot ?? p.position, sameAs: null, query: p.query ? { ...p.query, band: p.query.band ?? p.position } : null }));
+}
+
 /** The bands without figures (no stored set yet): the finder still shows 30 positions and searches each one live. */
 export function bareBandPositions(cfg: BandConfig): SliderPosition[] {
-  return cfg.bands.map((b) => ({ position: b.k, target: null, query: { ytm: 4, risk: 10, guard: true, band: b.k }, ytm: null, expectedLoss: null, avgRisk: null, worstRisk: null, isins: [], sameAs: null, unavailable: false, band: { min: b.min, max: b.max } }));
+  return cfg.bands.map((b) => ({ position: b.k, target: null, query: { ytm: 4, risk: 10, guard: true, band: b.k }, ytm: null, expectedLoss: null, avgRisk: null, worstRisk: null, isins: [], sameAs: null, unavailable: false, band: { min: b.min, max: b.max }, ...(b.allowed ? { classes: b.allowed } : {}), slot: b.k }));
 }

@@ -3,6 +3,7 @@
 //
 // Usage: BASE=https://10bonds.com ROLES=visitor,free,admin LINKCHECK_PASSWORD=... node scripts/link-crawl.mjs
 //   OUT=<folder>        where link-check.json and link-check.md are written (default ./link-check-out)
+//   EXTRA_CHECKS=1     also run the named checks of extraChecks() (needs the real bond data: live site only)
 //   MAX_PAGES=<n>       pages per role (default 600)
 //   CHROME_PATH / CHROME_CHANNEL  pick the browser (default channel "chrome")
 // Read-only: only GET requests, plus the sign-in POST. Exit code 1 when any page that must work answers 4xx/5xx or fails to load.
@@ -74,6 +75,66 @@ const EMPTY_PATTERNS = [
   [/Page not found/, 'shows "Page not found" with a success status'],
 ];
 
+
+// Named checks from the owner's notes: what the page really shows to this role (not just the status). Read-only apart from the
+// admin yes/no switch, which can only take admin powers away and is switched back at the end.
+async function extraChecks(ctx, role) {
+  const out = [];
+  const rec = (name, ok, detail) => out.push({ role, name, ok, detail: String(detail).replace(/\s+/g, " ").slice(0, 220) });
+  const open = async (path) => {
+    const page = await ctx.newPage();
+    const res = await page.goto(BASE + path, { waitUntil: "load", timeout: 60_000 });
+    await page.waitForLoadState("networkidle", { timeout: 6_000 }).catch(() => {});
+    return { page, status: res?.status() ?? 0 };
+  };
+  try {
+    if (role !== "admin") {
+      const { page, status } = await open("/bond-card");
+      rec("/bond-card is closed (404)", status === 404, `HTTP ${status}`);
+      await page.close();
+    } else {
+      for (const [isin, want, label] of [["FR0000186413", /does not pay a fixed coupon/i, 'message "does not pay a fixed coupon"'], ["DE000HEL4BV8", /DE000HEL4BV8/, "full card"]]) {
+        const { page, status } = await open(`/bond-card?isin=${isin}`);
+        let text = "";
+        if (status === 200) {
+          await page.getByTestId("card-input").fill(isin).catch(() => {});
+          await page.getByTestId("card-go").click().catch(() => {});
+          await page.waitForTimeout(4000);
+          text = await page.getByTestId("card-result").innerText().catch(() => "");
+        }
+        const ok = status === 200 && want.test(text) && (isin !== "DE000HEL4BV8" || !/does not pay|not shown|not available/i.test(text));
+        rec(`/bond-card ${isin}: ${label}`, ok, `HTTP ${status}: ${text}`);
+        await page.close();
+      }
+      const post = (asUser) => ctx.request.post(BASE + "/api/admin/view", { data: { asUser }, timeout: 60_000 });
+      const adminStatus = async () => (await ctx.request.get(BASE + "/admin", { timeout: 60_000 })).status();
+      const off = await post(true);
+      const asUserStatus = await adminStatus();
+      const on = await post(false);
+      const backStatus = await adminStatus();
+      rec("Admin yes/no switch toggles", off.ok() && on.ok() && asUserStatus === 404 && backStatus === 200, `switch to No: HTTP ${off.status()}, /admin then HTTP ${asUserStatus} (want 404); back to Yes: HTTP ${on.status()}, /admin then HTTP ${backStatus} (want 200)`);
+    }
+    if (role !== "visitor") {
+      const page = await ctx.newPage();
+      await page.setExtraHTTPHeaders({ Referer: BASE + "/" });
+      const res = await page.goto(BASE + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });
+      const listed = page.waitForResponse((r) => r.url().includes("/api/bonds?"), { timeout: 120_000 }).catch(() => null);
+      await page.getByTestId("find-portfolio").click({ timeout: 30_000 }).catch(() => {});
+      const lr = await listed;
+      if (lr) await lr.finished().catch(() => null);
+      await page.waitForTimeout(3000);
+      const tile = page.getByText(/efficiency score/i).first();
+      const found = await tile.waitFor({ timeout: 30_000 }).then(() => true).catch(() => false);
+      const tileText = found ? await tile.locator("xpath=..").innerText().catch(() => "") : "";
+      rec('Finder shows the "efficiency score (avg)" tile', found, `home HTTP ${res?.status()}, list HTTP ${lr?.status() ?? "none"}: ${tileText || "tile not found"}`);
+      await page.close();
+    }
+  } catch (e) {
+    rec("extra checks", false, e.message.split("\n")[0]);
+  }
+  return out;
+}
+
 async function crawlRole(browser, role) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await ctx.addInitScript(() => localStorage.setItem("tb_cookie_consent", JSON.stringify({ necessary: true, statistics: false, marketing: false, at: Date.now() })));
@@ -86,7 +147,7 @@ async function crawlRole(browser, role) {
     const right = r.ok() && info?.email === ACCOUNTS[role] && (role === "admin" ? info.isAdmin === true : info.isAdmin !== true);
     if (!right) {
       await ctx.close();
-      return { note: { ...roleNote, error: `could not sign in as ${role} (login HTTP ${r.status()})` }, rows: [] };
+      return { checks: [], note: { ...roleNote, error: `could not sign in as ${role} (login HTTP ${r.status()})` }, rows: [] };
     }
   }
 
@@ -160,8 +221,9 @@ async function crawlRole(browser, role) {
     }
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  const checks = process.env.EXTRA_CHECKS === "1" ? await extraChecks(ctx, role) : [];
   await ctx.close();
-  return { note: { ...roleNote, denied, pagesLeftUnvisited: Math.max(0, queue.length - rows.length) }, rows };
+  return { checks, note: { ...roleNote, denied, pagesLeftUnvisited: Math.max(0, queue.length - rows.length) }, rows };
 }
 
 // What counts as broken, per role.
@@ -179,9 +241,11 @@ function verdict(row) {
 const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: process.env.CHROME_CHANNEL ?? "chrome" });
 const all = [];
 const notes = [];
+const allChecks = [];
 for (const role of ROLES) {
   console.log(`== crawling as ${role}`);
-  const { note, rows } = await crawlRole(browser, role);
+  const { note, rows, checks } = await crawlRole(browser, role);
+  allChecks.push(...checks);
   notes.push(note);
   if (note.error) console.log(`!! ${note.error}`);
   for (const r of rows) all.push({ ...r, verdict: verdict(r) });
@@ -190,7 +254,7 @@ for (const role of ROLES) {
 await browser.close();
 
 mkdirSync(OUT, { recursive: true });
-writeFileSync(join(OUT, "link-check.json"), JSON.stringify({ base: BASE, at: new Date().toISOString(), notes, rows: all }, null, 1));
+writeFileSync(join(OUT, "link-check.json"), JSON.stringify({ base: BASE, at: new Date().toISOString(), notes, checks: allChecks, rows: all }, null, 1));
 const broken = all.filter((r) => r.verdict === "broken");
 const withErrors = all.filter((r) => r.verdict === "ok" && r.consoleErrors.length && !(r.role !== "admin" && r.path.startsWith("/admin")));
 const empties = all.filter((r) => r.empty.length && r.verdict === "ok");
@@ -216,6 +280,10 @@ if (empties.length) {
   md.push("", "## Pages that open but look empty", "", "| Role | Page | What |", "|---|---|---|");
   for (const r of empties.slice(0, 60)) md.push(`| ${r.role} | ${r.path} | ${r.empty.join("; ")} |`);
 }
+if (allChecks.length) {
+  md.push("", "## Checks by role", "", "| Role | Check | Result | What the page shows |", "|---|---|---|---|");
+  for (const c of allChecks) md.push(`| ${c.role} | ${c.name} | ${c.ok ? "PASS" : "FAIL"} | ${c.detail.replace(/\|/g, "/")} |`);
+}
 md.push("", "## Promised pages", "", "| Page | Status as admin | Ends at |", "|---|---|---|");
 for (const p of PROMISED) {
   const r = all.find((x) => x.role === (ROLES.includes("admin") ? "admin" : ROLES[0]) && x.path === p);
@@ -224,4 +292,6 @@ for (const p of PROMISED) {
 writeFileSync(join(OUT, "link-check.md"), md.join("\n") + "\n");
 console.log(md.slice(0, 12).join("\n"));
 console.log(`\n${broken.length} broken page(s) in ${all.length} checked.`);
-process.exit(broken.length || signInFailed.length ? 1 : 0);
+const failedChecks = allChecks.filter((c) => !c.ok);
+if (failedChecks.length) console.log(`${failedChecks.length} check(s) failed: ${failedChecks.map((c) => c.role + " " + c.name).join("; ")}`);
+process.exit(broken.length || signInFailed.length || failedChecks.length ? 1 : 0);

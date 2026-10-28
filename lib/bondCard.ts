@@ -95,3 +95,14 @@ export function alternativesOf(b: PublicBond, all: PublicBond[], max = 10): Card
   }
   return out;
 }
+
+/** Plain reason key for a bond the card does not show: `why` from lib/bonds.ts whyHidden for a bond in the data, or null when the data has no such ISIN. */
+export function notShownReason(inData: boolean, why: string | null): "not_listed" | "quality" | "no_rating" | "matured" | "dormant" | "no_yield" | "structure" {
+  if (!inData) return "not_listed";
+  if (why === null) return "quality";
+  if (why.startsWith("no rating")) return "no_rating";
+  if (why.startsWith("already matured")) return "matured";
+  if (why.startsWith("dormant")) return "dormant";
+  if (why.startsWith("no yield")) return "no_yield";
+  return "structure";
+}

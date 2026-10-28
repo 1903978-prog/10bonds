@@ -114,9 +114,9 @@ export function rankBonds(bonds: PublicBond[], targetDuration: number, targetYtm
 }
 
 /** Portfolio pool: bonds within ±20% of the target duration, widened in half-years (up to 2 more) until `count` issuers are in. */
-export function portfolioPool(bonds: PublicBond[], targetDuration: number, count = RESULT_COUNT): { pool: PublicBond[]; band: number } {
+export function portfolioPool(bonds: PublicBond[], targetDuration: number, count = RESULT_COUNT, window = DURATION_WINDOW): { pool: PublicBond[]; band: number } {
   const usable = bonds.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
-  const start = DURATION_WINDOW * targetDuration;
+  const start = window * targetDuration;
   let band = start;
   let pool = usable.filter((b) => nearHorizon(b.modifiedDuration!, targetDuration, band + 1e-9));
   while (distinctIssuers(pool) < count && band < start + EXTRA_BAND) {

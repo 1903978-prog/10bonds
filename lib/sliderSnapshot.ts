@@ -4,13 +4,14 @@ import { assignBondCodes, bondCodeTablesReady, codesFor } from "./bondCodes";
 import { loadBondsFor } from "./bonds";
 import type { BondFilter } from "./bondFilter";
 import { signatureOf } from "./bestTable";
-import { policySignature } from "./coherence";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
 import { TERMS } from "./limits";
 import { MAX_SPREAD } from "./riskWindow";
 import { bondRisk } from "./ratings";
 import { configSignature } from "./riskBands";
-import { loadBandConfig, loadStoredBands } from "./riskBandsStore";
+import { loadStoredBands } from "./riskBandsStore";
+import { specConfig } from "./netSpread/config";
+import { allowedFor, PORTFOLIO_SPEC } from "./portfolioSpec";
 import { bandsKey } from "./riskBandsServe";
 import type { StoredBands } from "./riskBandsBuild";
 import type { SliderPosition } from "./sliderPortfolios";
@@ -111,7 +112,8 @@ export type BuildResult = { status: "published" | "incomplete" | "skipped" | "fa
 /** Inputs of the current price batch: three stored sets (exact batch only) and the bond rows, or the reason they are not ready. */
 async function inputs(f: Pick<BondFilter, "currency" | "size">) {
   const bf = { ...f } as BondFilter;
-  const [src, cfg] = await Promise.all([loadBondsFor(bf), loadBandConfig()]);
+  const src = await loadBondsFor(bf);
+  const cfg = specConfig();
   const sets: (StoredBands | null)[] = [];
   const notes: string[] = [];
   for (const t of TERMS) {
@@ -121,7 +123,7 @@ async function inputs(f: Pick<BondFilter, "currency" | "size">) {
     sets.push(got && !got.stale ? got.data : null);
   }
   const batch = signatureOf(src);
-  const fingerprint = [batch, configSignature(cfg), policySignature(), GROUP_TABLE_VERSION, METHOD_VERSION, EMPTY_POLICY, filterKey(f)].join("|");
+  const fingerprint = [batch, configSignature(cfg), GROUP_TABLE_VERSION, METHOD_VERSION, EMPTY_POLICY, filterKey(f)].join("|");
   return { src, cfg, sets, notes, batch, fingerprint };
 }
 
@@ -144,7 +146,7 @@ async function once(trigger: string, f: Pick<BondFilter, "currency" | "size">, f
   if (noCode.length) throw new Error(`${noCode.length} selected bonds have no bond code (${noCode.slice(0, 3).join(", ")}...)`);
   const problems = snapshotProblems(a.rows);
   const publish = problems.length === 0;
-  const report = { problems, blockers: a.blockers, notes, attempt, bands: configSignature(cfg) };
+  const report = { problems, blockers: a.blockers, notes, attempt, bands: configSignature(cfg), spec: PORTFOLIO_SPEC.version, matrix: PORTFOLIO_SPEC.matrixVersion, repeats: a.rows.filter((r) => r.sharedWith !== null).map((r) => `${r.horizon}:${r.position}=${r.sharedWith}`) };
   const byIsin = new Map(src.bonds.map((b) => [b.isin, b]));
   const id = await s.begin(async (tx) => {
     if (existing[0]) await tx`delete from app.efficient_portfolio_snapshots where id = ${existing[0].id}`;
@@ -233,9 +235,10 @@ const toPosition = (r: Record<string, unknown>, isins: string[]): SliderPosition
     position: k, target: null,
     query: ok ? { ytm: Number(r.avg_ytm), risk: 10, guard: true, band: k } : null,
     ytm: ok ? Number(r.avg_ytm) : null, expectedLoss: ok ? Number(r.expected_loss) : null, avgRisk: ok ? Math.round(Number(r.avg_risk) * 10) / 10 : null,
-    worstRisk: ok ? Number(r.worst_risk) : null, isins, sameAs: null, unavailable: !ok,
+    worstRisk: ok ? Number(r.worst_risk) : null, isins, sameAs: ok && r.shared_with != null ? Number(r.shared_with) : null, unavailable: !ok,
     riskMin: ok ? Number(r.risk_min) : null, riskMax: ok ? Number(r.risk_max) : null,
     band: { min: Number(r.band_min), max: Number(r.band_max) }, optimal: ok ? r.optimal === true : undefined,
+    classes: [...allowedFor(k)], slot: k,
   };
 };
 

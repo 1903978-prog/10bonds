@@ -3,6 +3,8 @@ import { candidatesOf, type BandCand } from "./coherentFrontier";
 import { atLeastAsGood, bestGreedy, improveSteps, inClasses, pruneCandidates, statOf, type BandConfig, type RiskBand, type Stat } from "./riskBands";
 import { rulesFor } from "./riskBandsBuild";
 import { solveBand } from "./riskBandsSolve";
+import { isSpecConfig } from "./riskBandsServe";
+import { liveSpecList } from "./netSpread/live";
 
 // Progressive search for a band when no stored result applies (a customer's blacklist, a cold start): owner 27/10/2026, item 4.
 //   a. instant start: greedy list of 10 different issuers (lib/riskBands.ts greedyStart);
@@ -38,6 +40,14 @@ const tick = () => new Promise<void>((r) => setImmediate(r));
 
 /** The steps of one progressive search. `exact: false` skips the exact solve (used when the server is short of memory). */
 export async function* liveBand(bonds: PublicBond[], duration: number, band: RiskBand, config: BandConfig, opts: { exact?: boolean; exactSeconds?: number } = {}): AsyncGenerator<LiveStep> {
+  // The production engine (the portfolio spec) has one live answer: the exact solve of the nightly job, run for this request's bonds. No greedy start or swaps.
+  if (isSpecConfig(config)) {
+    // A solve grows the solver's memory: when the server is short of it the caller is told to try again, never shown "no portfolio".
+    if (process.memoryUsage().rss > 850 * 1024 * 1024) throw new Error("Server busy");
+    const r = await liveSpecList(bonds, duration, band.k);
+    if (r) yield { phase: "exact", sel: r.sel, stat: statOf(r.sel), optimal: r.optimal };
+    return;
+  }
   const all = candidatesOf(bonds, duration, false).filter((c) => inClasses(band, c.cls));
   const kept = pruneCandidates(all, config.perCell);
   const rules = rulesFor(duration);

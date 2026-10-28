@@ -1,3 +1,5 @@
+> **Superseded 28/10/2026** by `docs/PORTFOLIO_SPEC.md` (the production engine). Kept for reference only.
+
 # The 30-position "Return & risk" slider
 
 Built 24/10/2026 from the owner's spec. Code: lib/sliderPortfolios.ts (positions, pure and tested), lib/sliderCache.ts

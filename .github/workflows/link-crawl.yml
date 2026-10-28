@@ -28,6 +28,7 @@ jobs:
       BASE: ${{ inputs.base || 'https://10bonds.com' }}
       ROLES: ${{ inputs.roles || 'visitor,free,admin' }}
       OUT: link-check-out
+      EXTRA_CHECKS: "1"
       CHROME_CHANNEL: chrome
     steps:
       - uses: actions/checkout@v4

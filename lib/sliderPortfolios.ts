@@ -39,6 +39,9 @@ export type SliderPosition = {
   belowHurdle?: number;
   /** Risk-band mode: the band's average-risk range, and whether the exact solve proved the list best for it. */
   band?: { min: number; max: number };
+  /** Risk matrix: the bond risk classes this position may hold, and its number in the full 30 (the public slider renumbers the valid ones 1..n). */
+  classes?: number[];
+  slot?: number;
   optimal?: boolean;
   /** Methodology 5: Portfolio Efficiency figures (lib/netSpread). */
   eff?: import("./riskBandsBuild").PortfolioEff;

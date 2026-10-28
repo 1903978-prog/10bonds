@@ -5,7 +5,7 @@ import path from "node:path";
 // Monte Carlo was removed from 10bonds (owner decision 27/10/2026): no engine, no figures, no wording on any page, in any language.
 const ROOTS = ["app", "components", "lib", "public"];
 const TEXT = /\.(ts|tsx|json|md|txt|html|css)$/;
-const SKIP = [/\.test\.ts$/, /^lib[\\/]noMonteCarlo/, /^lib[\\/]correlatedLoss\.ts$/, /^lib[\\/]seo[\\/]contentScores\.ts$/, /^components[\\/]seo[\\/]admin[\\/]/, /^lib[\\/]brokers[\\/]seed\.json$/];
+const SKIP = [/\.test\.ts$/, /^lib[\\/]noMonteCarlo/, /^lib[\\/]seo[\\/]contentScores\.ts$/, /^components[\\/]seo[\\/]admin[\\/]/, /^lib[\\/]brokers[\\/]seed\.json$/];
 const WORDS = /monte[ -]?carlo|simulazion|simulation|simulierte|\bsimulated (paths|scenarios)\b|portfolio_sim_|montecarlo/i;
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -26,7 +26,8 @@ describe("no Monte Carlo anywhere", () => {
     }
     expect(hits).toEqual([]);
   });
-  it("the engine file is gone", () => {
+  it("the engine files are gone", () => {
     expect(fs.existsSync("lib/monteCarlo.ts")).toBe(false);
+    expect(fs.existsSync("lib/correlatedLoss.ts")).toBe(false);
   });
 });
