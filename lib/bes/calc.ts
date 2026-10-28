@@ -6,7 +6,7 @@ import { lgdOf, rankOf } from "../seniority";
 import { issuerClass, countryCode } from "../seo/classify";
 import { sectorOf } from "../sectors";
 import { yearsToMaturity } from "../riskPremium/benchmark";
-import { FIXED_BENCHMARKS } from "./benchmarkTables";
+import { FIXED_BENCHMARKS, benchmarkLabel } from "./benchmarkTables";
 import { SP_CORPORATE_YEARS, SP_CORPORATE_VERSION, spCorporateRow } from "./spReference";
 import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, cumulativePdExtended, curveYieldExtended, grossSpreadBp, MIN_PEERS, percentileRank } from "./math";
 
@@ -52,8 +52,8 @@ export type BesRow = {
 
 /** Government benchmark per currency: country of the curve and the notch used for the benchmark's own (tiny) credit loss. */
 const BENCH: Record<string, { cc: string; name: string; notch: number }> = {
-  EUR: { cc: "DE", name: `EUR benchmark table ${FIXED_BENCHMARKS.EUR.version} (reference date ${FIXED_BENCHMARKS.EUR.referenceDate}, supplied by the owner)`, notch: 0 },
-  USD: { cc: "US", name: `US Treasury par-yield table ${FIXED_BENCHMARKS.USD.version} (reference date ${FIXED_BENCHMARKS.USD.referenceDate}, supplied by the owner, interim, not yet verified)`, notch: 1 },
+  EUR: { cc: "DE", get name() { return benchmarkLabel("EUR", "EUR benchmark table"); }, notch: 0 },
+  USD: { cc: "US", get name() { return benchmarkLabel("USD", "US Treasury par-yield table"); }, notch: 1 },
   GBP: { cc: "GB", name: "UK Gilt YTM curve (same daily copy)", notch: 1 },
 };
 const MIN_CURVE_POINTS = 6;
