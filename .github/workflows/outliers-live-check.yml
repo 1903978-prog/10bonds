@@ -2,8 +2,6 @@ name: Outliers live check
 # Manual (and when the rule or this check changes): which bonds the outlier rule leaves out on the live copy. Read-only.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/outliers-live-check.yml", "scripts/outliers-live-check.ts", "lib/outliers.ts"]
 jobs:
   check:
     runs-on: ubuntu-24.04

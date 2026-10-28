@@ -1,10 +1,9 @@
-# Deploys the public 10BONDS site to Fly.io on every push to main.
+# Deploys the public 10BONDS site to Fly.io. MANUAL ONLY since 28/10/2026: sessions deploy with `fly deploy`
+# directly, so the old push-to-main trigger duplicated every deploy (and re-ran the whole CI).
 # Needs one repo secret: FLY_API_TOKEN (a Fly token the owner creates himself).
 # The build runs on Fly's remote builder; the runner only waits.
 name: Deploy to Fly
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 concurrency: deploy
 jobs:
