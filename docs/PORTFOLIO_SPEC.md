@@ -15,7 +15,7 @@ list is rebuilt (the version is part of the stored-list key, so an old list is n
 
 Inside its band every position maximises the **equal-weight portfolio credit-adjusted net spread** (bp per year): the plain average of the ten bonds' net spreads, where a bond's net spread is `gross spread - max(0, bond annual expected loss - benchmark annual expected loss)` exactly as defined for the Bond Efficiency Score (`docs/BES.md`, `lib/bes`). Never the sum or average of BES values, and never the raw yield. Among lists with the same net spread the one with the lowest annual expected credit loss wins (second solve). Solved exactly with HiGHS (mixed-integer, worker thread).
 
-## 3. The 30 positions (anchored bands, `lib/riskAnchors.ts`, `ab1-2026-10-28`)
+## 3. The 30 positions (anchored bands, `lib/riskAnchors.ts`, `ab2-2026-10-28`)
 
 1. **Portfolio 30**: the list with the **highest average risk** that obeys every rule (R30), over every window of three classes. Among lists with that average risk, the highest net spread (then the lowest loss).
 2. **Portfolio 1**: the list with the **lowest average risk** under the same rules (R1); among those, the highest net spread.
