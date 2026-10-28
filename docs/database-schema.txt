@@ -204,6 +204,10 @@ table app.efficient_portfolio_positions
   bond_8 text
   bond_9 text
   bond_10 text
+  ladder_step smallint
+  class_lo smallint
+  class_hi smallint
+  band_target numeric
 
 table app.efficient_portfolio_snapshots
   id bigint not null default nextval(...)
