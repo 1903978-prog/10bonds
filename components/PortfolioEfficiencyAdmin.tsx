@@ -9,6 +9,7 @@ type Check = { rule: string; ok: boolean; detail: string };
 type Data = { run: (R & { stats: Record<string, number | string | string[] | null> }) | null; runs: R[]; positions: R[] };
 const f = (v: unknown, d = 1) => (v === null || v === undefined || v === "" ? "–" : Number.isFinite(Number(v)) ? Number(v).toFixed(d) : String(v));
 const when = (x: unknown) => (x ? new Date(String(x)).toLocaleString("en-GB", { timeZone: "Europe/Rome" }) : "–");
+const band = (p: R) => (p.band_lo === null || p.band_lo === undefined ? "–" : Number(p.band_lo) === Number(p.band_hi) ? (Number(p.band_lo) / 10).toFixed(1) : `${(Number(p.band_lo) / 10).toFixed(1)}–${(Number(p.band_hi) / 10).toFixed(1)}`);
 const j = <T,>(v: unknown): T | null => (v == null ? null : typeof v === "string" ? (JSON.parse(v) as T) : (v as T));
 
 export default function PortfolioEfficiencyAdmin() {
@@ -45,11 +46,12 @@ export default function PortfolioEfficiencyAdmin() {
           <section>
             <div className="flex items-center gap-3"><h2 className="font-medium">Portfolios</h2>
               <select className="rounded border border-line px-1 py-0.5 text-sm" value={hz} onChange={(e) => setHz(e.target.value)}><option value="">all horizons</option><option>SHORT</option><option>MEDIUM</option><option>LONG</option></select></div>
+            <p className="mt-2 text-xs text-mute" data-testid="pe-anchors">{["SHORT", "MEDIUM", "LONG"].map((h) => { const first = d.positions.find((p) => p.horizon === h && p.r1 !== null && p.r1 !== undefined); return `${h}: R1 ${first ? (Number(first.r1) / 10).toFixed(1) : "–"} · R30 ${first ? (Number(first.r30) / 10).toFixed(1) : "–"}`; }).join("   |   ")}</p>
             <div className="mt-2 overflow-x-auto"><table className="w-full text-left text-xs tabular-nums">
-              <thead className="text-mute"><tr><th>#</th><th>Term</th><th>Pos</th><th>Classes</th><th>Risk</th><th>Return %</th><th>Dur</th><th>Gross bp</th><th>Credit loss bp</th><th>Net bp</th><th>Previous net</th><th>Change</th><th>Avg bond BES</th><th>Portfolio BES</th><th>Status</th></tr></thead>
+              <thead className="text-mute"><tr><th>#</th><th>Term</th><th>Pos</th><th>Band (avg risk)</th><th>Classes</th><th>Actual avg</th><th>Bond risk</th><th>Step</th><th>Return %</th><th>Dur</th><th>Gross bp</th><th>Credit loss bp</th><th>Net bp</th><th>Previous net</th><th>Change</th><th>Avg bond BES</th><th>Portfolio BES</th><th>Status</th></tr></thead>
               <tbody>{rows.map((p) => { const pv = j<Prev>(p.previous); return (
                 <tr key={String(p.row_no)} className="cursor-pointer border-t border-line hover:bg-slate-50" onClick={() => setOpen(Number(p.row_no))}>
-                  <td>{String(p.row_no)}</td><td>{String(p.horizon)}</td><td>{String(p.position)}{p.repeat_of && Number(p.repeat_of) !== Number(p.position) ? ` = ${p.repeat_of}` : ""}</td><td>{(p.allowed as number[]).join(",")}</td><td>{f(p.risk_min, 0)}–{f(p.risk_max, 0)}</td>
+                  <td>{String(p.row_no)}</td><td>{String(p.horizon)}</td><td>{String(p.position)}{p.repeat_of && Number(p.repeat_of) !== Number(p.position) ? ` = ${p.repeat_of}` : ""}</td><td>{band(p)}</td><td>{(p.allowed as number[]).join(",")}</td><td>{f(p.avg_risk, 1)}</td><td>{f(p.risk_min, 0)}–{f(p.risk_max, 0)}</td><td title="0 = strict rules; 1 to 3 = ladder step (adjusted)">{p.step === null || p.step === undefined ? "–" : Number(p.step) > 0 ? `${p.step} · adjusted` : "0"}</td>
                   <td>{f(p.ytm, 2)}</td><td>{f(p.duration, 2)}</td><td>{f(p.gross_spread_bp, 0)}</td><td>{f(p.credit_loss_bp, 0)}</td><td className="font-semibold">{f(p.net_spread_bp, 0)}</td>
                   <td>{pv?.reproducible ? f(pv.netSpreadBp, 0) : "n/a"}</td><td>{pv?.reproducible && pv.feasibleUnderSameRules ? `${Number(pv.improvementBp) >= 0 ? "+" : ""}${f(pv.improvementBp, 1)}` : "–"}</td>
                   <td>{f(p.avg_bond_bes)}</td><td title={String(p.portfolio_bes_reason ?? "")}>{p.portfolio_bes === null ? "n/a" : f(p.portfolio_bes)}</td>

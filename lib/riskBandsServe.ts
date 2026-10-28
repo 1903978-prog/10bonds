@@ -69,6 +69,7 @@ export function positionsOfBands(sv: ServedBands): SliderPosition[] {
       unavailable: !ok,
       band: { min: b.min, max: b.max },
       ...(b.allowed ? { classes: b.allowed } : {}),
+      ...(ok && (b.ladder ?? 0) > 0 ? { adjusted: true } : {}),
       slot: b.k,
       optimal: ok ? b.optimal : undefined,
       ...(ok && b.eff ? { eff: b.eff } : {}),

@@ -16,7 +16,7 @@ import { specConfig } from "@/lib/netSpread/config";
 import { publishHorizon } from "@/lib/netSpread/publishBands";
 import { loadBes } from "@/lib/netSpread/store";
 import { SPEC_VERSION } from "@/lib/portfolioSpec";
-import { MATRIX_POSITIONS } from "@/lib/riskMatrix";
+import { POSITIONS as MATRIX_POSITIONS } from "@/lib/riskAnchors";
 import { BUSY_PER_MINUTE, buildTablesReady, recentTraffic } from "@/lib/portfolioBuild";
 import type { BondFilter } from "@/lib/bondFilter";
 

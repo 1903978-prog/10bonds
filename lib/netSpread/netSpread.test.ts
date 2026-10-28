@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { solveNetSpread, solveWindow, type NsCand, type NsRules } from "./solve";
+import { extremeOf, solveNetSpread, solvePosition, type NsCand, type NsRules } from "./solve";
+import { specRules } from "../portfolioSpec";
 import { checkNsList } from "./check";
 import { metricsOf } from "./metrics";
 import { midRankPercentile, portfolioBes, REFERENCE_POLICY } from "./reference";
 import { sampleFeasible } from "./sample";
 
-const rules: NsRules = { perIssuer: 1, perSector: 3, duration: 5 };
+const rules: NsRules = { ...specRules(5), lossShare: 1 };
 let n = 0;
 const bond = (o: Partial<NsCand> = {}): NsCand => { n++; return { isin: `X${String(n).padStart(4, "0")}`, group: `g${n}`, sector: `s${n % 6}`, cls: 4, dur: 5, ns: 100, grossBp: 120, lossBp: 20, ytm: 4, bes: 50, ...o }; };
 const pool = (k: number, f: (i: number) => Partial<NsCand>) => Array.from({ length: k }, (_, i) => bond(f(i)));
@@ -14,7 +15,7 @@ describe("net-spread optimiser", () => {
   it("picks the ten highest net spreads, not the highest BES", async () => {
     n = 0;
     const c = pool(14, (i) => ({ ns: 100 + i * 10, bes: 100 - i * 5 }));
-    const r = await solveNetSpread(c, [3, 4, 5], { ...rules, perSector: 10 });
+    const r = await solveNetSpread(c, 3, 5, { ...rules, perSector: 10 });
     expect(r.status).toBe("optimal");
     expect(r.sel.map((x) => x.ns).sort((a, b) => a - b)).toEqual([140, 150, 160, 170, 180, 190, 200, 210, 220, 230]);
     expect(r.objectiveBp).toBeCloseTo(185, 6);
@@ -27,7 +28,7 @@ describe("net-spread optimiser", () => {
       bond({ cls: 4, ns: 800, group: "g1" }),                      // same issuer as g1: cannot be both
       bond({ cls: 4, ns: 700, dur: 12 }),                          // would break the duration window
     ];
-    const r = await solveNetSpread(c, [3, 4, 5], rules);
+    const r = await solveNetSpread(c, 3, 5, rules);
     expect(r.status).toBe("optimal");
     const bad = checkNsList(r.sel, [3, 4, 5], rules).filter((k) => !k.ok);
     expect(bad).toEqual([]);
@@ -44,20 +45,20 @@ describe("net-spread optimiser", () => {
       if (!checkNsList(sel, [3, 4, 5], rules).every((k) => k.ok)) continue;
       best = Math.max(best, sel.reduce((s, x) => s + x.ns, 0) / 10);
     }
-    const r = await solveNetSpread(c, [3, 4, 5], rules);
+    const r = await solveNetSpread(c, 3, 5, rules);
     if (best === -Infinity) expect(r.status).toBe("infeasible");
     else { expect(r.status).toBe("optimal"); expect(r.objectiveBp).toBeCloseTo(best, 4); }
   });
   it("ties go to the lowest credit loss, and the same input gives the same list", async () => {
     n = 0;
     const c = pool(12, (i) => ({ ns: 100, lossBp: 50 - i, sector: `s${i}` }));
-    const a = await solveNetSpread(c, [4], rules), b = await solveNetSpread([...c].reverse(), [4], rules);
+    const a = await solveNetSpread(c, 4, 4, rules), b = await solveNetSpread([...c].reverse(), 4, 4, rules);
     expect(a.sel.map((x) => x.isin).sort()).toEqual(b.sel.map((x) => x.isin).sort());
     expect(Math.max(...a.sel.map((x) => x.lossBp))).toBe(48);
   });
   it("reports infeasible", async () => {
     n = 0;
-    const r = await solveNetSpread(pool(9, () => ({})), [4], rules);
+    const r = await solveNetSpread(pool(9, () => ({})), 4, 4, rules);
     expect(r.status).toBe("infeasible");
     expect(r.sel).toEqual([]);
   });
@@ -113,61 +114,70 @@ describe("reference sample", () => {
   });
 });
 
-describe("expected-loss terciles for positions that share their classes", () => {
-  // Bonds trade return for loss: more net spread always comes with more annual expected loss, so the window has a real range.
-  const ladder = () => { n = 0; return pool(40, (i) => ({ cls: 5, ns: 100 + i * 10, lossBp: 10 + i * 5, sector: `s${i % 14}` })); };
-  it("each place maximises net spread under its own ceiling; net spread and loss rise from place to place; the top place is the unconstrained optimum", async () => {
+describe("anchors: the riskiest and the safest list", () => {
+  const ladder = () => { n = 0; return pool(40, (i) => ({ cls: 1 + (i % 6), ns: 100 + i * 3, lossBp: 5 + (i % 6) * 10, sector: `s${i % 14}` })); };
+  it("the extreme sum is found over every 3-class window, and its list has the highest net spread among lists with that sum", async () => {
     const c = ladder();
-    const w = await solveWindow(c, [4, 5, 6], rules, 3);
-    expect(w.results.map((r) => r.status)).toEqual(["optimal", "optimal", "optimal"]);
-    const net = w.results.map((r) => r.objectiveBp!), loss = w.results.map((r) => r.sel.reduce((a, x) => a + x.lossBp, 0) / 10);
-    expect(net[0]).toBeLessThan(net[1]);
-    expect(net[1]).toBeLessThan(net[2]);
-    expect(loss[0]).toBeLessThan(loss[1]);
-    expect(loss[1]).toBeLessThan(loss[2]);
-    const top = await solveNetSpread(c, [4, 5, 6], rules);
-    expect(w.results[2].sel.map((x) => x.isin).sort()).toEqual(top.sel.map((x) => x.isin).sort());
-    // Ceilings sit at 1/3 and 2/3 of [lowest loss, top-list loss].
-    const { lowBp, highBp } = w.range!;
-    expect(w.results[0].ceilingBp).toBeCloseTo(lowBp + (highBp - lowBp) / 3, 6);
-    expect(w.results[1].ceilingBp).toBeCloseTo(lowBp + (2 * (highBp - lowBp)) / 3, 6);
-    for (const r of w.results.slice(0, 2)) expect(loss[w.results.indexOf(r)]).toBeLessThanOrEqual(r.ceilingBp! + 1e-6);
-    // Every list passes the independent check, ceiling included.
-    for (const r of w.results) expect(checkNsList(r.sel, [4, 5, 6], rules, { ceilingBp: r.ceilingBp, lossBp: r.sel.map((x) => x.lossBp) }).filter((k) => !k.ok)).toEqual([]);
+    const hi = await extremeOf(c, "max", rules, { withList: true }), lo = await extremeOf(c, "min", rules, { withList: true });
+    expect(hi.status).toBe("optimal");
+    // Brute force over the cheap way: the largest sum of ten classes inside one 3-class window with at most one bond per issuer is bounded by the classes available.
+    expect(hi.sum!).toBeGreaterThan(lo.sum!);
+    expect(hi.sel.length).toBe(10);
+    expect(hi.sel.reduce((t, x) => t + x.cls, 0)).toBe(hi.sum);
+    expect(lo.sel.reduce((t, x) => t + x.cls, 0)).toBe(lo.sum);
+    expect(checkNsList(hi.sel, [hi.classLo, hi.classLo + 1, hi.classHi], rules, { sum: { lo: hi.sum!, hi: hi.sum! } }).filter((k) => !k.ok)).toEqual([]);
+    // The same sum without the list gives the same number (the cheap path).
+    expect((await extremeOf(c, "max", rules)).sum).toBe(hi.sum);
   });
-  it("a window with no spread between loss and return gives the same list at every place (the caller flags the repeat)", async () => {
+  it("no feasible list gives no extreme", async () => {
     n = 0;
-    const c = pool(30, (i) => ({ cls: 5, ns: 100 + i, lossBp: 20, sector: `s${i % 10}` }));
-    const w = await solveWindow(c, [4, 5, 6], rules, 3);
-    const keys = w.results.map((r) => r.sel.map((x) => x.isin).sort().join());
-    expect(new Set(keys).size).toBe(1);
+    const r = await extremeOf(pool(8, () => ({})), "max", rules, { withList: true });
+    expect(r.sum).toBeNull();
+    expect(r.status).toBe("infeasible");
   });
-  it("an infeasible window is infeasible at every place, and a single place is the plain optimum", async () => {
+  it("a position keeps the sum of its ten classes inside its band", async () => {
+    const c = ladder();
+    const r = await solvePosition(c, 2, 4, { lo: 28, hi: 31 }, rules);
+    expect(r.status).toBe("optimal");
+    const sum = r.sel.reduce((t, x) => t + x.cls, 0);
+    expect(sum).toBeGreaterThanOrEqual(28);
+    expect(sum).toBeLessThanOrEqual(31);
+    expect(checkNsList(r.sel, [2, 3, 4], rules, { sum: { lo: 28, hi: 31 } }).filter((k) => !k.ok)).toEqual([]);
+    expect((await solvePosition(c, 2, 4, { lo: 90, hi: 91 }, rules)).status).toBe("infeasible");
+  });
+  it("no bond carries more than the loss share of the list's expected loss", async () => {
     n = 0;
-    const few = pool(8, () => ({ cls: 5 }));
-    expect((await solveWindow(few, [5], rules, 3)).results.map((r) => r.status)).toEqual(["infeasible", "infeasible", "infeasible"]);
-    const c = ladder();
-    const one = await solveWindow(c, [5], rules, 1), plain = await solveNetSpread(c, [5], rules);
-    expect(one.results[0].sel.map((x) => x.isin).sort()).toEqual(plain.sel.map((x) => x.isin).sort());
+    const c = pool(24, (i) => ({ cls: 4, ns: i === 0 ? 900 : 100 + i, lossBp: i === 0 ? 400 : 10, sector: `s${i}` }));
+    const free = await solveNetSpread(c, 3, 5, { ...rules, lossShare: 1 });
+    expect(free.sel.some((x) => x.lossBp === 400)).toBe(true); // the high-spread, high-loss bond is wanted
+    const capped = await solveNetSpread(c, 3, 5, { ...rules, lossShare: 0.25 });
+    const total = capped.sel.reduce((t, x) => t + x.lossBp, 0);
+    expect(Math.max(...capped.sel.map((x) => x.lossBp))).toBeLessThanOrEqual(0.25 * total + 1e-6);
+    expect(checkNsList(capped.sel, [4], { ...rules, lossShare: 0.25 }).find((k) => k.rule === "share")?.ok).toBe(true);
   });
-  it("a live request can ask for one place only", async () => {
-    const c = ladder();
-    const all = await solveWindow(c, [4, 5, 6], rules, 3);
-    const mid = await solveWindow(c, [4, 5, 6], rules, 3, { only: 1 });
-    expect(mid.results[1].sel.map((x) => x.isin).sort()).toEqual(all.results[1].sel.map((x) => x.isin).sort());
-    expect(mid.results[0].sel).toEqual([]);
+  it("ladder step 1: sovereigns and agencies are not counted in the sector cap, other sectors may hold 4", async () => {
+    n = 0;
+    const c = pool(14, (i) => ({ cls: 4, ns: 200 - i, sector: "Government", exempt: i < 6 }));
+    expect((await solveNetSpread(c, 3, 5, specRules(5, 0))).status).toBe("infeasible");
+    const r = await solveNetSpread(c, 3, 5, specRules(5, 1));
+    expect(r.status).toBe("optimal");
+    expect(r.sel.filter((x) => !x.exempt).length).toBeLessThanOrEqual(4);
+  });
+  it("ladder step 2 widens the average duration window to 10%", async () => {
+    n = 0;
+    const c = pool(14, (i) => ({ cls: 4, ns: 100 + i, dur: 5.4, sector: `s${i}` })); // 8% above the horizon
+    expect((await solveNetSpread(c, 3, 5, specRules(5, 1))).status).toBe("infeasible");
+    expect((await solveNetSpread(c, 3, 5, specRules(5, 2))).status).toBe("optimal");
   });
 });
 
 describe("the unified engine's wiring", async () => {
   const { specConfig } = await import("./config");
-  const { riskClassConfig } = await import("../riskClassBands");
   const { configSignature } = await import("../riskBands");
   const { parseMethodology } = await import("../methodologyChoice");
   it("keeps its stored lists apart from every other band table, carries the spec version, and Methodology 5 is now 4", () => {
-    expect(configSignature(specConfig())).not.toBe(configSignature(riskClassConfig()));
-    expect(configSignature(specConfig())).toContain("ps1-");
-    expect(specConfig().bands.map((b) => b.allowed)).toEqual(riskClassConfig().bands.map((b) => b.allowed));
+    expect(configSignature(specConfig())).toContain("ps3-");
+    expect(specConfig().bands).toHaveLength(30);
     expect(parseMethodology("5")).toBe(4);
     expect(parseMethodology("6")).toBeNull();
   });

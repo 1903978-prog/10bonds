@@ -8,12 +8,11 @@ on:
     paths-ignore: ["**.md", "docs/**", "public/**/*.png", "public/**/*.jpg", ".github/workflows/**"]
   workflow_call:
   workflow_dispatch:
-# A newer commit on the same PR cancels the older run (never for the deploy call, which has its own queue).
-concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   checks:
     runs-on: ubuntu-24.04
