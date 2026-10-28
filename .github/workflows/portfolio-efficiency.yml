@@ -29,7 +29,7 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
       - name: Portfolio Efficiency run
-        run: npx vite-node -c vitest.config.ts scripts/portfolio-efficiency.ts ${{ inputs.force && '--force' || '' }} | tee pe.txt
+        run: npx vite-node -c vitest.config.ts scripts/portfolio-efficiency.ts ${{ (inputs.force || github.event_name == 'push') && '--force' || '' }} | tee pe.txt
       - name: Summary
         if: always()
         run: cat pe.txt >> "$GITHUB_STEP_SUMMARY" || true

@@ -4,6 +4,11 @@ import { batchIdOf, besTablesReady, runBes } from "../bes/store";
 import { RISK_MATRIX_VERSION } from "../riskMatrix";
 import { buildAll, NS_METHOD, type BesBond, type PositionResult, type PreviousPortfolio, type Reference, type HorizonName } from "./build";
 import { REFERENCE_POLICY } from "./reference";
+import { HORIZON_NAMES } from "./build";
+import { TERMS } from "../limits";
+import type { BondSource } from "../bonds";
+import { bandsKey } from "../riskBandsServe";
+import { loadBandConfig, loadStoredBands } from "../riskBandsStore";
 import type { PublicBond } from "../types";
 
 // Storage and daily run of Methodology 5 ("Portfolio Efficiency Optimization", owner brief 28/10/2026). Migration id: portfolio_efficiency_001 (additive tables
@@ -70,24 +75,35 @@ async function loadReference(batch: string): Promise<(h: HorizonName, p: number)
 }
 
 /** The earlier methodology's published portfolios (Efficient Database), as ISIN lists per horizon and position, for the old-versus-new table. */
-async function loadPrevious(): Promise<Map<string, PreviousPortfolio>> {
+async function loadPrevious(src: BondSource): Promise<Map<string, PreviousPortfolio>> {
   const s = await accountsSql();
   const out = new Map<string, PreviousPortfolio>();
+  // Positions the published snapshot does not hold (it needs 90/90) fall back to the stored lists of the live methodology for this price batch.
+  const f = { currency: "EUR", size: "100k" } as const;
+  const cfg = await loadBandConfig();
+  for (const t of TERMS) {
+    const got = await loadStoredBands(bandsKey(src, f, t.duration, cfg));
+    if (!got) continue;
+    for (const b of got.data.bands) if (b.status === "ok") out.set(`${HORIZON_NAMES[t.key]}:${b.k}`, { isins: [...b.isins], source: `stored lists of the live methodology${got.stale ? " (older prices)" : ""}` });
+  }
   const [snap] = await s`select id, methodology from app.efficient_portfolio_snapshots where filter_key = ${FILTER} and status = 'published'`.catch(() => []);
   if (!snap) return out;
+  const seen = new Set<string>();
   const rows = await s`select r.horizon, r.position, h.isin from app.efficient_portfolio_positions r join app.efficient_portfolio_holdings h on h.snapshot_id = r.snapshot_id and h.portfolio_id = r.portfolio_id and h.horizon = r.horizon where r.snapshot_id = ${snap.id} order by r.row_no, h.ord`;
   for (const r of rows) {
     const k = `${r.horizon}:${r.position}`;
-    (out.get(k) ?? out.set(k, { isins: [], source: `Efficient Database snapshot ${snap.id} (${snap.methodology})` }).get(k)!).isins.push(String(r.isin));
+    if (!seen.has(k)) { seen.add(k); out.set(k, { isins: [], source: `Efficient Database snapshot ${snap.id} (${snap.methodology})` }); }
+    out.get(k)!.isins.push(String(r.isin));
   }
   return out;
 }
 
 export type PeRunResult = { status: "published" | "skipped" | "failed"; runId: number | null; message: string; stats?: Record<string, unknown> };
 
-export async function runPe(bonds: PublicBond[], trigger: string, force = false, log: (m: string) => void = () => {}): Promise<PeRunResult> {
+export async function runPe(src: BondSource, trigger: string, force = false, log: (m: string) => void = () => {}): Promise<PeRunResult> {
   await peTablesReady();
   const s = await accountsSql();
+  const bonds = src.bonds;
   const batch = batchIdOf(bonds);
   let bes = await loadBes(batch);
   if (!bes) {
@@ -109,7 +125,7 @@ export async function runPe(bonds: PublicBond[], trigger: string, force = false,
   try {
     await assignBondCodes();
     const [previous, reference, last] = await Promise.all([
-      loadPrevious(), loadReference(batch),
+      loadPrevious(src), loadReference(batch),
       s`select p.* from app.pe_positions p join app.pe_runs r on r.id = p.run_id where r.status = 'published' and p.stale = false and p.status in ('optimal','uncertified')`,
     ]);
     const results = await buildAll({ bonds, bes: bes.bonds, seedKey: batch, previous, reference, onProgress: (n) => { if (n % 10 === 0) log(`${n}/90 positions`); } });
