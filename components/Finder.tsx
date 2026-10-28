@@ -34,6 +34,7 @@ import { loadMe } from "@/lib/me";
 import ConsentGate from "./ConsentGate";
 import WhyTable from "./WhyTable";
 import GuideTips from "./GuideTips";
+import { takeFinderListRequest } from "@/lib/finderStart";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
@@ -114,11 +115,13 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [minKnown, setMinKnown] = useState<boolean | null>(null);
   const sizeTouched = useRef(false);
   // Until the visitor moves a control, the results box shows the efficient-frontier chart (the owner, 19/10/2026).
-  const [touched, setTouched] = useState(false);
+  // Coming from the landing page buttons the list shows at once (lib/finderStart.ts).
+  const [fromLanding] = useState(() => takeFinderListRequest());
+  const [touched, setTouched] = useState(fromLanding);
   // The list replaces the chart only when the main button is pressed (the owner, 26/10/2026); until then the chart follows the horizon.
-  const [listOn, setListOn] = useState(false);
+  const [listOn, setListOn] = useState(fromLanding);
   // iPhone (the owner, 24/10/2026): "Show AI Efficient Portfolio" opens the results as their own full-screen page, no scrolling.
-  const [sheet, setSheet] = useState(false);
+  const [sheet, setSheet] = useState(() => fromLanding && typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches);
   // Each press of "Show AI Efficient Portfolio" runs the search again, so the press always shows the search and a fresh list.
   const [rerun, setRerun] = useState(0);
   const autoRetries = useRef(0);
@@ -782,7 +785,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         {diagOpen && positions && createPortal(<SliderCheck positions={positions} onClose={() => setDiagOpen(false)} />, document.body)}
         {mode === "single"
           ? <GuideTips key="single" page="single" lang={lang} />
-          : <GuideTips key="portfolio" lang={lang} simple={simple} only={simple ? ["horizon", "return", "views"] : undefined} />}
+          : <GuideTips key="portfolio" lang={lang} hold={listOn} simple={simple} only={simple ? ["horizon", "return", "views"] : undefined} />}
         {isAdmin && mode === "portfolio" && (
           <details className="mt-2" data-testid="admin-tuner-box">
             <summary className="cursor-pointer text-xs font-medium text-amber-900">Admin: tuning</summary>
