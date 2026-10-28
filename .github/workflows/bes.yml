@@ -25,7 +25,7 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
       - name: Bond Efficiency run
-        run: npx vite-node -c vitest.config.ts scripts/bes-run.ts ${{ inputs.force && '--force' || '' }} | tee bes.txt
+        run: set -o pipefail; npx vite-node -c vitest.config.ts scripts/bes-run.ts ${{ inputs.force && '--force' || '' }} | tee bes.txt
       - name: Summary
         if: always()
         run: cat bes.txt >> "$GITHUB_STEP_SUMMARY" || true
