@@ -313,6 +313,27 @@ export async function bondDataStats(): Promise<{
   };
 }
 
+export type CurrencyFreshness = { currency: "EUR" | "USD"; total: number; last24h: number; newest: string | null };
+
+/** One cheap query for the admin home: per currency, bonds whose price (own date when the copy has it, else yield date) is under 24 h old. */
+export async function priceFreshnessByCurrency(): Promise<{ basis: "price_as_of" | "ytm_as_of"; rows: CurrencyFreshness[] } | null> {
+  const client = db();
+  if (!client) return null;
+  const cols = await client`select column_name from information_schema.columns where table_name = 'public_bonds' and column_name = 'price_as_of'`;
+  const basis = cols.length ? "price_as_of" : "ytm_as_of";
+  const r = await client`
+    select upper(trim(currency)) cur, count(*) total,
+           count(*) filter (where d > now() - interval '24 hours') h24, max(d) newest
+    from (select currency, ${client.unsafe(basis === "price_as_of" ? "coalesce(price_as_of, ytm_as_of)" : "ytm_as_of")} d from public_bonds) t
+    where upper(trim(currency)) in ('EUR', 'USD')
+    group by 1`;
+  const rows = (["EUR", "USD"] as const).map((c) => {
+    const x = r.find((y) => y.cur === c);
+    return { currency: c, total: Number(x?.total ?? 0), last24h: Number(x?.h24 ?? 0), newest: x?.newest ? new Date(x.newest).toISOString() : null };
+  });
+  return { basis, rows };
+}
+
 /** Freshness and shape of the bond copy, for /api/health/data and the daily data watch. Numbers only, no bond details. */
 export async function bondDataHealth(now = Date.now()): Promise<DataHealth> {
   const client = db();
