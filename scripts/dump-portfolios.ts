@@ -16,7 +16,7 @@ const rows = (await runPositions(Number(run.id))).map((p) => {
     bonds: bonds.map((b) => ({ isin: b.isin, name: by.get(b.isin)?.name ?? b.isin, issuer: by.get(b.isin)?.issuer ?? null, cls: b.cls, dur: b.dur, ns: b.ns, ytm: b.ytm })),
   };
 });
-console.log("PORTFOLIO_DUMP_START");
-console.log(JSON.stringify({ run: Number(run.id), asOf: run.price_as_of, spec: run.method, rows }));
+console.log("PORTFOLIO_DUMP_START " + JSON.stringify({ run: Number(run.id), asOf: run.price_as_of, spec: run.method }));
+for (const r of rows) console.log("PORTFOLIO_ROW " + JSON.stringify(r));
 console.log("PORTFOLIO_DUMP_END");
 process.exit(0);
