@@ -1,0 +1,22 @@
+name: Show dominated positions
+# On demand only: prints beaten and empty positions and the live-check table of the published Efficient Database snapshots (read-only database reads, nothing is changed).
+on:
+  workflow_dispatch:
+concurrency:
+  group: show-dominated
+  cancel-in-progress: true
+jobs:
+  show:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/show-dominated.ts | tee out.md
+      - if: always()
+        run: cat out.md >> "$GITHUB_STEP_SUMMARY" || true
