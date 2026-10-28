@@ -1,5 +1,6 @@
 import { accountsSql } from "../accounts";
 import type { PublicBond } from "../types";
+import { setOfficialBenchmark } from "./benchmarkTables";
 import { BES_METHOD, BES_REFERENCE_VERSION, benchmarkReport, calculateBes, type BesRow } from "./calc";
 import { SP_CORPORATE, SP_CORPORATE_SOURCE, SP_CORPORATE_VERSION, SP_CORPORATE_YEARS } from "./spReference";
 import { SOVEREIGN_RATES, SOVEREIGN_YEARS } from "../sovereign";
@@ -57,6 +58,15 @@ export const batchIdOf = (bonds: PublicBond[]): string => {
 
 export type RunResult = { status: "published" | "skipped" | "failed"; runId: number | null; message: string; counts?: Record<string, number> };
 
+/** Official benchmark curves saved by the import jobs replace the owner's tables; if one is missing the owner's table stays as the flagged fallback. */
+async function loadOfficialBenchmarks(): Promise<void> {
+  try {
+    const { getBundBenchmarkPoints } = await import("../bundCurve/store");
+    const c = await getBundBenchmarkPoints();
+    if (c && c.points.length === 30) setOfficialBenchmark("EUR", c.asOf, c.points, "Deutsche Bundesbank annual-coupon Bund yields (BBSIS ZAR)", "bundesbank-zar");
+  } catch (e) { console.error("[bes] official Bund curve not available, using the fallback table:", (e as Error).message); }
+}
+
 export async function runBes(bonds: PublicBond[], trigger: string, force = false): Promise<RunResult> {
   await besTablesReady();
   const s = await accountsSql();
@@ -69,6 +79,7 @@ export async function runBes(bonds: PublicBond[], trigger: string, force = false
   const id = Number(run.id);
   try {
     await loadPdReference();
+    await loadOfficialBenchmarks();
     const rows = calculateBes(bonds);
     // Permanent codes are assigned by the Efficient Database job; BES only reads them (null until a bond has one).
     const codes = new Map((await s`select isin, bond_code from app.bond_codes`.catch(() => [])).map((r) => [String(r.isin), String(r.bond_code)]));
