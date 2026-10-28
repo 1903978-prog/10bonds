@@ -233,11 +233,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     }
   };
   // Risk-band positions without a list (see lib/bandSlider.ts for the switch).
-  // Bands the live search found empty (a set without stored figures marks none): the slider and arrows skip them too.
-  const [emptyBands, setEmptyBands] = useState<{ key: string; set: number[] }>({ key: "", set: [] });
-  const emptyKey = `${duration}|${currency}|${size}`;
-  const knownEmpty = emptyBands.key === emptyKey ? emptyBands.set : [];
-  const bandGap = (p: number) => !!positions?.[0]?.band && (!!positions[p - 1]?.unavailable || knownEmpty.includes(p));
+  const bandGap = (p: number) => !!positions?.[0]?.band && (!!positions[p - 1]?.unavailable);
   const changeMix = (pos: number) => {
     setTouched(true);
     const to = landOn(Math.min(mixMax, Math.max(pos, firstOpen)), mix, bandGap, mixMax);
@@ -254,7 +250,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     const here = positions[mix - 1]?.sameAs ?? mix;
     for (let p = mix + dir; p >= firstOpen && p <= SLIDER_POSITIONS; p += dir) {
       const x = positions[p - 1];
-      if (x && !x.unavailable && x.sameAs == null && p !== here && !knownEmpty.includes(p)) return p;
+      if (x && !x.unavailable && x.sameAs == null && p !== here) return p;
     }
     return null;
   };
@@ -324,17 +320,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simple, caps, maxRisk, duration, positions, canYear]);
 
-  // A band the search finds empty is remembered and the slider moves on to the nearest band with a list, so no one stays on an empty one.
-  useEffect(() => {
-    if (!simple || mode !== "portfolio" || !data || data.status !== "INFEASIBLE" || !data.band || !positions?.[0]?.band) return;
-    if (knownEmpty.includes(mix)) return;
-    const set = [...knownEmpty, mix];
-    setEmptyBands({ key: emptyKey, set });
-    const gap = (p: number) => !!positions[p - 1]?.unavailable || set.includes(p);
-    const to = landOn(mix, mix, gap, positions.length);
-    if (to !== mix) { setMix(to); applyMix(to); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, simple, mode, positions]);
 
   useEffect(() => {
     preview.current = new URLSearchParams(window.location.search).get("preview");

@@ -287,6 +287,16 @@ export async function holdingsOf(snapshotId: number): Promise<Map<string, string
   return m;
 }
 
+/** The published list of one position (ISINs in order) with its figures, for the search page when the band store has none; null when not published or not a valid position. */
+export async function snapshotHolding(f: Pick<BondFilter, "currency" | "size">, term: "short" | "mid" | "long", position: number): Promise<{ pos: SliderPosition; isins: string[] } | null> {
+  const snap = await activeSnapshot(f);
+  const pos = snap?.horizons[term].find((p) => p.position === position);
+  if (!snap || !pos || pos.unavailable) return null;
+  const s = await sql();
+  const rows = await s`select h.isin from app.efficient_portfolio_positions r join app.efficient_portfolio_holdings h on h.snapshot_id = r.snapshot_id and h.portfolio_id = r.portfolio_id and h.horizon = r.horizon where r.snapshot_id = ${snap.id} and r.horizon = ${HORIZONS[KEYS.indexOf(term)]} and r.position = ${position} order by h.ord`;
+  return rows.length ? { pos, isins: rows.map((r) => String(r.isin)) } : null;
+}
+
 export async function snapshotList(limit = 30) {
   const s = await sql();
   return s`select id, batch_id, filter_key, status, methodology, empty_policy, data_as_of, calculated_at, published_at, runtime_ms, filled_count, distinct_portfolios, error from app.efficient_portfolio_snapshots order by id desc limit ${limit}`;

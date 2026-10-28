@@ -1,7 +1,8 @@
 import type { BondSource } from "./bonds";
 import type { BondFilter } from "./bondFilter";
 import type { PublicBond, RankedBond } from "./types";
-import { isExactYear, isTermHorizon } from "./limits";
+import { isExactYear, isTermHorizon, TERMS } from "./limits";
+import { snapshotHolding } from "./sliderSnapshot";
 import { loadBandConfig } from "./riskBandsStore";
 import { configSignature, type BandConfig } from "./riskBands";
 import { bondsOfBand, servedBands } from "./riskBandsServe";
@@ -59,6 +60,19 @@ export async function bandStored(data: BondSource, filter: BondFilter, duration:
         return { kind: "list", results: rowsOf(bonds), meta: { k: n, min: sb.min, max: sb.max, avgRisk: sb.avgRisk, ytm: sb.ytm, el: sb.el, avgDur: sb.avgDur, optimal: sb.optimal, source: "stored", ...(sv.stale ? { stale: true } : {}) } };
       }
     }
+  }
+  // The published snapshot is what the slider shows, so its list answers when the band store has none for that position (never an empty page for a position the slider offers).
+  const term = !skip && isTermHorizon(duration) ? TERMS.find((t) => t.duration === duration)?.key : undefined;
+  if (term) {
+    try {
+      const h = await snapshotHolding(filter, term as "short" | "mid" | "long", n);
+      const byIsin = new Map(data.bonds.map((b) => [b.isin, b]));
+      const bonds = h?.isins.map((i) => byIsin.get(i));
+      if (h && bonds?.length && bonds.every((b): b is PublicBond => !!b) && h.pos.ytm !== null && h.pos.expectedLoss !== null && h.pos.avgRisk !== null) {
+        const avgDur = bonds.reduce((a, b) => a + (b.modifiedDuration ?? 0), 0) / bonds.length;
+        return { kind: "list", results: rowsOf(bonds), meta: { k: n, min: h.pos.band?.min ?? band.min, max: h.pos.band?.max ?? band.max, avgRisk: h.pos.avgRisk, ytm: h.pos.ytm, el: h.pos.expectedLoss, avgDur: r2(avgDur), optimal: h.pos.optimal === true, source: "stored" } };
+      }
+    } catch (e) { console.error("[bands] snapshot fallback failed:", (e as Error).message); }
   }
   const hit = cachedLive(liveKey(data, filter, duration, n, exclusionKey, cfg));
   return hit ? { kind: "list", results: rowsOfSel(hit.sel), meta: metaOfSel(band, hit.sel, hit.optimal, { phase: "done" }) } : null;
