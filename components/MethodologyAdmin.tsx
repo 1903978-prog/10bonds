@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { METHODOLOGIES, type Methodology } from "@/lib/methodologyChoice";
+import { METHODOLOGIES, type Methodology } from "@/lib/methodologyList";
 
 export type StoredCount = Record<string, string>;
 
