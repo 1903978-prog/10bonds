@@ -1,7 +1,7 @@
 // Builds the 90-position slider snapshot (lib/sliderSnapshot.ts) for the current price batch from the stored risk-band lists, validates it and
 // publishes it only when all 90 rows pass. Run by the "Precompute portfolio lists" job right after the band lists. Exit code 0 unless the run failed.
 // Usage: npx vite-node -c vitest.config.ts scripts/build-slider-snapshot.ts
-import { ALL_FILTERS, buildSnapshot, snapshotRows } from "@/lib/sliderSnapshot";
+import { ALL_FILTERS, applyBes, buildSnapshot, snapshotRows } from "@/lib/sliderSnapshot";
 
 // One snapshot per currency and minimum-order choice (EUR/USD x All/1k-10k), each from its own stored lists.
 let failed = false;
@@ -17,4 +17,6 @@ for (const f of ALL_FILTERS) {
   }
 }
 await new Promise((done) => setTimeout(done, 1500));
+// Snapshots that were already published (the build skips them) still get the bond BES of the latest Bond Efficiency run (repeatable).
+console.log("BES copy:", JSON.stringify(await applyBes().catch((e) => ({ error: (e as Error).message }))));
 process.exit(failed ? 1 : 0);
