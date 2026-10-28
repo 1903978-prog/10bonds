@@ -16,8 +16,8 @@ export type EtfBenchmark = {
 
 // Provisional figure given by the owner on 24/10/2026. No provider, fund or ISIN is ever shown to customers.
 export const DEFAULT_ETF: EtfBenchmark = {
-  ret: 4.46, risk: 6, riskRange: "5–7", duration: 3.77, position: 17, asOf: "2026-09-29",
-  source: "Provisional figure given by the owner (24 Oct 2026)", methodology: "Gross yield to maturity of one EUR corporate bond ETF; not an average across ETFs",
+  ret: 4.46, risk: 3.5, riskRange: "3–4", duration: 3.77, position: 17, asOf: "2026-09-29",
+  source: "Provisional figure given by the owner (24 Oct 2026)", methodology: "Gross yield to maturity of one investment-grade EUR corporate bond ETF; not an average across ETFs",
   verified: false, on: true,
 };
 

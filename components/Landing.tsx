@@ -111,9 +111,12 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 type Num = (n: number, d?: number) => string;
 
 function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang; num: Num; bench: Bench | null }) {
-  // The 10bonds side is the stored top-10 list shown on the carousel's list slide, so both slides tell the same story.
-  const stored = listFigures((LANDING_BONDS as { bonds: BenchmarkBond[] }).bonds);
-  const p = bench?.portfolio ? { ...bench.portfolio, ...(stored ? { ytm: stored.ytm, avgRisk: stored.risk } : {}) } : null;
+  // The 10bonds side is the stored top-10 list shown on the carousel's list slide (picked by scripts/landing-snapshot.ts as the
+  // list closest to the ETF's risk level, then duration), so both slides tell the same story.
+  const snapList = LANDING_BONDS as { ytm?: number; avgRisk?: number; duration?: number | null; bonds: BenchmarkBond[] };
+  const stored = listFigures(snapList.bonds);
+  const base = bench?.portfolio ?? null;
+  const p = base ? { ...base, ytm: snapList.ytm ?? stored?.ytm ?? base.ytm, avgRisk: snapList.avgRisk ?? stored?.risk ?? base.avgRisk, duration: snapList.duration ?? base.duration } : null;
   const copy = p && bench && p.duration != null ? compareCopy(lang, { ytm: p.ytm, risk: p.avgRisk, duration: p.duration }, { ytm: bench.ret, risk: bench.risk, duration: bench.duration }, stored?.riskScores) : null;
   const dp = (d: number) => (Number.isInteger(Math.round(d * 100) / 10) ? 1 : 2);
   const yrs = (d: number | null | undefined) => (d == null ? ["–", "–"] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
@@ -146,7 +149,7 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
           <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] sm:line-clamp-2 sm:min-h-[2.6em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
           {big(bench?.ret, false)}
           <p className="mt-1.5 text-[12px]" style={{ color: MUTE }}>{t.grossYtm}</p>
-          {rows(false, bench?.duration, bench ? `≈ ${num(bench.risk, 0)}` : null, t.notMatched)}
+          {rows(false, bench?.duration, bench ? `≈ ${num(bench.risk, 1)}` : null, t.notMatched)}
         </div>
         <div className="rounded-[14px] p-2.5 min-[380px]:p-3 shadow-[0_8px_24px_rgba(17,45,59,0.25)] lg:p-4" style={{ background: NAVY }}>
           <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] text-[#8fe0b8] sm:line-clamp-2 sm:min-h-[2.6em]"><span className="sm:hidden">{t.aiShort}</span><span className="hidden sm:inline">{t.ai}</span></p>

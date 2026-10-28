@@ -7,7 +7,7 @@ export const LANDING_SNAPSHOT = {
   // (methodology and data-use rights confirmed, /admin/benchmark). Until then only the admin sees it, in yellow.
   verified: true,
   ret: 4.46,
-  risk: 6,
+  risk: 3.5, // investment-grade EUR bond ETF, risk about 3-4 (owner, 28/10/2026)
   duration: 3.77,
   portfolio: { ytm: 6.09, avgRisk: 6.0, duration: 4.0 },
 };
