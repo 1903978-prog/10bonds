@@ -41,6 +41,8 @@ export type SliderPosition = {
   band?: { min: number; max: number };
   /** Risk matrix: the bond risk classes this position may hold, and its number in the full 30 (the public slider renumbers the valid ones 1..n). */
   classes?: number[];
+  /** Anchored bands: the list needed a ladder step (a rule loosened, lib/portfolioSpec.ts); shown as an "adjusted" badge. */
+  adjusted?: boolean;
   slot?: number;
   optimal?: boolean;
   /** Methodology 5: Portfolio Efficiency figures (lib/netSpread). */

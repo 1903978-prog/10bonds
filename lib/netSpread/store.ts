@@ -2,7 +2,7 @@ import { accountsConfigured, accountsSql } from "../accounts";
 import { assignBondCodes, bondCodeTablesReady, codesFor } from "../bondCodes";
 import { batchIdOf, besTablesReady, runBes } from "../bes/store";
 import { loadAllShown } from "../bonds";
-import { RISK_MATRIX_VERSION } from "../riskMatrix";
+import { ANCHORS_VERSION } from "../riskAnchors";
 import { buildAll, NS_METHOD, type BesBond, type PositionResult, type PreviousPortfolio, type Reference } from "./build";
 import { REFERENCE_POLICY } from "./reference";
 import { HORIZON_NAMES } from "./build";
@@ -42,6 +42,8 @@ export function peTablesReady(): Promise<void> {
     await s`create table if not exists app.pe_reference_samples (
       version text not null, filter_key text not null, horizon text not null, position smallint not null, batch_id text not null,
       sampled_at timestamptz not null default now(), nets real[] not null, primary key (version, filter_key, horizon, position, batch_id))`;
+    // Anchored bands (ps3): the ladder step, the band (sum of ten classes, tenths), the target, and the key's anchors R1 / R30 (tenths).
+    await s`alter table app.pe_positions add column if not exists step smallint, add column if not exists band_lo smallint, add column if not exists band_hi smallint, add column if not exists band_target numeric(6,2), add column if not exists r1 smallint, add column if not exists r30 smallint`;
     await s`create index if not exists pe_runs_status on app.pe_runs (status, id desc)`;
   })().catch((e) => { ready = null; throw e; });
   return ready;
@@ -119,13 +121,13 @@ export async function runPe(src: BondSource, trigger: string, force = false, log
     if (!bes) return { status: "skipped", runId: null, message: "No Bond Efficiency run for this price batch yet; nothing optimised." };
   }
   const requested = await s`select id from app.pe_runs where status = 'requested' order by id`;
-  const [done] = await s`select id from app.pe_runs where status = 'published' and batch_id = ${batch} and bes_run_id = ${bes.runId} and method = ${NS_METHOD} and matrix_version = ${RISK_MATRIX_VERSION} limit 1`;
+  const [done] = await s`select id from app.pe_runs where status = 'published' and batch_id = ${batch} and bes_run_id = ${bes.runId} and method = ${NS_METHOD} and matrix_version = ${ANCHORS_VERSION} limit 1`;
   if (done && !requested.length && !force) return { status: "skipped", runId: Number(done.id), message: `Batch ${batch} already optimised (run #${done.id}).` };
   const [busy] = await s`select id from app.pe_runs where status = 'running' and started_at > now() - interval '60 minutes' limit 1`;
   if (busy) return { status: "skipped", runId: Number(busy.id), message: `Another optimisation is running (run #${busy.id}).` };
   await s`update app.pe_runs set status = 'failed', error = 'Interrupted', finished_at = now() where status = 'running'`;
   const t0 = Date.now();
-  const [run] = await s`insert into app.pe_runs (batch_id, bes_run_id, status, trigger, started_at, method, matrix_version, reference_version, filter_key) values (${batch}, ${bes.runId}, 'running', ${requested.length ? "admin" : trigger}, now(), ${NS_METHOD}, ${RISK_MATRIX_VERSION}, ${REFERENCE_POLICY.version}, ${FILTER}) returning id`;
+  const [run] = await s`insert into app.pe_runs (batch_id, bes_run_id, status, trigger, started_at, method, matrix_version, reference_version, filter_key) values (${batch}, ${bes.runId}, 'running', ${requested.length ? "admin" : trigger}, now(), ${NS_METHOD}, ${ANCHORS_VERSION}, ${REFERENCE_POLICY.version}, ${FILTER}) returning id`;
   const id = Number(run.id);
   try {
     await assignBondCodes();
@@ -181,7 +183,7 @@ const toDb = (run: number, r: PositionResult, codes: Map<string, string>, prev: 
   }
   const m = r.metrics;
   return {
-    run_id: run, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.duration, allowed: r.allowed, status: r.status, data_status: r.dataStatus,
+    run_id: run, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.duration, allowed: r.allowed, step: r.step, band_lo: r.band.sumLo, band_hi: r.band.sumHi, band_target: r.band.target, r1: r.r1, r30: r.r30, status: r.status, data_status: r.dataStatus,
     isins: r.isins, bond_codes: r.isins.map((i) => codes.get(i) ?? ""), ytm: m?.ytm ?? null, duration: m?.duration ?? null, avg_risk: m?.avgRisk ?? null, risk_min: m?.minRisk ?? null, risk_max: m?.maxRisk ?? null,
     gross_spread_bp: m?.grossSpreadBp ?? null, credit_loss_bp: m?.creditLossBp ?? null, net_spread_bp: m?.netSpreadBp ?? null, avg_bond_bes: m?.avgBondBes ?? null,
     portfolio_bes: r.portfolioBes.score, portfolio_bes_status: r.portfolioBes.status, portfolio_bes_reason: r.portfolioBes.reason, opportunity_pct: r.opportunityPct,

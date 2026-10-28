@@ -1,0 +1,25 @@
+name: Portfolio report
+# Rebuilds the three term horizons of one currency x minimum order with the anchored-band engine, stores the lists and prints R1, R30 and the 30 rows per horizon.
+# Not the nightly build (that is portfolio-efficiency.yml); this is the on-demand run for the review table.
+on:
+  workflow_dispatch:
+    inputs:
+      filter: { description: "Currency:size, e.g. EUR:100k (All) or EUR:1k", default: "EUR:100k" }
+  push:
+    branches: [claude/project-thread-nulu7q]
+    paths: [scripts/portfolio-report.ts, .github/workflows/portfolio-report.yml]
+concurrency: { group: portfolio-build, cancel-in-progress: false }
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      FILTER: ${{ github.event.inputs.filter || 'EUR:100k' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/portfolio-report.ts
