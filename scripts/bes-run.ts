@@ -12,21 +12,24 @@ async function coverage(shown: number) {
   const { cleanPgUrl } = await import("@/lib/pgUrl");
   const db = postgres(cleanPgUrl(url), { ssl: "require", max: 1, prepare: false, onnotice: () => {} });
   try {
-    const [c] = await db`
-      with n as (select max(ytm_as_of) newest from public_bonds)
-      select count(*)::int total,
-        count(*) filter (where gross_ytm is null)::int no_ytm,
-        count(*) filter (where modified_duration is null)::int no_duration,
-        count(*) filter (where ytm_as_of is null)::int no_ytm_date,
-        count(*) filter (where ytm_as_of >= (select newest from n) - interval '3 days')::int age_0_3,
-        count(*) filter (where ytm_as_of < (select newest from n) - interval '3 days' and ytm_as_of >= (select newest from n) - interval '10 days')::int age_3_10,
-        count(*) filter (where ytm_as_of < (select newest from n) - interval '10 days' and ytm_as_of >= (select newest from n) - interval '30 days')::int age_10_30,
-        count(*) filter (where ytm_as_of < (select newest from n) - interval '30 days')::int age_30_plus,
-        count(*) filter (where clean_price is null)::int no_clean_price,
-        count(*) filter (where maturity <= current_date)::int matured,
-        count(*) filter (where dormant is true)::int dormant,
-        count(*) filter (where structure_modelled is false)::int structure_not_modelled
-      from public_bonds`;
+    // The copy's columns differ between exports, so only count what exists.
+    const cols = new Set((await db`select column_name from information_schema.columns where table_name = 'public_bonds'`).map((r) => r.column_name as string));
+    const age = (lo: string | null, hi: string | null) => `count(*) filter (where ytm_as_of is not null${hi ? ` and ytm_as_of >= (select newest from n) - interval '${hi} days'` : ""}${lo ? ` and ytm_as_of < (select newest from n) - interval '${lo} days'` : ""})::int`;
+    const parts: [string, string, string?][] = [
+      ["no_ytm", "count(*) filter (where gross_ytm is null)::int", "gross_ytm"],
+      ["no_duration", "count(*) filter (where modified_duration is null)::int", "modified_duration"],
+      ["no_ytm_date", "count(*) filter (where ytm_as_of is null)::int", "ytm_as_of"],
+      ["age_0_3", age(null, "3"), "ytm_as_of"],
+      ["age_3_10", age("3", "10"), "ytm_as_of"],
+      ["age_10_30", age("10", "30"), "ytm_as_of"],
+      ["age_30_plus", age("30", null), "ytm_as_of"],
+      ["no_clean_price", "count(*) filter (where clean_price is null)::int", "clean_price"],
+      ["matured", "count(*) filter (where maturity <= current_date)::int", "maturity"],
+      ["dormant", "count(*) filter (where dormant is true)::int", "dormant"],
+      ["structure_not_modelled", "count(*) filter (where structure_modelled is false)::int", "structure_modelled"],
+    ];
+    const use = parts.filter(([, , col]) => !col || cols.has(col));
+    const [c] = await db.unsafe(`with n as (select max(ytm_as_of) newest from public_bonds) select count(*)::int total, ${use.map(([k, e]) => `${e} ${k}`).join(", ")} from public_bonds`);
     console.log("\n### Price coverage of the whole bond copy (" + c.total + " bonds; " + shown + " shown on the site and scored)");
     for (const [k, v] of Object.entries(c)) console.log(`- ${k}: ${v}`);
   } finally { await db.end(); }
