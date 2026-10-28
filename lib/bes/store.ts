@@ -65,6 +65,11 @@ async function loadOfficialBenchmarks(): Promise<void> {
     const c = await getBundBenchmarkPoints();
     if (c && c.points.length === 30) setOfficialBenchmark("EUR", c.asOf, c.points, "Deutsche Bundesbank annual-coupon Bund yields (BBSIS ZAR)", "bundesbank-zar");
   } catch (e) { console.error("[bes] official Bund curve not available, using the fallback table:", (e as Error).message); }
+  try {
+    const { getUsBenchmarkPoints } = await import("../usTreasury/store");
+    const c = await getUsBenchmarkPoints();
+    if (c && c.points.length === 30) setOfficialBenchmark("USD", c.asOf, c.points, "Federal Reserve fitted US Treasury par yields (SVENPY01-30)", "fed-par");
+  } catch (e) { console.error("[bes] official US Treasury curve not available, using the interim table:", (e as Error).message); }
 }
 
 export async function runBes(bonds: PublicBond[], trigger: string, force = false): Promise<RunResult> {
