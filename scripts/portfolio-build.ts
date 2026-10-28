@@ -13,7 +13,7 @@ import { bandsKey } from "@/lib/riskBandsServe";
 import { loadStoredBands } from "@/lib/riskBandsStore";
 import { buildHorizon, horizonOfYear } from "@/lib/netSpread/build";
 import { specConfig } from "@/lib/netSpread/config";
-import { publishHorizon } from "@/lib/netSpread/publishBands";
+import { dominatedPositions, publishHorizon } from "@/lib/netSpread/publishBands";
 import { loadBes } from "@/lib/netSpread/store";
 import { SPEC_VERSION } from "@/lib/portfolioSpec";
 import { POSITIONS as MATRIX_POSITIONS } from "@/lib/riskAnchors";
@@ -67,7 +67,7 @@ try {
         const bad = count("error");
         built += MATRIX_POSITIONS - bad; failed += bad;
         peak = Math.max(peak, mb());
-        const line = { filter: `${f.currency}/${f.size}`, year: y, lists: count("optimal") + count("uncertified"), infeasible: count("infeasible"), errors: bad, seconds: Math.round((Date.now() - h0) / 1000), rssMb: mb() };
+        const line = { filter: `${f.currency}/${f.size}`, year: y, lists: count("optimal") + count("uncertified"), infeasible: count("infeasible"), adjusted: results.filter((r) => (r.step ?? 0) >= 1).length, dominated: dominatedPositions(results).length, errors: bad, seconds: Math.round((Date.now() - h0) / 1000), rssMb: mb() };
         detail.push(line);
         console.log(JSON.stringify(line));
       } catch (e) {
