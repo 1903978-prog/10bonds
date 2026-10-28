@@ -5,7 +5,4 @@ node_modules
 *.md
 *.whl
 .github
-docs
-classification
-*.png
 server.log
