@@ -1,6 +1,6 @@
 import type { PublicBond } from "../types";
 import { TERMS } from "../limits";
-import { PORTFOLIO_SPEC, SPEC_VERSION, specRules, type LadderStep } from "../portfolioSpec";
+import { SPEC_VERSION, specRules, type LadderStep } from "../portfolioSpec";
 import { POSITIONS, type AnchorBand } from "../riskAnchors";
 import { sectorExempt, specCandidates } from "./candidates";
 import { checkNsList, nsListOk, type NsCheck } from "./check";
