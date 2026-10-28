@@ -1,6 +1,6 @@
 import { LADDER_STEPS, specRules, type LadderStep } from "../portfolioSpec";
 import { anchoredBands, bandLabel, POSITIONS, type AnchorBand } from "../riskAnchors";
-import { extremeOf, solvePosition, type NsCand, type NsRules, type NsSolve } from "./solve";
+import { extremeOf, solvePosition, type NsCand, type NsSolve } from "./solve";
 
 // One key = one currency x minimum order x horizon (a term or an exact year). The 30 positions (owner, 28/10/2026, anchored bands):
 //   1. portfolio 30 = riskiest list under every rule (R30), portfolio 1 = safest (R1); both then take the highest net spread;
