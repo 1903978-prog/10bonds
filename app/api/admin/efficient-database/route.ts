@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { buildSnapshot, jobHistory, rowDetail, snapshotList, snapshotReport, snapshotRows } from "@/lib/sliderSnapshot";
+import { applyBes, buildSnapshot, jobHistory, rowDetail, snapshotList, snapshotReport, snapshotRows } from "@/lib/sliderSnapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -25,5 +25,6 @@ export async function GET(req: Request) {
 export async function POST() {
   if (!(await admin())) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const r = await buildSnapshot("admin", undefined, true);
-  return NextResponse.json(r, { headers: { "Cache-Control": "no-store" } });
+  const bes = await applyBes().catch((e) => ({ error: (e as Error).message }));
+  return NextResponse.json({ ...r, bes }, { headers: { "Cache-Control": "no-store" } });
 }
