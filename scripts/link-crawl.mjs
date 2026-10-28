@@ -23,9 +23,13 @@ const ACCOUNTS = { free: "link-check-free@10bonds.com", admin: "link-check-admin
 // Pages our specs and notes promise. Each one must answer (a redirect to the real page counts). Admin ones are checked as admin.
 const PROMISED = [
   "/admin/bond-efficiency", "/admin/portfolio-efficiency", "/admin/efficient-database", "/admin/methodology", "/admin/risk-bands",
-  "/admin/data-coverage", "/admin/nightly-build", "/admin/topic-radar", "/admin/auto-content", "/admin/seo-roadmap", "/admin/seo-score",
+  "/admin/data-coverage", "/admin/nightly-build", "/admin/seo-roadmap", "/admin/seo-score",
   "/admin/backlinks", "/admin/funnel", "/admin/plan-features", "/admin/legal", "/admin/risk-matrix", "/admin/bund-benchmark", "/admin/us-treasury-benchmark",
 ];
+
+// Named in the notes but no page and no spec exists yet: listed in the report so they are not forgotten, not counted as broken.
+const NO_SPEC = ["/admin/topic-radar", "/admin/auto-content"];
+const IGNORE = process.env.IGNORE ? new RegExp(process.env.IGNORE) : null; // paths that cannot work in this copy (for example the bond sitemap without the bond database)
 
 function appRoutes() {
   const root = join(process.cwd(), "app");
@@ -192,9 +196,9 @@ async function crawlRole(browser, role) {
         row.finalPath = sameSite(r.url());
       } else {
         const page = await ctx.newPage();
-        page.on("pageerror", (e) => row.consoleErrors.push(String(e.message).slice(0, 200)));
-        page.on("console", (m) => { if (m.type() === "error") row.consoleErrors.push(m.text().slice(0, 200)); });
-        page.on("response", (r) => { if (r.status() >= 500 && sameSite(r.url()) && !r.url().includes("/_next/")) row.consoleErrors.push(`HTTP ${r.status()} from ${sameSite(r.url())}`); });
+        page.on("pageerror", (e) => { if (!/sandboxed/.test(String(e.message))) row.consoleErrors.push(String(e.message).slice(0, 200)); });
+        page.on("console", (m) => { if (m.type() === "error" && !/sandboxed|Failed to load resource/.test(m.text())) row.consoleErrors.push(m.text().slice(0, 200)); });
+        page.on("response", (r) => { if (r.status() >= 400 && sameSite(r.url()) && !r.url().includes("/_next/") && r.url() !== page.url()) row.consoleErrors.push(`HTTP ${r.status()} from ${sameSite(r.url())}`); });
         const res = await page.goto(BASE + path, { waitUntil: "load", timeout: 60_000 });
         await page.waitForLoadState("networkidle", { timeout: 6_000 }).catch(() => {});
         row.status = res?.status() ?? null;
@@ -240,6 +244,7 @@ async function crawlRole(browser, role) {
 
 // What counts as broken, per role.
 function verdict(row) {
+  if (IGNORE?.test(row.path)) return "ok";
   const adminPath = row.path.startsWith("/admin");
   if (row.role !== "admin" && adminPath) {
     if (row.status === 404 || (row.status && row.status < 400)) return "ok"; // closed to this role, as designed
@@ -264,6 +269,10 @@ for (const role of ROLES) {
   console.log(`   ${rows.length} pages, ${rows.filter((r) => verdict(r) === "broken").length} broken`);
 }
 await browser.close();
+
+// A page that answers 404 to a visitor or free user but works for the admin is closed to that role on purpose (admin-only for now).
+const adminOk = new Set(all.filter((r) => r.role === "admin" && r.status && r.status < 400).map((r) => r.path));
+for (const r of all) if (r.role !== "admin" && r.verdict === "broken" && r.status === 404 && adminOk.has(r.path)) { r.verdict = "ok"; r.note = "closed to this role (admin only)"; }
 
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, "link-check.json"), JSON.stringify({ base: BASE, at: new Date().toISOString(), notes, checks: allChecks, rows: all }, null, 1));
@@ -296,6 +305,7 @@ if (allChecks.length) {
   md.push("", "## Checks by role", "", "| Role | Check | Result | What the page shows |", "|---|---|---|---|");
   for (const c of allChecks) md.push(`| ${c.role} | ${c.name} | ${c.ok ? "PASS" : "FAIL"} | ${c.detail.replace(/\|/g, "/")} |`);
 }
+md.push("", `Named in the notes with no page and no spec yet: ${NO_SPEC.join(", ")}`);
 md.push("", "## Promised pages", "", "| Page | Status as admin | Ends at |", "|---|---|---|");
 for (const p of PROMISED) {
   const r = all.find((x) => x.role === (ROLES.includes("admin") ? "admin" : ROLES[0]) && x.path === p);

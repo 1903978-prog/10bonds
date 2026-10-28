@@ -33,6 +33,15 @@ const nextConfig = {
     ].map(([from, to]) => ({ source: `/fr/guides/${from}`, destination: `/fr/guides/${to}`, permanent: true }))
       // The menu says "Plans"; the page stays at /pricing so old links keep working.
       .concat({ source: "/plans", destination: "/pricing", permanent: false })
+      // Admin pages our notes and specs name under other paths: the promised path moves to the page that holds the content.
+      .concat([
+        ["/admin/backlinks", "/admin/seo?tab=backlinks"],
+        ["/admin/seo-roadmap", "/admin/seo?tab=overview"],
+        ["/admin/seo-score", "/admin/seo?tab=overview"],
+        ["/admin/plan-features", "/admin/features"],
+        ["/admin/legal", "/admin/legal-risk"],
+        ["/admin/risk-matrix", "/admin/methodology"],
+      ].map(([source, destination]) => ({ source, destination, permanent: true })))
       // The sample company is fictional (ACMA GmbH); the old real-bond links keep working.
       .concat(["risk-assessment", "report"].map((r) => ({ source: `/${r}/FR0013482841`, destination: `/${r}/DE000ACMA031`, permanent: true })));
   },

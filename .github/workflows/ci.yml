@@ -55,7 +55,7 @@ jobs:
           up=0
           for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3312/api/health && up=1 && break; sleep 1; done
           [ "$up" = 1 ] || { echo "The site did not start within 60 seconds"; exit 1; }
-          BASE=http://127.0.0.1:3312 MAX_PAGES=250 BOND_SAMPLE=5 CHROME_CHANNEL=chrome node scripts/link-crawl.mjs
+          IGNORE="^/bonds/sitemap\\.xml$" BASE=http://127.0.0.1:3312 MAX_PAGES=250 BOND_SAMPLE=5 CHROME_CHANNEL=chrome node scripts/link-crawl.mjs
       - name: Link check report
         if: always()
         run: cat link-check-out/link-check.md >> "$GITHUB_STEP_SUMMARY" || true
