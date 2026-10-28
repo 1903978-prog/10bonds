@@ -96,6 +96,9 @@ export function alternativesOf(b: PublicBond, all: PublicBond[], max = 10): Card
   return out;
 }
 
+/** Inflation-linked bonds the data does not flag yet (lm-op-model has no field for it): kept as "structure not modelled" by ISIN. */
+export const INFLATION_LINKED: ReadonlySet<string> = new Set(["FR0000186413"]);
+
 /** Plain reason key for a bond the card does not show: `why` from lib/bonds.ts whyHidden for a bond in the data, or null when the data has no such ISIN. */
 export function notShownReason(inData: boolean, why: string | null): "not_listed" | "quality" | "no_rating" | "matured" | "dormant" | "no_yield" | "structure" {
   if (!inData) return "not_listed";

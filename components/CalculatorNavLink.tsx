@@ -4,9 +4,9 @@ import { usePathname } from "next/navigation";
 import NavLink from "@/components/NavLink";
 import { LOCALES, pathOf } from "@/lib/seo/locales";
 
-const LABEL = { en: "YTM calculator", it: "Calcolatore YTM", fr: "Calculateur YTM", de: "YTM-Rechner" } as const;
+const LABEL = { en: "Return calculator", it: "Calcolatore rendimento", fr: "Calculateur de rendement", de: "Renditerechner" } as const;
 
-/** "YTM calculator" in the header: the bond yield calculator under Knowledge, in the language of the page being read. */
+/** "Return calculator" in the header: the bond yield calculator under Knowledge, in the language of the page being read. */
 export default function CalculatorNavLink({ admin = false }: { admin?: boolean }) {
   const pathname = usePathname() ?? "/";
   const l = LOCALES.find((x) => pathname === `/${x}` || pathname.startsWith(`/${x}/`)) ?? null;

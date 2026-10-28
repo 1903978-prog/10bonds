@@ -3,7 +3,7 @@ import { bondByIsin } from "@/components/seo/BondIsinPage";
 import { currentUser } from "@/lib/currentUser";
 import { loadBondsByIsin } from "@/lib/bonds";
 import { isIsinValid } from "@/lib/isinCheck";
-import { alternativesOf, benchmarkFor, cardOf, notShownReason } from "@/lib/bondCard";
+import { INFLATION_LINKED, alternativesOf, benchmarkFor, cardOf, notShownReason } from "@/lib/bondCard";
 import { getBundBenchmarkPoints } from "@/lib/bundCurve/store";
 import { getUsBenchmarkPoints } from "@/lib/usTreasury/store";
 import { besPublic } from "@/lib/bes/store";
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   const bond: PublicBond | null = shown?.bond ?? row?.bond ?? null;
   if (!bond) return NextResponse.json({ status: "not_found", reason: "not_listed", checkedAt }, { headers });
 
-  const excluded = shown ? null : notShownReason(true, row?.why ?? null);
+  const excluded = INFLATION_LINKED.has(isin) ? "structure" : shown ? null : notShownReason(true, row?.why ?? null);
   const all = shown?.all ?? [];
   const asOf = shown?.asOf ?? bond.ytmAsOf ?? null;
   const [bund, us] = await Promise.all([
