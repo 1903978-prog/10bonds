@@ -611,7 +611,7 @@ global switch finance
 
 const ENRICHED_PARENT_SECTOR = (k: string): { sector: string } | null => (ENRICHED[k]?.sector ? { sector: ENRICHED[k].sector! } : null);
 
-export type GroupInfo = { group: string; sector: string | null; known: boolean };
+export type GroupInfo = { group: string; sector: string | null; known: boolean; enriched?: boolean };
 
 const BY_KEY = new Map<string, { group: string; sector: string }>();
 for (const [sector, body] of Object.entries(TABLE)) {
@@ -631,7 +631,8 @@ export function groupInfo(b: Pick<PublicBond, "issuer" | "isin">): GroupInfo {
   const e = ENRICHED[key];
   if (!e) return { group: key, sector: null, known: true };
   const parent = e.parent ? BY_KEY.get(e.parent) ?? ENRICHED_PARENT_SECTOR(e.parent) : null;
-  return { group: e.parent ? (BY_KEY.get(e.parent)?.group ?? e.parent) : key, sector: e.sector ?? parent?.sector ?? null, known: true };
+  const sector = e.sector ?? parent?.sector ?? null;
+  return { group: e.parent ? (BY_KEY.get(e.parent)?.group ?? e.parent) : key, sector, known: true, enriched: !!sector };
 }
 
 export const issuerGroupOf = (b: Pick<PublicBond, "issuer" | "isin">): string => groupInfo(b).group;

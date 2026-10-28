@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Country and industry · 10BONDS", ro
 export const dynamic = "force-dynamic";
 
 const pct = (n: number, t: number) => (t ? `${((n / t) * 100).toFixed(1)}%` : "–");
-const SRC: Record<string, string> = { feed: "data model", "feed-legacy": "data model (old column)", "isin-prefix": "ISIN prefix (government only)", table: "10bonds issuer table" };
+const SRC: Record<string, string> = { feed: "data model", "feed-legacy": "data model (old column)", "isin-prefix": "ISIN prefix (government only)", table: "10bonds issuer table", enriched: "free sources (SEC SIC, name rules, GLEIF parent)" };
 
 // Admin only: how many shown bonds have a country and an industry, where each came from, and the issuers still missing one.
 export default async function AdminClassification() {
