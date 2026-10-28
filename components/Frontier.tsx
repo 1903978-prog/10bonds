@@ -54,6 +54,7 @@ export default function Frontier({ currency, band }: { currency: string; band?: 
     return () => ro.disconnect();
   }, []);
 
+  const Y_MAX = 8;
   const { w: W, h: H } = size;
   const L = 44, R = 12, T = 18, B = 40;
   const dots = data?.dots ?? [];
@@ -62,19 +63,18 @@ export default function Frontier({ currency, band }: { currency: string; band?: 
   const rx = (i: number) => dots[i][0] + spread(i);
   // The frontier bonds, safest first, each drawn at the centre of its risk level.
   const dLo = band ? band.from - 0.5 : 4, dHi = band ? band.to + 0.5 : 6;
-  const picks = (band ? picksFor(dots, dLo, dHi) : data?.picks ?? []).filter((i) => dots[i] && dots[i][0] <= 8);
+  const picks = (band ? picksFor(dots, dLo, dHi) : data?.picks ?? []).filter((i) => dots[i] && dots[i][0] <= 8 && dots[i][1] <= Y_MAX);
   const bandKey = `${dLo}-${dHi}`;
   // The axis follows the bulk of the bonds (a few distressed yields would flatten everything else) and always the red bonds.
   const sorted = dots.map((d) => d[1]).sort((a, b) => a - b);
   const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
-  const top = Math.max(sorted.length ? q(0.99) : 5, ...picks.map((i) => dots[i][1]));
-  const bottom = Math.min(sorted.length ? q(0.005) : 0, ...picks.map((i) => dots[i][1]));
+    const bottom = Math.min(sorted.length ? q(0.005) : 0, ...picks.map((i) => dots[i][1]));
   const lo = Math.max(0, Math.floor(bottom * 2) / 2 - 0.5);
-  const hi = Math.ceil(top + 0.5);
+  const hi = Y_MAX;
   // Risk 1 (lowest) on the right, risk 10 on the left, like the 1-bond chart; half a step of room at each end.
   // Only risk 8 to 1 is shown (the frontier ends at 8), so the dots fill the whole width.
   const x = (r: number) => L + ((8.5 - r) / 8) * (W - L - R);
-  // Every bond is drawn; the rare yields beyond the axis sit on its edge.
+  // The axis tops out at 8%; bonds above it are not drawn.
   const y = (v: number) => T + (1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo || 1)) * (H - T - B);
   const step = hi - lo > 10 ? 2 : hi - lo > 4 ? 1 : 0.5;
   const ticks: number[] = [];
@@ -102,7 +102,7 @@ export default function Frontier({ currency, band }: { currency: string; band?: 
     const before = wasBlue.current && wasBlue.current.length === now.length ? wasBlue.current : now;
     const flying = drawn.current !== key && !reduced;
     const waving = !flying && !reduced && lastBand.current !== "" && lastBand.current !== bandKey;
-    const pts = dots.map(([r], i) => ({ px: x(rx(i)), py: y(dots[i][1]), vis: r <= 8, d: ((i * 2654435761) % 1000) / 1000 * (DOTS_MS - 500) }));
+    const pts = dots.map(([r], i) => ({ px: x(rx(i)), py: y(dots[i][1]), vis: r <= 8 && dots[i][1] <= Y_MAX, d: ((i * 2654435761) % 1000) / 1000 * (DOTS_MS - 500) }));
     const colours = Array.from({ length: LEVELS + 1 }, (_, k) => `rgb(${GREY.map((v, n) => Math.round(v + (BLUE_RGB[n] - v) * (k / LEVELS))).join(",")})`);
     const paint = (t: number) => {
       g.clearRect(0, 0, W, H);

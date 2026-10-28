@@ -23,15 +23,16 @@ export default function YieldCurveChart({ locale, text, curves, initial }: { loc
 
   const first = new Date().getFullYear();
   const last = range === 0 ? first + 10 : range === 1 ? first + 20 : Infinity;
-  const shown = curves.filter((c) => on.includes(c.country)).map((c) => ({ ...c, points: c.points.filter((p) => p.year <= last) })).filter((c) => c.points.length);
-  const all = shown.flatMap((c) => c.points);
+  const shown = curves.filter((c) => on.includes(c.country)).map((c) => ({ ...c, points: c.points.filter((p) => p.year <= last && p.ytm <= 8) })).filter((c) => c.points.length);
+  // Charts stop at 8%: yields above it are not plotted.
+  const all = shown.flatMap((c) => c.points).filter((p) => p.ytm <= 8);
 
   if (!curves.length) return <p className="mt-6 rounded-lg border border-line bg-white p-6 text-mute">{text.empty}</p>;
 
   const x0 = all.length ? Math.min(...all.map((p) => p.year)) : first;
   const x1 = all.length ? Math.max(...all.map((p) => p.year), x0 + 1) : first + 10;
   const y0 = all.length ? Math.floor(Math.min(...all.map((p) => p.ytm)) * 2) / 2 : 0;
-  const y1 = all.length ? Math.ceil(Math.max(...all.map((p) => p.ytm)) * 2) / 2 : 5;
+  const y1 = all.length ? 8 : 5;
   const sx = (year: number) => L + ((year - x0) / (x1 - x0)) * (W - L - R);
   const sy = (v: number) => T + (1 - (v - y0) / Math.max(y1 - y0, 0.5)) * (H - T - B);
   const yTicks: number[] = [];

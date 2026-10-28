@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useBoxSize } from "@/components/useBoxSize";
-import { shownPoints } from "@/components/LossChart";
+import { shownPoints, Y_MAX } from "@/components/LossChart";
 import type { CurvePoint } from "@/lib/lossCurve";
 import { dotTitle, type ShortlistDot } from "@/lib/shortlistStore";
 
@@ -29,7 +29,7 @@ export default function AllCurvesChart({ curves, retLabel, lossLabel, yearsLabel
   const series = curves.map((c) => ({ duration: c.duration, shown: shownPoints(c.points) as MPoint[] }));
   // Return (up) from X_START to the highest slider maximum; expected loss (across) from 0.
   const r0 = X_START;
-  const r1 = Math.max(X_START + 0.5, ...curves.map((c) => c.max));
+  const r1 = Math.max(X_START + 0.5, Math.min(Y_MAX, Math.max(...curves.map((c) => c.max))));
   const lMax = Math.max(0.01, ...series.flatMap((s) => s.shown.map((p) => p.loss))) * 1.1;
   const X = (loss: number) => L + (loss / lMax) * (W - L - R);
   const Y = (ret: number) => H - B - ((ret - r0) / (r1 - r0)) * (H - B - T);

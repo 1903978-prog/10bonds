@@ -8,7 +8,9 @@ import { useBoxSize } from "@/components/useBoxSize";
 const X_START = 3;
 
 /** Points from the chart's start on. */
-export const shownPoints = (points: CurvePoint[] | null) => (points ?? []).filter((p) => p.ytm >= X_START - 1e-9);
+/** Charts stop at 8% return: bonds above it are not plotted. */
+export const Y_MAX = 8;
+export const shownPoints = (points: CurvePoint[] | null) => (points ?? []).filter((p) => p.ytm >= X_START - 1e-9 && p.ytm <= Y_MAX + 1e-9);
 
 /** Slope at the point nearest to this target yield (see curveSlopes). */
 export function slopeAt(points: CurvePoint[], ytm: number) {

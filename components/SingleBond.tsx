@@ -14,6 +14,7 @@ import { downloadXlsx } from "@/lib/xlsx";
 import { fmtMin, minForExcel } from "@/lib/fmtMin";
 import { dominatedLevels, dropDominated } from "@/lib/curveFilter";
 import type { FeatureKey } from "@/lib/features";
+import { Y_MAX } from "@/components/LossChart";
 
 type Coverage = { count: number; min: number | null; max: number | null };
 type Payload = { tier: Tier; features?: FeatureKey[]; points: CurvePoint[]; coverage?: Coverage; quota?: Quota | null; source: "live" | "sample"; asOf: string | null };
@@ -123,7 +124,7 @@ export default function SingleBond({ duration, preview, currency = "EUR", size =
           ? `${CHECKED[lang]?.run ?? CHECKED.en.run} ${Math.round(scanned * prog * (2 - prog)).toLocaleString("en-US")}`
           : `${scanned.toLocaleString("en-US")} ${CHECKED[lang]?.done ?? CHECKED.en.done}`)}
       </div>
-      <Chart visible={visible} points={points} ghosts={dominatedLevels(all)} axis={all} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
+      <Chart visible={visible} points={points.filter(inRange)} ghosts={dominatedLevels(all).filter(inRange)} axis={all} selected={shown} onPick={(l) => { setLevel(l); setIndex(0); }} />
       {dominatedLevels(all).length > 0 && <p className="hidden text-[11px] text-mute sm:block" data-testid="ghost-note">{t.ghostNote}</p>}
       </div>
 
@@ -162,6 +163,9 @@ const CHECKED: Record<string, { run: string; done: string }> = {
   de: { run: "Anleihen geprüft", done: "Anleihen geprüft" },
 };
 
+/** Charts stop at 8% return: bonds above it are not plotted. */
+const inRange = (p: CurvePoint) => p.ytm === null || p.ytm <= Y_MAX;
+
 function Chart({ visible, points, ghosts, axis, selected, onPick }: { visible: number; points: CurvePoint[]; ghosts: CurvePoint[]; axis: CurvePoint[]; selected: number | null; onPick: (l: number) => void }) {
   const t = useFinderText();
   // PAD keeps the first risk column clear of the y-axis figures.
@@ -179,7 +183,7 @@ function Chart({ visible, points, ghosts, axis, selected, onPick }: { visible: n
   const H = (W < 500 ? 170 : 300) + (admin ? 14 : 0), L = 44, R = 22, T = 26, B = admin ? 54 : 40, PAD = 22;
   const ys = [...points, ...ghosts].map((p) => p.ytm).filter((y): y is number => y !== null);
   const lo = ys.length ? Math.floor(Math.min(...ys) * 2) / 2 - 0.5 : 0;
-  const hi = ys.length ? Math.ceil(Math.max(...ys) * 2) / 2 + 0.5 : 5;
+  const hi = Y_MAX;
   // Risk 1 (lowest) always on the right edge, the riskiest step shown at the left.
   const top = Math.max(2, ...axis.map((p) => p.level));
   const x = (level: number) => L + PAD + ((top - level) / (top - 1)) * (W - L - PAD - R);
