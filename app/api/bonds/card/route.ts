@@ -3,7 +3,7 @@ import { bondByIsin } from "@/components/seo/BondIsinPage";
 import { currentUser } from "@/lib/currentUser";
 import { loadBondsByIsin } from "@/lib/bonds";
 import { isIsin } from "@/lib/seo/bondPages";
-import { alternativesOf, benchmarkFor, cardOf } from "@/lib/bondCard";
+import { alternativesOf, benchmarkFor, cardOf, notShownReason } from "@/lib/bondCard";
 import { getBundBenchmarkPoints } from "@/lib/bundCurve/store";
 import { getUsBenchmarkPoints } from "@/lib/usTreasury/store";
 import { besPublic } from "@/lib/bes/store";
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   if (!hit) {
     // Say why: absent from the data, or in the data but kept off the site (no rating, no yield, matured, dormant, ...).
     const raw = await loadBondsByIsin([isin]).catch(() => []);
-    const reason = raw.length === 0 ? "not_listed" : raw[0].why === null ? "quality" : raw[0].why.startsWith("no rating") ? "no_rating" : raw[0].why.startsWith("already matured") ? "matured" : raw[0].why.startsWith("dormant") ? "dormant" : raw[0].why.startsWith("no yield") ? "no_yield" : "structure";
+    const reason = notShownReason(raw.length > 0, raw[0]?.why ?? null);
     return NextResponse.json({ status: "not_found", reason }, { headers });
   }
   const b = hit.bond;
