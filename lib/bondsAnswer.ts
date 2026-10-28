@@ -27,7 +27,7 @@ import { END_POLICY, checkList, creditProfile, withoutListEdits, factsOf, active
 import type { CoherentFrontier } from "@/lib/coherentFrontier";
 import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
-import { bandLiveOnce, bandNumber, bandStored, bandTerm, liveKey, lowMemory, metaOfSel, RowSlots, type BandMeta } from "@/lib/riskBandsAnswer";
+import { bandLiveOnce, bandHorizon, bandNumber, bandStored, bandTerm, liveKey, lowMemory, metaOfSel, RowSlots, type BandMeta } from "@/lib/riskBandsAnswer";
 import { liveBand, rememberLive } from "@/lib/riskBandsLive";
 import { loadBandConfig } from "@/lib/riskBandsStore";
 import type { BondFilter } from "@/lib/bondFilter";
@@ -117,10 +117,20 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   const bandN = method === "spread" ? bandNumber(url.searchParams.get("band")) : null;
   let bandMeta: BandMeta | null = null;
   let bandNone: RiskBand | null = null;
-  if (bandN && (step || bandTerm(duration))) {
+  // An exact year outside the three terms is a Plus feature ("exact_year"); its lists are only read from storage.
+  const exactYear = !!bandN && !step && !bandTerm(duration) && bandHorizon(duration);
+  if (exactYear && !has("exact_year")) {
+    if (usage) await refundSearch(user!, usage);
+    return NextResponse.json({ error: "Picking an exact year is included in Plus.", upgrade: true, tier }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
+  if (bandN && (step || bandTerm(duration) || exactYear)) {
     if (step) { frontierResults = step.results; bandMeta = step.meta; bandNone = step.none ?? null; } else {
       try {
         const found = await bandStored(data, filter, duration, bandN, skip, exclusionKey);
+        if (!found && exactYear && !skip) {
+          if (usage) await refundSearch(user!, usage);
+          return NextResponse.json({ error: "This portfolio is being prepared. Please try again in a few minutes." }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "60" } });
+        }
         if (!found && url.searchParams.get("stream") === "1") return bandStream(req, data, filter, duration, bandN, skip, exclusionKey, usage, user);
         const b = found ?? (await bandLiveOnce(data, filter, duration, bandN, skip, exclusionKey));
         if (b.kind === "list") { frontierResults = b.results; bandMeta = b.meta; } else bandNone = b.band;

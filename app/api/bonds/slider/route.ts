@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { parseFilter } from "@/lib/bondFilter";
 import { currentUser } from "@/lib/currentUser";
-import { TERMS } from "@/lib/limits";
+import { isExactYear, isTermHorizon } from "@/lib/limits";
+import { canExactYear } from "@/lib/planFeatures";
 import { sliderFor } from "@/lib/sliderCache";
 import { parseMethod } from "@/lib/frontierCache";
 import { bareBandPositions, positionsOfBands, servedBands } from "@/lib/riskBandsServe";
@@ -21,8 +22,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429, headers: { "Retry-After": "5" } });
   const url = new URL(req.url);
   const duration = Number(url.searchParams.get("duration"));
-  if (!TERMS.some((t) => t.duration === duration)) return NextResponse.json({ error: "Unknown horizon." }, { status: 400 });
+  const exactYear = !isTermHorizon(duration) && isExactYear(duration);
+  if (!isTermHorizon(duration) && !exactYear) return NextResponse.json({ error: "Unknown horizon." }, { status: 400 });
   const user = await currentUser().catch(() => null);
+  if (exactYear && !(await canExactYear(user).catch(() => false)))
+    return NextResponse.json({ error: "Picking an exact year is included in Plus.", upgrade: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
   // Everyone gets the Methodology with spread rules; the admin can add m=m1 to compare with Methodology 1.
   const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
   let out;
@@ -31,6 +35,8 @@ export async function GET(req: Request) {
     // Everyone: the 30 risk-band positions (lib/riskBands.ts), read from storage. A cold start without a stored set gets the bands without figures.
     if (method === "spread") {
       const sv = await servedBands(filter, duration);
+      // An exact year not stored yet (precompute running): the finder waits and asks again.
+      if (exactYear && !sv) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
       const cfg = sv?.cfg ?? (await loadBandConfig());
       const all = sv ? positionsOfBands(sv) : bareBandPositions(cfg);
       // The bonds themselves come with the list (tier-shaped); the positions carry figures only, so no ISIN reaches a visitor here.

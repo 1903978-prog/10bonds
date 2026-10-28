@@ -28,7 +28,7 @@ const en = {
   error: "Something went wrong.", signUp: "Sign up", avgSignUp: "Sign up free to see the averages", namesSignUp: "Sign up free: bond names + weekly top 10 by email", avgPlus: "Get Plus to see the averages",
   issuer: "Issuer", bond: "Bond", yield: "Return", duration: "Duration", yrs: "yrs",
   isinPlus: "ISIN with Plus", freeAccount: "Free account", detailsFree: "Details with a free account",
-  plusPitch: "Unlimited searches, Excel, bond swaps and exclusions with Plus.", seePlans: "See plans", excel: "Download Excel", excelUpTitle: "Upgrade to download", excelUpBody: "Excel export is included in Plus.", upgrade: "Upgrade",
+  plusPitch: "Unlimited searches, Excel, bond swaps and exclusions with Plus.", seePlans: "See plans", excel: "Download Excel", excelUpTitle: "Upgrade to download", excelUpBody: "Excel export is included in Plus.", upgrade: "Upgrade", yearPick: "Exact year", yearUpTitle: "Upgrade to pick a year", yearUpBody: "Choosing an exact year, from 1 to 15, is included in Plus.", yearOption: (n: number) => `Year ${n}`,
   swap: "Replace with a similar bond", swapTitle: (who: string) => `Replace ${who}`, swapHint: "Similar duration and risk, issuers not already in your list.", swapPick: "Swap", swapNone: "No similar bond left to swap in.", neverShow: "Never show:", thisBond: "This bond", thisIssuer: "This issuer", myExclusions: "My exclusions", close: "Close", exclude: "Blacklist this issuer", excludePaid: "Blacklist: upgrade to unlock",
   resetList: "Back to the original list",
  
@@ -70,7 +70,7 @@ const it: FinderText = {
   error: "Qualcosa è andato storto.", signUp: "Registrati", avgSignUp: "Registrati gratis per vedere le medie", namesSignUp: "Registrati gratis: nomi + top 10 settimanale via email", avgPlus: "Passa a Plus per vedere le medie",
   issuer: "Emittente", bond: "Obbligazione", yield: "Rendimento", duration: "Duration", yrs: "anni",
   isinPlus: "ISIN con Plus", freeAccount: "Account gratuito", detailsFree: "Dettagli con un account gratuito",
-  plusPitch: "Con Plus: ricerche illimitate, Excel, sostituzioni ed esclusioni.", seePlans: "Vedi i piani", excel: "Scarica Excel", excelUpTitle: "Passa a un piano superiore per scaricare", excelUpBody: "L'export Excel è incluso in Plus.", upgrade: "Vedi i piani",
+  plusPitch: "Con Plus: ricerche illimitate, Excel, sostituzioni ed esclusioni.", seePlans: "Vedi i piani", excel: "Scarica Excel", excelUpTitle: "Passa a un piano superiore per scaricare", excelUpBody: "L'export Excel è incluso in Plus.", upgrade: "Vedi i piani", yearPick: "Anno preciso", yearUpTitle: "Passa a un piano superiore per scegliere un anno", yearUpBody: "La scelta di un anno preciso, da 1 a 15, è inclusa in Plus.", yearOption: (n: number) => `Anno ${n}`,
   swap: "Sostituisci con un bond simile", swapTitle: (who: string) => `Sostituisci ${who}`, swapHint: "Durata e rischio simili, emittenti non già in lista.", swapPick: "Sostituisci", swapNone: "Nessun bond simile da inserire.", neverShow: "Non mostrare più:", thisBond: "Questo bond", thisIssuer: "Questo emittente", myExclusions: "Le mie esclusioni", close: "Chiudi", exclude: "Blacklist: escludi questo emittente", excludePaid: "Blacklist: passa a un piano superiore",
   resetList: "Torna alla lista originale",
  
@@ -111,7 +111,7 @@ const fr: FinderText = {
   error: "Une erreur s'est produite.", signUp: "S'inscrire", avgSignUp: "Inscrivez-vous gratuitement pour voir les moyennes", namesSignUp: "Inscription gratuite : noms + top 10 hebdo par e-mail", avgPlus: "Passez à Plus pour voir les moyennes",
   issuer: "Émetteur", bond: "Obligation", yield: "Rendement", duration: "Duration", yrs: "ans",
   isinPlus: "ISIN avec Plus", freeAccount: "Compte gratuit", detailsFree: "Détails avec un compte gratuit",
-  plusPitch: "Avec Plus : recherches illimitées, Excel, remplacements et exclusions.", seePlans: "Voir les offres", excel: "Télécharger Excel", excelUpTitle: "Passez à une offre supérieure pour télécharger", excelUpBody: "L'export Excel est inclus dans Plus.", upgrade: "Voir les offres",
+  plusPitch: "Avec Plus : recherches illimitées, Excel, remplacements et exclusions.", seePlans: "Voir les offres", excel: "Télécharger Excel", excelUpTitle: "Passez à une offre supérieure pour télécharger", excelUpBody: "L'export Excel est inclus dans Plus.", upgrade: "Voir les offres", yearPick: "Année précise", yearUpTitle: "Passez à une offre supérieure pour choisir une année", yearUpBody: "Le choix d'une année précise, de 1 à 15, est inclus dans Plus.", yearOption: (n: number) => `Année ${n}`,
   swap: "Remplacer par une obligation similaire", swapTitle: (who: string) => `Remplacer ${who}`, swapHint: "Duration et risque proches, émetteurs absents de votre liste.", swapPick: "Remplacer", swapNone: "Aucune obligation similaire disponible.", neverShow: "Ne plus afficher :", thisBond: "Cette obligation", thisIssuer: "Cet émetteur", myExclusions: "Mes exclusions", close: "Fermer", exclude: "Liste noire : exclure cet émetteur", excludePaid: "Liste noire : passez à une offre supérieure",
   resetList: "Revenir à la liste d'origine",
  
@@ -152,7 +152,7 @@ const de: FinderText = {
   error: "Etwas ist schiefgelaufen.", signUp: "Registrieren", avgSignUp: "Kostenlos registrieren, um die Durchschnitte zu sehen", namesSignUp: "Kostenlos: Namen + wöchentliche Top 10 per E-Mail", avgPlus: "Mit Plus die Durchschnitte sehen",
   issuer: "Emittent", bond: "Anleihe", yield: "Rendite", duration: "Duration", yrs: "J.",
   isinPlus: "ISIN mit Plus", freeAccount: "Kostenloses Konto", detailsFree: "Details mit kostenlosem Konto",
-  plusPitch: "Mit Plus: unbegrenzte Suchen, Excel, Tausch und Ausschlüsse.", seePlans: "Tarife ansehen", excel: "Excel herunterladen", excelUpTitle: "Upgrade zum Herunterladen", excelUpBody: "Der Excel-Export ist in Plus enthalten.", upgrade: "Tarife ansehen",
+  plusPitch: "Mit Plus: unbegrenzte Suchen, Excel, Tausch und Ausschlüsse.", seePlans: "Tarife ansehen", excel: "Excel herunterladen", excelUpTitle: "Upgrade zum Herunterladen", excelUpBody: "Der Excel-Export ist in Plus enthalten.", upgrade: "Tarife ansehen", yearPick: "Genaues Jahr", yearUpTitle: "Upgrade, um ein Jahr zu wählen", yearUpBody: "Die Wahl eines genauen Jahres, von 1 bis 15, ist in Plus enthalten.", yearOption: (n: number) => `Jahr ${n}`,
   swap: "Durch eine ähnliche Anleihe ersetzen", swapTitle: (who: string) => `${who} ersetzen`, swapHint: "Ähnliche Duration und ähnliches Risiko, Emittenten noch nicht in Ihrer Liste.", swapPick: "Tauschen", swapNone: "Keine ähnliche Anleihe zum Tauschen übrig.", neverShow: "Nie mehr zeigen:", thisBond: "Diese Anleihe", thisIssuer: "Dieser Emittent", myExclusions: "Meine Ausschlüsse", close: "Schließen", exclude: "Sperrliste: diesen Emittenten ausschließen", excludePaid: "Sperrliste: auf einen höheren Tarif wechseln",
   resetList: "Zurück zur ursprünglichen Liste",
  

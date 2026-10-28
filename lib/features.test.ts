@@ -65,3 +65,16 @@ describe("blacklist", () => {
     expect(cleanExclusion({ kind: "other", value: "x" })).toBeNull();
   });
 });
+
+describe("exact_year feature", () => {
+  it("is Plus and above, not Free, and shown as its own plan line", async () => {
+    const { defaultMatrix, featuresOf, planLines } = await import("./features");
+    const m = defaultMatrix();
+    expect(featuresOf(m, "free")).not.toContain("exact_year");
+    for (const p of ["plus", "premium", "pro"] as const) expect(featuresOf(m, p)).toContain("exact_year");
+    const words = { everything: { plus: "All of Free", premium: "All of Plus", pro: "All of Premium" }, limit: (n: number) => `${n} a day` };
+    const plus = planLines(m, "plus", "en", words, { daily: 10 });
+    expect(plus.some((l) => /exact year/i.test(l))).toBe(true);
+    expect(plus.length).toBeLessThanOrEqual(7);
+  });
+});

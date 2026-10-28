@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
 import { LimitReached, QuotaSync, type Quota } from "./SearchQuota";
-import { DURATION_STEPS, LIMITS, TERMS, isOpenEnded, termOf } from "@/lib/limits";
+import { DURATION_STEPS, EXACT_YEARS, LIMITS, TERMS, isExactYear, isOpenEnded, isTermHorizon, termOf } from "@/lib/limits";
 import { RiskBadge } from "./RiskBadge";
 import type { ResultRow, ResultsPayload } from "@/lib/tiers";
 import type { AltRow } from "@/lib/alternatives";
@@ -196,6 +196,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const features = new Set<FeatureKey>(data?.features ?? []);
   const canHeat = isAdmin || features.has("heat_map");
   const canMulti = isAdmin || features.has("multi_chart");
+  // Plus and above search one exact year (1 to 15); everyone else has the three terms, and sees the year choice locked.
+  const canYear = isAdmin || features.has("exact_year");
+  const [yearMode, setYearMode] = useState(false);
+  const [yearUp, setYearUp] = useState(false);
   const heatOn = ((canHeat && showHeat) || (canMulti && showAll)) && heatPick !== null;
   const shortlistDots = useShortlistDots(isAdmin && (showHeat || showAll));
   const simple = !isAdmin || !adv;
@@ -257,7 +261,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   };
   useEffect(() => {
     // Loaded in Advanced too (admin), for the frontier dots on its chart.
-    if (!TERMS.some((x) => x.duration === duration)) { setPositions(null); return; }
+    if (!isTermHorizon(duration) && !(isExactYear(duration) && canYear)) { setPositions(null); return; }
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // The last positions seen in this browser fill the chart dots and tiles at once; fresh ones replace them.
@@ -280,11 +284,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         .catch(() => { if (!stop && tries < 60) timer = setTimeout(() => load(tries + 1), 3000); });
     load(0);
     return () => { stop = true; clearTimeout(timer); };
-  }, [duration, currency, size, method]);
+  }, [duration, currency, size, method, canYear]);
   // In Simple search the position decides risk and return, so they follow the term, the filters and the data.
   useEffect(() => {
     if (!simple) return;
-    if (!TERMS.some((x) => x.duration === duration)) {
+    if (!isTermHorizon(duration) && !(isExactYear(duration) && canYear)) {
+      setYearMode(false);
       setDuration(TERMS.find((x) => x.key === termOf(duration))?.duration ?? TERMS[1].duration);
       return;
     }
@@ -296,7 +301,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     if (positions || caps) applyMix(at);
     if (positions?.length && at !== mix) setMix(at);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [simple, caps, maxRisk, duration, positions]);
+  }, [simple, caps, maxRisk, duration, positions, canYear]);
 
   // A band the search finds empty is remembered and the slider moves on to the nearest band with a list, so no one stays on an empty one.
   useEffect(() => {
@@ -332,6 +337,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       if (!me) return;
       clearResume();
       setDuration(r.duration);
+      setYearMode(!isTermHorizon(r.duration));
       setMix(r.mix);
       setCurrency(r.currency);
       setSize(r.size);
@@ -634,7 +640,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         )}
         {simple ? (
           <>
-            <TermPicker value={termOf(duration)} onChange={changeDuration} />
+            <TermPicker value={yearMode ? null : termOf(duration)} onChange={(d) => { setYearMode(false); changeDuration(d); }} year={yearMode ? duration : null} canYear={canYear} onYear={(y) => { setYearMode(true); changeDuration(y); }} onLocked={() => setYearUp(true)} />
+            {yearUp && <ExcelUpsell onClose={() => setYearUp(false)} title={t.yearUpTitle} body={t.yearUpBody} />}
             {/* In 1-bond mode the slider stays in place, hidden, so nothing above or beside it moves. */}
             <div className={mode === "portfolio" ? "" : "invisible max-lg:hidden"} aria-hidden={mode !== "portfolio"}>
               <Slider
@@ -1153,12 +1160,35 @@ function SliderCheck({ positions, onClose }: { positions: SliderPosition[]; onCl
 }
 
 /** Investment horizon as three choices: short, mid and long term, each with its years under it. */
-function TermPicker({ value, onChange }: { value: string | null; onChange: (duration: number) => void }) {
+function TermPicker({ value, onChange, year, canYear, onYear, onLocked }: { value: string | null; onChange: (duration: number) => void; year: number | null; canYear: boolean; onYear: (y: number) => void; onLocked: () => void }) {
   const t = useFinderText();
   const names = { short: t.termShort, mid: t.termMid, long: t.termLong };
   return (
     <div className="mt-3 sm:mt-4" data-tip="horizon">
-      <div className="text-[14px] font-semibold">{t.horizon}</div>
+      <div className="flex h-6 items-center justify-between gap-2">
+        <div className="text-[14px] font-semibold">{t.horizon}</div>
+        {/* Next to the title, so the block keeps its height: a year list for Plus and above, a locked button for everyone else. */}
+        {canYear ? (
+          <label className={`flex items-center gap-2 text-[12px] font-medium ${year !== null ? "text-accent" : "text-mute"}`}>
+            <span className="whitespace-nowrap">{year !== null ? t.yearOption(year) : t.yearPick}</span>
+            <input
+              type="range"
+              data-testid="exact-year"
+              aria-label={t.yearPick}
+              min={EXACT_YEARS[0]}
+              max={EXACT_YEARS[EXACT_YEARS.length - 1]}
+              step={1}
+              value={year ?? 5}
+              onChange={(e) => onYear(Number(e.target.value))}
+              className="h-6 w-28 accent-accent"
+            />
+          </label>
+        ) : (
+          <button type="button" data-testid="exact-year-locked" onClick={onLocked} className="h-6 rounded-md border border-line px-2 text-[12px] font-medium text-mute">
+            {t.yearPick} · {t.upgrade}
+          </button>
+        )}
+      </div>
       <div role="radiogroup" aria-label={t.horizon} data-testid="term-picker" className="mt-2 grid grid-cols-3 rounded-lg bg-canvas p-1">
         {TERMS.map((x) => (
           <button
@@ -1581,13 +1611,13 @@ function Results({ data, list, setList, features, onExcluded, signedIn, currency
 }
 
 /** Small centered pop-up for plans without Excel (same soft tone as the other upgrade prompts). */
-function ExcelUpsell({ onClose }: { onClose: () => void }) {
+function ExcelUpsell({ onClose, title, body }: { onClose: () => void; title?: string; body?: string }) {
   const t = useFinderText();
   return (
-    <div role="dialog" aria-modal="true" aria-label={t.excelUpTitle} data-testid="excel-upsell" onClick={onClose} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
+    <div role="dialog" aria-modal="true" aria-label={title ?? t.excelUpTitle} data-testid="excel-upsell" onClick={onClose} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xs whitespace-normal rounded-lg border border-line bg-white p-5 text-center shadow-xl">
-        <p className="text-base font-semibold text-ink">{t.excelUpTitle}</p>
-        <p className="mt-1 text-sm text-mute">{t.excelUpBody}</p>
+        <p className="text-base font-semibold text-ink">{title ?? t.excelUpTitle}</p>
+        <p className="mt-1 text-sm text-mute">{body ?? t.excelUpBody}</p>
         <Link href="/pricing" className="mt-4 block rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">{t.upgrade}</Link>
         <button type="button" onClick={onClose} className="mt-2 text-xs text-mute hover:underline">{t.close}</button>
       </div>

@@ -85,3 +85,8 @@ export async function featuresFor(user: User | null): Promise<FeatureKey[]> {
   if (user.isAdmin) return ALL_FEATURES;
   return featuresOf(await loadMatrix(), await planColumn(user));
 }
+
+/** May this account search an exact year (1 to 15) instead of a term? Plans with "exact_year" and the admin. */
+export async function canExactYear(user: User | null): Promise<boolean> {
+  return (await featuresFor(user)).includes("exact_year");
+}
