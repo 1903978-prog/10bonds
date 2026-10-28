@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { FinderLang } from "@/lib/finderText";
 
@@ -111,11 +111,14 @@ const TEXT: Record<FinderLang, { simple: Step[]; steps: Step[]; single: Step[]; 
 const WIDTH = 260;
 
 /** `only` limits the tour to the controls on screen (1-bond mode hides return and risk); `simple` is the term + one-slider search. */
-export default function GuideTips({ lang = "en", only, simple, page }: { lang?: FinderLang; only?: string[]; simple?: boolean; page?: "single" }) {
+export default function GuideTips({ lang = "en", only, simple, page, hold }: { lang?: FinderLang; only?: string[]; simple?: boolean; page?: "single"; hold?: boolean }) {
   const t = TEXT[lang];
   const key = page === "single" ? KEY_SINGLE : KEY;
   const all = page === "single" ? t.single : simple ? t.simple : t.steps;
   const steps = only ? all.filter((s) => only.includes(s.tip)) : all;
+  // While the result list is on screen (or the consent box is open) the tour does not start by itself, so it never covers the list; the header Tutorial icon still replays it.
+  const holdRef = useRef(hold);
+  holdRef.current = hold;
   const [i, setI] = useState<number | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; side: "right" | "below"; arrow?: number } | null>(null);
 
@@ -126,7 +129,7 @@ export default function GuideTips({ lang = "en", only, simple, page }: { lang?: 
     if (seen) return;
     // Wait for the cookie banner to be answered so the two never overlap.
     const id = window.setInterval(() => {
-      if (document.querySelector("[data-cookie-banner]")) return;
+      if (holdRef.current || document.querySelector("[data-cookie-banner]") || document.querySelector("[data-testid=consent-gate]")) return;
       window.clearInterval(id);
       setI(0);
     }, 600);
