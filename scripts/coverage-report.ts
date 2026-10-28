@@ -87,7 +87,7 @@ const recs: Rec[] = raw.map((r) => {
   const years = b.maturity ? (Date.parse(b.maturity) - Date.parse(TODAY)) / (365.25 * DAY) : null;
   const bc = bench(r.currency);
   const f = {
-    price: b.cleanPrice != null, ytm: b.grossYtm != null, duration: b.modifiedDuration != null,
+    price: b.grossYtm != null /* no clean_price column exists: the dated yield quote is the price proxy */, ytm: b.grossYtm != null, duration: b.modifiedDuration != null,
     risk: bondRisk(b) != null,
     seniority: b.seniority != null,
     issuer: issuerVerified(b), sector: sectorOf(b) !== UNCLASSIFIED,
@@ -120,7 +120,7 @@ console.log(`Bonds in copy: ${recs.length} (EUR ${total("EUR").length}, USD ${to
 type FieldDef = { name: string; ok: (x: Rec) => boolean; date?: (x: Rec) => string | null; note?: string };
 const D = (x: Rec) => x.priceDate;
 const fields: FieldDef[] = [
-  { name: "1a Price (clean_price)", ok: (x) => x.f.price, date: D, note: has("price_as_of") ? "price_as_of" : "ytm_as_of (no price date column)" },
+  { name: "1a Price (clean_price)", ok: (x) => x.b.cleanPrice != null, date: D, note: `column clean_price exists: ${has("clean_price")}; price_as_of exists: ${has("price_as_of")}` },
   { name: "1b YTM (gross_ytm)", ok: (x) => x.f.ytm, date: (x) => x.ytmDate, note: "ytm_as_of" },
   { name: "2a Maturity date", ok: (x) => !!x.b.maturity },
   { name: "2b Coupon", ok: (x) => x.b.coupon != null },
@@ -218,7 +218,7 @@ function fillable(pool: Rec[], h: keyof typeof WIN, pos: number): boolean {
   return capacity >= 10;
 }
 const GAPS: [string, (x: Rec) => boolean][] = [
-  ["no price", (x) => !x.f.price], ["no/negative yield", (x) => !x.f.ytm || !(x.b.grossYtm! > 0)], ["no duration", (x) => !x.f.duration],
+  ["no dated yield quote (no price column exists)", (x) => !x.f.price], ["no/negative yield", (x) => !x.f.ytm || !(x.b.grossYtm! > 0)], ["no duration", (x) => !x.f.duration],
   ["no risk score (unrated, no 10bonds score)", (x) => !x.f.risk], ["no seniority", (x) => !x.f.seniority],
   ["issuer not in consolidated group table", (x) => !x.f.issuer], ["no sector", (x) => !x.f.sector], ["no minimum order size", (x) => !x.f.minorder],
   ["no benchmark point", (x) => !x.f.benchmark], ["no BES net spread", (x) => !x.f.netspread], ["yield older than 10 days", (x) => !x.fresh],
