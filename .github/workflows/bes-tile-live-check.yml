@@ -2,8 +2,6 @@ name: BES tile live check
 # Manual: opens the live finder as an anonymous visitor, runs a search and prints page status plus the efficiency score tile text. Read-only.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/bes-tile-live-check.yml", "scripts/bes-tile-live-check.mjs"]
 jobs:
   check:
     runs-on: ubuntu-24.04
