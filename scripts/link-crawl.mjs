@@ -93,7 +93,11 @@ async function extraChecks(ctx, role) {
       rec("/bond-card is closed (404)", status === 404, `HTTP ${status}`);
       await page.close();
     } else {
-      for (const [isin, want, label] of [["FR0000186413", /does not pay a fixed coupon/i, 'message "does not pay a fixed coupon"'], ["DE000HEL4BV8", /DE000HEL4BV8/, "full card"]]) {
+      const fullCard = (isin) => [isin, new RegExp(isin), "full card"];
+      for (const [isin, want, label] of [
+        ["FR0000186413", /does not pay a fixed coupon/i, 'message "does not pay a fixed coupon"'],
+        fullCard("DE000HEL4BV8"), fullCard("GR0128016731"), fullCard("US054989AB41"), fullCard("US263901AA85"),
+      ]) {
         const { page, status } = await open(`/bond-card?isin=${isin}`);
         let text = "";
         if (status === 200) {
@@ -102,7 +106,7 @@ async function extraChecks(ctx, role) {
           await page.waitForTimeout(4000);
           text = await page.getByTestId("card-result").innerText().catch(() => "");
         }
-        const ok = status === 200 && want.test(text) && (isin !== "DE000HEL4BV8" || !/does not pay|not shown|not available/i.test(text));
+        const ok = status === 200 && want.test(text) && (label !== "full card" || !/does not pay|not shown|not available/i.test(text));
         rec(`/bond-card ${isin}: ${label}`, ok, `HTTP ${status}: ${text}`);
         await page.close();
       }
