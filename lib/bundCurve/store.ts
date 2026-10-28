@@ -76,7 +76,7 @@ export async function ingestCurves(def: BenchmarkDef, curves: CurveInput[], trig
     // One statement for all changed points (a week of two curves is hundreds of rows; one round trip each is minutes on a remote database).
     if (rows.length) await tx`insert into app.benchmark_curve (benchmark, country, currency, curve_type, observation_date, maturity_years, yield_percent, source, series_id, fetched_at, status, basis)
       select ${def.benchmark}, ${def.country}, ${def.currency}, t.curve_type, t.observation_date, t.maturity_years, t.yield_percent, ${def.source}, t.series_id, ${fetchedAt}, 'valid', t.basis
-      from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) as t(curve_type text, observation_date date, maturity_years smallint, yield_percent numeric, series_id text, basis text)
+      from jsonb_to_recordset(${tx.json(rows)}) as t(curve_type text, observation_date date, maturity_years smallint, yield_percent numeric, series_id text, basis text)
       on conflict (benchmark, curve_type, observation_date, maturity_years) do update set yield_percent = excluded.yield_percent, fetched_at = excluded.fetched_at`;
   });
   const dates = Object.fromEntries(curves.map((c) => [c.curveType, c.date]));

@@ -56,7 +56,7 @@ export async function ingestTreasury(p: TreasuryParse, trigger: string, fetchedA
     }
     if (rows.length) await tx`insert into app.benchmark_curve (benchmark, country, currency, curve_type, observation_date, maturity_years, yield_percent, source, series_id, fetched_at, status, basis)
       select ${T.benchmark}, ${T.country}, ${T.currency}, ${T.curveType}, t.observation_date, t.maturity_years, t.yield_percent, ${TREASURY_SOURCE}, t.series_id, ${fetchedAt}, 'valid', 'published'
-      from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) as t(observation_date date, maturity_years smallint, yield_percent numeric, series_id text)
+      from jsonb_to_recordset(${tx.json(rows)}) as t(observation_date date, maturity_years smallint, yield_percent numeric, series_id text)
       on conflict (benchmark, curve_type, observation_date, maturity_years) do update set yield_percent = excluded.yield_percent, fetched_at = excluded.fetched_at`;
   });
   const r: ImportResult = { ok: true, dates: { [T.curveType]: days[days.length - 1].date }, inserted, updated, unchanged, message: `Saved Treasury published par yields up to ${days[days.length - 1].date} (${days.length} days): ${inserted} new, ${updated} revised, ${unchanged} unchanged` };

@@ -275,6 +275,11 @@ table app.refresh_requests
   finished_at timestamp with time zone
   note text
 
+table app.risk_band_config
+  key text not null
+  data jsonb not null
+  updated_at timestamp with time zone not null default now()
+
 table app.risk_calc_results
   run_id bigint not null
   isin text not null
@@ -659,6 +664,7 @@ constraints
   app.pro_access pro_access_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.refresh_requests refresh_requests_pkey: PRIMARY KEY (id)
   app.refresh_requests refresh_requests_status_check: CHECK ((status = ANY (ARRAY['pending'::text, 'running'::text, 'done'::text, 'failed'::text])))
+  app.risk_band_config risk_band_config_pkey: PRIMARY KEY (key)
   app.risk_calc_results risk_calc_results_pkey: PRIMARY KEY (run_id, isin)
   app.risk_calc_results risk_calc_results_run_id_fkey: FOREIGN KEY (run_id) REFERENCES app.risk_calc_runs(id) ON DELETE CASCADE
   app.risk_calc_runs risk_calc_runs_pkey: PRIMARY KEY (id)
@@ -770,6 +776,7 @@ indexes
   CREATE UNIQUE INDEX outreach_pkey ON app.outreach USING btree (id)
   CREATE UNIQUE INDEX pro_access_pkey ON app.pro_access USING btree (user_id)
   CREATE UNIQUE INDEX refresh_requests_pkey ON app.refresh_requests USING btree (id)
+  CREATE UNIQUE INDEX risk_band_config_pkey ON app.risk_band_config USING btree (key)
   CREATE UNIQUE INDEX risk_calc_results_pkey ON app.risk_calc_results USING btree (run_id, isin)
   CREATE UNIQUE INDEX risk_calc_runs_pkey ON app.risk_calc_runs USING btree (id)
   CREATE UNIQUE INDEX risk_calc_runs_version_id_signature_key ON app.risk_calc_runs USING btree (version_id, signature)
