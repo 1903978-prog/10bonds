@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Row = { [bond: `bond_${number}`]: string | null; row_no: number; horizon: string; position: number; avg_ytm: string | null; avg_duration: string | null; avg_risk: string | null; filled: boolean; status: string | null; error: string | null; shared_with: number | null; mapped_from: number | null };
+type Row = { [bond: `bond_${number}`]: string | null; row_no: number; horizon: string; position: number; avg_ytm: string | null; avg_duration: string | null; avg_risk: string | null; filled: boolean; status: string | null; error: string | null; shared_with: number | null; mapped_from: number | null; band_min?: string | null; band_max?: string | null; class_lo?: number | null; class_hi?: number | null; ladder_step?: number | null };
 type Snap = { id: number; batch_id: string; status: string; data_as_of: string | null; calculated_at: string; published_at: string | null; runtime_ms: number | null; filled_count: number; distinct_portfolios: number; error: string | null; methodology: string; empty_policy: string };
 type Job = { id: number; trigger: string; status: string; attempt: number; started_at: string; finished_at: string | null; message: string | null };
 type Data = { id: number | null; snapshots: Snap[]; rows: Row[]; report: { problems?: string[]; blockers?: string[] } | null; jobs: Job[] };
@@ -71,15 +71,18 @@ export default function SliderSnapshotAdmin() {
         <span className="text-sm text-mute">{msg}</span>
       </div>
       <div className="overflow-x-auto"><table className="w-full text-sm" data-testid="slider-snapshot-table">
-        <thead><tr className="text-left text-xs text-mute"><th className="py-1">Position</th><th>YTM / Duration</th><th>Average risk</th><th>Status</th>{Array.from({ length: 10 }, (_, i) => <th key={i}>Bond {i + 1}</th>)}</tr></thead>
+        <thead><tr className="text-left text-xs text-mute"><th className="py-1">Position</th><th>YTM / Duration</th><th>Band</th><th>Classes</th><th>Average risk</th><th>Step</th><th>Status</th>{Array.from({ length: 10 }, (_, i) => <th key={i}>Bond {i + 1}</th>)}</tr></thead>
         {GROUPS.map(([h, label]) => (
           <tbody key={h}>
-            <tr><td colSpan={14} className="pt-4 text-xs font-semibold uppercase tracking-wide">{label}</td></tr>
+            <tr><td colSpan={16} className="pt-4 text-xs font-semibold uppercase tracking-wide">{label}</td></tr>
             {d.rows.filter((r) => r.horizon === h).map((r) => (
               <tr key={r.row_no} onClick={() => open(r.row_no)} className="cursor-pointer border-t border-line hover:bg-black/5" title={r.error ?? ""}>
                 <td className="py-1">{h} {String(r.position).padStart(2, "0")} <span className="text-mute">#{r.row_no}{r.mapped_from ? ` · shows ${r.mapped_from}` : r.shared_with ? ` · = ${r.shared_with}` : ""}</span></td>
                 <td className="tabular-nums">{r.filled ? `${Number(r.avg_ytm).toFixed(2)}% / ${Number(r.avg_duration).toFixed(2)}y` : "–"}</td>
+                <td className="tabular-nums">{r.band_min == null ? "–" : Number(r.band_min) === Number(r.band_max) ? Number(r.band_min).toFixed(1) : `${Number(r.band_min).toFixed(1)}–${Number(r.band_max).toFixed(1)}`}</td>
+                <td className="tabular-nums">{r.class_lo == null ? "–" : `${r.class_lo}–${r.class_hi}`}</td>
                 <td className="tabular-nums">{r.filled ? Number(r.avg_risk).toFixed(1) : "–"}</td>
+                <td className="tabular-nums" title="0 = strict rules; 1 to 3 = ladder step (adjusted)">{!r.filled || r.ladder_step == null ? "–" : Number(r.ladder_step) > 0 ? `${r.ladder_step} · adjusted` : "0"}</td>
                 <td className={r.filled ? "text-green-700" : r.status === "INFEASIBLE" ? "text-mute" : "text-red-700"}>{r.status ?? (r.filled ? "VALID" : "PENDING")}</td>
                 {Array.from({ length: 10 }, (_, i) => <td key={i} className="font-mono text-[11px]">{r[`bond_${i + 1}` as `bond_${number}`] ?? "–"}</td>)}
               </tr>

@@ -2,8 +2,6 @@ name: Ranking live check
 # Manual (and when this file or the script changes): the deploy ranking self-check on fresh caps vs the stored table. Counts only, read-only.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "40 4 * * *"
 jobs:
   check:
     runs-on: ubuntu-24.04

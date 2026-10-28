@@ -4,9 +4,9 @@ import { activeMethodology, methodologyFor } from "./methodologyChoice";
 import { METHODOLOGIES } from "./methodologyList";
 
 // Rules that were removed from the production engine (owner, 28/10/2026) must not come back. The production engine is the portfolio spec:
-// lib/portfolioSpec.ts, lib/riskMatrix.ts, lib/netSpread/*, the snapshot (lib/sliderSnapshot*.ts) and the stored-list path that serves it.
+// lib/portfolioSpec.ts, lib/riskAnchors.ts, lib/netSpread/*, the snapshot (lib/sliderSnapshot*.ts) and the stored-list path that serves it.
 const ENGINE = [
-  "lib/portfolioSpec.ts", "lib/riskMatrix.ts", "lib/riskClassBands.ts",
+  "lib/portfolioSpec.ts", "lib/riskAnchors.ts",
   ...fs.readdirSync("lib/netSpread").filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => `lib/netSpread/${f}`),
   "lib/sliderSnapshot.ts", "lib/sliderSnapshotBuild.ts", "lib/sliderSnapshotClient.ts",
   "lib/riskBandsServe.ts", "lib/riskBandsLive.ts", "lib/riskBandsAnswer.ts", "lib/methodologyChoice.ts",
@@ -21,6 +21,12 @@ describe("removed rules stay removed", () => {
     // The editable average-risk bands (Methodology 3) are read only by the admin-only paths, never by the engine's own files.
     const m3 = ENGINE.filter((f) => /loadBandConfig\(\)/.test(read(f))).sort();
     expect(m3).toEqual(["lib/methodologyChoice.ts", "lib/riskBandsAnswer.ts", "lib/riskBandsServe.ts", "scripts/precompute-bands.ts"]);
+  });
+  it("the fixed 30-band matrix, the target formula and the expected-loss terciles are gone from the engine", () => {
+    expect(fs.existsSync("lib/riskMatrix.ts")).toBe(false);
+    expect(fs.existsSync("lib/riskClassBands.ts")).toBe(false);
+    const old = /RISK_MATRIX|matrixOk|windowOf\(|windowsOfMatrix|ceilingShare|repeatedWindows|solveWindow/;
+    expect(ENGINE.filter((f) => old.test(read(f)))).toEqual([]);
   });
   it("no simulation anywhere in the engine files, and the simulation files are gone", () => {
     const sim = /monte[ -]?carlo|cvar|correlatedLoss|generateScenarios|simulat/i;

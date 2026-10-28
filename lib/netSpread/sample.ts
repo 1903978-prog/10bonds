@@ -1,6 +1,5 @@
 import { NS_SIZE, type NsCand, type NsRules } from "./solve";
-import { nsListOk } from "./check";
-import { PORTFOLIO_SPEC } from "../portfolioSpec";
+import { checkNsList } from "./check";
 
 // Reference sample for the Portfolio BES history: random feasible lists for one position (every hard rule checked by lib/netSpread/check.ts),
 // drawn with a fixed seed so a run is reproducible. Stored once per price batch; after enough batches it becomes the frozen reference.
@@ -12,11 +11,11 @@ function prng(seed: number) {
 }
 export const seedOf = (s: string) => { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 
-export function sampleFeasible(cands: NsCand[], allowed: readonly number[], rules: NsRules, want: number, seed: string, maxTries = want * 60): number[] {
+export function sampleFeasible(cands: NsCand[], allowed: readonly number[], rules: NsRules, want: number, seed: string, maxTries = want * 60, sum?: { lo: number; hi: number }): number[] {
   const pool = cands.filter((c) => allowed.includes(c.cls)).sort((a, b) => a.isin.localeCompare(b.isin));
   if (pool.length < NS_SIZE) return [];
   const rnd = prng(seedOf(seed));
-  const lo = rules.duration * (1 - PORTFOLIO_SPEC.avgDurationTolerance), hi = rules.duration * (1 + PORTFOLIO_SPEC.avgDurationTolerance);
+  const lo = rules.duration * (1 - rules.avgTol), hi = rules.duration * (1 + rules.avgTol);
   const out: number[] = [];
   for (let t = 0; t < maxTries && out.length < want; t++) {
     const order = pool.map((c, i) => ({ i, k: rnd() })).sort((a, b) => a.k - b.k);
@@ -25,10 +24,10 @@ export function sampleFeasible(cands: NsCand[], allowed: readonly number[], rule
     let dsum = 0;
     for (const { i } of order) {
       const c = pool[i];
-      if ((groups.get(c.group) ?? 0) >= rules.perIssuer || (sectors.get(c.sector) ?? 0) >= rules.perSector) continue;
+      if ((groups.get(c.group) ?? 0) >= rules.perIssuer || (!(rules.sectorExempt && c.exempt) && (sectors.get(c.sector) ?? 0) >= rules.perSector)) continue;
       const next = dsum + c.dur;
       sel.push(c); dsum = next;
-      groups.set(c.group, (groups.get(c.group) ?? 0) + 1); sectors.set(c.sector, (sectors.get(c.sector) ?? 0) + 1);
+      groups.set(c.group, (groups.get(c.group) ?? 0) + 1); if (!(rules.sectorExempt && c.exempt)) sectors.set(c.sector, (sectors.get(c.sector) ?? 0) + 1);
       if (sel.length === NS_SIZE) break;
     }
     // Repair a draw whose average duration is outside the window: swap in a random pool bond that moves it towards the window, checked again below.
@@ -38,10 +37,10 @@ export function sampleFeasible(cands: NsCand[], allowed: readonly number[], rule
       const nd = dsum - sel[j].dur + c.dur;
       if (Math.abs(nd / NS_SIZE - rules.duration) >= Math.abs(dsum / NS_SIZE - rules.duration)) continue;
       const rest = sel.filter((_, k) => k !== j);
-      if (rest.filter((x) => x.group === c.group).length >= rules.perIssuer || rest.filter((x) => x.sector === c.sector).length >= rules.perSector) continue;
+      if (rest.filter((x) => x.group === c.group).length >= rules.perIssuer || (!(rules.sectorExempt && c.exempt) && rest.filter((x) => x.sector === c.sector && !(rules.sectorExempt && x.exempt)).length >= rules.perSector)) continue;
       sel[j] = c; dsum = nd;
     }
-    if (sel.length === NS_SIZE && nsListOk(sel, allowed, rules)) out.push(sel.reduce((s, c) => s + c.ns, 0) / NS_SIZE);
+    if (sel.length === NS_SIZE && checkNsList(sel, allowed, rules, { sum }).every((c) => c.ok)) out.push(sel.reduce((s, c) => s + c.ns, 0) / NS_SIZE);
   }
   return out.sort((a, b) => a - b);
 }

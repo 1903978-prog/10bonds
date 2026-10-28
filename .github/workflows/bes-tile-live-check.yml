@@ -2,8 +2,6 @@ name: BES tile live check
 # Manual: opens the live finder as an anonymous visitor, runs a search and prints page status plus the efficiency score tile text. Read-only.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "50 4 * * *"
 jobs:
   check:
     runs-on: ubuntu-24.04

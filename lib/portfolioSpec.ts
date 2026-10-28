@@ -1,32 +1,31 @@
-import { MATRIX_POSITIONS, MAX_RISK_SPREAD, RISK_MATRIX, RISK_MATRIX_VERSION } from "./riskMatrix";
+import { MAX_RISK_SPREAD, POSITIONS } from "./riskAnchors";
 import { termOf } from "./limits";
 
-// THE portfolio specification (owner, 28/10/2026). One versioned config read by the optimiser (lib/netSpread/solve.ts), the validator
-// (lib/netSpread/check.ts, lib/sliderSnapshotBuild.ts), the nightly job (scripts/portfolio-efficiency.ts) and the admin rebuild. Nothing
+// THE portfolio specification (owner, 28/10/2026). One versioned config read by the optimiser (lib/netSpread/solve.ts, anchored.ts), the validator
+// (lib/netSpread/check.ts, lib/sliderSnapshotBuild.ts), the nightly job (scripts/portfolio-build.ts) and the admin rebuild. Nothing
 // else holds a portfolio rule: change a number here, bump SPEC_VERSION, and every stored list is rebuilt. Written out in docs/PORTFOLIO_SPEC.md.
 
-export const SPEC_VERSION = "ps1-2026-10-28";
+export const SPEC_VERSION = "ps3-2026-10-28";
 
 export const PORTFOLIO_SPEC = {
   version: SPEC_VERSION,
-  /** The mandatory 30-position risk matrix (lib/riskMatrix.ts) and the bond risk spread allowed inside any portfolio. */
-  matrixVersion: RISK_MATRIX_VERSION,
-  positions: MATRIX_POSITIONS,
+  /** 30 positions per horizon, anchored on the riskiest and the safest feasible list (lib/riskAnchors.ts); the bond risk spread allowed inside any portfolio. */
+  positions: POSITIONS,
   maxRiskSpread: MAX_RISK_SPREAD,
   /** Ten bonds, 10% each. */
   size: 10,
   weight: 0.1,
-  /** Bonds per consolidated issuer group, and per major sector. Never relaxed for any position. */
+  /** Bonds per consolidated issuer group, and per major sector. Issuer is never relaxed for any position. */
   perIssuerGroup: 1,
   perSector: 3,
   /** The average duration of the ten bonds lies within this share of the horizon (Short 2 y, Medium 4 y, Long 10 y). */
   avgDurationTolerance: 0.05,
   /** Each bond's duration lies within this share of the horizon; Long is wider (owner decision 1b, 28/10/2026). */
   bondDurationWindow: { short: 0.2, mid: 0.2, long: 0.3 },
+  /** No bond carries more than this share of the list's annual expected loss. */
+  lossShare: 0.25,
   /** A price older than this many trading days (Mon-Fri) behind the newest quote of the copy is stale and the bond is left out. */
-  staleTradingDays: 5,
-  /** Positions that share the same allowed classes are spread over terciles of expected loss (see ceilingShare). */
-  repeatedWindows: "expected-loss terciles",
+  staleTradingDays: 10,
   /** Stored results are read in under this many milliseconds; every position is solved in the nightly job. */
   readBudgetMs: 300,
   /** Nightly rebuild: 06:00 Asia/Bangkok = 23:00 UTC. */
@@ -35,21 +34,31 @@ export const PORTFOLIO_SPEC = {
   besCalibrationDays: 20,
 } as const;
 
-/** Share of a duration window each bond may be away from the horizon: Long (6 to 15 years) 30%, the other terms 20%. */
-export const poolWindowOf = (duration: number): number => PORTFOLIO_SPEC.bondDurationWindow[termOf(duration) ?? "mid"];
-
-/** The portfolio rules of one horizon, as every solver, checker and sampler receives them. */
-export const specRules = (duration: number) => ({ perIssuer: PORTFOLIO_SPEC.perIssuerGroup, perSector: PORTFOLIO_SPEC.perSector, duration });
-
-/** Allowed bond risk classes per position, straight from the matrix. */
-export const allowedFor = (position: number): readonly number[] => RISK_MATRIX[position - 1] ?? [];
-
 /**
- * Expected-loss ceiling of place `i` (0-based) of `m` positions that share the same classes, as a share of the window's feasible range
- * [lowest achievable loss, loss of the highest-net-spread list]. Terciles for three places, halves for two; the top place has no ceiling
- * beyond the range itself, so it is the unconstrained optimum.
+ * The relaxation ladder (owner, 28/10/2026). A position with no list under the strict rules is retried with step 1, then 2, then 3; each step keeps
+ * the earlier ones. The issuer rule, the exclusions and the class spread of 2 are never relaxed. A list found at step 1 or later is marked "adjusted".
+ *   step 1: sovereigns, supranationals and agencies are exempt from the sector cap; every other sector may hold 4 instead of 3.
+ *   step 2: each bond within 35% of the horizon (Long 50%), the average within 10%.
+ *   step 3: no bond above 35% of the list's expected loss.
  */
-export const ceilingShare = (i: number, m: number): number => (i + 1) / m;
+export type LadderStep = 0 | 1 | 2 | 3;
+export const LADDER_STEPS: readonly LadderStep[] = [0, 1, 2, 3];
+export type Rules = { perIssuer: number; perSector: number; /** Sovereigns, supranationals and agencies do not count towards the sector cap. */ sectorExempt: boolean; duration: number; avgTol: number; lossShare: number; step: LadderStep };
+
+const WIDE_WINDOW = { short: 0.35, mid: 0.35, long: 0.5 } as const;
+/** Share of a duration window each bond may be away from the horizon at a ladder step. */
+export const poolWindowOf = (duration: number, step: LadderStep = 0): number => (step >= 2 ? WIDE_WINDOW : PORTFOLIO_SPEC.bondDurationWindow)[termOf(duration) ?? "mid"];
+
+/** The portfolio rules of one horizon at a ladder step, as every solver, checker and sampler receives them. */
+export const specRules = (duration: number, step: LadderStep = 0): Rules => ({
+  perIssuer: PORTFOLIO_SPEC.perIssuerGroup,
+  perSector: step >= 1 ? PORTFOLIO_SPEC.perSector + 1 : PORTFOLIO_SPEC.perSector,
+  sectorExempt: step >= 1,
+  duration,
+  avgTol: step >= 2 ? 0.1 : PORTFOLIO_SPEC.avgDurationTolerance,
+  lossShare: step >= 3 ? 0.35 : PORTFOLIO_SPEC.lossShare,
+  step,
+});
 
 const DAY = 86_400_000;
 /** Mon-Fri days after `older` up to and including `newer`. Weekends do not count; public holidays are not modelled (a holiday makes the rule one day stricter). */
