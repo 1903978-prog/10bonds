@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 type R = Record<string, string | number | null | string[]>;
-type Bench = Record<string, { source: string; asOf: string | null; benchmarkNotch: number; pointsInCurve: number; shortest: number; longest: number; bondsUsing: number; grid: { years: number; yield: number | null; extended: boolean; nearbyBonds: number }[] }>;
+type Bench = Record<string, { source: string; asOf: string | null; benchmarkNotch: number; pointsInCurve: number; shortest: number; longest: number; bondsUsing: number; grid: { years: number; yield: number | null; extended: boolean; nearbyBonds: number; status?: string; copyBund?: number | null }[]; version?: string | null }>;
 type Dash = { run: (R & { stats: Record<string, number | null> & { benchmarks?: Bench } }) | null; runs: R[]; byRisk: R[]; byBucket: R[]; reasons: { n: string; c: number }[]; top: R[]; bottom: R[]; highYtmPoor: R[]; modYtmStrong: R[]; filters: { c: string[]; t: string[]; s: string[] }; portfolios: R[] };
 type List = { rows: R[]; total: number; page: number };
 const f = (v: unknown, d = 1) => (v === null || v === undefined || v === "" ? "–" : Number.isFinite(Number(v)) ? Number(v).toFixed(d) : String(v));
@@ -60,13 +60,15 @@ export default function BesAdmin() {
           </div>
           <section data-testid="bes-benchmarks">
             <h2 className="font-medium">Benchmark for each maturity</h2>
-            <p className="mt-1 text-xs text-mute">A bond is compared with the government bond yield of its own currency at its own remaining maturity. The curve is built from the plain fixed-rate government bonds in the same daily copy (same price date as the bonds). Between two government bonds the yield is read in a straight line. Outside the curve the nearest end yield is held flat (no slope extrapolation): up to 1 year before the shortest and 10 years beyond the longest point; such bonds are marked Limited, further out there is no score. These are yields to maturity, so the spread is an approximation, not a Z-spread. EUR uses the German Bund curve; the ECB AAA euro-area curve is not loaded (it is a spot-rate curve and would need a par-yield conversion first).</p>
+            <p className="mt-1 text-xs text-mute">A bond is compared with the government bond yield of its own currency at its own remaining maturity. The curve is built from the plain fixed-rate government bonds in the same daily copy (same price date as the bonds). Between two government bonds the yield is read in a straight line. Outside the curve the nearest end yield is held flat (no slope extrapolation): up to 1 year before the shortest and 10 years beyond the longest point; such bonds are marked Limited, further out there is no score. These are yields to maturity, so the spread is an approximation, not a Z-spread. EUR uses the fixed table supplied by the owner (reference date 27/10/2026; Verified and Interpolated rows, 1 to 30 years; beyond 30 years there is no verified benchmark and no score). It is replaced when a new table is supplied (version in the line below); the curve from the daily copy is shown for comparison only. The ECB AAA curve is not loaded (a spot-rate curve; it would need a par-yield conversion first).</p>
             {Object.entries(d.run.stats.benchmarks ?? {}).map(([cur, b]) => (
               <div key={cur} className="mt-3 overflow-x-auto">
-                <p className="text-sm"><b>{cur}</b> · {b.source} · price date {when(b.asOf)} · {b.pointsInCurve} points from {f(b.shortest)}y to {f(b.longest)}y · used by {b.bondsUsing} bonds · benchmark default risk: {b.benchmarkNotch === 0 ? "AAA" : "AA"} government</p>
+                <p className="text-sm"><b>{cur}</b> · {b.source} · {b.version ? `reference date ${b.asOf}` : `price date ${when(b.asOf)}`} · {b.pointsInCurve} points from {f(b.shortest)}y to {f(b.longest)}y · used by {b.bondsUsing} bonds · benchmark default risk: {b.benchmarkNotch === 0 ? "AAA" : "AA"} government</p>
                 <table className="mt-1 text-xs tabular-nums"><thead className="text-mute"><tr><th className="pr-3 text-left">Maturity</th>{b.grid.map((g) => <th key={g.years} className="px-2">{g.years}y</th>)}</tr></thead>
                   <tbody>
                     <tr className="border-t border-line"><td className="pr-3">Yield %</td>{b.grid.map((g) => <td key={g.years} className="px-2">{g.yield === null ? "–" : f(g.yield, 2)}{g.extended ? "*" : ""}</td>)}</tr>
+                    <tr className="border-t border-line"><td className="pr-3">Status</td>{b.grid.map((g) => <td key={g.years} className="px-2">{g.status ?? "–"}</td>)}</tr>
+                    <tr className="border-t border-line"><td className="pr-3">Daily copy, for comparison</td>{b.grid.map((g) => <td key={g.years} className="px-2">{g.copyBund == null ? "–" : f(g.copyBund, 2)}</td>)}</tr>
                     <tr className="border-t border-line"><td className="pr-3">Govt bonds nearby</td>{b.grid.map((g) => <td key={g.years} className="px-2">{g.nearbyBonds}</td>)}</tr>
                   </tbody></table>
                 <p className="text-[11px] text-mute">* held flat from the end of the curve (assumption, Limited).</p>

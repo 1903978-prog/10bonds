@@ -4,6 +4,7 @@ import { SP_CORPORATE, SP_CORPORATE_YEARS, spCorporateRow } from "./spReference"
 import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, cumulativePdExtended, curveYield, curveYieldExtended, grossSpreadBp, percentileRank } from "./math";
 import { STALE_DAYS } from "../bonds";
 import { BES_STALE_DAYS, calculateBes } from "./calc";
+import { EUR_BENCHMARK } from "./benchmarkTables";
 
 const sp = (c: string) => SP_CORPORATE.find(([k]) => k === c)![1];
 
@@ -159,7 +160,18 @@ describe("BES on a synthetic universe", () => {
     expect(l.status).toBe("limited");
     expect(l.bes).not.toBeNull();
     expect(l.notes.join(" ")).toMatch(/extended beyond 15 years/);
-    expect(l.notes.join(" ")).toMatch(/Benchmark extended/);
+    expect(l.notes.join(" ")).not.toMatch(/Benchmark extended/); // EUR table covers 20 years (owner's table 1-30y)
+    const v = calculateBes([...u, { ...u[20], isin: "VLONG", maturity: "2062-10-28" } as PublicBond], TODAY).find((x) => x.isin === "VLONG")!;
+    expect(v.status).toBe("unavailable"); // 36 years: no verified EUR benchmark
+    expect(v.notes.join(" ")).toMatch(/No verified benchmark/);
+  });
+  it("EUR benchmark is the owner's table (reference date 27 Oct 2026), not the daily copy", () => {
+    const c = rows.find((r) => r.isin === "XS0")!;
+    expect(c.benchmarkSource).toMatch(/eur-bench-2026-10-27/);
+    expect(c.benchmarkYield!).toBeCloseTo(3.16, 3); // 5 years, Verified row
+    expect(EUR_BENCHMARK.points).toHaveLength(30);
+    expect(EUR_BENCHMARK.points.filter((p) => p.status === "Verified").map((p) => p.years)).toEqual([1, 2, 3, 5, 7, 10, 15, 20, 30]);
+    expect(EUR_BENCHMARK.points[9].yield).toBe(3.42);
   });
   it("a bond 9 days behind the newest quote is still scored (site limit is 10 days)", () => {
     const u = universe();
