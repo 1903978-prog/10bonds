@@ -66,6 +66,7 @@ export function positionsOfBands(sv: ServedBands): SliderPosition[] {
       unavailable: !ok,
       band: { min: b.min, max: b.max },
       optimal: ok ? b.optimal : undefined,
+      ...(ok && b.eff ? { eff: b.eff } : {}),
     };
   });
 }
