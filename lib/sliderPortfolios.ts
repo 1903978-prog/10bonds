@@ -55,6 +55,11 @@ export function tileFigures(p: Pick<SliderPosition, "ytm" | "expectedLoss" | "un
   return { ret: `${p.ytm.toFixed(2)}%`, loss: `${p.expectedLoss.toFixed(2)}%` };
 }
 
+/** The tiles follow the stored position, except while a list worked out on the spot for this very position is on screen; an answer left over from another position never decides them. */
+export function tilesFromPosition(answer: { band?: { k: number; source?: string } } | null | undefined, mix: number): boolean {
+  return !(answer?.band?.source === "live" && answer.band.k === mix);
+}
+
 const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const r3 = (n: number) => Math.round(n * 1000) / 1000;

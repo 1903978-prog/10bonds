@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { issuerKey } from "./ranking";
 import { bondRisk } from "./ratings";
 import type { PublicBond } from "./types";
-import { buildSlider, moodOf, SLIDER_POSITIONS, tileFigures } from "./sliderPortfolios";
+import { buildSlider, moodOf, SLIDER_POSITIONS, tileFigures, tilesFromPosition } from "./sliderPortfolios";
 import { exactFrontier } from "./exactFrontier";
 import { isWeak, MAX_WEAK } from "./frontierGuard";
 import { TERMS } from "./limits";
@@ -86,5 +86,14 @@ describe("slider positions (exact efficient frontier)", () => {
   it("is deterministic", () => {
     const bonds = universe(5, 4, 20);
     expect(buildSlider(exactFrontier(bonds, 4))).toEqual(buildSlider(exactFrontier(bonds, 4)));
+  });
+});
+
+describe("tilesFromPosition", () => {
+  it("follows the stored position unless a live list for this position is on screen", () => {
+    expect(tilesFromPosition(null, 14)).toBe(true);
+    expect(tilesFromPosition({ band: { k: 26, source: "live" } }, 14)).toBe(true);
+    expect(tilesFromPosition({ band: { k: 14, source: "stored" } }, 14)).toBe(true);
+    expect(tilesFromPosition({ band: { k: 14, source: "live" } }, 14)).toBe(false);
   });
 });
