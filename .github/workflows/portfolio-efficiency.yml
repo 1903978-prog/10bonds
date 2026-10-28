@@ -1,6 +1,6 @@
 name: Portfolio Efficiency
 # The portfolio engine (Methodology 4, the portfolio spec, lib/netSpread): runs on a runner, never in the website process. Nightly after the Efficient Database (23:00 UTC)
-# and Bond Efficiency (23:30 UTC) jobs, i.e. 06:00 Asia/Bangkok plus a margin, and every 3 hours to pick up an admin "Recalculate" request.
+# and Bond Efficiency (23:30 UTC) jobs, i.e. 06:00 Asia/Bangkok plus a margin, and again at 02:10 UTC, which finishes a stopped run (stored lists already saved are skipped) and picks up an admin "Recalculate" request; no daytime rebuilds.
 # It needs the Bond Efficiency run of the same price batch (it runs that first if missing). A price batch that is already optimised is skipped.
 on:
   workflow_dispatch:
@@ -8,14 +8,14 @@ on:
       force: { description: "Recalculate even if this price batch is done", type: boolean, default: false }
   schedule:
     - cron: "10 0 * * *"
-    - cron: "40 */3 * * *"
+    - cron: "10 2 * * *"
 concurrency:
-  group: portfolio-efficiency
+  group: portfolio-build
   cancel-in-progress: false
 jobs:
   portfolio-efficiency:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 180
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
@@ -30,6 +30,9 @@ jobs:
       - name: Slider snapshot (90 positions)
         if: always()
         run: npx vite-node -c vitest.config.ts scripts/build-slider-snapshot.ts | tee snapshot.txt
+      - name: Every other stored list (EUR/USD x All/1k-10k x years 1-15), one horizon at a time
+        if: always()
+        run: npx vite-node -c vitest.config.ts scripts/portfolio-build.ts | tee build.txt
       - name: Summary
         if: always()
-        run: cat pe.txt snapshot.txt >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat pe.txt snapshot.txt build.txt >> "$GITHUB_STEP_SUMMARY" || true
