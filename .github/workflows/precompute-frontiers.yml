@@ -1,12 +1,9 @@
 name: Precompute portfolio lists
-# After a release that changes the engine (a push to main touching lib/ or the build scripts) or on demand: makes sure every stored list exists for the current prices
+# On demand only (never on push, Livio 28/10/2026; the nightly build is portfolio-efficiency.yml): makes sure every stored list exists for the current prices
 # and spec version, so the live site never has to solve (a missing list answers "being prepared"). Saved lists are skipped, so a run with nothing new takes seconds.
 # The nightly run (06:00 Asia/Bangkok) is portfolio-efficiency.yml; both use one concurrency group, so only one build runs at a time.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ["lib/**", "scripts/portfolio-build.ts", "scripts/portfolio-efficiency.ts", "scripts/build-slider-snapshot.ts"]
 concurrency:
   group: portfolio-build
   cancel-in-progress: false

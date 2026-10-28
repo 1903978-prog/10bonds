@@ -1,12 +1,9 @@
-# Deploys the public 10BONDS site to Fly.io on every push to main (docs-only pushes skipped), and on manual dispatch.
-# Restored 28/10/2026: the cloud sessions cannot reach fly.dev, so this workflow (health checks + automatic rollback) is how merged work ships.
+# Deploys the public 10BONDS site to Fly.io. MANUAL ONLY (Livio, 28/10/2026): the owning session deploys with `fly deploy`
+# after merge; this workflow is a manual fallback and never runs on push.
 # Needs one repo secret: FLY_API_TOKEN (a Fly token the owner creates himself).
 # The build runs on Fly's remote builder; the runner only waits.
 name: Deploy to Fly
 on:
-  push:
-    branches: [main]
-    paths-ignore: ["**.md", "docs/**", "public/**/*.png", "public/**/*.jpg"]
   workflow_dispatch:
 concurrency: deploy
 jobs:
@@ -192,8 +189,13 @@ jobs:
       - name: "Payments: Stripe prices, portal and webhook"
         if: env.ok == '1' && env.STRIPE_SECRET_KEY != ''
         run: |
-          body=$(curl -sS --max-time 60 -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/billing); echo "$body"
-          echo "$body" | grep -q '"webhook":true'
+          # The app finds or creates the Stripe webhook a few seconds after a restart: look up to 4 times, 15 s apart.
+          for i in 1 2 3 4; do
+            body=$(curl -sS --max-time 60 -w ' HTTP %{http_code}' https://10bonds.fly.dev/api/health/billing || true); echo "try $i: $body"
+            echo "$body" | grep -q '"webhook":true' && exit 0
+            sleep 15
+          done
+          exit 1
       - name: "E-mail status (informational)"
         if: env.ok == '1'
         continue-on-error: true
