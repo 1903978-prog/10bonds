@@ -15,6 +15,17 @@ table app.best_bonds
   isin text not null
   bond jsonb not null
 
+table app.bond_code_counters
+  currency text not null
+  last_seq integer not null default 0
+
+table app.bond_codes
+  isin text not null
+  bond_code text not null
+  currency text not null
+  seq integer not null
+  assigned_at timestamp with time zone not null default now()
+
 table app.bond_daily_prices
   as_of date not null
   isin text not null
@@ -123,6 +134,92 @@ table app.discount_codes
   created_by bigint
   created_at timestamp with time zone not null default now()
   used_at timestamp with time zone
+
+table app.efficient_portfolio_holdings
+  snapshot_id bigint not null
+  portfolio_id text not null
+  horizon text not null
+  ord smallint not null
+  isin text not null
+  bond_code text
+  issuer text
+  name text
+  currency text
+  coupon numeric
+  maturity text
+  rating text
+  ytm numeric
+  duration numeric
+  risk numeric
+  clean_price numeric
+  price_as_of text
+
+table app.efficient_portfolio_jobs
+  id bigint not null default nextval(...)
+  snapshot_id bigint
+  trigger text not null
+  batch_id text
+  status text not null
+  attempt integer not null default 1
+  started_at timestamp with time zone not null default now()
+  finished_at timestamp with time zone
+  message text
+  log jsonb
+
+table app.efficient_portfolio_migrations
+  id text not null
+  applied_at timestamp with time zone not null default now()
+
+table app.efficient_portfolio_positions
+  snapshot_id bigint not null
+  row_no smallint not null
+  horizon text not null
+  position smallint not null
+  duration_target numeric not null
+  avg_ytm numeric
+  avg_duration numeric
+  avg_risk numeric
+  expected_loss numeric
+  worst_risk numeric
+  risk_min smallint
+  risk_max smallint
+  risk_spread smallint
+  risk_consistency text
+  band_min numeric not null
+  band_max numeric not null
+  optimal boolean not null default false
+  filled boolean not null default false
+  error text
+  portfolio_id text
+  shared_with smallint
+  mapped_from smallint
+  bond_1 text
+  bond_2 text
+  bond_3 text
+  bond_4 text
+  bond_5 text
+  bond_6 text
+  bond_7 text
+  bond_8 text
+  bond_9 text
+  bond_10 text
+
+table app.efficient_portfolio_snapshots
+  id bigint not null default nextval(...)
+  batch_id text not null
+  input_fingerprint text not null
+  filter_key text not null
+  methodology text not null
+  empty_policy text not null
+  status text not null
+  data_as_of timestamp with time zone
+  calculated_at timestamp with time zone not null default now()
+  published_at timestamp with time zone
+  runtime_ms integer
+  filled_count integer not null default 0
+  distinct_portfolios integer not null default 0
+  error text
+  report jsonb
 
 table app.events
   id bigint not null default nextval(...)
@@ -498,6 +595,15 @@ constraints
   app.assessment_evidence assessment_evidence_isin_model_version_as_of_key: UNIQUE (isin, model_version, as_of)
   app.assessment_evidence assessment_evidence_pkey: PRIMARY KEY (id)
   app.best_bonds best_bonds_pkey: PRIMARY KEY (duration, level, rank)
+  app.bond_code_counters bond_code_counters_currency_check: CHECK ((currency ~ '^[A-Z]{3}$'::text))
+  app.bond_code_counters bond_code_counters_last_seq_check: CHECK (((last_seq >= 0) AND (last_seq <= 99999)))
+  app.bond_code_counters bond_code_counters_pkey: PRIMARY KEY (currency)
+  app.bond_codes bond_codes_bond_code_check: CHECK ((bond_code ~ '^[A-Z]{3}[0-9]{5}$'::text))
+  app.bond_codes bond_codes_bond_code_key: UNIQUE (bond_code)
+  app.bond_codes bond_codes_check: CHECK ((bond_code = (currency || lpad((seq)::text, 5, '0'::text))))
+  app.bond_codes bond_codes_currency_seq_key: UNIQUE (currency, seq)
+  app.bond_codes bond_codes_pkey: PRIMARY KEY (isin)
+  app.bond_codes bond_codes_seq_check: CHECK (((seq >= 1) AND (seq <= 99999)))
   app.bond_daily_prices bond_daily_prices_pkey: PRIMARY KEY (as_of, isin)
   app.bond_import_batches bond_import_batches_pkey: PRIMARY KEY (id)
   app.bond_import_rows bond_import_rows_pkey: PRIMARY KEY (batch_id, isin)
@@ -515,6 +621,33 @@ constraints
   app.discount_codes discount_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.discount_codes discount_codes_pkey: PRIMARY KEY (code)
   app.discount_codes discount_codes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
+  app.efficient_portfolio_holdings efficient_portfolio_holdings_bond_code_fkey: FOREIGN KEY (bond_code) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_holdings efficient_portfolio_holdings_pkey: PRIMARY KEY (snapshot_id, portfolio_id, horizon, ord)
+  app.efficient_portfolio_holdings efficient_portfolio_holdings_snapshot_id_fkey: FOREIGN KEY (snapshot_id) REFERENCES app.efficient_portfolio_snapshots(id) ON DELETE CASCADE
+  app.efficient_portfolio_jobs efficient_portfolio_jobs_pkey: PRIMARY KEY (id)
+  app.efficient_portfolio_jobs efficient_portfolio_jobs_snapshot_id_fkey: FOREIGN KEY (snapshot_id) REFERENCES app.efficient_portfolio_snapshots(id) ON DELETE SET NULL
+  app.efficient_portfolio_jobs efficient_portfolio_jobs_status_check: CHECK ((status = ANY (ARRAY['running'::text, 'done'::text, 'skipped'::text, 'failed'::text])))
+  app.efficient_portfolio_migrations efficient_portfolio_migrations_pkey: PRIMARY KEY (id)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_10_fkey: FOREIGN KEY (bond_10) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_1_fkey: FOREIGN KEY (bond_1) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_2_fkey: FOREIGN KEY (bond_2) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_3_fkey: FOREIGN KEY (bond_3) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_4_fkey: FOREIGN KEY (bond_4) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_5_fkey: FOREIGN KEY (bond_5) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_6_fkey: FOREIGN KEY (bond_6) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_7_fkey: FOREIGN KEY (bond_7) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_8_fkey: FOREIGN KEY (bond_8) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_bond_9_fkey: FOREIGN KEY (bond_9) REFERENCES app.bond_codes(bond_code)
+  app.efficient_portfolio_positions efficient_portfolio_positions_check: CHECK (((NOT filled) OR ((risk_consistency = 'PASS'::text) AND (risk_spread <= 2))))
+  app.efficient_portfolio_positions efficient_portfolio_positions_horizon_check: CHECK ((horizon = ANY (ARRAY['SHORT'::text, 'MEDIUM'::text, 'LONG'::text])))
+  app.efficient_portfolio_positions efficient_portfolio_positions_pkey: PRIMARY KEY (snapshot_id, row_no)
+  app.efficient_portfolio_positions efficient_portfolio_positions_position_check: CHECK ((("position" >= 1) AND ("position" <= 30)))
+  app.efficient_portfolio_positions efficient_portfolio_positions_risk_consistency_check: CHECK ((risk_consistency = ANY (ARRAY['PASS'::text, 'FAIL'::text])))
+  app.efficient_portfolio_positions efficient_portfolio_positions_row_no_check: CHECK (((row_no >= 1) AND (row_no <= 90)))
+  app.efficient_portfolio_positions efficient_portfolio_positions_snapshot_id_fkey: FOREIGN KEY (snapshot_id) REFERENCES app.efficient_portfolio_snapshots(id) ON DELETE CASCADE
+  app.efficient_portfolio_positions efficient_portfolio_positions_snapshot_id_horizon_position_key: UNIQUE (snapshot_id, horizon, "position")
+  app.efficient_portfolio_snapshots efficient_portfolio_snapshots_pkey: PRIMARY KEY (id)
+  app.efficient_portfolio_snapshots efficient_portfolio_snapshots_status_check: CHECK ((status = ANY (ARRAY['published'::text, 'incomplete'::text, 'superseded'::text, 'failed'::text])))
   app.events events_pkey: PRIMARY KEY (id)
   app.events events_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
   app.frontier_cache frontier_cache_pkey: PRIMARY KEY (key)
@@ -601,6 +734,10 @@ indexes
   CREATE UNIQUE INDEX assessment_evidence_isin_model_version_as_of_key ON app.assessment_evidence USING btree (isin, model_version, as_of)
   CREATE UNIQUE INDEX assessment_evidence_pkey ON app.assessment_evidence USING btree (id)
   CREATE UNIQUE INDEX best_bonds_pkey ON app.best_bonds USING btree (duration, level, rank)
+  CREATE UNIQUE INDEX bond_code_counters_pkey ON app.bond_code_counters USING btree (currency)
+  CREATE UNIQUE INDEX bond_codes_bond_code_key ON app.bond_codes USING btree (bond_code)
+  CREATE UNIQUE INDEX bond_codes_currency_seq_key ON app.bond_codes USING btree (currency, seq)
+  CREATE UNIQUE INDEX bond_codes_pkey ON app.bond_codes USING btree (isin)
   CREATE UNIQUE INDEX bond_daily_prices_pkey ON app.bond_daily_prices USING btree (as_of, isin)
   CREATE UNIQUE INDEX bond_import_batches_pkey ON app.bond_import_batches USING btree (id)
   CREATE UNIQUE INDEX bond_import_rows_pkey ON app.bond_import_rows USING btree (batch_id, isin)
@@ -615,6 +752,14 @@ indexes
   CREATE UNIQUE INDEX correction_requests_pkey ON app.correction_requests USING btree (id)
   CREATE UNIQUE INDEX daily_counts_pkey ON app.daily_counts USING btree (day, kind, path, country)
   CREATE UNIQUE INDEX discount_codes_pkey ON app.discount_codes USING btree (code)
+  CREATE UNIQUE INDEX efficient_portfolio_holdings_pkey ON app.efficient_portfolio_holdings USING btree (snapshot_id, portfolio_id, horizon, ord)
+  CREATE UNIQUE INDEX efficient_portfolio_jobs_pkey ON app.efficient_portfolio_jobs USING btree (id)
+  CREATE UNIQUE INDEX efficient_portfolio_migrations_pkey ON app.efficient_portfolio_migrations USING btree (id)
+  CREATE UNIQUE INDEX efficient_portfolio_positions_pkey ON app.efficient_portfolio_positions USING btree (snapshot_id, row_no)
+  CREATE UNIQUE INDEX efficient_portfolio_positions_snapshot_id_horizon_position_key ON app.efficient_portfolio_positions USING btree (snapshot_id, horizon, "position")
+  CREATE UNIQUE INDEX efficient_portfolio_snapshots_once ON app.efficient_portfolio_snapshots USING btree (input_fingerprint) WHERE (status <> 'failed'::text)
+  CREATE UNIQUE INDEX efficient_portfolio_snapshots_one_active ON app.efficient_portfolio_snapshots USING btree (filter_key) WHERE (status = 'published'::text)
+  CREATE UNIQUE INDEX efficient_portfolio_snapshots_pkey ON app.efficient_portfolio_snapshots USING btree (id)
   CREATE INDEX events_at_idx ON app.events USING btree (at)
   CREATE INDEX events_kind_at_idx ON app.events USING btree (kind, at)
   CREATE INDEX events_user_idx ON app.events USING btree (user_id) WHERE (user_id IS NOT NULL)

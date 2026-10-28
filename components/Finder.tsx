@@ -1,6 +1,7 @@
 "use client";
 
 import { landOn } from "@/lib/bandSlider";
+import { loadSnapshot, snapshotPositions } from "@/lib/sliderSnapshotClient";
 import Link from "next/link";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { downloadXlsx } from "@/lib/xlsx";
@@ -266,9 +267,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     let timer: ReturnType<typeof setTimeout> | undefined;
     // The last positions seen in this browser fill the chart dots and tiles at once; fresh ones replace them.
     const ck = `slider-pos:${duration}:${currency}:${size}:${method ?? ""}`;
+    // The published 90-position snapshot (all three terms in memory) answers at once; the older per-term path below is the fallback when none is published.
+    const fromSnap = method !== "m1" ? snapshotPositions(currency, size, duration) : null;
     let cached: SliderPosition[] | null = null;
     try { const c = localStorage.getItem(ck); if (c) cached = JSON.parse(c); } catch {}
-    setPositions(cached?.length ? cached : null);
+    setPositions(fromSnap?.length ? fromSnap : cached?.length ? cached : null);
     const load = (tries: number) =>
       fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
         .then(async (r) => {
@@ -282,6 +285,18 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           }
         })
         .catch(() => { if (!stop && tries < 60) timer = setTimeout(() => load(tries + 1), 3000); });
+    if (method !== "m1") {
+      loadSnapshot(currency, size).then((snap) => {
+        if (stop) return;
+        if (!snap) { load(0); return; }
+        const ps = snapshotPositions(currency, size, duration);
+        if (ps?.length) setPositions((cur) => (cur === ps ? cur : ps));
+        else load(0);
+      });
+      const again = () => { if (document.visibilityState === "visible") loadSnapshot(currency, size, true).then((snap) => { const ps = snap && snapshotPositions(currency, size, duration); if (!stop && ps?.length) setPositions((cur) => (cur === ps ? cur : ps)); }); };
+      document.addEventListener("visibilitychange", again);
+      return () => { stop = true; clearTimeout(timer); document.removeEventListener("visibilitychange", again); };
+    }
     load(0);
     return () => { stop = true; clearTimeout(timer); };
   }, [duration, currency, size, method, canYear]);
@@ -582,7 +597,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         const b = data?.band?.k === mix ? data.band : undefined;
         const actual = b?.avgRisk ?? bandPos.avgRisk;
         if (b?.none || (bandPos.unavailable && !b)) return t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max));
-        return `${t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max))}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
+        // The ten bonds shown: their lowest and highest individual score (always at most 2 apart).
+        const scores = list && list.length === 10 ? list.map((r) => r.risk).filter((x): x is number => typeof x === "number") : [];
+        const range = scores.length === 10 ? ` · ${t.bandRange(Math.min(...scores), Math.max(...scores))}` : bandPos.riskMin != null && bandPos.riskMax != null && b?.source !== "live" ? ` · ${t.bandRange(bandPos.riskMin, bandPos.riskMax)}` : "";
+        return `${t.bandRisk(num1(bandPos.band.min), num1(bandPos.band.max))}${actual != null ? ` · ${t.bandList(num1(actual))}` : ""}${range}${b?.optimal ? ` · ${t.bandOptimal}` : b?.source === "live" && b.phase && b.phase !== "done" && b.phase !== "exact" ? ` · ${t.bandImproving}` : ""}`;
       })()
     : undefined;
   const live = simple && paid && mode === "portfolio" && data?.band?.source !== "live" ? tileFigures(positions?.[mix - 1]) : null;

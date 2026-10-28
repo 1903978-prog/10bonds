@@ -1,6 +1,6 @@
 import type { PublicBond } from "./types";
 import { candidatesOf, type BandCand } from "./coherentFrontier";
-import { atLeastAsGood, greedyStart, improveSteps, pruneCandidates, statOf, type BandConfig, type RiskBand, type Stat } from "./riskBands";
+import { atLeastAsGood, bestGreedy, improveSteps, pruneCandidates, statOf, type BandConfig, type RiskBand, type Stat } from "./riskBands";
 import { rulesFor } from "./riskBandsBuild";
 import { solveBand } from "./riskBandsSolve";
 
@@ -42,7 +42,10 @@ export async function* liveBand(bonds: PublicBond[], duration: number, band: Ris
   const kept = pruneCandidates(all, config.perCell);
   const rules = rulesFor(duration);
   const exactP = opts.exact === false ? null : solveBand(kept, band, rules, { timeLimit: opts.exactSeconds ?? EXACT_SECONDS }).catch(() => null);
-  let cur: BandCand[] | null = greedyStart(kept, band, rules);
+  // One window of three risk classes holds the whole list: the best greedy start over the windows that can reach the band; swaps stay inside it.
+  const start = bestGreedy(kept, band, rules);
+  let cur: BandCand[] | null = start?.sel ?? null;
+  const pool = start?.pool ?? kept;
   let exactDone: Awaited<NonNullable<typeof exactP>> | null = null;
   let exactSettled = !exactP;
   exactP?.then((r) => { exactDone = r; exactSettled = true; });
@@ -56,7 +59,7 @@ export async function* liveBand(bonds: PublicBond[], duration: number, band: Ris
   };
   if (cur) {
     yield { phase: "start", sel: cur, stat: statOf(cur), optimal: false };
-    const steps = improveSteps(cur, kept, band, rules, { deadlineMs: 2500 });
+    const steps = improveSteps(cur, pool, band, rules, { deadlineMs: 2500 });
     for (const st of steps) {
       await tick();
       const ex = exactSettled ? switchToExact() : null;

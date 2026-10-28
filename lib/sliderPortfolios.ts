@@ -28,6 +28,9 @@ export type SliderPosition = {
   expectedLoss: number | null;
   avgRisk: number | null;
   worstRisk: number | null;
+  /** Lowest and highest individual bond risk score of the list (risk window, at most 2 apart). */
+  riskMin?: number | null;
+  riskMax?: number | null;
   isins: string[];
   /** Kept for older readers: positions never repeat a list now. */
   sameAs: number | null;

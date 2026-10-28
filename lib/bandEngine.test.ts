@@ -1,3 +1,4 @@
+import { riskConsistent } from "./riskWindow";
 import { describe, expect, it } from "vitest";
 import type { PublicBond } from "./types";
 import { BANDS, markDominated, runBands, type BandResult } from "./bandEngine";
@@ -39,6 +40,7 @@ describe("30 bands", () => {
         const dur = sel.reduce((s, c) => s + c.dur, 0) / 10;
         if (Math.abs(dur - 4) > 4 * 0.05 + 1e-9) return;
         if (!checkList(sel, P, 10).every((c) => c.ok)) return;
+        if (!riskConsistent(sel.map((c) => c.cls))) return; // risk window: scores at most 2 apart
         const risk = sel.reduce((s, c) => s + c.cls, 0) / 10;
         const ytm = sel.reduce((s, c) => s + c.ret, 0) / 10;
         const el = listLifeLoss(sel.map((c) => c.pd));
@@ -53,7 +55,7 @@ describe("30 bands", () => {
       go(i + 1);
     };
     go(0);
-    expect(best.size).toBeGreaterThan(1);
+    expect(best.size).toBeGreaterThan(0);
     for (const r of results) {
       const t = best.get(r.k);
       if (!t) { expect(r.ytm).toBeNull(); expect(r.status).toBe("unavailable"); continue; }

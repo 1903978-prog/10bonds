@@ -1,4 +1,5 @@
 import type { BandCand } from "./coherentFrontier";
+import { riskConsistent, windowsFor } from "./riskWindow";
 import { listLifeLoss } from "./expectedLoss";
 
 // The 30 "Return & risk" positions as AVERAGE-RISK BANDS (owner, 27/10/2026). Position n holds the 10 bonds with the highest
@@ -36,7 +37,7 @@ export function cleanConfig(raw: unknown): BandConfig | null {
   return { bands, perCell };
 }
 
-export const configSignature = (c: BandConfig) => `rb1:${c.perCell}:${c.bands.map((b) => `${b.min}-${b.max}`).join(",")}`;
+export const configSignature = (c: BandConfig) => `rb2:${c.perCell}:${c.bands.map((b) => `${b.min}-${b.max}`).join(",")}`;
 
 /** Sum of the 10 scores that puts the average inside the band (whole numbers): null if no whole sum fits. */
 export function sumRange(b: RiskBand): { lo: number; hi: number } | null {
@@ -82,6 +83,7 @@ export function statOf(sel: BandCand[]): Stat {
 /** True when the list (10 bonds) obeys every band rule: average risk in band, issuer and sector caps, duration window. */
 export function listOk(sel: BandCand[], band: RiskBand, rules: Rules): boolean {
   if (sel.length !== LIST_SIZE) return false;
+  if (!riskConsistent(sel.map((c) => c.cls))) return false;
   const sr = sumRange(band);
   if (!sr) return false;
   const s = statOf(sel);
@@ -116,6 +118,8 @@ export function greedyStart(cands: BandCand[], band: RiskBand, rules: Rules): Ba
   if (!sr || cands.length < LIST_SIZE) return null;
   const byYield = [...cands].sort((a, b) => b.ret - a.ret || a.pd - b.pd || a.b.isin.localeCompare(b.b.isin));
   const mid = (sr.lo + sr.hi) / 2;
+  // The pool may be one risk window (three classes): the rest of the list can only use those scores.
+  const cmin = Math.min(...cands.map((c) => c.cls)), cmax = Math.max(...cands.map((c) => c.cls));
   const sel: BandCand[] = [];
   const groups = new Map<string, number>(), sectors = new Map<string, number>();
   const room = (c: BandCand) => (groups.get(c.group ?? c.b.isin) ?? 0) < rules.perIssuer && (sectors.get(c.sector) ?? 0) < rules.perSector;
@@ -128,7 +132,7 @@ export function greedyStart(cands: BandCand[], band: RiskBand, rules: Rules): Ba
     const left = LIST_SIZE - sel.length - 1;
     const sum = sel.reduce((s, c) => s + c.cls, 0);
     // After this pick the rest (left bonds, scores 1..10) must still be able to land in the band.
-    const reachable = (c: BandCand) => sum + c.cls + left * 1 <= sr.hi && sum + c.cls + left * 10 >= sr.lo;
+    const reachable = (c: BandCand) => sum + c.cls + left * cmin <= sr.hi && sum + c.cls + left * cmax >= sr.lo;
     // Balanced: the running average may not run away from the middle by more than the remaining bonds can fix.
     const want = (mid - sum) / (left + 1);
     const pick = byYield.find((c) => !sel.includes(c) && room(c) && reachable(c) && Math.abs(c.cls - want) <= Math.max(2.5, 10 / (left + 1)));
@@ -235,4 +239,17 @@ export function nonMonotonic(ytms: (number | null)[]): number[] {
     top = Math.max(top, y);
   });
   return bad;
+}
+
+/** Candidates of each risk window that can reach the band, for the greedy start and the swaps (which keep a list inside its window by drawing only from it). */
+export const windowPools = (cands: BandCand[], band: RiskBand) => windowsFor(band).map((w) => ({ w, pool: cands.filter((c) => c.cls >= w && c.cls <= w + 2) }));
+
+/** Best greedy start over the risk windows that can reach the band: the list and the window's candidates (swaps must draw from the same pool to stay inside the window). */
+export function bestGreedy(cands: BandCand[], band: RiskBand, rules: Rules): { sel: BandCand[]; pool: BandCand[] } | null {
+  let best: { sel: BandCand[]; pool: BandCand[] } | null = null;
+  for (const wp of windowPools(cands, band)) {
+    const g = greedyStart(wp.pool, band, rules);
+    if (g && (!best || statOf(g).ytm > statOf(best.sel).ytm)) best = { sel: g, pool: wp.pool };
+  }
+  return best;
 }

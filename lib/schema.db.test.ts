@@ -29,6 +29,7 @@ async function buildAll() {
   const { bondImportTablesReady } = await import("./bondImportDb");
   const { shortlistTablesReady } = await import("./shortlistDb");
   const { frontierTableReady } = await import("./frontierStore");
+  const { sliderTablesReady } = await import("./sliderSnapshot");
   const sql = await accountsSql();
   await discountTable();
   await seoSql();
@@ -41,6 +42,7 @@ async function buildAll() {
   await bondImportTablesReady();
   await shortlistTablesReady();
   await frontierTableReady();
+  await sliderTablesReady();
   return sql;
 }
 
