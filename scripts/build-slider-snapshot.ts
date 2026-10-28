@@ -8,8 +8,8 @@ console.log(`\n${r.status.toUpperCase()}: ${r.message}`);
 for (const b of r.blockers) console.log(`- ${b}`);
 if (r.snapshotId) {
   const rows = await snapshotRows(r.snapshotId);
-  console.log("\n| Row | Position | YTM / Duration | Avg risk | Filled |\n|---:|---|---|---:|---|");
-  for (const x of rows) console.log(`| ${x.row_no} | ${x.horizon} ${String(x.position).padStart(2, "0")} | ${x.filled ? `${Number(x.avg_ytm).toFixed(2)}% / ${Number(x.avg_duration).toFixed(2)}y` : "–"} | ${x.filled ? Number(x.avg_risk).toFixed(1) : "–"} | ${x.filled ? "YES" : "NO"} |`);
+  console.log("\n| Row | Position | YTM / Duration | Avg risk | Status |\n|---:|---|---|---:|---|");
+  for (const x of rows) console.log(`| ${x.row_no} | ${x.horizon} ${String(x.position).padStart(2, "0")} | ${x.filled ? `${Number(x.avg_ytm).toFixed(2)}% / ${Number(x.avg_duration).toFixed(2)}y` : "–"} | ${x.filled ? Number(x.avg_risk).toFixed(1) : "–"} | ${x.status ?? (x.filled ? "VALID" : "PENDING")} |`);
 }
 await new Promise((done) => setTimeout(done, 1500));
 process.exit(r.status === "failed" ? 1 : 0);
