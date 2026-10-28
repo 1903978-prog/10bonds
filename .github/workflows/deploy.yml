@@ -1,10 +1,12 @@
-# Deploys the public 10BONDS site to Fly.io on every push to main.
+# Deploys the public 10BONDS site to Fly.io on every push to main (docs-only pushes skipped), and on manual dispatch.
+# Restored 28/10/2026: the cloud sessions cannot reach fly.dev, so this workflow (health checks + automatic rollback) is how merged work ships.
 # Needs one repo secret: FLY_API_TOKEN (a Fly token the owner creates himself).
 # The build runs on Fly's remote builder; the runner only waits.
 name: Deploy to Fly
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**", "public/**/*.png", "public/**/*.jpg"]
   workflow_dispatch:
 concurrency: deploy
 jobs:

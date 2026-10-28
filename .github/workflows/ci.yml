@@ -4,12 +4,20 @@ name: Checks
 # of the public pages on desktop and phone (sample data, no secrets needed).
 on:
   pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths-ignore: ["**.md", "docs/**"]
   workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   checks:
+    # Draft PRs are work in progress: no CI until the PR is marked ready (28/10/2026, Actions cost).
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:

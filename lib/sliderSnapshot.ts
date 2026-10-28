@@ -11,7 +11,8 @@ import { bondRisk } from "./ratings";
 import { configSignature } from "./riskBands";
 import { loadStoredBands } from "./riskBandsStore";
 import { specConfig } from "./netSpread/config";
-import { allowedFor, PORTFOLIO_SPEC } from "./portfolioSpec";
+import { PORTFOLIO_SPEC } from "./portfolioSpec";
+import { ANCHORS_VERSION } from "./riskAnchors";
 import { bandsKey } from "./riskBandsServe";
 import type { StoredBands } from "./riskBandsBuild";
 import type { SliderPosition } from "./sliderPortfolios";
@@ -71,6 +72,8 @@ async function sql() {
       primary key (snapshot_id, row_no),
       unique (snapshot_id, horizon, position))`;
     await s`alter table app.efficient_portfolio_positions add column if not exists status text`;
+    // Anchored bands (ps3): the ladder step the list was found at (0 strict, 1..3 adjusted), the classes the position may hold, its target average risk and its sum band.
+    await s`alter table app.efficient_portfolio_positions add column if not exists ladder_step smallint, add column if not exists class_lo smallint, add column if not exists class_hi smallint, add column if not exists band_target numeric(6,2)`;
     await s`create table if not exists app.efficient_portfolio_holdings (
       snapshot_id bigint not null references app.efficient_portfolio_snapshots(id) on delete cascade,
       portfolio_id text not null,
@@ -146,7 +149,7 @@ async function once(trigger: string, f: Pick<BondFilter, "currency" | "size">, f
   if (noCode.length) throw new Error(`${noCode.length} selected bonds have no bond code (${noCode.slice(0, 3).join(", ")}...)`);
   const problems = snapshotProblems(a.rows);
   const publish = problems.length === 0;
-  const report = { problems, blockers: a.blockers, notes, attempt, bands: configSignature(cfg), spec: PORTFOLIO_SPEC.version, matrix: PORTFOLIO_SPEC.matrixVersion, repeats: a.rows.filter((r) => r.sharedWith !== null).map((r) => `${r.horizon}:${r.position}=${r.sharedWith}`) };
+  const report = { problems, blockers: a.blockers, notes, attempt, bands: configSignature(cfg), spec: PORTFOLIO_SPEC.version, anchors: ANCHORS_VERSION, keyAnchors: sets.map((x) => x?.anchors ?? null), breaks: sets.map((x) => x?.breaks ?? []), repeats: a.rows.filter((r) => r.sharedWith !== null).map((r) => `${r.horizon}:${r.position}=${r.sharedWith}`) };
   const byIsin = new Map(src.bonds.map((b) => [b.isin, b]));
   const id = await s.begin(async (tx) => {
     if (existing[0]) await tx`delete from app.efficient_portfolio_snapshots where id = ${existing[0].id}`;
@@ -155,7 +158,7 @@ async function once(trigger: string, f: Pick<BondFilter, "currency" | "size">, f
       on conflict do nothing returning id`;
     if (!ins[0]) return null; // another run saved the same batch a moment ago
     const sid = Number(ins[0].id);
-    const rows = a.rows.map((r) => ({ snapshot_id: sid, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.durationTarget, avg_ytm: r.ytm, avg_duration: r.duration, avg_risk: r.risk, risk_min: r.riskMin, risk_max: r.riskMax, risk_spread: r.riskSpread, risk_consistency: r.riskConsistency, expected_loss: r.expectedLoss, worst_risk: r.worstRisk, band_min: r.bandMin, band_max: r.bandMax, optimal: r.optimal, filled: r.filled, status: r.status, error: r.error, portfolio_id: r.portfolioId ? pidHash(r.horizon + r.portfolioId) : null, shared_with: r.sharedWith, mapped_from: r.mappedFrom, ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`bond_${i + 1}`, [...r.isins].map((x) => codes.get(x)!).sort()[i] ?? null])) }));
+    const rows = a.rows.map((r) => ({ snapshot_id: sid, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.durationTarget, avg_ytm: r.ytm, avg_duration: r.duration, avg_risk: r.risk, risk_min: r.riskMin, risk_max: r.riskMax, risk_spread: r.riskSpread, risk_consistency: r.riskConsistency, expected_loss: r.expectedLoss, worst_risk: r.worstRisk, band_min: r.bandMin, band_max: r.bandMax, ladder_step: r.ladder, class_lo: r.classLo, class_hi: r.classHi, band_target: r.target, optimal: r.optimal, filled: r.filled, status: r.status, error: r.error, portfolio_id: r.portfolioId ? pidHash(r.horizon + r.portfolioId) : null, shared_with: r.sharedWith, mapped_from: r.mappedFrom, ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`bond_${i + 1}`, [...r.isins].map((x) => codes.get(x)!).sort()[i] ?? null])) }));
     await tx`insert into app.efficient_portfolio_positions ${tx(rows)}`;
     const seen = new Set<string>();
     const hold: Record<string, unknown>[] = [];
@@ -238,7 +241,8 @@ const toPosition = (r: Record<string, unknown>, isins: string[]): SliderPosition
     worstRisk: ok ? Number(r.worst_risk) : null, isins, sameAs: ok && r.shared_with != null ? Number(r.shared_with) : null, unavailable: !ok,
     riskMin: ok ? Number(r.risk_min) : null, riskMax: ok ? Number(r.risk_max) : null,
     band: { min: Number(r.band_min), max: Number(r.band_max) }, optimal: ok ? r.optimal === true : undefined,
-    classes: [...allowedFor(k)], slot: k,
+    classes: r.class_lo != null ? Array.from({ length: Number(r.class_hi) - Number(r.class_lo) + 1 }, (_, i) => Number(r.class_lo) + i) : undefined, slot: k,
+    ...(ok && Number(r.ladder_step ?? 0) > 0 ? { adjusted: true } : {}),
   };
 };
 

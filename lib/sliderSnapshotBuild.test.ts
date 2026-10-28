@@ -69,7 +69,7 @@ describe("90-position slider snapshot", () => {
 
   it("whole-snapshot check needs 90 rows, 30 per term, indexes 1..30 and every row filled", () => {
     const full: SnapshotRow[] = (["SHORT", "MEDIUM", "LONG"] as const).flatMap((h, hi) => Array.from({ length: 30 }, (_, i) => ({
-      rowNo: hi * 30 + i + 1, horizon: h, position: i + 1, durationTarget: 2, ytm: 3, duration: 2, risk: 2, expectedLoss: 1, worstRisk: 3, riskMin: 2, riskMax: 3, riskSpread: 1, riskConsistency: "PASS", status: "VALID", bandMin: 1, bandMax: 2, optimal: true, filled: true, error: null, isins: [], portfolioId: "p", sharedWith: null, mappedFrom: null,
+      rowNo: hi * 30 + i + 1, horizon: h, position: i + 1, durationTarget: 2, ytm: 3, duration: 2, risk: 2, expectedLoss: 1, worstRisk: 3, riskMin: 2, riskMax: 3, riskSpread: 1, riskConsistency: "PASS", status: "VALID", bandMin: 1, bandMax: 2, ladder: 0, classLo: 1, classHi: 3, target: 2, optimal: true, filled: true, error: null, isins: [], portfolioId: "p", sharedWith: null, mappedFrom: null,
     })));
     expect(snapshotProblems(full)).toEqual([]);
     expect(snapshotProblems(full.slice(0, 89))).not.toEqual([]);

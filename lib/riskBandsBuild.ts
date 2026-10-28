@@ -33,6 +33,8 @@ export type StoredBand = {
   outsideCandidates?: boolean;
   /** Methodology 4: lowest and highest bond risk class in the list, and the earlier position that holds exactly this list (a repeat, not a new result). */
   minRisk?: number; maxRisk?: number; repeatOf?: number;
+  /** Anchored bands: the ladder step the list was found at (0 = strict, 1..3 = relaxed, shown as "adjusted"), the band's target average risk, and the sum of ten classes it spans (tenths). */
+  ladder?: number; target?: number; sumLo?: number; sumHi?: number;
   seconds: number;
   eff?: PortfolioEff;
 };
@@ -41,6 +43,10 @@ export type StoredBands = {
   bands: StoredBand[];
   /** Bands whose average yield is lower than an earlier band's (flagged, not hidden). */
   nonMonotonic: number[];
+  /** Anchored bands: the riskiest and safest average risk of this key (R30, R1), and the ladder step they needed. */
+  anchors?: { r1: number; r30: number; step: number };
+  /** Anchored bands: positions whose average risk or expected loss is lower than the position before (reported, never forced). */
+  breaks?: string[];
   candidates: { all: number; kept: number; perCell: number };
   builtAt: string;
 };
