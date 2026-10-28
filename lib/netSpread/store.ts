@@ -9,7 +9,6 @@ import { TERMS } from "../limits";
 import type { BondSource } from "../bonds";
 import { bandsKey } from "../riskBandsServe";
 import { loadBandConfig, loadStoredBands } from "../riskBandsStore";
-import type { PublicBond } from "../types";
 
 // Storage and daily run of Methodology 5 ("Portfolio Efficiency Optimization", owner brief 28/10/2026). Migration id: portfolio_efficiency_001 (additive tables
 // app.pe_*). Written only by scripts/portfolio-efficiency.ts on a runner; the website only reads the published run. A run is published in ONE transaction
