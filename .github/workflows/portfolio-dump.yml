@@ -2,6 +2,9 @@ name: Portfolio dump
 # Prints the published 90 portfolios (with their bonds) into the job log, for the admin review table. Read-only.
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/project-thread-nulu7q]
+    paths: [scripts/dump-portfolios.ts, .github/workflows/portfolio-dump.yml]
 jobs:
   dump:
     runs-on: ubuntu-24.04
