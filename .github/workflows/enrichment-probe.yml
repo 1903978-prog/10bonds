@@ -2,6 +2,8 @@ name: Enrichment probe
 # Read-only counts of the sector, seniority, call and parent fields the copy already carries. Counts only.
 on:
   workflow_dispatch:
+  push:
+    paths: [".github/workflows/enrichment-probe.yml"]
 jobs:
   probe:
     runs-on: ubuntu-24.04
