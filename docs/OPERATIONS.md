@@ -19,7 +19,7 @@ From a terminal instead: `flyctl releases -a 10bonds --image` then `flyctl deplo
 
 ## Backups
 - Bond data: a read-only copy filled by lm-op-model; the source of truth is in lm-op-model, so it can be refilled from there.
-- Nightly copy to Dropbox: see docs/rebuild-from-zero.md.
+- Dropbox copy: switched off on 28/10 (Livio's decision, no extra secrets). The nightly GitHub backup below is the backup.
 - Accounts database (schema `app`: accounts, plans, codes, Pro requests, stats, guides, broker data):
   - **Nightly backup with a restore test** (`.github/workflows/backup.yml`, 02:15 UTC): dumps schema `app`, encrypts
     it (AES-256), decrypts that file again, restores it into an empty Postgres and compares every table's row count with

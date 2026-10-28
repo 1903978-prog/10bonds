@@ -5,9 +5,6 @@ on:
   schedule:
     - cron: "43 6 * * 1"
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Deploy to Fly"]
-    types: [completed]
 jobs:
   test:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
