@@ -154,7 +154,7 @@ function rowToBond(r: Record<string, any>, importedSeniority: Map<string, string
     couponType: couponTypeOf(r.coupon_type, num(r.coupon), r.structure_modelled),
     seniority: typeof r.seniority === "string" && r.seniority.trim() ? r.seniority.trim() : (importedSeniority.get(r.isin) ?? null),
     issueDate: isoDay(r.issue_date),
-    callable: typeof r.callable === "boolean" ? r.callable : null,
+    callable: typeof r.callable === "boolean" ? r.callable : r.call_date ? true : null, // the copy has no flag yet; a first call date means callable
   };
 }
 
