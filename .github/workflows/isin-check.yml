@@ -1,0 +1,32 @@
+name: ISIN check
+# Read-only: shows the public_bonds row for one or more ISINs (does it exist, rating, dates, yield, minimum, flags) and why the site would hide it,
+# plus a few sample ISINs per currency. Manual; also runs when this file changes in a pull request.
+on:
+  workflow_dispatch:
+    inputs:
+      isins:
+        description: "ISINs, one per line or separated by spaces"
+        required: true
+        default: "FR0000186413"
+  pull_request:
+    paths: [".github/workflows/isin-check.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ISINS: ${{ github.event.inputs.isins || 'FR0000186413' }}
+    steps:
+      - run: |
+          sudo apt-get install -y -qq postgresql-client >/dev/null 2>&1 || true
+          for i in $ISINS; do
+            i=$(echo "$i" | tr 'a-z' 'A-Z' | tr -d '[:space:]')
+            case "$i" in [A-Z][A-Z][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][0-9]) ;; *) echo "skip (not an ISIN): $i"; continue ;; esac
+            echo "== $i"
+            n=$(psql "$DATABASE_URL" -X -A -t -c "select count(*) from public_bonds where upper(trim(isin)) = '$i'")
+            echo "rows in public_bonds: $n"
+            [ "$n" = 0 ] || psql "$DATABASE_URL" -X -x -c "select * from public_bonds where upper(trim(isin)) = '$i'"
+          done
+          echo "== samples (rated, with yield and duration, matures later): per currency"
+          psql "$DATABASE_URL" -X -A -t -F ' | ' -c "select currency, isin, issuer, maturity, gross_ytm from (select *, row_number() over (partition by currency order by random()) rn from public_bonds where gross_ytm is not null and modified_duration is not null and maturity > current_date and coalesce(rating_resolved, rating_sp, rating_moodys, rating_fitch) is not null and currency in ('EUR','USD') and structure_modelled is not false) t where rn <= 4 order by currency"

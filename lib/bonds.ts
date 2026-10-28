@@ -358,10 +358,11 @@ export async function bondDataHealth(now = Date.now()): Promise<DataHealth> {
 export type CopyBond = { isin: string; name: string | null; issuer: string | null; currency: string | null; maturity: string; why: string | null };
 
 /** Why a bond in the copy is not shown on the site (null = it passes the copy-level rules; the outlier cut and stale rule come later). */
-function whyHidden(r: Record<string, unknown>): string | null {
+export function whyHidden(r: Record<string, unknown>): string | null {
+  // Not modelled first: floating, step-up and inflation-linked bonds have no duration because of it, not by accident.
+  if (r.structure_modelled === false) return "structure not modelled (floating, step-up, inflation-linked or similar)";
   if (r.gross_ytm == null || r.modified_duration == null) return "no yield or duration in the copy";
   if (r.maturity && new Date(String(r.maturity)) <= new Date()) return "already matured";
-  if (r.structure_modelled === false) return "structure not modelled (floating, step-up, inflation-linked or similar)";
   if (dormantReason({ currency: String(r.currency ?? ""), minInvestment: minInvestmentOf(num(r.min_denomination), num(r.min_lot), String(r.currency ?? "")) } as never, r.dormant)) return "dormant (minimum investment above 200,000)";
   if (!hasRealRating({ ratingSp: r.rating_sp, ratingMoodys: r.rating_moodys, ratingFitch: r.rating_fitch, ratingResolved: r.rating_resolved, lrScore: num(r.lr_score) } as never)) return "no rating from S&P, Moody's or Fitch";
   return null;
