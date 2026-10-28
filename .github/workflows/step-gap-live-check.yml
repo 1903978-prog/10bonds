@@ -3,8 +3,8 @@ name: Step gap live check
 # extra return per risk step (lib/stepGap.ts). Read-only; fails if a frontier is not monotonic.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/step-gap-live-check.yml", "scripts/step-gap-live-check.ts", "lib/stepGap.ts", "lib/exactFrontier.ts"]
+  schedule:
+    - cron: "20 4 * * *"
 jobs:
   check:
     runs-on: ubuntu-24.04

@@ -3,8 +3,8 @@ name: Frontier live check
 # order size, against the earlier positions from main. Read-only; fails if a frontier is not monotonic.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/frontier-live-check.yml", "scripts/frontier-live-check.ts", "lib/frontierPoints.ts", "lib/sliderPortfolios.ts", "lib/frontierGuard.ts"]
+  schedule:
+    - cron: "10 4 * * *"
 jobs:
   check:
     runs-on: ubuntu-24.04

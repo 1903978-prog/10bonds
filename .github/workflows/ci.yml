@@ -2,14 +2,22 @@ name: Checks
 # Runs on every pull request and before every deploy (deploy.yml calls it). Nothing reaches the live site unless
 # all of these pass: types, lint, unit tests, the tracked database design on a real Postgres, and a browser check
 # of the public pages on desktop and phone (sample data, no secrets needed).
+# Only for pull requests that are ready for review (draft PRs and session branches cost nothing); a newer commit
+# cancels the older run; docs-only changes skip it.
 on:
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths-ignore: ["**.md", "docs/**"]
   workflow_call:
   workflow_dispatch:
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   checks:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
