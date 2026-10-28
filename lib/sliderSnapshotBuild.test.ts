@@ -33,7 +33,7 @@ describe("90-position slider snapshot", () => {
       expect(Number.isFinite(r.ytm!) && Number.isFinite(r.duration!) && Number.isFinite(r.risk!)).toBe(true);
     }
     expect(a.rows.filter((r) => r.horizon === "SHORT").every((r) => !r.filled && r.error)).toBe(true);
-    expect(snapshotProblems(a.rows).join(" ")).toMatch(/not filled/);
+    expect(snapshotProblems(a.rows).join(" ")).toMatch(/not resolved/);
     expect(a.blockers.length).toBeGreaterThan(0);
   });
 
@@ -69,10 +69,15 @@ describe("90-position slider snapshot", () => {
 
   it("whole-snapshot check needs 90 rows, 30 per term, indexes 1..30 and every row filled", () => {
     const full: SnapshotRow[] = (["SHORT", "MEDIUM", "LONG"] as const).flatMap((h, hi) => Array.from({ length: 30 }, (_, i) => ({
-      rowNo: hi * 30 + i + 1, horizon: h, position: i + 1, durationTarget: 2, ytm: 3, duration: 2, risk: 2, expectedLoss: 1, worstRisk: 3, riskMin: 2, riskMax: 3, riskSpread: 1, riskConsistency: "PASS", bandMin: 1, bandMax: 2, optimal: true, filled: true, error: null, isins: [], portfolioId: "p", sharedWith: null, mappedFrom: null,
+      rowNo: hi * 30 + i + 1, horizon: h, position: i + 1, durationTarget: 2, ytm: 3, duration: 2, risk: 2, expectedLoss: 1, worstRisk: 3, riskMin: 2, riskMax: 3, riskSpread: 1, riskConsistency: "PASS", status: "VALID", bandMin: 1, bandMax: 2, optimal: true, filled: true, error: null, isins: [], portfolioId: "p", sharedWith: null, mappedFrom: null,
     })));
     expect(snapshotProblems(full)).toEqual([]);
     expect(snapshotProblems(full.slice(0, 89))).not.toEqual([]);
+    // INFEASIBLE rows are a real limit, so the snapshot can still be published; ERROR and PENDING rows block it.
+    const inf = (st: SnapshotRow["status"]) => full.map((r, i) => (i === 7 ? { ...r, status: st, filled: false, riskConsistency: null } : r));
+    expect(snapshotProblems(inf("INFEASIBLE"))).toEqual([]);
+    expect(snapshotProblems(inf("ERROR"))).not.toEqual([]);
+    expect(snapshotProblems(inf("PENDING"))).not.toEqual([]);
     expect(snapshotProblems(full.map((r, i) => (i === 40 ? { ...r, filled: false } : r)))).not.toEqual([]);
     expect(snapshotProblems(full.map((r, i) => (i === 5 ? { ...r, position: 7 } : r)))).not.toEqual([]);
   });

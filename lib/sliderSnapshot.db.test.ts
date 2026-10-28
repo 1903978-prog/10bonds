@@ -92,6 +92,12 @@ describe.skipIf(!url)("slider snapshot database", () => {
     const q = await (await import("./accounts")).accountsSql();
     const after = Object.fromEntries((await q`select isin, bond_code from app.bond_codes`).map((r) => [r.isin, r.bond_code]));
     for (const [k, v] of Object.entries(before)) expect(after[k]).toBe(v);
+    // A whole-copy first run (tens of thousands of bonds) goes through in chunks.
+    const big = Array.from({ length: 20000 }, (_, i) => ({ isin: `GB${String(i).padStart(10, "0")}`, name: `B${i}`, issuer: `Issuer ${i % 900}`, currency: "GBP", maturity: "2030-01-01" }));
+    const run = await assignBondCodes(big);
+    expect(run!.assigned).toBe(20000);
+    expect(run!.perCurrency.GBP.last).toBe(20000);
+    expect((await assignBondCodes(big))!.assigned).toBe(0);
     expect(after["NEW-1"]).toBe(`EUR${String(Object.keys(before).length + 1).padStart(5, "0")}`);
   });
 });

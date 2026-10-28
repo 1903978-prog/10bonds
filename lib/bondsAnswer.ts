@@ -15,7 +15,8 @@ import { parseShifts, parseWeight } from "@/lib/riskPremium/bands";
 import { pickRanking } from "@/lib/pickRanking";
 import { featuresFor } from "@/lib/planFeatures";
 import { exclusionsOrNone, excludedBy } from "@/lib/blacklist";
-import { coherentBuild, frontierFor, FrontierPending, gapOf, parseMethod } from "@/lib/frontierCache";
+import { coherentBuild, frontierFor, FrontierPending, gapOf } from "@/lib/frontierCache";
+import { bandTableOf, engineOf, methodologyFor, usesBands } from "@/lib/methodologyChoice";
 import { activeFallback } from "@/lib/enginePolicy";
 import { buildManifest } from "@/lib/runManifest";
 import { listLifeLoss } from "@/lib/expectedLoss";
@@ -29,10 +30,9 @@ import { exactFrontier } from "@/lib/exactFrontier";
 import { portfolioPool, withinRisk } from "@/lib/ranking";
 import { bandLiveOnce, bandHorizon, bandNumber, bandStored, bandTerm, liveKey, lowMemory, metaOfSel, RowSlots, type BandMeta } from "@/lib/riskBandsAnswer";
 import { liveBand, rememberLive } from "@/lib/riskBandsLive";
-import { loadBandConfig } from "@/lib/riskBandsStore";
 import type { BondFilter } from "@/lib/bondFilter";
 import type { BondSource } from "@/lib/bonds";
-import type { RiskBand } from "@/lib/riskBands";
+import type { BandConfig as RiskBandsConfig, RiskBand } from "@/lib/riskBands";
 
 function clampParam(raw: string | null, { min, max, initial }: { min: number; max: number; initial: number }) {
   const n = raw === null ? NaN : Number(raw);
@@ -106,15 +106,17 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   // A slider position (guard=1): the exact frontier's list for this target (lib/exactFrontier.ts), the one on the chart.
   const filter = parseFilter(url.searchParams);
   const exclusionKey = skip ? `u${user!.id}:${excl.map((e) => `${e.kind}:${e.value}`).sort().join(",")}` : "";
-  // Everyone searches the Methodology with spread rules; the admin can add m=m1 to compare with Methodology 1.
-  const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
+  // Everyone searches the methodology chosen at /admin/methodology; the admin can add m=1..5 to compare.
+  const meth = await methodologyFor(url.searchParams.get("m"), user?.isAdmin === true);
+  const method = engineOf(meth);
+  const bandCfg = usesBands(meth) ? await bandTableOf(meth) : null;
   // The spread-rules methodology is the coherent optimiser (lib/coherentFrontier.ts): built in the background, 202 until ready.
   // A customer's exclusions get their own coherent frontier (built in the background, keyed by the excluded set).
   let coherent: CoherentFrontier | null = null;
   let frontierResults: RankedBond[] | null = null;
   let nearest = false;
   // Risk-band position (owner, 27/10/2026): the stored portfolio of band n, or the progressive search when none applies (lib/riskBandsAnswer.ts).
-  const bandN = method === "spread" ? bandNumber(url.searchParams.get("band")) : null;
+  const bandN = bandCfg ? bandNumber(url.searchParams.get("band")) : null;
   let bandMeta: BandMeta | null = null;
   let bandNone: RiskBand | null = null;
   // An exact year outside the three terms is a Plus feature ("exact_year"); its lists are only read from storage.
@@ -126,13 +128,13 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   if (bandN && (step || bandTerm(duration) || exactYear)) {
     if (step) { frontierResults = step.results; bandMeta = step.meta; bandNone = step.none ?? null; } else {
       try {
-        const found = await bandStored(data, filter, duration, bandN, skip, exclusionKey);
+        const found = await bandStored(data, filter, duration, bandN, skip, exclusionKey, bandCfg!);
         if (!found && exactYear && !skip) {
           if (usage) await refundSearch(user!, usage);
           return NextResponse.json({ error: "This portfolio is being prepared. Please try again in a few minutes." }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "60" } });
         }
-        if (!found && url.searchParams.get("stream") === "1") return bandStream(req, data, filter, duration, bandN, skip, exclusionKey, usage, user);
-        const b = found ?? (await bandLiveOnce(data, filter, duration, bandN, skip, exclusionKey));
+        if (!found && url.searchParams.get("stream") === "1") return bandStream(req, data, filter, duration, bandN, skip, exclusionKey, usage, user, bandCfg!);
+        const b = found ?? (await bandLiveOnce(data, filter, duration, bandN, skip, exclusionKey, bandCfg!));
         if (b.kind === "list") { frontierResults = b.results; bandMeta = b.meta; } else bandNone = b.band;
       } catch (e) {
         console.error("[bands] answer failed:", (e as Error).message);
@@ -224,7 +226,7 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent || bandMode ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   return NextResponse.json(
-    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent || bandMode ? withoutListEdits(features) : features, excluded: skip !== null && !coherent && !bandMode, band: bandMeta ?? undefined, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, manifest, found: bandMode ? undefined : found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers },
+    { ...shapeForTier(results, tier, features, user?.isAdmin === true), features: coherent || bandMode ? withoutListEdits(features) : features, excluded: skip !== null && !coherent && !bandMode, band: bandMeta ?? undefined, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, manifest, found: bandMode ? undefined : found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers, ...(user?.isAdmin ? { methodology: meth } : {}) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -234,7 +236,7 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
  * for the list at that moment, plus `step` (what changed), so the page replaces rows in place. Yield never drops and expected loss never rises
  * from one line to the next; the last line is "exact" (labelled optimal when proven) or "done". The search is counted once, by the first call.
  */
-function bandStream(req: Request, data: BondSource, filter: BondFilter, duration: number, n: number, skip: ((b: PublicBond) => boolean) | null, exclusionKey: string, usage: Awaited<ReturnType<typeof consumeSearch>> | null, user: Awaited<ReturnType<typeof currentUser>>): Response {
+function bandStream(req: Request, data: BondSource, filter: BondFilter, duration: number, n: number, skip: ((b: PublicBond) => boolean) | null, exclusionKey: string, usage: Awaited<ReturnType<typeof consumeSearch>> | null, user: Awaited<ReturnType<typeof currentUser>>, cfg: RiskBandsConfig): Response {
   const enc = new TextEncoder();
   let cancelled = false;
   const body = new ReadableStream<Uint8Array>({
@@ -245,7 +247,6 @@ function bandStream(req: Request, data: BondSource, filter: BondFilter, duration
         ctl.enqueue(enc.encode(JSON.stringify({ ...json, ...(left ? { quota: publicQuota(left) } : {}), step }) + "\n"));
       };
       try {
-        const cfg = await loadBandConfig();
         const band = cfg.bands[n - 1];
         const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
         let any = false;

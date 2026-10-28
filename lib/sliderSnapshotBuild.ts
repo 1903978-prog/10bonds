@@ -10,7 +10,7 @@ import { MAX_SPREAD } from "./riskWindow";
 // (lib/riskBandsBuild.ts, solved by the precompute job, never here). Nothing is solved in this file and nothing is invented:
 // every figure is recomputed from the bond rows of the same price batch before a position counts as filled.
 
-export const METHOD_VERSION = "bands-v1";
+export const METHOD_VERSION = "bands-v2";
 export const HORIZONS = ["SHORT", "MEDIUM", "LONG"] as const;
 export type Horizon = (typeof HORIZONS)[number];
 export const horizonOf = (i: number): Horizon => HORIZONS[i];
@@ -23,7 +23,11 @@ export const POSITIONS = 30;
  */
 export const EMPTY_POLICY: "strict" | "share" = "strict";
 
+/** VALID = ten-bond portfolio verified; INFEASIBLE = no list exists under the approved rules (a real limit, not a failure); ERROR = a stored list failed the check; PENDING = not calculated yet. */
+export type RowStatus = "VALID" | "INFEASIBLE" | "ERROR" | "PENDING";
+
 export type SnapshotRow = {
+  status: RowStatus;
   rowNo: number; horizon: Horizon; position: number; durationTarget: number;
   ytm: number | null; duration: number | null; risk: number | null; expectedLoss: number | null; worstRisk: number | null;
   bandMin: number; bandMax: number; optimal: boolean;
@@ -82,14 +86,14 @@ export function assemble(sets: (StoredBands | null)[], bonds: PublicBond[], cfg:
     for (const band of cfg.bands) {
       const base = { rowNo: h * POSITIONS + band.k, horizon: horizonOf(h), position: band.k, durationTarget: t.duration, bandMin: band.min, bandMax: band.max };
       const sb = set?.bands[band.k - 1];
-      const empty: SnapshotRow = { ...base, ytm: null, duration: null, risk: null, expectedLoss: null, worstRisk: null, optimal: false, riskMin: null, riskMax: null, riskSpread: null, riskConsistency: null, filled: false, error: null, isins: [], portfolioId: null, sharedWith: null, mappedFrom: null };
+      const empty: SnapshotRow = { ...base, status: "PENDING", ytm: null, duration: null, risk: null, expectedLoss: null, worstRisk: null, optimal: false, riskMin: null, riskMax: null, riskSpread: null, riskConsistency: null, filled: false, error: null, isins: [], portfolioId: null, sharedWith: null, mappedFrom: null };
       if (!sb) { part.push({ ...empty, error: "Nothing stored for this horizon (run the precompute job)" }); continue; }
       const v = validateBand(sb, byIsin, cands, t.duration, band);
-      if (!v.ok) { part.push({ ...empty, error: v.error, ...(v.min !== undefined ? { riskMin: v.min, riskMax: v.max!, riskSpread: v.max! - v.min, riskConsistency: "FAIL" as const } : {}) }); continue; }
+      if (!v.ok) { part.push({ ...empty, status: sb.status === "none" ? "INFEASIBLE" : "ERROR", error: v.error, ...(v.min !== undefined ? { riskMin: v.min, riskMax: v.max!, riskSpread: v.max! - v.min, riskConsistency: "FAIL" as const } : {}) }); continue; }
       const pid = portfolioIdOf(sb.isins);
       const first = seen.get(pid);
       if (first === undefined) seen.set(pid, band.k);
-      part.push({ ...base, ytm: v.ytm, duration: v.dur, risk: v.risk, expectedLoss: v.el, worstRisk: v.worst, optimal: sb.optimal, riskMin: v.min, riskMax: v.max, riskSpread: v.max - v.min, riskConsistency: "PASS", filled: true, error: null, isins: [...sb.isins].sort(), portfolioId: pid, sharedWith: first ?? null, mappedFrom: null });
+      part.push({ ...base, status: "VALID", ytm: v.ytm, duration: v.dur, risk: v.risk, expectedLoss: v.el, worstRisk: v.worst, optimal: sb.optimal, riskMin: v.min, riskMax: v.max, riskSpread: v.max - v.min, riskConsistency: "PASS", filled: true, error: null, isins: [...sb.isins].sort(), portfolioId: pid, sharedWith: first ?? null, mappedFrom: null });
     }
     if (policy === "share") {
       part.forEach((r, i) => {
@@ -101,14 +105,14 @@ export function assemble(sets: (StoredBands | null)[], bonds: PublicBond[], cfg:
     }
     rows.push(...part);
     onHorizon?.(h);
-    const miss = part.filter((r) => !r.filled);
+    const miss = part.filter((r) => !r.filled && r.status !== "INFEASIBLE");
     if (miss.length) blockers.push(`${horizonOf(h)}: ${miss.length}/30 empty (positions ${miss.map((r) => r.position).join(", ")}). ${[...new Set(miss.map((r) => r.error))].join("; ")}`);
   });
   const filled = rows.filter((r) => r.filled).length;
   return { rows, filled, distinct: new Set(rows.filter((r) => r.portfolioId).map((r) => r.horizon + r.portfolioId)).size, blockers };
 }
 
-/** Whole-snapshot checks: 90 rows, 30 per horizon, no gap or duplicate index, all filled. Returns the list of problems (empty = publishable). */
+/** Whole-snapshot checks: 90 rows, 30 per horizon, no gap or duplicate index, every row resolved as VALID or INFEASIBLE. Returns the list of problems (empty = publishable; INFEASIBLE rows are allowed, ERROR and PENDING are not). */
 export function snapshotProblems(rows: SnapshotRow[]): string[] {
   const bad: string[] = [];
   if (rows.length !== 90) bad.push(`${rows.length} rows instead of 90`);
@@ -118,7 +122,8 @@ export function snapshotProblems(rows: SnapshotRow[]): string[] {
   }
   if (rows.some((r, i) => r.rowNo !== i + 1)) bad.push("Row numbers are not 1..90 in order");
   if (rows.some((r) => r.filled && (r.riskConsistency !== "PASS" || (r.riskSpread ?? 99) > MAX_SPREAD))) bad.push("A filled position breaks the risk-consistency rule (spread above 2)");
-  const open = rows.filter((r) => !r.filled).length;
-  if (open) bad.push(`${open} positions not filled`);
+  const open = rows.filter((r) => r.status === "ERROR" || r.status === "PENDING").length;
+  if (open) bad.push(`${open} positions not resolved (ERROR or PENDING)`);
+  if (rows.some((r) => r.filled !== (r.status === "VALID"))) bad.push("Filled flag and status disagree");
   return bad;
 }

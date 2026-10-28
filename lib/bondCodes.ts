@@ -68,7 +68,8 @@ export async function assignBondCodes(identities?: BondIdentity[] | null): Promi
     const missing = bonds.filter((b) => !have.has(b.isin));
     if (!missing.length) return;
     const plan = planCodes(missing, Object.fromEntries(locked.map((r) => [String(r.currency), Number(r.last_seq)])));
-    if (plan.length) await tx`insert into app.bond_codes ${tx(plan.map((p) => ({ isin: p.isin, bond_code: p.code, currency: p.currency, seq: p.seq })))}`;
+    // In chunks: one statement can carry at most 65,534 values, and the first run codes the whole copy (tens of thousands of bonds).
+    for (let i = 0; i < plan.length; i += 5000) await tx`insert into app.bond_codes ${tx(plan.slice(i, i + 5000).map((p) => ({ isin: p.isin, bond_code: p.code, currency: p.currency, seq: p.seq })))}`;
     for (const c of currencies) {
       const top = Math.max(0, ...plan.filter((p) => p.currency === c).map((p) => p.seq));
       if (top) await tx`update app.bond_code_counters set last_seq = ${top} where currency = ${c}`;

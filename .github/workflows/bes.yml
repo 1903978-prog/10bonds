@@ -1,0 +1,31 @@
+name: Bond Efficiency
+# Bond Efficiency Score (lib/bes): runs on a runner, never in the website process. Nightly after the Efficient Database job (23:00 UTC = 06:00 Asia/Bangkok)
+# and every 3 hours to pick up an admin "Recalculate" request. A price batch that is already calculated is skipped, so repeated runs cost one minute.
+on:
+  workflow_dispatch:
+    inputs:
+      force: { description: "Recalculate even if this price batch is done", type: boolean, default: false }
+  schedule:
+    - cron: "30 23 * * *"
+    - cron: "20 */3 * * *"
+concurrency:
+  group: bes
+  cancel-in-progress: false
+jobs:
+  bes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      BES_TRIGGER: ${{ github.event_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - name: Bond Efficiency run
+        run: set -o pipefail; npx vite-node -c vitest.config.ts scripts/bes-run.ts ${{ inputs.force && '--force' || '' }} | tee bes.txt
+      - name: Summary
+        if: always()
+        run: cat bes.txt >> "$GITHUB_STEP_SUMMARY" || true
