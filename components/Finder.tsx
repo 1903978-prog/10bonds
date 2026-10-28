@@ -54,7 +54,7 @@ import { profileParts, type CoherenceView } from "@/lib/creditProfileText";
 
 type Response = ResultsPayload & {
   quota?: Quota | null;
-  bes?: { avg: number | null; scored: number; total: number }; // Bond Efficiency Score tile above the list
+  bes?: { avg: number | null; scored: number; total: number; netPct?: number | null }; // Bond Efficiency Score tile above the list
   source: "live" | "sample";
   scanned?: number;
   issuers?: number; // Different issuers among the bonds searched
@@ -874,11 +874,12 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                   </span>
                 ) : arrows}
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <Stat value={pct(summary?.avgYtm ?? ytm)} label={t.chartX} />
                 <Stat value={summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : curve && !heatOn ? pct(nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
                 <Stat value={heatOn ? "—" : simple ? positionSlope(positions, mix) : curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
                 <Stat value={!data ? "—" : data.bes?.avg != null ? Math.round(data.bes.avg) : "—"} label={t.besShort} title={data?.bes ? `${t.besTile} · ${data.bes.scored}/${data.bes.total}` : undefined} />
+                <Stat value={!data ? "—" : data.bes?.netPct != null ? `${data.bes.netPct.toFixed(2)}%` : "—"} label={t.netSpread} title={t.netSpreadHint} />
               </div>
               <div className="relative mt-3">
                 {loading && !simple && <Spinner />}
@@ -908,13 +909,14 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           </div>
         ) : (
         <>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-7">
           {/* The ETF benchmark shows on the landing page only (the owner, 24/10/2026). */}
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
           <Stat value={!data ? "—" : paid ? (live ? live.ret : pct(summary?.avgYtm)) : null} label={t.avgYield} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? (live ? live.loss : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—") : null} label={t.lifeLoss} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
           <Stat value={!data ? "—" : data.bes?.avg != null ? Math.round(data.bes.avg) : "—"} label={`${t.besTile}${data?.bes ? ` · ${data.bes.scored}/${data.bes.total}` : ""}`} />
+          <Stat value={!data ? "—" : data.bes?.netPct != null ? `${data.bes.netPct.toFixed(2)}%` : "—"} label={t.netSpread} title={t.netSpreadHint} />
           <ScanBox data={data} show={show} lang={lang} currency={currency} />
         </div>
         <div className="mt-1.5 h-4">

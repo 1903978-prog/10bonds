@@ -126,15 +126,15 @@ const toDb = (run: number, r: BesRow, code: string | null) => ({
 });
 
 /** Customer-safe read for the bond card: the score and its plain label only (no spreads, no default figures). */
-export async function besPublic(codeOrIsin: string): Promise<{ score: number | null; status: string; label: string | null; peers: number } | null> {
+export async function besPublic(codeOrIsin: string): Promise<{ score: number | null; status: string; label: string | null; peers: number; netSpreadBp: number | null } | null> {
   await besTablesReady();
   const s = await accountsSql();
   const [r] = await s`
-    select b.efficiency_score, b.efficiency_status, b.efficiency_peer_count from app.bes_bonds b
+    select b.efficiency_score, b.efficiency_status, b.efficiency_peer_count, b.credit_adjusted_spread_bp from app.bes_bonds b
     join app.bes_runs r on r.id = b.run_id and r.status = 'published'
     where b.isin = ${codeOrIsin} or b.bond_code = ${codeOrIsin} limit 1`;
   if (!r) return null;
   const score = r.efficiency_score === null ? null : Number(r.efficiency_score);
   const { besLabel } = await import("./math");
-  return { score, status: String(r.efficiency_status), label: score === null ? null : besLabel(score), peers: Number(r.efficiency_peer_count) };
+  return { score, status: String(r.efficiency_status), label: score === null ? null : besLabel(score), peers: Number(r.efficiency_peer_count), netSpreadBp: r.efficiency_status === "unavailable" || r.credit_adjusted_spread_bp === null ? null : Math.round(Number(r.credit_adjusted_spread_bp)) };
 }

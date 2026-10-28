@@ -90,6 +90,9 @@ async function sql() {
     // Bond Efficiency Score stored with each holding and position (28/10/2026). Portfolio BES stays NULL + 'unavailable' until it is calibrated; never invented.
     await s`alter table app.efficient_portfolio_holdings add column if not exists bes_score numeric(5,1), add column if not exists bes_status text, add column if not exists bes_run_id bigint`;
     await s`alter table app.efficient_portfolio_positions add column if not exists avg_bond_bes numeric(5,1), add column if not exists bes_scored smallint, add column if not exists portfolio_bes numeric(5,1), add column if not exists portfolio_bes_status text, add column if not exists portfolio_bes_reason text`;
+    // Net spread in bp next to BES (28/10/2026): gross spread over the government benchmark, minus delta risk (bond expected loss above the benchmark's own), = net. Same calc as BES; unscorable bonds stay NULL.
+    await s`alter table app.efficient_portfolio_holdings add column if not exists gross_spread_bp numeric(10,2), add column if not exists delta_loss_bp numeric(10,2), add column if not exists net_spread_bp numeric(10,2)`;
+    await s`alter table app.efficient_portfolio_positions add column if not exists avg_gross_spread_bp numeric(10,2), add column if not exists avg_delta_loss_bp numeric(10,2), add column if not exists avg_net_spread_bp numeric(10,2)`;
     await s`create table if not exists app.efficient_portfolio_jobs (
       id bigserial primary key,
       snapshot_id bigint references app.efficient_portfolio_snapshots(id) on delete set null,
@@ -129,9 +132,14 @@ export async function applyBes(snapshotId?: number): Promise<{ holdings: number;
     await s`update app.efficient_portfolio_holdings h set bes_score = b.efficiency_score, bes_status = coalesce(b.efficiency_status, 'unavailable'), bes_run_id = ${run?.id ?? null}
       from (select h2.isin, x.efficiency_score, x.efficiency_status from app.efficient_portfolio_holdings h2 left join app.bes_bonds x on x.run_id = ${run?.id ?? 0} and x.isin = h2.isin where h2.snapshot_id = ${sid}) b
       where h.snapshot_id = ${sid} and h.isin = b.isin`;
+    await s`update app.efficient_portfolio_holdings h set gross_spread_bp = b.g, net_spread_bp = b.n, delta_loss_bp = case when b.g is not null and b.n is not null then b.g - b.n end
+      from (select h2.isin, case when x.efficiency_status <> 'unavailable' and x.credit_adjusted_spread_bp is not null then x.gross_spread_bp end g, case when x.efficiency_status <> 'unavailable' then x.credit_adjusted_spread_bp end n
+        from app.efficient_portfolio_holdings h2 left join app.bes_bonds x on x.run_id = ${run?.id ?? 0} and x.isin = h2.isin where h2.snapshot_id = ${sid}) b
+      where h.snapshot_id = ${sid} and h.isin = b.isin`;
     await s`update app.efficient_portfolio_positions p set
-        avg_bond_bes = case when a.n = 10 and a.sc = 10 then round(a.m, 1) end, bes_scored = a.sc, portfolio_bes = null, portfolio_bes_status = 'unavailable', portfolio_bes_reason = ${PORTFOLIO_BES_REASON}
-      from (select horizon, portfolio_id, count(*)::int n, count(bes_score)::int sc, avg(bes_score) m from app.efficient_portfolio_holdings where snapshot_id = ${sid} group by 1, 2) a
+        avg_bond_bes = case when a.n = 10 and a.sc = 10 then round(a.m, 1) end, bes_scored = a.sc, portfolio_bes = null, portfolio_bes_status = 'unavailable', portfolio_bes_reason = ${PORTFOLIO_BES_REASON},
+        avg_gross_spread_bp = case when a.n = 10 and a.ns = 10 then round(a.g, 1) end, avg_delta_loss_bp = case when a.n = 10 and a.ns = 10 then round(a.d, 1) end, avg_net_spread_bp = case when a.n = 10 and a.ns = 10 then round(a.nt, 1) end
+      from (select horizon, portfolio_id, count(*)::int n, count(bes_score)::int sc, avg(bes_score) m, count(net_spread_bp)::int ns, avg(gross_spread_bp) g, avg(delta_loss_bp) d, avg(net_spread_bp) nt from app.efficient_portfolio_holdings where snapshot_id = ${sid} group by 1, 2) a
       where p.snapshot_id = ${sid} and p.horizon = a.horizon and p.portfolio_id = a.portfolio_id`;
     const [c] = await s`select count(*)::int n, count(bes_score)::int sc from app.efficient_portfolio_holdings where snapshot_id = ${sid}`;
     holdings += c.n; scored += c.sc;
@@ -343,7 +351,7 @@ export async function rowDetail(id: number, rowNo: number) {
   const s = await sql();
   const r = (await s`select * from app.efficient_portfolio_positions where snapshot_id = ${id} and row_no = ${rowNo}`)[0];
   if (!r) return null;
-  const bonds = r.portfolio_id ? await s`select ord, isin, issuer, name, currency, coupon, maturity, rating, ytm, duration, risk, clean_price, price_as_of, bes_score, bes_status from app.efficient_portfolio_holdings where snapshot_id = ${id} and portfolio_id = ${r.portfolio_id} and horizon = ${r.horizon} order by ord` : [];
+  const bonds = r.portfolio_id ? await s`select ord, isin, issuer, name, currency, coupon, maturity, rating, ytm, duration, risk, clean_price, price_as_of, bes_score, bes_status, gross_spread_bp, delta_loss_bp, net_spread_bp from app.efficient_portfolio_holdings where snapshot_id = ${id} and portfolio_id = ${r.portfolio_id} and horizon = ${r.horizon} order by ord` : [];
   const snap = (await s`select batch_id, methodology, calculated_at, data_as_of from app.efficient_portfolio_snapshots where id = ${id}`)[0];
   const shared = r.portfolio_id ? await s`select position from app.efficient_portfolio_positions where snapshot_id = ${id} and horizon = ${r.horizon} and portfolio_id = ${r.portfolio_id} and row_no <> ${rowNo} order by position` : [];
   return { row: r, bonds, snapshot: snap, sharedWith: shared.map((x) => Number(x.position)) };
