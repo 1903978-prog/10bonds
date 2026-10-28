@@ -1689,7 +1689,7 @@ function PhoneResults({ caption, arrows, title, onClose, data, list, setList, fe
   // The admin's risk column also holds the S&P slot (fixed width either way, so nothing moves when results arrive).
   const [admin, setAdmin] = useState(false);
   useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
-  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
+  const cols = `grid ${admin ? "grid-cols-[1.25rem_minmax(0,1fr)_2.25rem_4.25rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1.25rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
   return (
     <div
       role="dialog"
@@ -1741,7 +1741,7 @@ function PhoneResults({ caption, arrows, title, onClose, data, list, setList, fe
                 {admin ? (
                   <>
                     <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
-                    <div className="flex flex-wrap items-center gap-1 leading-none" data-testid="admin-phone-ratings"><GptRate isin={r.isin} kind="ir" /><GptRate isin={r.isin} /><Spread ytm={r.ytm} years={r.duration} /><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
+                    <div className="flex h-4 items-center gap-1 overflow-hidden whitespace-nowrap leading-none" data-testid="admin-phone-ratings"><Spread compact ytm={r.ytm} years={r.duration} /><RiskPayCell compact isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
                   </>
                 ) : paid ? (
                   <CopyIsin isin={r.isin} phone />
