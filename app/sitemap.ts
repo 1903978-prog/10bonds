@@ -10,7 +10,6 @@ import { CALCULATOR_EN, enPath } from "@/lib/seo/knowledgeEn";
 import { curvePath } from "@/lib/seo/yieldCurves";
 import { insightsPath } from "@/lib/seo/insights";
 import { bondMapPath } from "@/lib/seo/bondMap";
-import { BUND_BENCHMARK } from "@/lib/bundBenchmark";
 import { bundCurvePath } from "@/lib/seo/bundCurve";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { LOCALE, LOCALES, pathOf, type Locale, type Section } from "@/lib/seo/locales";
@@ -52,7 +51,7 @@ async function build(): Promise<MetadataRoute.Sitemap> {
   for (const l of LOCALES) out.push({ url: SITE_URL + curvePath(l), changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => curvePath(x)), en: SITE_URL + curvePath("en") } } });
   for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + insightsPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => insightsPath(x)), en: SITE_URL + insightsPath("en") } } });
   for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + bondMapPath(l), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => bondMapPath(x)), en: SITE_URL + bondMapPath("en") } } });
-  for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + bundCurvePath(l), lastModified: BUND_BENCHMARK.asOf, changeFrequency: "daily", priority: 0.8, alternates: { languages: { ...langs((x) => bundCurvePath(x)), en: SITE_URL + bundCurvePath("en") } } });
+  for (const l of [...LOCALES, "en" as const]) out.push({ url: SITE_URL + bundCurvePath(l), lastModified: asOf ?? undefined, changeFrequency: "weekly", priority: 0.8, alternates: { languages: { ...langs((x) => bundCurvePath(x)), en: SITE_URL + bundCurvePath("en") } } });
   // English bond comparison pages (US and UK readers): the hub, and every page with enough bonds behind it.
   out.push({ url: SITE_URL + enBondsPath(), lastModified: asOf ?? undefined, changeFrequency: "daily", priority: 0.7 });
   for (const d of enComparisons()) {

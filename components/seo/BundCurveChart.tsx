@@ -1,23 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { BUND_BENCHMARK } from "@/lib/bundBenchmark";
 import type { BundCurveText } from "@/lib/seo/bundCurve";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 const W = 760, H = 300, L = 46, R = 14, T = 12, B = 28;
-const rows = BUND_BENCHMARK.rows;
-const Y0 = 2.7, Y1 = 3.9;
 const sx = (y: number) => L + ((y - 1) / 29) * (W - L - R);
-const sy = (v: number) => T + (1 - (v - Y0) / (Y1 - Y0)) * (H - T - B);
 
 /** Bund curve, 1-30 years. Hover or tap a year to read its yield in a fixed slot (no layout shift). */
-export default function BundCurveChart({ locale, text }: { locale: string; text: BundCurveText }) {
+export default function BundCurveChart({ locale, text, points: rows }: { locale: string; text: BundCurveText; points: { years: number; yield: number }[] }) {
   const [sel, setSel] = useState(10);
+  const Y0 = Math.floor(Math.min(...rows.map((r) => r.yield)) * 2) / 2, Y1 = Math.max(Y0 + 0.5, Math.ceil(Math.max(...rows.map((r) => r.yield)) * 2) / 2);
+  const sy = (v: number) => T + (1 - (v - Y0) / (Y1 - Y0)) * (H - T - B);
   const loc = NUM[locale] ?? "en-GB";
   const pct = (v: number, d = 2) => `${v.toLocaleString(loc, { minimumFractionDigits: d, maximumFractionDigits: d })}%`;
   const cur = rows.find((r) => r.years === sel) ?? rows[0];
-  const yTicks = [2.7, 3, 3.3, 3.6, 3.9];
+  const yTicks: number[] = [];
+  for (let v = Y0; v <= Y1 + 1e-9; v += 0.5) yTicks.push(Math.round(v * 10) / 10);
   const pick = (e: React.PointerEvent<SVGSVGElement>) => {
     const b = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - b.left) / b.width) * W;
@@ -27,7 +26,7 @@ export default function BundCurveChart({ locale, text }: { locale: string; text:
     <section className="mt-4 rounded-lg border border-line bg-white p-4 sm:p-6">
       <div className="flex h-6 items-center justify-between gap-3 text-[14px]">
         <h2 className="font-semibold">{text.chartTitle}</h2>
-        <p className="tabular-nums text-mute" aria-live="polite">{cur.years} {text.years}: <span className="font-semibold text-ink">{pct(cur.yield)}</span> · {cur.status === "verified" ? text.verified : text.interpolated}</p>
+        <p className="tabular-nums text-mute" aria-live="polite">{cur.years} {text.years}: <span className="font-semibold text-ink">{pct(cur.yield)}</span></p>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 block w-full touch-pan-y" role="img" aria-label={text.chartTitle} onPointerMove={pick} onPointerDown={pick}>
         {yTicks.map((v) => (
@@ -40,13 +39,9 @@ export default function BundCurveChart({ locale, text }: { locale: string; text:
         <line x1={sx(sel)} x2={sx(sel)} y1={T} y2={H - B} stroke="#9ca3af" strokeWidth="1" />
         <polyline fill="none" stroke="#2563eb" strokeWidth="2" points={rows.map((r) => `${sx(r.years)},${sy(r.yield)}`).join(" ")} />
         {rows.map((r) => (
-          <circle key={r.years} cx={sx(r.years)} cy={sy(r.yield)} r={r.years === sel ? 5 : 3.5} fill={r.status === "verified" ? "#2563eb" : "#fff"} stroke="#2563eb" strokeWidth="1.5" />
+          <circle key={r.years} cx={sx(r.years)} cy={sy(r.yield)} r={r.years === sel ? 5 : 3.5} fill="#2563eb" stroke="#2563eb" strokeWidth="1.5" />
         ))}
       </svg>
-      <div className="mt-2 flex h-5 items-center gap-4 text-[12px] text-mute">
-        <span className="inline-flex items-center gap-1.5"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#2563eb" stroke="#2563eb" /></svg>{text.verified}</span>
-        <span className="inline-flex items-center gap-1.5"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#fff" stroke="#2563eb" strokeWidth="1.5" /></svg>{text.interpolated}</span>
-      </div>
     </section>
   );
 }

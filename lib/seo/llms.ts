@@ -33,7 +33,7 @@ export function buildLlmsTxt(base: string = SITE_URL): string {
     `- [${CALCULATOR_EN.title.split(" · ")[0]}](${u(enPath(CALCULATOR_EN.slug))}): ${CALCULATOR_EN.description}`,
     `- [Government bond yield curves](${u(curvePath("en"))})`,
     `- [Bond market insights](${u(insightsPath("en"))})`,
-    `- [German Bund yield curve, 1 to 30 years](${u(bundCurvePath("en"))}): yield per year, interpolated years labelled`,
+    `- [German Bund yield curve, 1 to 30 years](${u(bundCurvePath("en"))}): official yield per year, updated weekly`,
     `- [Bonds by maturity and risk](${u(bondMapPath("en"))}): count, highest and median yield per maturity and risk 1-10`,
     ...EN_GUIDES.map((g) => `- [${g.title}](${u(enPath(g.slug))}): ${g.metaDescription}`),
   ];
