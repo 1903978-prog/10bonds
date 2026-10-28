@@ -2,8 +2,6 @@ name: Unclassified issuers
 # Read-only list of the issuers with no country (and what else is missing), biggest first.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/unclassified-issuers.yml", "scripts/unclassified-issuers.ts"]
 jobs:
   list:
     runs-on: ubuntu-24.04

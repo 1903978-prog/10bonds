@@ -1,0 +1,49 @@
+name: Nightly live check
+# The ONE scheduled health check of the live site (replaces the old daily data watch). Once a night, outside the
+# 00:10-04:00 UTC build window: bond data fresh, ranking self-check, key pages answer 200. Each URL gets 4 tries.
+# If anything is still wrong, ONE summary e-mail goes out through the app (/api/ops/alert, signed like the weekly e-mail).
+# The check after a deploy is the post-deploy steps inside deploy.yml (health, accounts, ranking), which roll back on failure.
+# Never on push or pull request. Failures of branches and PR checks send nothing.
+on:
+  schedule:
+    - cron: "30 7 * * *"   # 14:30 Bangkok / 08:30 CET
+  workflow_dispatch:
+concurrency:
+  group: nightly-live-check
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - name: Check the live site
+        run: |
+          : > problems.txt
+          get() { # url, grep pattern ("" = any 200)
+            for i in 1 2 3 4; do
+              out=$(curl -sS --max-time 60 -w '\nHTTP %{http_code}' "$1" 2>&1 || true)
+              code=$(printf '%s' "$out" | tail -1 | awk '{print $2}')
+              if [ "$code" = 200 ] && { [ -z "$2" ] || printf '%s' "$out" | grep -q "$2"; }; then echo "OK   $1"; return 0; fi
+              echo "try $i: $1 -> $code"; sleep 20
+            done
+            echo "PROBLEM: $1 answered $code (expected 200${2:+ and $2})" | tee -a problems.txt
+          }
+          get https://10bonds.com/api/health/data '"ok":true'
+          get https://10bonds.com/api/health/ranking '"ok":true'
+          get https://10bonds.com/
+          get https://10bonds.com/pricing
+          get https://10bonds.com/knowledge/german-bund-yield-curve
+          get https://10bonds.com/methodology
+          [ ! -s problems.txt ]
+      - name: One summary e-mail through the app (only when something failed)
+        if: failure()
+        run: |
+          [ -n "$ACCOUNTS_DATABASE_URL" ] || { echo "No ACCOUNTS_DATABASE_URL: cannot send."; exit 0; }
+          token=$(printf 'ops-alert' | openssl dgst -sha256 -hmac "$ACCOUNTS_DATABASE_URL" -hex | awk '{print $NF}')
+          summary="$(date -u +%F) nightly live check:
+          $(cat problems.txt 2>/dev/null)
+          Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          curl -fsS --retry 3 --max-time 60 -X POST -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg s "$summary" '{summary:$s}')" https://10bonds.com/api/ops/alert

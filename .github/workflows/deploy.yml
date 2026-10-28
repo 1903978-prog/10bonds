@@ -5,6 +5,7 @@ name: Deploy to Fly
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**", "public/**/*.png", "public/**/*.jpg"]
   workflow_dispatch:
 concurrency: deploy
 jobs:
@@ -146,7 +147,9 @@ jobs:
       - name: Deploy
         id: deploy
         if: env.ok == '1'
-        run: flyctl deploy --remote-only -a 10bonds --ha=false
+        run: |
+          # Fly's remote builder sometimes drops the connection (rpc EOF) before the build finishes: nothing was released then, so one more try is safe.
+          flyctl deploy --remote-only -a 10bonds --ha=false || { echo "Builder connection dropped: second try"; sleep 20; flyctl deploy --remote-only -a 10bonds --ha=false; }
       # Read-only checks after the deploy. Each step fails on its own, so the run's step list says where
       # sign-up is broken without anyone opening the log. The answer holds a stage and a Postgres code only.
       - name: Wait for the site to answer

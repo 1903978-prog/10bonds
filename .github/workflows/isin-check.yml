@@ -1,6 +1,6 @@
 name: ISIN check
 # Read-only: shows the public_bonds row for one or more ISINs (does it exist, rating, dates, yield, minimum, flags) and why the site would hide it,
-# plus a few sample ISINs per currency. Manual; also runs when this file changes in a pull request.
+# plus a few sample ISINs per currency. Manual only.
 on:
   workflow_dispatch:
     inputs:
@@ -8,8 +8,6 @@ on:
         description: "ISINs, one per line or separated by spaces"
         required: true
         default: "FR0000186413"
-  pull_request:
-    paths: [".github/workflows/isin-check.yml"]
 jobs:
   check:
     runs-on: ubuntu-24.04

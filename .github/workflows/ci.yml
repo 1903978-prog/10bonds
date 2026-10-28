@@ -4,8 +4,14 @@ name: Checks
 # of the public pages on desktop and phone (sample data, no secrets needed).
 on:
   pull_request:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**", "public/**/*.png", "public/**/*.jpg", ".github/workflows/**"]
   workflow_call:
   workflow_dispatch:
+# A newer commit on the same PR cancels the older run (never for the deploy call, which has its own queue).
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
