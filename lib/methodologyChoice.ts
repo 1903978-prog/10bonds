@@ -9,7 +9,7 @@ import { netSpreadConfig } from "./netSpread/config";
 // Every methodology is served from stored lists (written by the precompute job), never by a solver in the web process.
 import { METHODOLOGIES, type Methodology } from "./methodologyList";
 export { METHODOLOGIES, type Methodology };
-export const DEFAULT_METHODOLOGY: Methodology = 3;
+export const DEFAULT_METHODOLOGY: Methodology = 4;
 const KEY = "public_methodology";
 
 /** 1..5 from "1".."5" (or the older admin value "m1" = Methodology 1, "spread" = Methodology 3); null for anything else. */
