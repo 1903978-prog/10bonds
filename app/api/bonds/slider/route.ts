@@ -5,9 +5,8 @@ import { currentUser } from "@/lib/currentUser";
 import { isExactYear, isTermHorizon } from "@/lib/limits";
 import { canExactYear } from "@/lib/planFeatures";
 import { sliderFor } from "@/lib/sliderCache";
-import { parseMethod } from "@/lib/frontierCache";
+import { bandTableOf, engineOf, methodologyFor, usesBands } from "@/lib/methodologyChoice";
 import { bareBandPositions, positionsOfBands, servedBands } from "@/lib/riskBandsServe";
-import { loadBandConfig } from "@/lib/riskBandsStore";
 
 export const dynamic = "force-dynamic";
 
@@ -27,21 +26,24 @@ export async function GET(req: Request) {
   const user = await currentUser().catch(() => null);
   if (exactYear && !(await canExactYear(user).catch(() => false)))
     return NextResponse.json({ error: "Picking an exact year is included in Plus.", upgrade: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  // Everyone gets the Methodology with spread rules; the admin can add m=m1 to compare with Methodology 1.
-  const method = parseMethod(url.searchParams.get("m"), user?.isAdmin === true);
+  // Everyone gets the methodology chosen at /admin/methodology; the admin can add m=1..4 to compare.
+  const meth = await methodologyFor(url.searchParams.get("m"), user?.isAdmin === true);
+  const method = engineOf(meth);
+  const tag = user?.isAdmin ? { methodology: meth } : {};
   let out;
   try {
     const filter = parseFilter(url.searchParams);
     // Everyone: the 30 risk-band positions (lib/riskBands.ts), read from storage. A cold start without a stored set gets the bands without figures.
-    if (method === "spread") {
-      const sv = await servedBands(filter, duration);
+    if (usesBands(meth)) {
+      const bandCfg = await bandTableOf(meth);
+      const sv = await servedBands(filter, duration, bandCfg);
       // An exact year not stored yet (precompute running): the finder waits and asks again.
       if (exactYear && !sv) return NextResponse.json({ pending: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
-      const cfg = sv?.cfg ?? (await loadBandConfig());
+      const cfg = sv?.cfg ?? bandCfg;
       const all = sv ? positionsOfBands(sv) : bareBandPositions(cfg);
       // The bonds themselves come with the list (tier-shaped); the positions carry figures only, so no ISIN reaches a visitor here.
       const positions = user?.isAdmin ? all : all.map(({ isins: _isins, ...p }) => ({ ...p, isins: [] as string[] }));
-      return NextResponse.json({ positions, ...(sv?.stale ? { stale: true } : {}), ...(sv && user?.isAdmin ? { flags: { nonMonotonic: sv.stored.nonMonotonic, candidates: sv.stored.candidates } } : {}) }, { headers: { "Cache-Control": "private, max-age=60" } });
+      return NextResponse.json({ positions, ...tag, ...(sv?.stale ? { stale: true } : {}), ...(sv && user?.isAdmin ? { flags: { nonMonotonic: sv.stored.nonMonotonic, candidates: sv.stored.candidates } } : {}) }, { headers: { "Cache-Control": "private, max-age=60" } });
     }
     out = await sliderFor(filter, duration, method);
   } catch {
@@ -53,5 +55,5 @@ export async function GET(req: Request) {
   const positions = user?.isAdmin
     ? out.positions
     : out.positions.map((p) => ({ position: p.position, query: p.query, sameAs: p.sameAs, unavailable: p.unavailable, worstRisk: p.worstRisk, ...(chart ? { ytm: p.ytm, expectedLoss: p.expectedLoss } : {}) }));
-  return NextResponse.json({ positions, ...(user?.isAdmin && out.cert ? { cert: out.cert } : {}) }, { headers: { "Cache-Control": "private, max-age=300" } });
+  return NextResponse.json({ positions, ...tag, ...(user?.isAdmin && out.cert ? { cert: out.cert } : {}) }, { headers: { "Cache-Control": "private, max-age=300" } });
 }

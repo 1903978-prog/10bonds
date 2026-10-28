@@ -9,6 +9,7 @@ import { EXACT_YEARS, TERMS } from "@/lib/limits";
 import { buildBands } from "@/lib/riskBandsBuild";
 import { bandsKey } from "@/lib/riskBandsServe";
 import { loadBandConfig, loadStoredBands, saveStoredBands } from "@/lib/riskBandsStore";
+import { riskClassConfig } from "@/lib/riskClassBands";
 
 const ALL = ["EUR:100k", "EUR:1k", "USD:100k", "USD:1k"];
 const args = process.argv.slice(2);
@@ -18,19 +19,23 @@ const want = filters.length ? filters : ALL;
 const horizons = yearsRun
   ? EXACT_YEARS.filter((y) => !TERMS.some((t) => t.duration === y)).map((y) => ({ key: `year ${y}`, duration: y }))
   : TERMS;
-const cfg = await loadBandConfig();
+const cfg3 = await loadBandConfig();
+// Methodology 3 (the editable bands) and Methodology 4 (bond risk fixed per position) each keep their own stored set.
+const cfg = cfg3;
+for (const [label, cfgOf] of [["Methodology 3", cfg3], ["Methodology 4", riskClassConfig()]] as const) {
+console.log(`\n=== ${label} ===`);
 for (const w of want) {
   const [currency, size] = w.split(":") as ["EUR" | "USD", "100k" | "1k"];
   const f = { currency, size } as const;
   const src = await loadBondsFor(f);
   console.log(`\n${w}: ${src.bonds.length} bonds`);
   for (const t of horizons) {
-    const key = bandsKey(src, f, t.duration, cfg);
+    const key = bandsKey(src, f, t.duration, cfgOf);
     const saved = await loadStoredBands(key);
     if (saved && !saved.stale) { console.log(`${t.key} (${t.duration}y): already saved`); continue; }
     const t0 = Date.now();
     try {
-      const sb = await buildBands(src.bonds, t.duration, cfg, key.split("|")[0]);
+      const sb = await buildBands(src.bonds, t.duration, cfgOf, key.split("|")[0]);
       await saveStoredBands(key, sb);
       const ok = sb.bands.filter((b) => b.status === "ok");
       console.log(`${t.key} (${t.duration}y): ${ok.length}/30 bands, ${ok.filter((b) => b.optimal).length} proven optimal, candidates ${sb.candidates.kept}/${sb.candidates.all}, ${Math.round((Date.now() - t0) / 1000)} s${sb.nonMonotonic.length ? `, yield not rising at band(s) ${sb.nonMonotonic.join(",")}` : ""}`);
@@ -38,6 +43,7 @@ for (const w of want) {
       console.log(`${t.key} (${t.duration}y): not solved (${(e as Error).message})`);
     }
   }
+}
 }
 if (!yearsRun) {
 // The stored lists for EUR, all sizes: position x horizon (average risk, average return, expected loss), for the run summary.

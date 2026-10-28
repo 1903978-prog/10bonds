@@ -181,8 +181,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // worked out on the server (lib/sliderPortfolios.ts). The admin can switch to the original sliders (Advanced, yellow).
   const [adv, setAdv] = useState(false);
   // Admin only (yellow): the Methodology with spread rules (what everyone gets) or Methodology 1 (lib/stepGap.ts).
-  const [spread, setSpread] = useState(true);
-  const method = isAdmin && !spread ? "m1" : "spread";
+  // null = the methodology the site uses (/admin/methodology); 1..4 = forced here to compare (sent as m=n).
+  const [adminM, setAdminM] = useState<1 | 2 | 3 | 4 | null>(null);
+  const [siteM, setSiteM] = useState<number | null>(null);
+  const method = isAdmin && adminM ? String(adminM) : "";
   // Admin only: the risk heat map in chart mode, its methodology, and the cell clicked on it (that return and horizon);
   // while a cell is picked the list on the right is that cell's 10 bonds. Moving any control lets go of it.
   const [showHeat, setShowHeat] = useState(false);
@@ -270,13 +272,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     try { const c = localStorage.getItem(ck); if (c) cached = JSON.parse(c); } catch {}
     setPositions(cached?.length ? cached : null);
     const load = (tries: number) =>
-      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method === "m1" ? { m: method } : {}) })}`)
+      fetch(`/api/bonds/slider?${new URLSearchParams({ duration: String(duration), currency, size, ...(method ? { m: method } : {}) })}`)
         .then(async (r) => {
           if (stop) return;
           if ((r.status === 202 || !r.ok) && tries < 60) timer = setTimeout(() => load(tries + 1), r.status === 429 ? 5000 : tries < 5 ? 1000 : 3000);
           else if (r.ok) {
-            const ps = (await r.json()).positions;
+            const body = await r.json();
+            const ps = body.positions;
             if (stop) return;
+            if (typeof body.methodology === "number") setSiteM(body.methodology);
             setPositions(ps);
             try { localStorage.setItem(ck, JSON.stringify(ps)); } catch {}
           }
@@ -366,7 +370,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       try {
         const qs = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
         if (guard) qs.set("guard", "1");
-        if (method === "m1") qs.set("m", method);
+        if (method) qs.set("m", method);
         // Risk-band position: the stored portfolio of this band, or a stream of improving lists when none is stored (blacklist, cold start).
         if (bandQ && !heatOn) { qs.set("band", String(bandQ)); qs.set("stream", "1"); }
         if (heatOn) {
@@ -466,7 +470,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       if (hasData.current) ctrl.abort();
     };
   }, [duration, ytm, risk, guard, bandQ, mode, currency, size, tuner, isAdmin, tunerSaved, excludedAt, rerun, method, heatOn, heatPick, heatMethod, heatBl]);
-  useEffect(() => { setHeatPick(null); setPicked(null); setSelDur(null); }, [duration, ytm, risk, mix, adv, spread, showHeat, showAll]);
+  useEffect(() => { setHeatPick(null); setPicked(null); setSelDur(null); }, [duration, ytm, risk, mix, adv, adminM, showHeat, showAll]);
 
   // Plus and up can swap bonds in and out of the list; this is their edited list (null = the list as ranked).
   const [list, setList] = useState<ResultRow[] | null>(null);
@@ -661,11 +665,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
-                  {/* Two-option switch, fixed width: the active methodology is the filled side. */}
-                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Spread rules = what everyone gets (minimum extra return per rating step); Method 1 = old method, for comparing (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
-                    {([["m1", "Method 1"], ["spread", "Spread rules"]] as const).map(([k, label]) => (
-                      <button key={k} type="button" role="radio" aria-checked={method === k} data-testid={`admin-method-${k}`} onClick={() => setSpread(k === "spread")} className={`flex-1 whitespace-nowrap rounded-full px-1 ${method === k ? "bg-amber-500 text-white" : "text-amber-900"}`}>
-                        {label}
+                  {/* Four-option switch, fixed width: the filled side is the methodology shown (the site's choice unless one is forced here). */}
+                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Methodology 1 to 4. The site's choice is set at /admin/methodology; click one to compare (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
+                    {([1, 2, 3, 4] as const).map((k) => (
+                      <button key={k} type="button" role="radio" aria-checked={(adminM ?? siteM) === k} data-testid={`admin-method-${k}`} onClick={() => setAdminM(k === siteM && adminM === null ? null : k)} className={`flex-1 whitespace-nowrap rounded-full px-1 ${(adminM ?? siteM) === k ? "bg-amber-500 text-white" : "text-amber-900"}`}>
+                        M{k}
                       </button>
                     ))}
                   </div>
@@ -949,7 +953,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             <p className="truncate text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
               {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}
-              {isAdmin && <span className="text-amber-800" data-testid="admin-method-footer"> Method: {method === "spread" ? "Spread rules" : "Method 1"}.</span>}
+              {isAdmin && <span className="text-amber-800" data-testid="admin-method-footer"> Methodology {adminM ?? siteM ?? "…"}.</span>}
             </p>
           )}
           <p className="mt-1 text-[11px] leading-snug text-mute" data-testid="ranking-note">{t.howPortfolio}</p>

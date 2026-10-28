@@ -6,6 +6,8 @@ import { loadBondsFor } from "./lib/bonds";
 import { coherentBuild } from "./lib/frontierCache";
 import { servedBands } from "./lib/riskBandsServe";
 import { loadBandConfig } from "./lib/riskBandsStore";
+import { activeMethodology, bandTableOf } from "./lib/methodologyChoice";
+import { warmFrontiers } from "./lib/frontierCache";
 
 // On the live site the slider maximums and the 30 slider positions of the default search (EUR, all sizes) are
 // read shortly after the server starts (3 s), so the first visitor rarely waits for them, and again every 30 minutes, so a
@@ -25,6 +27,10 @@ async function warmAll() {
     // The stored risk-band lists of the three terms (what the first click reads).
     await loadBandConfig().catch(() => {});
     for (const t of TERMS) await servedBands(f, t.duration).catch(() => {});
+    // The methodology chosen at /admin/methodology: its stored set is read too (Methodology 4 has its own bands; Methodology 1 its own frontier).
+    const meth = await activeMethodology();
+    if (meth === 4) for (const t of TERMS) await servedBands(f, t.duration, await bandTableOf(4)).catch(() => {});
+    if (meth === 1) { warmFrontiers(src, f, TERMS.map((t) => t.duration)); for (const t of TERMS) await sliderFor(f, t.duration, "m1", true).catch(() => {}); }
     await capsFor(f);
     for (const t of TERMS) await sliderFor(f, t.duration, "spread", true);
   } catch (e) {

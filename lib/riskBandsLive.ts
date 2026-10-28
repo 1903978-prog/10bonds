@@ -1,6 +1,6 @@
 import type { PublicBond } from "./types";
 import { candidatesOf, type BandCand } from "./coherentFrontier";
-import { atLeastAsGood, greedyStart, improveSteps, pruneCandidates, statOf, type BandConfig, type RiskBand, type Stat } from "./riskBands";
+import { atLeastAsGood, greedyStart, improveSteps, inClasses, pruneCandidates, statOf, type BandConfig, type RiskBand, type Stat } from "./riskBands";
 import { rulesFor } from "./riskBandsBuild";
 import { solveBand } from "./riskBandsSolve";
 
@@ -38,7 +38,7 @@ const tick = () => new Promise<void>((r) => setImmediate(r));
 
 /** The steps of one progressive search. `exact: false` skips the exact solve (used when the server is short of memory). */
 export async function* liveBand(bonds: PublicBond[], duration: number, band: RiskBand, config: BandConfig, opts: { exact?: boolean; exactSeconds?: number } = {}): AsyncGenerator<LiveStep> {
-  const all = candidatesOf(bonds, duration, false);
+  const all = candidatesOf(bonds, duration, false).filter((c) => inClasses(band, c.cls));
   const kept = pruneCandidates(all, config.perCell);
   const rules = rulesFor(duration);
   const exactP = opts.exact === false ? null : solveBand(kept, band, rules, { timeLimit: opts.exactSeconds ?? EXACT_SECONDS }).catch(() => null);
