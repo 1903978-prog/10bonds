@@ -15,4 +15,4 @@ jobs:
       - run: node scripts/bes-tile-live-check.mjs
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: bes-tile, path: bes-tile.png, if-no-files-found: ignore }
+        with: { name: bes-tile, path: bes-tile*.png, if-no-files-found: ignore }

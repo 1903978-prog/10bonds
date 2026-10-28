@@ -889,10 +889,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
                   </span>
                 ) : arrows}
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Stat value={pct(summary?.avgYtm ?? ytm)} label={t.chartX} />
                 <Stat value={summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : curve && !heatOn ? pct(nearestLoss(curve.points, ytm)) : "—"} label={t.chartY} />
                 <Stat value={heatOn ? "—" : simple ? positionSlope(positions, mix) : curve ? slopeAt(curve.points, ytm).toFixed(2) : "—"} label={t.chartSlope} />
+                <Stat value={!data ? "—" : data.bes?.avg != null ? Math.round(data.bes.avg) : "—"} label={t.besShort} title={data?.bes ? `${t.besTile} · ${data.bes.scored}/${data.bes.total}` : undefined} />
               </div>
               <div className="relative mt-3">
                 {loading && !simple && <Spinner />}
@@ -1305,9 +1306,9 @@ function PfArrows({ prev, next, onStep, busy, children }: { prev: number | null;
   );
 }
 
-function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null; label: string; lock?: { href: string; label: string }; h?: string }) {
+function Stat({ value, label, lock, h = "h-[60px]", title }: { value: ReactNode | null; label: string; lock?: { href: string; label: string }; h?: string; title?: string }) {
   return (
-    <div className={`flex ${h} flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center`}>
+    <div title={title} className={`flex ${h} min-w-0 flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center`}>
       {value === null ? (
         // Locked: a grey lock and a dash; the one sign-up link sits under the row.
         <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute/60" aria-label={lock?.label}>
@@ -1316,7 +1317,7 @@ function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null;
       ) : (
         <div className="text-xl font-semibold leading-tight tabular-nums tracking-tight">{value}</div>
       )}
-      <div className="text-[11px] leading-tight text-mute">{label}</div>
+      <div className="w-full truncate text-[11px] leading-tight text-mute">{label}</div>
     </div>
   );
 }
