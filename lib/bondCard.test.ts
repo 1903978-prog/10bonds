@@ -5,7 +5,7 @@ import { SAMPLE_BONDS } from "./sample-bonds";
 describe("bond card", () => {
   const all = SAMPLE_BONDS.filter((b) => b.grossYtm !== null && b.modifiedDuration !== null);
   it("builds a card with an efficiency between 0 and 100", () => {
-    const c = cardOf(all[0], all, null);
+    const c = cardOf(all[0], all, { kind: "bund", points: [] });
     expect(c.isin).toBe(all[0].isin);
     expect(c.efficiency ?? 0).toBeGreaterThanOrEqual(0);
     expect(c.efficiency ?? 0).toBeLessThanOrEqual(100);
