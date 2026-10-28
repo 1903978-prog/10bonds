@@ -131,6 +131,13 @@ describe("BES on a synthetic universe", () => {
     expect(r.liquidityCostBp).toBeNull();
     expect(r.fullyAdjustedBp).toBeNull();
   });
+  it("a yield far below the government curve is flagged limited", () => {
+    const u = universe();
+    u.push({ ...u[20], isin: "XSLOW", name: "Low", issuer: "Low AG", grossYtm: 0.5 } as PublicBond);
+    const r = calculateBes(u, TODAY).find((x) => x.isin === "XSLOW")!;
+    expect(r.status).toBe("limited");
+    expect(r.notes.join(" ")).toMatch(/100 bp below/);
+  });
   it("is reproducible", () => {
     expect(calculateBes(universe(), TODAY)).toEqual(rows);
   });

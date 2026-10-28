@@ -143,6 +143,7 @@ export function economics(b: PublicBond, curves: Record<string, Curve>, newest: 
     row.spCumulativePd = cumulativePd(sp.pct, SP_CORPORATE_YEARS, years);
   }
   row.status = limited ? "limited" : "valid";
+  if (row.grossSpreadBp < -100) { row.status = "limited"; notes.push("Yield more than 100 bp below the government curve: check the price or the bond terms."); }
   if (b.callable) { row.status = "limited"; notes.push("Callable: yield-to-maturity spread ignores the call option."); }
   if (risk >= 9) { row.status = "limited"; notes.push("Risk 9-10 uses the aggregated CCC/C default row (no separate figures per class)."); }
   notes.push("Liquidity cost not estimated (no bid/ask data); net spread excludes it.");
