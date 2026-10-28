@@ -8,6 +8,7 @@ let ready: Promise<void> | null = null;
 export function benchmarkTablesReady(): Promise<void> {
   ready ??= (async () => {
     const s = await accountsSql();
+    await s`drop table if exists app.bund_curve, app.bund_imports`; // first-draft tables from test runs of this feature, replaced by the generic ones below
     await s`create table if not exists app.benchmark_curve (
       benchmark text not null, country text not null, currency text not null, curve_type text not null,
       observation_date date not null, maturity_years smallint not null check (maturity_years between 1 and 30),
