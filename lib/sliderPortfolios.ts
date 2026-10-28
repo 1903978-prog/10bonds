@@ -40,6 +40,8 @@ export type SliderPosition = {
   /** Risk-band mode: the band's average-risk range, and whether the exact solve proved the list best for it. */
   band?: { min: number; max: number };
   optimal?: boolean;
+  /** Methodology 5: Portfolio Efficiency figures (lib/netSpread). */
+  eff?: import("./riskBandsBuild").PortfolioEff;
 };
 
 /** The two figures under the slider for a position, worked out in the browser while sliding (same text as the list's boxes). */

@@ -37,6 +37,7 @@ import GuideTips from "./GuideTips";
 import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
+import PortfolioEfficiency from "@/components/PortfolioEfficiency";
 import { SLIDER_POSITIONS, SLIDER_START, tileFigures, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
@@ -183,7 +184,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [adv, setAdv] = useState(false);
   // Admin only (yellow): the Methodology with spread rules (what everyone gets) or Methodology 1 (lib/stepGap.ts).
   // null = the methodology the site uses (/admin/methodology); 1..4 = forced here to compare (sent as m=n).
-  const [adminM, setAdminM] = useState<1 | 2 | 3 | 4 | null>(null);
+  const [adminM, setAdminM] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [siteM, setSiteM] = useState<number | null>(null);
   const method = isAdmin && adminM ? String(adminM) : "";
   // Admin only: the risk heat map in chart mode, its methodology, and the cell clicked on it (that return and horizon);
@@ -608,6 +609,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       })()
     : undefined;
   const live = simple && paid && mode === "portfolio" && data?.band?.source !== "live" ? tileFigures(positions?.[mix - 1]) : null;
+  // Methodology 5: the position's Portfolio Efficiency figures (stored with the list); shown to paid plans and the admin like the two boxes above.
+  const effNode: ReactNode = bandPos?.eff && (paid || isAdmin) ? <PortfolioEfficiency eff={bandPos.eff} lang={lang} /> : undefined;
   const signedIn = tier !== "visitor";
   // The same search for the "why in or out" table (it reproduces the list on screen, including the admin's tuning).
   const why = new URLSearchParams({ duration: String(duration), ytm: String(ytm), risk: String(risk), currency, size });
@@ -683,9 +686,9 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               {/* Admin only (yellow): the technical slider position and risk ceiling. Customers see no descriptor. */}
               {isAdmin && (
                 <div className="mt-1 flex items-center gap-1.5">
-                  {/* Four-option switch, fixed width: the filled side is the methodology shown (the site's choice unless one is forced here). */}
-                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Methodology 1 to 4. The site's choice is set at /admin/methodology; click one to compare (admin only)" className="flex w-[8.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
-                    {([1, 2, 3, 4] as const).map((k) => (
+                  {/* Five-option switch, fixed width: the filled side is the methodology shown (the site's choice unless one is forced here). */}
+                  <div role="radiogroup" aria-label="Methodology (admin only)" data-testid="admin-method" title="Methodology 1 to 5. The site's choice is set at /admin/methodology; click one to compare (admin only)" className="flex w-[10.5rem] shrink-0 rounded-full border border-amber-400 bg-amber-50 p-px text-[10px] font-medium leading-4">
+                    {([1, 2, 3, 4, 5] as const).map((k) => (
                       <button key={k} type="button" role="radio" aria-checked={(adminM ?? siteM) === k} data-testid={`admin-method-${k}`} onClick={() => setAdminM(k === siteM && adminM === null ? null : k)} className={`flex-1 whitespace-nowrap rounded-full px-1 ${(adminM ?? siteM) === k ? "bg-amber-500 text-white" : "text-amber-900"}`}>
                         M{k}
                       </button>
@@ -701,6 +704,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               )}
               <ResultBoxes
                 caption={bandCaption}
+                eff={effNode}
                 ret={!paid && data ? null : live ? live.ret : !data ? "—" : pct(summary?.avgYtm)}
                 loss={!paid && data ? null : live ? live.loss : !data ? "—" : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—"}
                 lock={lockTo}
@@ -1311,7 +1315,7 @@ function Stat({ value, label, lock, h = "h-[60px]" }: { value: ReactNode | null;
 }
 
 /** Under the slider (the owner, 24/10/2026): the list's return and expected loss, shown as soon as the list arrives. Fixed sizes, "—" before the first list. */
-function ResultBoxes({ ret, loss, lock, caption }: { ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; caption?: ReactNode }) {
+function ResultBoxes({ ret, loss, lock, caption, eff }: { ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; caption?: ReactNode; eff?: ReactNode }) {
   const t = useFinderText();
   return (
     <div className="mt-3" data-testid="result-boxes">
@@ -1321,6 +1325,7 @@ function ResultBoxes({ ret, loss, lock, caption }: { ret: ReactNode | null; loss
       </div>
       {/* Risk bands: the band of the position and the list's actual average risk, one fixed-height line (nothing moves when it fills). */}
       {caption !== undefined && <div className="mt-1.5 h-[15px] truncate text-[11px] leading-[15px] text-mute tabular-nums" data-testid="band-caption">{caption}</div>}
+      {eff}
     </div>
   );
 }

@@ -26,7 +26,7 @@ export async function GET(req: Request) {
   const user = await currentUser().catch(() => null);
   if (exactYear && !(await canExactYear(user).catch(() => false)))
     return NextResponse.json({ error: "Picking an exact year is included in Plus.", upgrade: true }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  // Everyone gets the methodology chosen at /admin/methodology; the admin can add m=1..4 to compare.
+  // Everyone gets the methodology chosen at /admin/methodology; the admin can add m=1..5 to compare.
   const meth = await methodologyFor(url.searchParams.get("m"), user?.isAdmin === true);
   const method = engineOf(meth);
   const tag = user?.isAdmin ? { methodology: meth } : {};
