@@ -23,8 +23,10 @@ jobs:
       - run: npm ci --silent
       - name: Portfolio engine (90 positions)
         run: npx vite-node -c vitest.config.ts scripts/portfolio-efficiency.ts | tee bands.txt
+      - name: Term lists for EUR 1k-10k and USD (2, 4 and 10 years)
+        run: PB_TERMS_ONLY=1 npx vite-node -c vitest.config.ts scripts/portfolio-build.ts | tee build.txt
       - name: Efficient Database (90 positions)
         run: npx vite-node -c vitest.config.ts scripts/build-slider-snapshot.ts | tee snapshot.txt
       - name: Summary
         if: always()
-        run: cat snapshot.txt >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat build.txt snapshot.txt >> "$GITHUB_STEP_SUMMARY" || true

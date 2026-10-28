@@ -6,7 +6,7 @@
 // Needs the Bond Efficiency run of the current prices (the Portfolio Efficiency job makes it first). Usage: npx vite-node -c vitest.config.ts scripts/portfolio-build.ts
 process.env.ALLOW_LIVE_SOLVE = "1";
 import { loadAllShown, loadBondsFor } from "@/lib/bonds";
-import { EXACT_YEARS } from "@/lib/limits";
+import { EXACT_YEARS, TERMS } from "@/lib/limits";
 import { batchIdOf } from "@/lib/bes/store";
 import { accountsSql } from "@/lib/accounts";
 import { bandsKey } from "@/lib/riskBandsServe";
@@ -20,7 +20,10 @@ import { POSITIONS as MATRIX_POSITIONS } from "@/lib/riskAnchors";
 import { BUSY_PER_MINUTE, buildTablesReady, recentTraffic } from "@/lib/portfolioBuild";
 import type { BondFilter } from "@/lib/bondFilter";
 
-const FILTERS: BondFilter[] = [{ currency: "EUR", size: "100k" }, { currency: "EUR", size: "1k" }, { currency: "USD", size: "100k" }, { currency: "USD", size: "1k" }];
+// PB_TERMS_ONLY=1 builds just the three term lists (2, 4 and 10 years) of the filters the 90-row snapshot needs, for the Efficient Database job.
+const TERMS_ONLY = process.env.PB_TERMS_ONLY === "1";
+const FILTERS: BondFilter[] = [{ currency: "EUR", size: "100k" }, { currency: "EUR", size: "1k" }, { currency: "USD", size: "100k" }, { currency: "USD", size: "1k" }].filter((f) => !TERMS_ONLY || f.currency !== "EUR" || f.size !== "100k") as BondFilter[];
+const YEARS = TERMS_ONLY ? EXACT_YEARS.filter((y) => TERMS.some((t) => t.duration === y)) : EXACT_YEARS;
 const MAX_PAUSE_MS = 30 * 60_000;
 const mb = () => Math.round(process.memoryUsage().rss / 1048576);
 
@@ -32,7 +35,7 @@ const batch = batchIdOf(everything);
 const bes = await loadBes(batch);
 if (!bes) { console.log("FAILED: no Bond Efficiency run for this price batch (run the Portfolio Efficiency job first)."); process.exit(1); }
 const cfg = specConfig();
-const [run] = await s`insert into app.portfolio_builds (trigger, status, price_batch, spec_version, keys_total) values (${process.env.PE_TRIGGER ?? "script"}, 'running', ${batch}, ${SPEC_VERSION}, ${FILTERS.length * EXACT_YEARS.length * MATRIX_POSITIONS}) returning id`;
+const [run] = await s`insert into app.portfolio_builds (trigger, status, price_batch, spec_version, keys_total) values (${process.env.PE_TRIGGER ?? "script"}, 'running', ${batch}, ${SPEC_VERSION}, ${FILTERS.length * YEARS.length * MATRIX_POSITIONS}) returning id`;
 const id = Number(run.id);
 let built = 0, skipped = 0, failed = 0, paused = 0, peak = mb();
 const detail: Record<string, unknown>[] = [];
@@ -50,8 +53,8 @@ async function throttle(): Promise<void> {
 try {
   for (const f of FILTERS) {
     const src = await loadBondsFor(f);
-    if (src.source !== "live") { console.log(`${f.currency}/${f.size}: no live bond data, skipped`); failed += EXACT_YEARS.length * MATRIX_POSITIONS; continue; }
-    for (const y of EXACT_YEARS) {
+    if (src.source !== "live") { console.log(`${f.currency}/${f.size}: no live bond data, skipped`); failed += YEARS.length * MATRIX_POSITIONS; continue; }
+    for (const y of YEARS) {
       const key = bandsKey(src, f, y, cfg);
       const saved = await loadStoredBands(key);
       if (saved && !saved.stale) { skipped += MATRIX_POSITIONS; continue; }
@@ -77,7 +80,7 @@ try {
     }
   }
   await save(failed ? "partial" : "done");
-  console.log(`\n${failed ? "PARTIAL" : "DONE"}: built ${built}, skipped ${skipped}, failed ${failed} of ${FILTERS.length * EXACT_YEARS.length * MATRIX_POSITIONS} keys; peak memory ${peak} MB; runtime ${Math.round((Date.now() - t0) / 1000)} s; paused ${Math.round(paused / 1000)} s.`);
+  console.log(`\n${failed ? "PARTIAL" : "DONE"}: built ${built}, skipped ${skipped}, failed ${failed} of ${FILTERS.length * YEARS.length * MATRIX_POSITIONS} keys; peak memory ${peak} MB; runtime ${Math.round((Date.now() - t0) / 1000)} s; paused ${Math.round(paused / 1000)} s.`);
 } catch (e) {
   await save("failed", (e as Error).message.slice(0, 300));
   console.log(`FAILED: ${(e as Error).message}`);
