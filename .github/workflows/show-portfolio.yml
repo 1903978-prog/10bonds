@@ -1,0 +1,31 @@
+name: Show portfolio
+# On demand only: prints the exact 10 bonds of one stored slider position for EUR and USD (read-only database reads, nothing is changed).
+on:
+  workflow_dispatch:
+    inputs:
+      position:
+        description: "Position 1-30"
+        default: "15"
+      term:
+        description: "0 Short, 1 Medium, 2 Long"
+        default: "1"
+concurrency:
+  group: show-portfolio
+  cancel-in-progress: true
+jobs:
+  show:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      POSITION: ${{ inputs.position }}
+      TERM: ${{ inputs.term }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/show-portfolio.ts | tee out.md
+      - if: always()
+        run: cat out.md >> "$GITHUB_STEP_SUMMARY" || true

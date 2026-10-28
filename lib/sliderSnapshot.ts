@@ -25,6 +25,8 @@ import { assemble, EMPTY_POLICY, HORIZONS, METHOD_VERSION, snapshotProblems, typ
 export const MIGRATION_ID = "efficient_portfolio_snapshots_001";
 export const filterKey = (f: Pick<BondFilter, "currency" | "size">) => `${f.currency}:${f.size}`;
 export const DEFAULT_FILTER = { currency: "EUR", size: "100k" } as const;
+/** Every currency and minimum-order choice of the finder: each has its own 90-position snapshot. */
+export const ALL_FILTERS = [DEFAULT_FILTER, { currency: "EUR", size: "1k" }, { currency: "USD", size: "100k" }, { currency: "USD", size: "1k" }] as const;
 const STALE_JOB_MS = 30 * 60_000;
 const KEEP_INCOMPLETE = 10;
 
