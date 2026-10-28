@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useBoxSize } from "@/components/useBoxSize";
 import type { SliderPosition } from "@/lib/sliderPortfolios";
+import { Y_MAX } from "@/components/LossChart";
 
 const BLUE = "#0066cc";
 const DOT = 5.5; // dot radius in px
@@ -32,7 +33,7 @@ export default function SliderCurveChart({ positions, current, onPick, retLabel,
   const F = size.w < 520 ? 12 : 14;
   const W = size.w, H = size.h, L = F * 5, R = 24, T = 22 + F, B = F * 4;
 
-  const shown = positions.filter((p) => !p.unavailable && p.ytm !== null && p.expectedLoss !== null);
+  const shown = positions.filter((p) => !p.unavailable && p.ytm !== null && p.ytm <= Y_MAX && p.expectedLoss !== null);
   const none = positions.filter((p) => p.unavailable).map((p) => p.position);
   // One group per distinct portfolio, in slider order.
   const groups: { root: SliderPosition; members: SliderPosition[] }[] = [];
@@ -46,7 +47,7 @@ export default function SliderCurveChart({ positions, current, onPick, retLabel,
   const ytms = shown.map((p) => p.ytm!);
   const lo = ytms.length ? Math.min(...ytms) : 0, hi = ytms.length ? Math.max(...ytms) : 1;
   const pad = Math.max(0.05, (hi - lo) * 0.06);
-  const r0 = lo - pad, r1 = hi + pad;
+  const r0 = lo - pad, r1 = Math.min(Y_MAX, hi + pad);
   const lMax = Math.max(0.01, ...shown.map((p) => p.expectedLoss!)) * 1.08;
   const X = (loss: number) => L + (loss / lMax) * (W - L - R);
   const Y = (ret: number) => H - B - ((ret - r0) / (r1 - r0)) * (H - B - T);
