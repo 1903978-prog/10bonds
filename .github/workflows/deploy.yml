@@ -146,7 +146,13 @@ jobs:
       - name: Deploy
         id: deploy
         if: env.ok == '1'
-        run: flyctl deploy --remote-only -a 10bonds --ha=false
+        run: |
+          # The remote builder sometimes drops the connection ("rpc error ... EOF"); a second try is safe.
+          for i in 1 2; do
+            flyctl deploy --remote-only -a 10bonds --ha=false && exit 0
+            echo "deploy try $i failed"; sleep 20
+          done
+          exit 1
       # Read-only checks after the deploy. Each step fails on its own, so the run's step list says where
       # sign-up is broken without anyone opening the log. The answer holds a stage and a Postgres code only.
       - name: Wait for the site to answer
