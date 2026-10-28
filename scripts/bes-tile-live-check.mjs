@@ -34,6 +34,15 @@ const box = tile.locator("xpath=..");
 console.log(`list api status ${api}; api answer ${bes}`);
 console.log(`tile text: ${(await box.innerText()).replace(/\s+/g, " ")}`);
 await page.screenshot({ path: "bes-tile.png" });
+const scroll = async () => page.evaluate(() => ({ scrollH: document.documentElement.scrollHeight, viewH: window.innerHeight }));
+console.log(`list view scroll: ${JSON.stringify(await scroll())}`);
+await page.getByRole("button", { name: /^Chart$/ }).first().click();
+await page.waitForTimeout(2500);
+const ct = page.getByText(/^efficiency score$/i).first();
+try { await ct.waitFor({ timeout: 30000 }); console.log(`chart view tile: ${(await ct.locator("xpath=..").innerText()).replace(/\s+/g, " ")}`); }
+catch { console.log("CHART VIEW TILE NOT FOUND"); process.exitCode = 1; }
+console.log(`chart view scroll: ${JSON.stringify(await scroll())}`);
+await page.screenshot({ path: "bes-tile-chart.png" });
 console.log(`console errors: ${errors.length}`);
 await browser.close();
-process.exit(status === 200 && api === 200 ? 0 : 1);
+process.exit(status === 200 && api === 200 && !process.exitCode ? 0 : 1);
