@@ -20,6 +20,8 @@ function withCsp(req: NextRequest) {
   headers.set("content-security-policy", csp);
   // The root layout reads the path to write the page language in <html lang>, so /it, /fr and /de are declared as such.
   headers.set("x-pathname", req.nextUrl.pathname);
+  // currentUser() reads the real method from here: the read-only test admin may only read (GET/HEAD). Set by us, never taken from the caller.
+  headers.set("x-method", req.method);
   const res = NextResponse.next({ request: { headers } });
   res.headers.set("Content-Security-Policy", csp);
   return res;

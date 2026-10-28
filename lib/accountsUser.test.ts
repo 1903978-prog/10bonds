@@ -26,6 +26,17 @@ describe("toUser", () => {
   });
 });
 
+describe("read-only test admin", () => {
+  it("is admin only when confirmed, and flagged read-only", () => {
+    const r = { email: "link-check-admin@10bonds.com" };
+    expect(toUser(row(r)).isAdmin).toBe(false);
+    const u = toUser(row({ ...r, email_verified_at: new Date() }));
+    expect(u.isAdmin).toBe(true);
+    expect(u.readOnly).toBe(true);
+    expect(toUser(row({ email: "link-check-free@10bonds.com", email_verified_at: new Date() })).isAdmin).toBe(false);
+  });
+});
+
 describe("confirmBlocked", () => {
   afterEach(() => { delete process.env.RESEND_API_KEY; delete process.env.EMAIL_FROM; });
   it("blocks an unconfirmed account right away, once e-mails are on", () => {

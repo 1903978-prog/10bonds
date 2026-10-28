@@ -23,6 +23,7 @@ export function readTicket(ticket: unknown): number | null {
 
 export function adminStateOf(user: User, mfaCookie: string | undefined): User["adminState"] {
   if (!user.isAdmin) return undefined;
+  if (user.readOnly) return "ok"; // the read-only test admin has no two-factor; currentUser() only lets it read
   if (!user.twoFactorOn) return "setup";
   return mfaCookieOk(user.id, mfaCookie) ? "ok" : "needed";
 }
