@@ -156,6 +156,9 @@ table app.efficient_portfolio_holdings
   bes_score numeric
   bes_status text
   bes_run_id bigint
+  gross_spread_bp numeric
+  delta_loss_bp numeric
+  net_spread_bp numeric
 
 table app.efficient_portfolio_jobs
   id bigint not null default nextval(...)
@@ -216,6 +219,9 @@ table app.efficient_portfolio_positions
   portfolio_bes numeric
   portfolio_bes_status text
   portfolio_bes_reason text
+  avg_gross_spread_bp numeric
+  avg_delta_loss_bp numeric
+  avg_net_spread_bp numeric
 
 table app.efficient_portfolio_snapshots
   id bigint not null default nextval(...)
