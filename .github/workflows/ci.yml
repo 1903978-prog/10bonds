@@ -9,7 +9,22 @@ on:
 permissions:
   contents: read
 jobs:
-  checks:
+  # Three independent jobs run side by side; the final job "checks" is green only when all of them are.
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+  tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
@@ -28,12 +43,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Type check
-        run: npm run typecheck
-      - name: Lint
-        run: npm run lint
       - name: Unit tests and database design (docs/database-schema.txt)
         run: npm test
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: Build
         run: npm run build
       - name: Browser check of the public pages (desktop and phone)
@@ -47,3 +68,8 @@ jobs:
       - name: Server log (on failure)
         if: failure()
         run: tail -100 server.log || true
+  checks:
+    needs: [static, tests, browser]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "All checks passed."

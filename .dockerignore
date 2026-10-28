@@ -3,3 +3,9 @@ node_modules
 .git
 .env*
 *.md
+*.whl
+.github
+docs
+classification
+*.png
+server.log
