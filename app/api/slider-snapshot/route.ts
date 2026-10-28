@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { currentUser } from "@/lib/currentUser";
 import { activeSnapshot, holdingsOf } from "@/lib/sliderSnapshot";
+import { publicPositions } from "@/lib/riskBandsServe";
 
 export const dynamic = "force-dynamic";
 
@@ -28,5 +29,7 @@ export async function GET(req: Request) {
       horizons = { short: withIsins("SHORT", "short"), mid: withIsins("MEDIUM", "mid"), long: withIsins("LONG", "long") };
     }
   }
+  // Everyone but the admin gets the valid positions only, renumbered 1..n per term (the admin sees all 30 with their status).
+  if (!user?.isAdmin) horizons = { short: publicPositions(horizons.short), mid: publicPositions(horizons.mid), long: publicPositions(horizons.long) };
   return NextResponse.json({ id: snap.id, dataAsOf: snap.dataAsOf, publishedAt: snap.publishedAt, horizons }, { headers: { ETag: etag, "Cache-Control": "private, max-age=0, must-revalidate" } });
 }

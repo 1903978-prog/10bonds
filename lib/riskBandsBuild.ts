@@ -16,6 +16,11 @@ import { solveBand } from "./riskBandsSolve";
 export type PortfolioEff = { netBp: number; grossBp: number; lossBp: number; avgBondBes: number | null; portfolioBes: number | null; besReason: string | null; stale?: boolean };
 export type StoredBand = {
   k: number; min: number; max: number;
+  /** Risk matrix: the bond risk classes this position may hold. */
+  allowed?: number[];
+  /** Portfolio spec: why a position has no list, and whether that is a failed calculation (time limit, check) rather than a real limit of the rules. */
+  reason?: string;
+  failed?: boolean;
   /** "none" = no list of 10 exists for this band (shown as "No portfolio for this risk level"). */
   status: "ok" | "none";
   isins: string[];

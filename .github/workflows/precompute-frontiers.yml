@@ -8,7 +8,7 @@ on:
     - cron: "10 */3 * * *"
   push:
     branches: [main]
-    paths: ["lib/**", "scripts/precompute-frontiers.ts", "scripts/precompute-bands.ts", "scripts/build-slider-snapshot.ts"]
+    paths: ["lib/**", "scripts/precompute-frontiers.ts", "scripts/precompute-bands.ts", "scripts/portfolio-efficiency.ts", "scripts/build-slider-snapshot.ts"]
 concurrency:
   group: precompute-frontiers
   cancel-in-progress: false
@@ -25,9 +25,9 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
       - run: npx vite-node -c vitest.config.ts scripts/precompute-frontiers.ts
-      - name: Risk bands
+      - name: Portfolio engine (90 positions, terms)
         if: always()
-        run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts | tee bands.txt
+        run: npx vite-node -c vitest.config.ts scripts/portfolio-efficiency.ts | tee bands.txt
       - name: Slider snapshot (90 positions)
         if: always()
         run: npx vite-node -c vitest.config.ts scripts/build-slider-snapshot.ts | tee snapshot.txt
@@ -38,7 +38,10 @@ jobs:
         if: always()
         run: grep '^|' bands.txt >> "$GITHUB_STEP_SUMMARY" || true
   # Exact years 1 to 15 for Plus and above: its own runner and time limit, so a slow year never holds back the lists everyone sees.
+  # Needs the Bond Efficiency run of the current prices, which the job above makes first.
   precompute-years:
+    needs: precompute
+    if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -50,4 +53,4 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
       - name: Exact-year lists
-        run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts --years
+        run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts
