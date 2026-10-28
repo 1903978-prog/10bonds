@@ -57,8 +57,8 @@ jobs:
           DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
         run: |
           if [ -z "$DROPBOX_REFRESH_TOKEN" ]; then
-            echo "::error::Dropbox is not connected (secrets DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN). The code and database are NOT copied to Dropbox tonight. See docs/rebuild-from-zero.md."
-            exit 1
+            echo "::warning::Dropbox is not connected (secrets DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN). The code and database are NOT copied to Dropbox tonight. See docs/rebuild-from-zero.md."
+            exit 0
           fi
           stamp="$(date -u +%Y%m%d-%H%MZ)"
           git bundle create "10bonds-history-$stamp.bundle" --all
