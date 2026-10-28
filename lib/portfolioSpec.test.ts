@@ -29,7 +29,7 @@ describe("the spec's constants", () => {
     expect(PORTFOLIO_SPEC.positions).toBe(30);
     expect(PORTFOLIO_SPEC.bondDurationWindow.long).toBe(0.3);
     expect(PORTFOLIO_SPEC.readBudgetMs).toBe(300);
-    expect(PORTFOLIO_SPEC.version).toMatch(/^ps4-/);
+    expect(PORTFOLIO_SPEC.version).toMatch(/^ps3-/);
   });
 });
 
