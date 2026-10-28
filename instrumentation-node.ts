@@ -5,7 +5,7 @@ import { runLow } from "./lib/highsSolver";
 import { loadBondsFor } from "./lib/bonds";
 import { coherentBuild } from "./lib/frontierCache";
 import { servedBands } from "./lib/riskBandsServe";
-import { buildSnapshot } from "./lib/sliderSnapshot";
+import { ALL_FILTERS, buildSnapshot } from "./lib/sliderSnapshot";
 import { loadBandConfig } from "./lib/riskBandsStore";
 import { activeMethodology, bandTableOf } from "./lib/methodologyChoice";
 import { warmFrontiers } from "./lib/frontierCache";
@@ -35,7 +35,7 @@ async function warmAll() {
     await capsFor(f);
     for (const t of TERMS) await sliderFor(f, t.duration, "spread", true);
     // A new price batch with its stored lists ready: assemble, check and publish the 90-position snapshot (database reads and light arithmetic only; no solver).
-    await buildSnapshot("auto").catch((e) => console.error("[warm] slider snapshot:", (e as Error).message));
+    for (const sf of ALL_FILTERS) await buildSnapshot("auto", sf).catch((e) => console.error("[warm] slider snapshot:", (e as Error).message));
   } catch (e) {
     console.error("[warm] failed:", (e as Error).message);
   }
