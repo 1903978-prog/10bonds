@@ -1,10 +1,10 @@
 {
-  "asOf": "2026-10-26T06:09:09.733Z",
+  "asOf": "2026-10-28T02:07:09.129Z",
   "duration": 2,
   "points": [
     {
       "level": 1,
-      "ytm": 3.47,
+      "ytm": 3.78,
       "ghost": false
     },
     {
@@ -14,7 +14,7 @@
     },
     {
       "level": 3,
-      "ytm": 4.18,
+      "ytm": 4.64,
       "ghost": false
     },
     {
@@ -24,7 +24,7 @@
     },
     {
       "level": 5,
-      "ytm": 4.53,
+      "ytm": 4.73,
       "ghost": false
     },
     {
@@ -36,22 +36,17 @@
       "level": 7,
       "ytm": 5.41,
       "ghost": false
-    },
-    {
-      "level": 8,
-      "ytm": 10.77,
-      "ghost": false
     }
   ],
   "bond": {
     "level": 3,
-    "issuer": "MUFG",
-    "name": "MUFG 1.71% Oct 2028",
-    "isin": "XS1897618135",
-    "coupon": 1.71,
-    "maturity": "2028-10-26",
-    "ytm": 4.18,
-    "duration": 1.9,
+    "issuer": "AIB Group",
+    "name": "AIB Group 5.75% Feb 2029",
+    "isin": "XS2555925218",
+    "coupon": 5.75,
+    "maturity": "2029-02-16",
+    "ytm": 4.64,
+    "duration": 2.1,
     "risk": 3,
     "minInvestment": 100000,
     "currency": "EUR"

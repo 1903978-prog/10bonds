@@ -50,4 +50,9 @@ describe("landing comparison card text", () => {
     for (const l of LANGS) for (const side of [list, matchedList]) { const c = compareCopy(l, side, etf); out.push(c.sub, c.gross, c.net, c.fine); }
     expect(scanClaims(out)).toEqual([]);
   });
+  it("the stored landing list matches the ETF risk level and duration, so the card may say so", () => {
+    const j = LANDING_BONDS as { avgRisk?: number; duration?: number; ytm?: number };
+    expect(j.avgRisk, "run the Landing snapshot workflow").toBeDefined();
+    expect(isMatched({ ytm: j.ytm!, risk: j.avgRisk!, duration: j.duration! }, etf)).toBe(true);
+  });
 });

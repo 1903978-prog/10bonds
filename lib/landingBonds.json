@@ -1,18 +1,38 @@
 {
-  "asOf": "2026-10-26T06:09:09.733Z",
-  "position": 17,
+  "asOf": "2026-10-28T02:07:09.129Z",
+  "position": 9,
+  "term": "mid",
+  "ytm": 4.5,
+  "avgRisk": 3.4,
+  "duration": 3.9,
+  "etf": {
+    "risk": 3.5,
+    "duration": 3.77
+  },
   "bonds": [
     {
-      "name": "Kering S.A.",
-      "year": 2032,
-      "risk": 3,
-      "ytm": 4.4307
+      "name": "PLN",
+      "year": 2031,
+      "risk": 5,
+      "ytm": 5.169
     },
     {
-      "name": "SPP-Distribucia",
+      "name": "Unicredit",
       "year": 2031,
-      "risk": 3,
-      "ytm": 4.3768
+      "risk": 5,
+      "ytm": 5.0442
+    },
+    {
+      "name": "BALDER FINLAND OYJ",
+      "year": 2030,
+      "risk": 5,
+      "ytm": 4.7688
+    },
+    {
+      "name": "Deutsche Wohnen",
+      "year": 2031,
+      "risk": 4,
+      "ytm": 4.7545
     },
     {
       "name": "Magna International",
@@ -21,34 +41,16 @@
       "ytm": 4.3655
     },
     {
-      "name": "France",
-      "year": 2032,
-      "risk": 3,
-      "ytm": 4.32
-    },
-    {
       "name": "Linde Finance",
       "year": 2030,
       "risk": 3,
-      "ytm": 4.3021
-    },
-    {
-      "name": "H&M Finance B.V.",
-      "year": 2031,
-      "risk": 3,
-      "ytm": 4.3015
+      "ytm": 4.3053
     },
     {
       "name": "Unibail-Rodamco SE",
       "year": 2030,
       "risk": 3,
-      "ytm": 4.2984
-    },
-    {
-      "name": "DZ BANK AG Deutsche Zentral-Genossenschaftsbank",
-      "year": 2031,
-      "risk": 2,
-      "ytm": 4.2025
+      "ytm": 4.2703
     },
     {
       "name": "Landesbank Hessen-Thüringen Girozentrale",
@@ -57,10 +59,16 @@
       "ytm": 4.1922
     },
     {
-      "name": "Banque Cantonale de Genève",
-      "year": 2031,
+      "name": "DZ BANK AG Deutsche Zentral-Genossenschaftsbank",
+      "year": 2030,
       "risk": 2,
-      "ytm": 4.1615
+      "ytm": 4.1792
+    },
+    {
+      "name": "Latvia",
+      "year": 2032,
+      "risk": 2,
+      "ytm": 3.95
     }
   ]
 }
