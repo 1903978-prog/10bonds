@@ -213,7 +213,7 @@ const cap = activePolicy().maxPerSector, perIssuer = activePolicy().maxPerIssuer
 function fillable(pool: Rec[], h: keyof typeof WIN, pos: number): boolean {
   const ok = new Set(allowedClasses(pos));
   const sect = new Map<string, Set<string>>();
-  for (const x of pool) if (inWin(x, h) && ok.has(bondRisk(x.b) ?? 0)) { const s = sectorOf(x.b); (sect.get(s) ?? sect.set(s, new Set()).get(s)!).add(issuerGroupOf(x.b)); }
+  for (const x of pool) if (inWin(x, h) && ok.has(bondRisk(x.b) ?? 0)) { const s0 = sectorOf(x.b); const s = s0 === UNCLASSIFIED ? "u:" + issuerGroupOf(x.b) : s0; /* best case: an unclassified bond gets its own sector once classified */ (sect.get(s) ?? sect.set(s, new Set()).get(s)!).add(issuerGroupOf(x.b)); }
   let capacity = 0; for (const g of sect.values()) capacity += Math.min(cap, g.size * perIssuer);
   return capacity >= 10;
 }
