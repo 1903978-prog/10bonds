@@ -15,6 +15,21 @@ export function cumulativePd(pctRow: readonly number[], horizons: readonly numbe
   return null;
 }
 
+/**
+ * Like cumulativePd, but beyond the last published horizon the table is EXTENDED with a documented rule instead of refusing:
+ * the yearly default hazard of the last published segment (e.g. year 10 to 15) is held flat, survival(T) = survival(last) x (1 - h)^(T - last).
+ * `extended` tells the caller to flag the result as Limited: it is an assumption, not a measured number. Horizon above `maxYears` stays unsupported.
+ */
+export function cumulativePdExtended(pctRow: readonly number[], horizons: readonly number[], years: number, maxYears = 50): { pd: number; extended: boolean } | null {
+  const n = horizons.length;
+  const direct = cumulativePd(pctRow, horizons, years);
+  if (direct !== null) return { pd: direct, extended: false };
+  if (!Number.isFinite(years) || years <= horizons[n - 1] || years > maxYears) return null;
+  const sLast = 1 - pctRow[n - 1] / 100, sPrev = 1 - pctRow[n - 2] / 100;
+  const h = sPrev > 0 && sLast <= sPrev ? 1 - Math.pow(sLast / sPrev, 1 / (horizons[n - 1] - horizons[n - 2])) : 0;
+  return { pd: 1 - sLast * Math.pow(1 - h, years - horizons[n - 1]), extended: true };
+}
+
 /** Constant yearly default probability that gives the same cumulative probability over `years`. */
 export const annualEquivalentPd = (cumPd: number, years: number): number => 1 - Math.pow(1 - cumPd, 1 / years);
 
@@ -30,6 +45,20 @@ export function curveYield(curve: readonly { years: number; ytm: number }[], yea
   let lo = curve[0], hi = curve[curve.length - 1];
   for (const p of curve) { if (p.years <= years) lo = p; if (p.years >= years) { hi = p; break; } }
   return hi.years === lo.years ? lo.ytm : lo.ytm + ((hi.ytm - lo.ytm) * (years - lo.years)) / (hi.years - lo.years);
+}
+
+/**
+ * Benchmark yield with a documented edge rule: inside the curve it is linear (curveYield); outside, the nearest end yield is held flat
+ * (no slope extrapolation), at most `after` years beyond the longest and `before` years before the shortest point. `extended` => flag Limited.
+ */
+export function curveYieldExtended(curve: readonly { years: number; ytm: number }[], years: number, before = 1, after = 10): { y: number; extended: boolean } | null {
+  if (curve.length < 2) return null;
+  const inside = curveYield(curve, years);
+  if (inside !== null) return { y: inside, extended: false };
+  const first = curve[0], last = curve[curve.length - 1];
+  if (years < first.years && first.years - years <= before) return { y: first.ytm, extended: true };
+  if (years > last.years && years - last.years <= after) return { y: last.ytm, extended: true };
+  return null;
 }
 
 /**

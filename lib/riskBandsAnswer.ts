@@ -3,7 +3,7 @@ import type { BondFilter } from "./bondFilter";
 import type { PublicBond, RankedBond } from "./types";
 import { isExactYear, isTermHorizon } from "./limits";
 import { loadBandConfig } from "./riskBandsStore";
-import type { BandConfig } from "./riskBands";
+import { configSignature, type BandConfig } from "./riskBands";
 import { bondsOfBand, servedBands } from "./riskBandsServe";
 import { cachedLive, liveBand, rememberLive, type LiveStep } from "./riskBandsLive";
 import { rowsOf, r2, r3 } from "./riskBandsBuild";
@@ -43,14 +43,14 @@ export function metaOfSel(band: RiskBand, sel: BandCand[], optimal: boolean, ext
 export const rowsOfSel = (sel: BandCand[]): RankedBond[] => rowsOf(sel.map((c) => c.b));
 
 export const liveKey = (data: BondSource, filter: BondFilter, duration: number, n: number, exclusionKey: string, cfg: BandConfig) =>
-  [data.asOf, data.bonds.length, filter.currency, filter.size, duration, n, exclusionKey, cfg.perCell, cfg.bands[n - 1].min, cfg.bands[n - 1].max].join("|");
+  [data.asOf, data.bonds.length, filter.currency, filter.size, duration, n, exclusionKey, cfg.perCell, cfg.bands[n - 1].min, cfg.bands[n - 1].max, configSignature(cfg)].join("|");
 
 /** The stored (or already finished) list for a band, "none" when the stored set says no list exists, or null when nothing applies (the progressive search then runs). */
-export async function bandStored(data: BondSource, filter: BondFilter, duration: number, n: number, skip: ((b: PublicBond) => boolean) | null, exclusionKey: string): Promise<BandAnswer | null> {
-  const cfg = await loadBandConfig();
+export async function bandStored(data: BondSource, filter: BondFilter, duration: number, n: number, skip: ((b: PublicBond) => boolean) | null, exclusionKey: string, config?: BandConfig): Promise<BandAnswer | null> {
+  const cfg = config ?? (await loadBandConfig());
   const band = cfg.bands[n - 1];
   if (!skip) {
-    const sv = await servedBands(filter, duration);
+    const sv = await servedBands(filter, duration, cfg);
     const sb = sv?.stored.bands[n - 1];
     if (sv && sb) {
       if (sb.status === "none") return { kind: "none", band };
@@ -65,8 +65,8 @@ export async function bandStored(data: BondSource, filter: BondFilter, duration:
 }
 
 /** The progressive search run for a short time and answered with whatever it has (used when the caller does not stream). */
-export async function bandLiveOnce(data: BondSource, filter: BondFilter, duration: number, n: number, skip: ((b: PublicBond) => boolean) | null, exclusionKey: string): Promise<BandAnswer> {
-  const cfg = await loadBandConfig();
+export async function bandLiveOnce(data: BondSource, filter: BondFilter, duration: number, n: number, skip: ((b: PublicBond) => boolean) | null, exclusionKey: string, config?: BandConfig): Promise<BandAnswer> {
+  const cfg = config ?? (await loadBandConfig());
   const band = cfg.bands[n - 1];
   const pool = skip ? data.bonds.filter((b) => !skip(b)) : data.bonds;
   let last: LiveStep | null = null;

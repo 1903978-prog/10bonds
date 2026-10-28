@@ -4,6 +4,34 @@ import { loadAllShown } from "@/lib/bonds";
 import { runBes } from "@/lib/bes/store";
 import { accountsSql } from "@/lib/accounts";
 
+// Price coverage of the WHOLE bond copy (read-only), so missing prices can be traced to the data feed.
+async function coverage(shown: number) {
+  const url = process.env.DATABASE_URL;
+  if (!url) return;
+  const { default: postgres } = await import("postgres");
+  const { cleanPgUrl } = await import("@/lib/pgUrl");
+  const db = postgres(cleanPgUrl(url), { ssl: "require", max: 1, prepare: false, onnotice: () => {} });
+  try {
+    const [c] = await db`
+      with n as (select max(ytm_as_of) newest from public_bonds)
+      select count(*)::int total,
+        count(*) filter (where gross_ytm is null)::int no_ytm,
+        count(*) filter (where modified_duration is null)::int no_duration,
+        count(*) filter (where ytm_as_of is null)::int no_ytm_date,
+        count(*) filter (where ytm_as_of >= (select newest from n) - interval '3 days')::int age_0_3,
+        count(*) filter (where ytm_as_of < (select newest from n) - interval '3 days' and ytm_as_of >= (select newest from n) - interval '10 days')::int age_3_10,
+        count(*) filter (where ytm_as_of < (select newest from n) - interval '10 days' and ytm_as_of >= (select newest from n) - interval '30 days')::int age_10_30,
+        count(*) filter (where ytm_as_of < (select newest from n) - interval '30 days')::int age_30_plus,
+        count(*) filter (where clean_price is null)::int no_clean_price,
+        count(*) filter (where maturity <= current_date)::int matured,
+        count(*) filter (where dormant is true)::int dormant,
+        count(*) filter (where structure_modelled is false)::int structure_not_modelled
+      from public_bonds`;
+    console.log("\n### Price coverage of the whole bond copy (" + c.total + " bonds; " + shown + " shown on the site and scored)");
+    for (const [k, v] of Object.entries(c)) console.log(`- ${k}: ${v}`);
+  } finally { await db.end(); }
+}
+
 // Sanity report printed into the job summary: reasons, distributions, top and bottom 20.
 async function report(run: number) {
   const s = await accountsSql();
@@ -39,5 +67,6 @@ console.log(`Bonds shown on the site: ${bonds.length}`);
 const r = await runBes(bonds, process.env.BES_TRIGGER ?? "script", force);
 console.log(`\n${r.status.toUpperCase()}: ${r.message}`);
 if (r.runId && r.status !== "failed") await report(r.runId);
+await coverage(bonds.length);
 await new Promise((done) => setTimeout(done, 1500));
 process.exit(r.status === "failed" ? 1 : 0);
