@@ -7,7 +7,7 @@ import { issuerClass, countryCode } from "../seo/classify";
 import { sectorOf } from "../sectors";
 import { yearsToMaturity } from "../riskPremium/benchmark";
 import { SP_CORPORATE_YEARS, SP_CORPORATE_VERSION, spCorporateRow } from "./spReference";
-import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, curveYield, grossSpreadBp, MIN_PEERS, percentileRank } from "./math";
+import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, cumulativePdExtended, curveYieldExtended, grossSpreadBp, MIN_PEERS, percentileRank } from "./math";
 
 // Bond Efficiency Score (BES), methodology bes-1.0 (owner brief 28/10/2026). Diagnostic only: it never feeds the optimizer or the 30-band matrix.
 //  PD            = cumulative default chance to maturity from the SAME combined table the site already uses (lib/seo/defaultRates.ts,
@@ -56,6 +56,8 @@ const BENCH: Record<string, { cc: string; name: string; notch: number }> = {
   GBP: { cc: "GB", name: "UK Gilt YTM curve (same daily copy)", notch: 1 },
 };
 const MIN_CURVE_POINTS = 6;
+/** Same rule as the site (lib/bonds.ts STALE_DAYS): a quote more than this many days older than the newest one is stale. */
+export const BES_STALE_DAYS = 10;
 const BUCKETS = [2, 4, 7, 10, 16];
 const bucketOf = (y: number) => { const i = BUCKETS.findIndex((b) => y < b); return i < 0 ? BUCKETS.length : i; };
 
@@ -109,25 +111,30 @@ export function economics(b: PublicBond, curves: Record<string, Curve>, newest: 
   if (years === null || years <= 0) return fail("No remaining maturity.");
   row.yearsLeft = years;
   if (!(b.grossYtm > -1 && b.grossYtm < 30)) return fail(`Yield ${b.grossYtm}% outside the plausible range.`);
-  if (b.ytmAsOf && newest && Date.parse(newest) - Date.parse(b.ytmAsOf) > 7 * 86_400_000) return fail("Stale price (more than 7 days older than the newest quote).");
+  if (b.ytmAsOf && newest && Date.parse(newest) - Date.parse(b.ytmAsOf) > BES_STALE_DAYS * 86_400_000) return fail(`Stale price (more than ${BES_STALE_DAYS} days older than the newest quote).`);
   const bench = BENCH[b.currency];
   const curve = curves[b.currency];
   if (!bench || !curve) return fail(`No benchmark curve for ${b.currency}.`);
-  const by = curveYield(curve, years);
-  if (by === null) return fail("Remaining maturity outside the benchmark curve (not extrapolated).");
+  const ext = curveYieldExtended(curve, years);
+  if (ext === null) return fail("Remaining maturity too far outside the benchmark curve (more than 10 years beyond its longest point).");
+  const by = ext.y;
+  let limited = false;
+  if (ext.extended) { limited = true; notes.push("Benchmark extended: the nearest end of the curve is held flat beyond its range (assumption, not a market quote)."); }
   row.benchmarkYield = by;
   row.benchmarkSource = bench.name;
   row.grossSpreadBp = grossSpreadBp(b.grossYtm, by);
   if (Math.abs(row.grossSpreadBp) > 1500) return fail(`Gross spread ${Math.round(row.grossSpreadBp)} bp: possible price error.`);
   const { row: pcts, years: hz } = pctRow(notch, sovereign);
-  const pd = cumulativePd(pcts, hz, years);
-  if (pd === null) return fail("Remaining maturity beyond the 15-year default table (not extrapolated).");
+  const pdx = cumulativePdExtended(pcts, hz, years);
+  if (pdx === null) return fail("Remaining maturity beyond 50 years: no default estimate.");
+  const pd = pdx.pd;
+  if (pdx.extended) { limited = true; notes.push("Default table extended beyond 15 years: the yearly default rate of the last table segment is held flat (assumption, not a measured number)."); }
   const lgd = lgdOf(b);
   row.cumulativePd = pd; row.lgd = lgd; row.cumulativeLoss = pd * lgd;
   row.annualPd = annualEquivalentPd(pd, years);
   row.annualLossBp = annualLossBp(row.annualPd, lgd);
   const bp = pctRow(bench.notch, true);
-  const bpd = cumulativePd(bp.row, bp.years, years);
+  const bpd = cumulativePdExtended(bp.row, bp.years, years)?.pd ?? null;
   row.benchmarkLossBp = bpd === null ? null : annualLossBp(annualEquivalentPd(bpd, years), 0.6);
   if (row.benchmarkLossBp === null) return fail("No benchmark default estimate at this maturity.");
   row.netSpreadBp = row.grossSpreadBp - Math.max(0, row.annualLossBp - row.benchmarkLossBp);
@@ -135,7 +142,7 @@ export function economics(b: PublicBond, curves: Record<string, Curve>, newest: 
     const sp = spCorporateRow(notch);
     row.spCumulativePd = cumulativePd(sp.pct, SP_CORPORATE_YEARS, years);
   }
-  row.status = "valid";
+  row.status = limited ? "limited" : "valid";
   if (b.callable) { row.status = "limited"; notes.push("Callable: yield-to-maturity spread ignores the call option."); }
   if (risk >= 9) { row.status = "limited"; notes.push("Risk 9-10 uses the aggregated CCC/C default row (no separate figures per class)."); }
   notes.push("Liquidity cost not estimated (no bid/ask data); net spread excludes it.");
@@ -159,6 +166,9 @@ export function calculateBes(bonds: PublicBond[], today = new Date().toISOString
     for (const r of pool) { const k = lv.key(r); m.set(k, [...(m.get(k) ?? []), r]); }
     return m;
   });
+  // Last-resort level L2: same currency, issuer type and rank, risk class within one step either side (never a mix of issuer types).
+  const wide = new Map<string, BesRow[]>();
+  for (const r of pool) { const k = [r.currency, r.issuerType, r.rank].join("|"); wide.set(k, [...(wide.get(k) ?? []), r]); }
   for (const r of pool) {
     let done = false;
     for (let i = 0; i < LEVELS.length && !done; i++) {
@@ -171,11 +181,46 @@ export function calculateBes(bonds: PublicBond[], today = new Date().toISOString
       done = true;
     }
     if (!done) {
+      const near = (wide.get([r.currency, r.issuerType, r.rank].join("|")) ?? []).filter((p) => Math.abs(p.riskClass! - r.riskClass!) <= 1);
+      if (near.length >= MIN_PEERS) {
+        r.bes = Math.round(percentileRank(r.netSpreadBp!, near.map((p) => p.netSpreadBp!))! * 10) / 10;
+        r.peerCount = near.length;
+        r.peerGroup = `L2 currency+issuer type+rank, risk ${r.riskClass! - 1}-${r.riskClass! + 1} = ${[r.currency, r.issuerType, r.rank].join("|")}`;
+        r.status = "limited";
+        r.notes.push("Widest fallback peer group: neighbouring risk classes included.");
+        done = true;
+      }
+    }
+    if (!done) {
       r.status = "unavailable"; r.peerCount = groups[1].get(LEVELS[1].key(r))!.length;
-      r.notes.push(`BES unavailable: insufficient comparable bonds (${r.peerCount} < ${MIN_PEERS}).`);
+      r.notes.push(`BES unavailable: insufficient comparable bonds (${r.peerCount} < ${MIN_PEERS}, also with neighbouring risk classes).`);
     }
   }
   return rows;
+}
+
+export type BenchmarkReport = Record<string, { source: string; asOf: string | null; benchmarkNotch: number; pointsInCurve: number; shortest: number; longest: number; bondsUsing: number; grid: { years: number; yield: number | null; extended: boolean; nearbyBonds: number }[] }>;
+export const BENCH_GRID = [0.5, 1, 2, 3, 4, 5, 7, 10, 15, 20, 25, 30];
+
+/** Admin table: per currency and maturity point, the benchmark yield used, whether it is extended, and how many benchmark bonds sit near that point. */
+export function benchmarkReport(bonds: PublicBond[], rows: BesRow[], today: string): BenchmarkReport {
+  const curves = benchmarkCurves(bonds, today);
+  const out: BenchmarkReport = {};
+  for (const [cur, curve] of Object.entries(curves)) {
+    const bench = BENCH[cur];
+    const members = bonds.filter((b) => b.currency === cur && b.grossYtm !== null && isSovereignBond(b) && countryCode(b) === bench.cc && (!b.couponType || /^(fixed|zero)$/.test(b.couponType)) && !b.callable);
+    const asOf = members.reduce<string | null>((m, b) => (b.ytmAsOf && (!m || b.ytmAsOf > m) ? b.ytmAsOf : m), null);
+    out[cur] = {
+      source: bench.name, asOf, benchmarkNotch: bench.notch, pointsInCurve: curve.length, shortest: curve[0].years, longest: curve[curve.length - 1].years,
+      bondsUsing: rows.filter((r) => r.currency === cur && r.benchmarkYield !== null).length,
+      grid: BENCH_GRID.map((y) => {
+        const e = curveYieldExtended(curve, y);
+        const near = members.filter((b) => { const m = yearsToMaturity(b.maturity, b.ytmAsOf ?? today); return m !== null && Math.abs(m - y) <= Math.max(0.5, y * 0.1); }).length;
+        return { years: y, yield: e ? Math.round(e.y * 1000) / 1000 : null, extended: e?.extended ?? false, nearbyBonds: near };
+      }),
+    };
+  }
+  return out;
 }
 
 export const BES_REFERENCE_VERSION = `combined-2026-10 + ${SP_CORPORATE_VERSION}(ref) + sov-t16`;
