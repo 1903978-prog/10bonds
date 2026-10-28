@@ -22,6 +22,8 @@ export const termOf = (d: number): TermKey | null => TERMS.find((x) => d >= x.fr
 // own stored set of lists (scripts/precompute-bands.ts), so the web server never solves one.
 export const EXACT_YEARS: readonly number[] = Array.from({ length: 15 }, (_, i) => i + 1);
 export const isExactYear = (d: number) => EXACT_YEARS.includes(d);
+/** The horizon button that shows as selected: none while an exact year is in use (it overrides the terms), else the term of the duration. */
+export const selectedTerm = (exactYearInUse: boolean, d: number): TermKey | null => (exactYearInUse ? null : termOf(d));
 /** True when `d` is one of the three term horizons (the only ones the Free plan can search). */
 export const isTermHorizon = (d: number) => TERMS.some((x) => x.duration === d);
 
