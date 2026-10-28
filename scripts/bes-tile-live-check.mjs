@@ -3,7 +3,7 @@ import { chromium } from "playwright-core";
 
 const base = process.env.BASE_URL ?? "https://10bonds.com";
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { Referer: base + "/" } });
 const errors = [];
 page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 let status = 0;
@@ -18,7 +18,7 @@ const res = await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout
 status = res?.status() ?? 0;
 console.log(`page status ${status}`);
 const listed = page.waitForResponse((r) => r.url().includes("/api/bonds?"), { timeout: 120000 }).catch(() => null);
-await page.getByRole("button", { name: /Pareto efficient portfolio/i }).first().click();
+await page.getByTestId("find-portfolio").click();
 const lr = await listed;
 if (lr) await lr.finished().catch(() => null);
 await page.waitForTimeout(3000);
