@@ -90,9 +90,10 @@ describe("frontier built from a raw feed", () => {
 describe("outlier rule (methodology: return > mean + k sd of comparable bonds)", () => {
   const peers = (n: number, dur = 4) => Array.from({ length: n }, (_, i) => mk(`P${i}`, `Peer ${i}`, 3 + (i % 5) * 0.1, dur, "A"));
   const sd = (xs: number[]) => { const m = xs.reduce((s, x) => s + x, 0) / xs.length; return Math.sqrt(xs.reduce((s, x) => s + (x - m) ** 2, 0) / xs.length); };
-  it("default k is 2 and the cut is mean + k x population standard deviation of the peers, the bond itself excluded", () => {
+  it("default k is 2 and the cut is mean + k x population standard deviation of the peers (at least the minimum gap), the bond itself excluded", () => {
     expect(OUTLIER_SD.default).toBe(2);
-    const p = peers(10);
+    // Spread wide enough that 2 sd is above the minimum gap (lib/outliers.ts OUTLIER_MIN_GAP), so only the statistics decide.
+    const p = Array.from({ length: 10 }, (_, i) => mk(`W${i}`, `Wide ${i}`, 3 + (i % 5) * 0.8, 4, "A"));
     const ys = p.map((b) => b.grossYtm!);
     const cut = ys.reduce((s, x) => s + x, 0) / 10 + 2 * sd(ys);
     expect(findOutliers([...p, mk("HI", "Hi", cut + 0.01, 4, "A")]).map((o) => o.bond.isin)).toEqual(["HI"]);
