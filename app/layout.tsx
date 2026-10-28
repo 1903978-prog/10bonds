@@ -27,15 +27,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Bing Webmaster Tools site verification (the owner, 19 Oct 2026). Public by design, not a secret.
   verification: { other: { "msvalidate.01": "ADA17531835A822BB9A6870BCE68531B" } },
-  title: "10BONDS · Find 10 bonds that match your goals",
-  description: "Pick a duration and a desired return. 10BONDS turns thousands of euro bonds into a clear shortlist of 10.",
+  title: "10BONDS · AI-powered bond selection",
+  description: "AI-powered bond selection: pick a duration and a desired return, and 10BONDS shows 10 euro bonds that match. Data updated daily.",
   openGraph: {
-    title: "10BONDS · 10 bonds, 2 sliders",
-    description: "Pick a duration and a desired return. Get a clear shortlist of 10 euro bonds.",
+    title: "10BONDS · AI-powered bond selection",
+    description: "AI-powered bond selection: pick a duration and a desired return, and get 10 euro bonds that match.",
     type: "website",
     siteName: "10BONDS",
   },
-  twitter: { card: "summary_large_image", title: "10BONDS · 10 bonds, 2 sliders" },
+  twitter: { card: "summary_large_image", title: "10BONDS · AI-powered bond selection", description: "AI-powered bond selection: pick a duration and a desired return, and get 10 euro bonds that match." },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f5f5f7" };
