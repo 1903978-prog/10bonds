@@ -371,6 +371,11 @@ describe("government yield curves", () => {
 });
 
 describe("AI visibility", () => {
+  it("robots.txt names the public address in its sitemap lines and has no Host line", () => {
+    const r = robots();
+    expect(r.sitemap).toEqual(["https://10bonds.com/sitemap.xml", expect.stringMatching(/^https:\/\/10bonds\.com\//)]);
+    expect(r.host).toBeUndefined();
+  });
   it("robots.txt lets the AI search crawlers in and keeps private pages out", () => {
     const r = robots();
     for (const a of REQUIRED_CRAWLERS) expect(robotsAllows(r, a)).toBe(true);

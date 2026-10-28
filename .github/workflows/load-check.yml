@@ -1,0 +1,40 @@
+name: Load check
+# On demand only: 50 requests at once against the live site as a visitor, a free user and the read-only test admin, with p50 / p95 / max per page.
+# Read-only (GET) after one sign-in per account; the test accounts are the ones of the link check. Not scheduled, not run on push.
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Site to check"
+        default: "https://10bonds.com"
+      concurrency:
+        description: "Requests at the same moment"
+        default: "50"
+concurrency:
+  group: load-check
+  cancel-in-progress: true
+jobs:
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BASE: ${{ inputs.base }}
+      CONCURRENCY: ${{ inputs.concurrency }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - name: Test accounts
+        run: |
+          pw="$(printf 'linkcheck-v1:%s' "$ACCOUNTS_DATABASE_URL" | sha256sum | cut -c1-48)"
+          echo "::add-mask::$pw"
+          echo "LINKCHECK_PASSWORD=$pw" >> "$GITHUB_ENV"
+          LINKCHECK_PASSWORD="$pw" npx vite-node -c vitest.config.ts scripts/link-accounts.ts
+      - name: Load
+        run: node scripts/load-check.mjs | tee load.md
+      - name: Summary
+        if: always()
+        run: cat load.md >> "$GITHUB_STEP_SUMMARY" || true
