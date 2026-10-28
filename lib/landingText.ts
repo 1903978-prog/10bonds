@@ -7,7 +7,7 @@ import type { FinderLang } from "./finderText";
 // "hand-picked portfolio" is allowed.
 const en = {
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
-  tagline: "Mathematics instead of guesswork. More yield for the same modeled risk. Or less risk for the same yield. Discover the power of Pareto optimization.",
+  tagline: "Mathematics instead of guesswork. More yield for the same modeled risk. Or less risk for the same yield. Discover Pareto efficient portfolios.",
   cardTitleBench: "Average Bond ETF vs Model portfolio",
   cardTitleBenchShort: "Average Bond ETF vs Model",
   bench: "Bond ETF benchmark",
@@ -97,7 +97,7 @@ const en = {
 export type LandingText = typeof en;
 
 const it: LandingText = {
-  tagline: "La matematica al posto delle congetture. Più rendimento a parità di rischio modellato. O meno rischio a parità di rendimento. Scopri la potenza dell'ottimizzazione di Pareto.",
+  tagline: "La matematica al posto delle congetture. Più rendimento a parità di rischio modellato. O meno rischio a parità di rendimento. Scopri i portafogli efficienti di Pareto.",
   cardTitleBench: "ETF obbligazionario medio e portafoglio del modello",
   cardTitleBenchShort: "ETF obbligazionario medio e modello",
   bench: "Benchmark di ETF obbligazionari",
@@ -183,7 +183,7 @@ const it: LandingText = {
 };
 
 const fr: LandingText = {
-  tagline: "Les mathématiques plutôt que l'intuition. Plus de rendement pour le même risque modélisé. Ou moins de risque pour le même rendement. Découvrez la puissance de l'optimisation de Pareto.",
+  tagline: "Les mathématiques plutôt que l'intuition. Plus de rendement pour le même risque modélisé. Ou moins de risque pour le même rendement. Découvrez les portefeuilles efficients de Pareto.",
   cardTitleBench: "ETF obligataire moyen et portefeuille du modèle",
   cardTitleBenchShort: "ETF obligataire moyen et modèle",
   bench: "Référence d'ETF obligataires",
@@ -269,7 +269,7 @@ const fr: LandingText = {
 };
 
 const de: LandingText = {
-  tagline: "Mathematik statt Bauchgefühl. Mehr Rendite bei gleichem modelliertem Risiko. Oder weniger Risiko bei gleicher Rendite. Entdecken Sie die Kraft der Pareto-Optimierung.",
+  tagline: "Mathematik statt Bauchgefühl. Mehr Rendite bei gleichem modelliertem Risiko. Oder weniger Risiko bei gleicher Rendite. Entdecken Sie Pareto-effiziente Portfolios.",
   cardTitleBench: "Durchschnittlicher Anleihen-ETF und Modell-Portfolio",
   cardTitleBenchShort: "Anleihen-ETF und Modell",
   bench: "Anleihen-ETF-Benchmark",
