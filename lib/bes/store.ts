@@ -1,5 +1,4 @@
 import { accountsSql } from "../accounts";
-import { assignBondCodes, bondCodeTablesReady } from "../bondCodes";
 import type { PublicBond } from "../types";
 import { BES_METHOD, BES_REFERENCE_VERSION, calculateBes, type BesRow } from "./calc";
 import { SP_CORPORATE, SP_CORPORATE_SOURCE, SP_CORPORATE_VERSION, SP_CORPORATE_YEARS } from "./spReference";
@@ -70,10 +69,9 @@ export async function runBes(bonds: PublicBond[], trigger: string, force = false
   const id = Number(run.id);
   try {
     await loadPdReference();
-    await bondCodeTablesReady();
-    await assignBondCodes();
     const rows = calculateBes(bonds);
-    const codes = new Map((await s`select isin, bond_code from app.bond_codes`).map((r) => [String(r.isin), String(r.bond_code)]));
+    // Permanent codes are assigned by the Efficient Database job; BES only reads them (null until a bond has one).
+    const codes = new Map((await s`select isin, bond_code from app.bond_codes`.catch(() => [])).map((r) => [String(r.isin), String(r.bond_code)]));
     await s.begin(async (tx) => {
       for (let i = 0; i < rows.length; i += 400) {
         const chunk = rows.slice(i, i + 400).map((r) => toDb(id, r, codes.get(r.isin) ?? null));
