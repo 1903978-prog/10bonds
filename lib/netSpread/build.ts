@@ -102,9 +102,11 @@ export async function buildHorizon(inp: BuildInput, horizon: string, duration: n
   for (let position = 1; position <= POSITIONS; position++) {
     const rowNo = firstRow + position - 1;
     const r = key?.positions[position - 1];
-    const band = r?.band ?? { position, sumLo: 0, sumHi: 0, classLo: 1, classHi: 3, target: 0 };
+    const own = r?.band ?? { position, sumLo: 0, sumHi: 0, classLo: 1, classHi: 3, target: 0 };
+    // A list reused from the position below is checked against the band it was solved for; every other list against its own.
+    const band = r?.reusedBand ?? own;
     const allowed = Array.from({ length: band.classHi - band.classLo + 1 }, (_, i) => band.classLo + i);
-    const base = { rowNo, horizon, position, duration, allowed, band, step: r?.step ?? null, r1: key?.r1 ?? null, r30: key?.r30 ?? null };
+    const base = { rowNo, horizon, position, duration, allowed, band: r?.reusedBand ? { ...own, sumLo: r.reusedBand.sumLo, sumHi: r.reusedBand.sumHi } : own, step: r?.step ? (r.adjusted ? Math.max(1, r.step) : r.step) as LadderStep : r?.adjusted ? 1 : (r?.step ?? null), r1: key?.r1 ?? null, r30: key?.r30 ?? null };
     const empty = (status: PositionResult["status"], why: string | null): PositionResult => ({ ...base, status, dataStatus: "unavailable", isins: [], bonds: [], metrics: null, checks: [], candidates: r?.candidates ?? 0, seconds: r?.seconds ?? 0, repeatOf: null, failure: why, portfolioBes: portfolioBes(0, null), opportunityPct: null, sample: [], previous: null });
     try {
       if (!r) { out.push(empty("error", failure ?? "Horizon not solved")); continue; }

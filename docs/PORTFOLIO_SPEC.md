@@ -1,4 +1,4 @@
-# Portfolio spec `ps3-2026-10-28` (Methodology 4, the production engine)
+# Portfolio spec `ps4-2026-10-28` (Methodology 4, the production engine)
 
 One specification for every portfolio the site shows. The numbers live in **one versioned config**, `lib/portfolioSpec.ts` (`PORTFOLIO_SPEC`),
 read by the optimiser (`lib/netSpread/solve.ts`), the validator (`lib/netSpread/check.ts`, used again by `lib/sliderSnapshotBuild.ts`), the nightly job
@@ -22,7 +22,8 @@ Inside its band every position maximises the **equal-weight portfolio credit-adj
 3. **Portfolios 2 to 29**: target `T(n) = R1 + (R30 - R1) x (n - 1) / 29`. Band `n` runs from the midpoint of `T(n-1)` and `T(n)` up to, but not including, the midpoint of `T(n)` and `T(n+1)`, on the 0.1 grid (midpoints rounded half up). Band 1 starts at R1, band 30 ends at R30; bands are contiguous, no gap, no overlap. Allowed classes = the window of three classes around the target: `lo = max(1, round(T) - 1)`, `hi = lo + 2`, shifted down so `hi <= 10`.
 4. If `R30 - R1` is too narrow for 30 distinct 0.1-step bands, all 30 positions are kept; a band that collapses becomes the single tenth nearest its target and positions with identical lists are marked **"same as position X"** (`repeat_of`).
 5. R1, R30, the 30 bands, each position's ladder step and the monotonic-order breaks are stored with the key (`StoredBands.anchors`, `.bands[].min/max/allowed/ladder/target`, `.breaks`).
-6. **Monotonic order** is reported, never forced: average risk and expected loss should not fall from position 1 to 30; every break is listed in the stored set and in the admin view.
+6. **Return must rise with risk** (owner, 28/10/2026, supersedes "reported, never forced"). Going from position 1 to 30, each list's average return (ytm) is at least that of the list below it, so no riskier position is beaten (same or lower return with the same or higher expected loss). The build enforces it while solving: every position maximises net spread with a floor on the average return equal to the list below. The floor only changes a list that would otherwise be beaten. If no list reaches the floor, the position tries ladder steps 1 to 3, then the other 3-class windows (spread of 2 is never relaxed), and last reuses the list below (the closest non-beaten list; its stored band is the band that list was solved for); any of these is marked **"adjusted"**. Average risk and expected loss order is still reported (`.breaks`), beaten positions are listed there too.
+7. **Every position gets a list** (owner, 28/10/2026): a position with no list in its own 3-class window is solved in the other windows and at ladder steps 1 to 3 (marked "adjusted"), and as a last resort reuses the list below. The never-relaxed rules (10 real bonds at 10%, one per consolidated issuer, exclusions, class spread <= 2) apply in every case.
 
 ## 4. Rules per horizon
 
