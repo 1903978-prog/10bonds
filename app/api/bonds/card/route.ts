@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { bondByIsin } from "@/components/seo/BondIsinPage";
 import { currentUser } from "@/lib/currentUser";
-import { featuresFor } from "@/lib/planFeatures";
+import { loadBondsByIsin } from "@/lib/bonds";
 import { isIsin } from "@/lib/seo/bondPages";
 import { alternativesOf, benchmarkFor, cardOf } from "@/lib/bondCard";
 import { getBundBenchmarkPoints } from "@/lib/bundCurve/store";
@@ -19,12 +19,18 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: Request) {
   const headers = { "Cache-Control": "no-store" };
-  if (!(await featuresFor(await currentUser())).includes("isin_search")) return NextResponse.json({ status: "locked" }, { status: 403, headers });
+  // Admin only until the page is stable (the owner, 28/10/2026): 404 for everyone else.
+  if (!(await currentUser())?.isAdmin) return NextResponse.json({ error: "Not found" }, { status: 404, headers });
   const q = new URL(req.url).searchParams;
   const isin = (q.get("isin") ?? "").replace(/\s+/g, "").toUpperCase();
   if (!isIsin(isin)) return NextResponse.json({ status: "invalid" }, { headers });
   const hit = await bondByIsin(isin).catch(() => null);
-  if (!hit) return NextResponse.json({ status: "not_found" }, { headers });
+  if (!hit) {
+    // Say why: absent from the data, or in the data but kept off the site (no rating, no yield, matured, dormant, ...).
+    const raw = await loadBondsByIsin([isin]).catch(() => []);
+    const reason = raw.length === 0 ? "not_listed" : raw[0].why === null ? "quality" : raw[0].why.startsWith("no rating") ? "no_rating" : raw[0].why.startsWith("already matured") ? "matured" : raw[0].why.startsWith("dormant") ? "dormant" : raw[0].why.startsWith("no yield") ? "no_yield" : "structure";
+    return NextResponse.json({ status: "not_found", reason }, { headers });
+  }
   const b = hit.bond;
   const [bund, us] = await Promise.all([
     b.currency === "EUR" ? getBundBenchmarkPoints().catch(() => null) : null,
