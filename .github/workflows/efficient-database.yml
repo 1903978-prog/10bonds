@@ -7,7 +7,7 @@ on:
   schedule:
     - cron: "0 23 * * *"
 concurrency:
-  group: precompute-frontiers
+  group: portfolio-build
   cancel-in-progress: false
 jobs:
   efficient-database:
