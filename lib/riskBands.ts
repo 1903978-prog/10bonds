@@ -8,7 +8,8 @@ import { listLifeLoss } from "./expectedLoss";
 // The bands are a config table (saved in the database, edited at /admin/risk-bands), never hard-coded in a rule.
 // Every figure here is analytic (closed form).
 
-export type RiskBand = { k: number; min: number; max: number };
+/** Methodology 4 only: `allowed` = the bond risk classes this position may hold (lib/riskMatrix.ts); `step` = place i of m positions sharing them. */
+export type RiskBand = { k: number; min: number; max: number; allowed?: number[]; step?: { i: number; m: number } };
 export const BAND_COUNT = 30;
 export const LIST_SIZE = 10;
 /** Candidates kept per (duration year x risk score) cell, 10 different issuers each. Config value: top 10 changed the lists on live data (up to 0.25 pt more expected loss), top 30 is near identical (formula audit 27/10). */
@@ -37,13 +38,16 @@ export function cleanConfig(raw: unknown): BandConfig | null {
   return { bands, perCell };
 }
 
-export const configSignature = (c: BandConfig) => `rb2:${c.perCell}:${c.bands.map((b) => `${b.min}-${b.max}`).join(",")}`;
+export const configSignature = (c: BandConfig) => `rb2:${c.perCell}:${c.bands.map((b) => `${b.min}-${b.max}${b.allowed ? `a${b.allowed.join("")}s${b.step?.i}of${b.step?.m}` : ""}`).join(",")}`;
 
 /** Sum of the 10 scores that puts the average inside the band (whole numbers): null if no whole sum fits. */
 export function sumRange(b: RiskBand): { lo: number; hi: number } | null {
   const lo = Math.ceil(b.min * LIST_SIZE - 1e-9), hi = Math.floor(b.max * LIST_SIZE + 1e-9);
   return lo <= hi ? { lo, hi } : null;
 }
+
+/** True when a bond of this risk score may be in the band's list (always, unless the band fixes the bond risk range). */
+export const inClasses = (b: RiskBand, cls: number) => !b.allowed || b.allowed.includes(cls);
 
 export const inBand = (avgRisk: number, b: RiskBand) => avgRisk >= b.min - 1e-9 && avgRisk <= b.max + 1e-9;
 

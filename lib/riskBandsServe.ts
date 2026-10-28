@@ -24,8 +24,8 @@ const memo = new Map<string, { at: number; v: ServedBands | null }>();
 const MEMO_MS = 120_000;
 
 /** The stored band set for a filter and horizon, or null when none was ever saved (cold start: the caller falls back to the progressive search). */
-export async function servedBands(f: BondFilter, duration: number): Promise<ServedBands | null> {
-  const [src, cfg] = await Promise.all([loadBondsFor(f), loadBandConfig()]);
+export async function servedBands(f: BondFilter, duration: number, config?: BandConfig): Promise<ServedBands | null> {
+  const [src, cfg] = await Promise.all([loadBondsFor(f), config ?? loadBandConfig()]);
   const key = bandsKey(src, f, duration, cfg);
   const hit = memo.get(key);
   if (hit && Date.now() - hit.at < MEMO_MS) return hit.v;

@@ -15,7 +15,7 @@ const terms = (idx: number[], coef: (i: number) => number) =>
   idx.reduce((out, i, k) => out + (k === 0 ? "" : k % 8 === 0 ? " +\n  " : " + ") + `${num(coef(i))} x${i}`, "");
 
 const TIE = 1e-5;
-type Stage = { objective: "ret" | "pd"; retMin?: number };
+type Stage = { objective: "ret" | "pd"; retMin?: number; pdMax?: number };
 
 async function stage(cs: BandCand[], sr: { lo: number; hi: number }, rules: Rules, st: Stage, timeLimit: number): Promise<{ status: "optimal" | "infeasible" | "uncertified"; sel: BandCand[] }> {
   const all = cs.map((_, i) => i);
@@ -26,6 +26,7 @@ async function stage(cs: BandCand[], sr: { lo: number; hi: number }, rules: Rule
   add("rhi", all, (i) => cs[i].cls, "<=", sr.hi);
   add("dlo", all, (i) => cs[i].dur, ">=", LIST_SIZE * rules.duration * 0.95);
   add("dhi", all, (i) => cs[i].dur, "<=", LIST_SIZE * rules.duration * 1.05);
+  if (st.pdMax !== undefined) add("pdc", all, (i) => cs[i].pd, "<=", st.pdMax * LIST_SIZE);
   if (st.retMin !== undefined) add("ret", all, (i) => cs[i].ret, ">=", st.retMin * LIST_SIZE);
   const by = (key: (c: BandCand) => string) => {
     const g = new Map<string, number[]>();
@@ -51,7 +52,7 @@ async function stage(cs: BandCand[], sr: { lo: number; hi: number }, rules: Rule
 }
 
 /** Exact best list for one band over the candidates; `timeLimit` seconds per solve (default the solver's own limit). */
-export async function solveBand(cands: BandCand[], band: RiskBand, rules: Rules, opts: { timeLimit?: number } = {}): Promise<BandSolve> {
+export async function solveBand(cands: BandCand[], band: RiskBand, rules: Rules, opts: { timeLimit?: number; step?: { i: number; m: number } } = {}): Promise<BandSolve> {
   const t0 = Date.now();
   const sr = sumRange(band);
   const done = (status: BandSolve["status"], sel: BandCand[]): BandSolve => ({ status, sel, seconds: Math.round((Date.now() - t0) / 100) / 10 });
@@ -59,10 +60,25 @@ export async function solveBand(cands: BandCand[], band: RiskBand, rules: Rules,
   const limit = opts.timeLimit ?? SOLVER_OPTIONS.time_limit;
   const top = await stage(cands, sr, rules, { objective: "ret" }, limit);
   if (top.status === "infeasible" || !top.sel.length) return done("infeasible", []);
-  const best = top.sel.reduce((s, c) => s + c.ret, 0) / LIST_SIZE;
+  let best = top.sel.reduce((s, c) => s + c.ret, 0) / LIST_SIZE;
+  // Positions sharing the same allowed classes step from the lowest expected loss up to the highest return: place i of m may lose at most
+  // minPd + i/(m-1) of the way to the loss of the top-return list (the last place is the top-return list itself).
+  let pdMax: number | undefined;
+  let stepOptimal = true;
+  const m = opts.step?.m ?? 1;
+  if (m > 1 && opts.step!.i < m - 1) {
+    const lo = await stage(cands, sr, rules, { objective: "pd" }, limit);
+    const mean = (xs: BandCand[]) => xs.reduce((s, c) => s + c.pd, 0) / LIST_SIZE;
+    if (lo.sel.length) {
+      pdMax = mean(lo.sel) + (opts.step!.i / (m - 1)) * (mean(top.sel) - mean(lo.sel)) + 1e-6;
+      stepOptimal = lo.status === "optimal";
+      const capped = await stage(cands, sr, rules, { objective: "ret", pdMax }, limit);
+      if (capped.sel.length) { best = capped.sel.reduce((s, c) => s + c.ret, 0) / LIST_SIZE; stepOptimal = stepOptimal && capped.status === "optimal"; }
+    }
+  }
   // Same yield (within the solver tolerance), least expected loss.
   // (1e-5 percentage points: the model's numbers carry 6 decimals, so a tighter floor could cut the first solve's own list off.)
-  const low = await stage(cands, sr, rules, { objective: "pd", retMin: best - TIE }, limit);
+  const low = await stage(cands, sr, rules, { objective: "pd", retMin: best - TIE, ...(pdMax !== undefined ? { pdMax } : {}) }, limit);
   if (!low.sel.length) return done(top.status, top.sel);
-  return done(top.status === "optimal" && low.status === "optimal" ? "optimal" : "uncertified", low.sel);
+  return done(top.status === "optimal" && low.status === "optimal" && stepOptimal ? "optimal" : "uncertified", low.sel);
 }

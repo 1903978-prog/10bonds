@@ -37,6 +37,11 @@ for (const f of FILTERS) {
     const { positions } = await sliderFor(f, t.duration, "spread", true).catch(() => ({ positions: null }));
     console.log(`${t.key} (${t.duration}y): ${positions?.length ?? 0} slider positions`);
   }
+  // Methodology 1 (exact frontier, no spread rule): its slider positions are saved too, for the day it is switched on at /admin/methodology.
+  for (const t of TERMS) {
+    const { positions } = await sliderFor(f, t.duration, "m1", true).catch(() => ({ positions: null }));
+    console.log(`${t.key} (${t.duration}y): Methodology 1, ${positions?.length ?? 0} slider positions`);
+  }
 }
 await new Promise((done) => setTimeout(done, 2000)); // let the saves finish
 process.exit(0);
