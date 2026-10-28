@@ -1,0 +1,33 @@
+name: Issuer enrichment
+# Looks up sector and issuer parent from free public sources (OpenFIGI, SEC EDGAR, GLEIF) for issuers not in the hand-made table.
+# Throttled and checkpointed: re-run to continue. Writes lib/issuerEnrich/issuerEnrichment.json and docs/issuer-enrichment-report.md back to the branch.
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/issuer-enrichment.yml", "scripts/issuer-enrich.ts"]
+permissions:
+  contents: write
+concurrency: issuer-enrichment
+jobs:
+  enrich:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      OPENFIGI_KEY: ${{ secrets.OPENFIGI_KEY }}
+      BUDGET_MIN: "150"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx vite-node -c vitest.config.ts scripts/issuer-enrich.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: issuer-enrichment, path: "lib/issuerEnrich/issuerEnrichment.json\ndocs/issuer-enrichment-report.md" }
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.name "10bonds enrichment"; git config user.email "noreply@users.noreply.github.com"
+          git add lib/issuerEnrich/issuerEnrichment.json docs/issuer-enrichment-report.md
+          git diff --cached --quiet || (git commit -m "Issuer enrichment data (free sources)" && git pull --rebase -q && git push -q)

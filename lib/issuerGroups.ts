@@ -1,5 +1,6 @@
 import type { PublicBond } from "./types";
 import { issuerKey } from "./ranking";
+import { ENRICHED } from "./issuerEnrich/data";
 
 // Issuer groups (the owner, 25/10/2026): one economic issuer per line, the names and subsidiaries it appears under in
 // the bond copy, joined with " | " (names as lib/ranking.ts issuerKey writes them), under the major sector the group
@@ -608,6 +609,8 @@ global switch finance
 `,
 };
 
+const ENRICHED_PARENT_SECTOR = (k: string): { sector: string } | null => (ENRICHED[k]?.sector ? { sector: ENRICHED[k].sector! } : null);
+
 export type GroupInfo = { group: string; sector: string | null; known: boolean };
 
 const BY_KEY = new Map<string, { group: string; sector: string }>();
@@ -623,7 +626,12 @@ export function groupInfo(b: Pick<PublicBond, "issuer" | "isin">): GroupInfo {
   const key = issuerKey(b);
   if (key.startsWith("isin:")) return { group: key, sector: null, known: false };
   const hit = BY_KEY.get(key);
-  return hit ? { group: hit.group, sector: hit.sector, known: true } : { group: key, sector: null, known: true };
+  if (hit) return { group: hit.group, sector: hit.sector, known: true };
+  // Not in the hand-made table: use what the free-source lookup found (sector from SEC SIC / name rules, group from the GLEIF ultimate parent).
+  const e = ENRICHED[key];
+  if (!e) return { group: key, sector: null, known: true };
+  const parent = e.parent ? BY_KEY.get(e.parent) ?? ENRICHED_PARENT_SECTOR(e.parent) : null;
+  return { group: e.parent ? (BY_KEY.get(e.parent)?.group ?? e.parent) : key, sector: e.sector ?? parent?.sector ?? null, known: true };
 }
 
 export const issuerGroupOf = (b: Pick<PublicBond, "issuer" | "isin">): string => groupInfo(b).group;
