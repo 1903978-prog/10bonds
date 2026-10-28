@@ -2,7 +2,7 @@ name: UST first import (temporary)
 on:
   push:
     branches: [claude/project-thread-pu3wb6]
-    paths: [".github/workflows/ust-first-import.yml"]
+    paths: [".github/workflows/ust-first-import.yml", "scripts/ust-selftest.ts"]
 concurrency:
   group: ust-first-import
 jobs:
@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
+      - name: Bulk insert self-test (scratch rows, removed)
+        run: npx vite-node -c vitest.config.ts scripts/ust-selftest.ts
       - name: Import 1
         run: set -o pipefail; npx vite-node -c vitest.config.ts scripts/ust-import.ts | tee run1.txt
       - name: Import 2 (must change nothing)

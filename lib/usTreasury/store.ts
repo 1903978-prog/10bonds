@@ -45,16 +45,19 @@ export async function ingestTreasury(p: TreasuryParse, trigger: string, fetchedA
   }
   let inserted = 0, updated = 0, unchanged = 0;
   await s.begin(async (tx) => {
+    const rows: { observation_date: string; maturity_years: number; yield_percent: number; series_id: string }[] = [];
     for (const d of days) {
       const old = new Map((await tx`select maturity_years, yield_percent from app.benchmark_curve where benchmark = ${T.benchmark} and curve_type = ${T.curveType} and observation_date = ${d.date}`).map((r) => [Number(r.maturity_years), Number(r.yield_percent)]));
       for (const y of TREASURY_TENORS) {
         const o = d.values.get(y)!;
         if (!old.has(y)) inserted++; else if (Math.abs(old.get(y)! - o.value) < 1e-9) { unchanged++; continue; } else updated++;
-        await tx`insert into app.benchmark_curve (benchmark, country, currency, curve_type, observation_date, maturity_years, yield_percent, source, series_id, fetched_at, status, basis)
-          values (${T.benchmark}, ${T.country}, ${T.currency}, ${T.curveType}, ${d.date}, ${y}, ${o.value}, ${TREASURY_SOURCE}, ${o.seriesId}, ${fetchedAt}, 'valid', 'published')
-          on conflict (benchmark, curve_type, observation_date, maturity_years) do update set yield_percent = excluded.yield_percent, fetched_at = excluded.fetched_at`;
+        rows.push({ observation_date: d.date, maturity_years: y, yield_percent: o.value, series_id: o.seriesId });
       }
     }
+    if (rows.length) await tx`insert into app.benchmark_curve (benchmark, country, currency, curve_type, observation_date, maturity_years, yield_percent, source, series_id, fetched_at, status, basis)
+      select ${T.benchmark}, ${T.country}, ${T.currency}, ${T.curveType}, t.observation_date, t.maturity_years, t.yield_percent, ${TREASURY_SOURCE}, t.series_id, ${fetchedAt}, 'valid', 'published'
+      from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) as t(observation_date date, maturity_years smallint, yield_percent numeric, series_id text)
+      on conflict (benchmark, curve_type, observation_date, maturity_years) do update set yield_percent = excluded.yield_percent, fetched_at = excluded.fetched_at`;
   });
   const r: ImportResult = { ok: true, dates: { [T.curveType]: days[days.length - 1].date }, inserted, updated, unchanged, message: `Saved Treasury published par yields up to ${days[days.length - 1].date} (${days.length} days): ${inserted} new, ${updated} revised, ${unchanged} unchanged` };
   await logImport(T.benchmark, trigger, r);
