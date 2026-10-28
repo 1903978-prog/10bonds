@@ -112,3 +112,16 @@ describe("reference sample", () => {
     expect(a).toEqual(b);
   });
 });
+
+describe("Methodology 5 wiring", async () => {
+  const { netSpreadConfig } = await import("./config");
+  const { riskClassConfig } = await import("../riskClassBands");
+  const { configSignature } = await import("../riskBands");
+  const { parseMethodology } = await import("../methodologyChoice");
+  it("keeps its stored lists apart from Methodology 4 and can be chosen", () => {
+    expect(configSignature(netSpreadConfig())).not.toBe(configSignature(riskClassConfig()));
+    expect(netSpreadConfig().bands.map((b) => b.allowed)).toEqual(riskClassConfig().bands.map((b) => b.allowed));
+    expect(parseMethodology("5")).toBe(5);
+    expect(parseMethodology("6")).toBeNull();
+  });
+});

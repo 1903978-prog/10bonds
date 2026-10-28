@@ -12,7 +12,7 @@ import { solveNetSpread, type NsCand, type NsRules, type NsSolve } from "./solve
 // Builds the 90 Methodology 5 portfolios (3 horizons x 30 positions) from the bond-level figures of the Bond Efficiency run (lib/bes) and the
 // approved rules (risk matrix lib/riskMatrix.ts, issuer / sector caps of the active policy, duration window). Runs on a runner, never on a slider move.
 
-export const NS_METHOD = "ns-5.0";
+export const NS_METHOD = "ns-5.1";
 export const HORIZON_NAMES = { short: "SHORT", mid: "MEDIUM", long: "LONG" } as const;
 export type HorizonName = (typeof HORIZON_NAMES)[keyof typeof HORIZON_NAMES];
 export const SAMPLE_SIZE = 100;
