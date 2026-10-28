@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd, prose } from "@/components/seo/Seo";
 import CurveSection from "@/components/seo/CurveSection";
+import BundCurveSection from "@/components/seo/BundCurveSection";
+import { bundCurveAlternates, BUND_CURVE_TEXT } from "@/lib/seo/bundCurve";
 import InsightsSection from "@/components/seo/InsightsSection";
 import BondMapSection from "@/components/seo/BondMapSection";
 import { bondMapAlternates, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
@@ -44,6 +46,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (slug === CURVE_TEXT.en.slug) {
     const c = CURVE_TEXT.en;
     return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+  }
+  if (slug === BUND_CURVE_TEXT.en.slug) {
+    const c = BUND_CURVE_TEXT.en;
+    return { title: { absolute: c.title }, description: c.description, alternates: bundCurveAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
   }
   if (slug === CALCULATOR_EN.slug) {
     const c = CALCULATOR_EN;
@@ -99,6 +105,17 @@ export default async function EnglishKnowledgePage({ params }: Props) {
         {c.intro.map((p) => <p key={p} className="mt-3 text-[17px] text-mute">{p}</p>)}
         <CurveSection locale="en" text={c} />
         <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: c.h1, description: c.description, url: SITE_URL + enPath(c.slug), inLanguage: "en", creator: ORGANIZATION }} />
+      </div>
+    );
+  }
+  if (slug === BUND_CURVE_TEXT.en.slug) {
+    const c = BUND_CURVE_TEXT.en;
+    return (
+      <div>
+        {crumbs(c.h1, enPath(c.slug))}
+        <h1 className="text-[28px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+        <p className="mt-1 text-[15px] text-mute">{c.lead}</p>
+        <BundCurveSection locale="en" text={c} />
       </div>
     );
   }

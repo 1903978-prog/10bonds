@@ -8,6 +8,8 @@ import { currentUser } from "@/lib/currentUser";
 import CurveSection from "@/components/seo/CurveSection";
 import InsightsSection from "@/components/seo/InsightsSection";
 import BondMapSection from "@/components/seo/BondMapSection";
+import BundCurveSection from "@/components/seo/BundCurveSection";
+import { bundCurveAlternates, bundCurvePath, BUND_CURVE_TEXT } from "@/lib/seo/bundCurve";
 import { bondMapAlternates, bondMapPath, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import YieldCalculator from "@/components/seo/YieldCalculator";
 import { CALCULATORS } from "@/lib/seo/calculators";
@@ -29,7 +31,7 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ lang: string; section: string; slug: string }>; searchParams: Promise<{ preview?: string }> };
 
-type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | { l: Locale; kind: "insights" } | { l: Locale; kind: "map" } | { l: Locale; kind: "isin"; isin: string } | null;
+type Resolved = { l: Locale; kind: "guide"; guide: Guide } | { l: Locale; kind: "bonds"; def: ComparisonDef } | { l: Locale; kind: "tool" } | { l: Locale; kind: "curve" } | { l: Locale; kind: "insights" } | { l: Locale; kind: "map" } | { l: Locale; kind: "bund" } | { l: Locale; kind: "isin"; isin: string } | null;
 
 /** A published guide (any guide for the admin with ?preview=1), or a comparison page. */
 async function resolve(props: Props): Promise<Resolved> {
@@ -46,7 +48,7 @@ async function resolve(props: Props): Promise<Resolved> {
     const def = comparisonBySlug(lang, slug);
     return def ? { l: lang, kind: "bonds", def } : null;
   }
-  if (s === "tools") return CALCULATORS[lang].slug === slug ? { l: lang, kind: "tool" } : CURVE_TEXT[lang].slug === slug ? { l: lang, kind: "curve" } : INSIGHTS_TEXT[lang].slug === slug ? { l: lang, kind: "insights" } : BOND_MAP_TEXT[lang].slug === slug ? { l: lang, kind: "map" } : null;
+  if (s === "tools") return CALCULATORS[lang].slug === slug ? { l: lang, kind: "tool" } : CURVE_TEXT[lang].slug === slug ? { l: lang, kind: "curve" } : INSIGHTS_TEXT[lang].slug === slug ? { l: lang, kind: "insights" } : BOND_MAP_TEXT[lang].slug === slug ? { l: lang, kind: "map" } : BUND_CURVE_TEXT[lang].slug === slug ? { l: lang, kind: "bund" } : null;
   if (s !== "guides" || !accountsConfigured()) return null;
   const g = await guideBySlug(lang, slug).catch(() => null);
   if (!g) return null;
@@ -76,6 +78,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   if (r.kind === "map") {
     const c = BOND_MAP_TEXT[r.l];
     return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
+  }
+  if (r.kind === "bund") {
+    const c = BUND_CURVE_TEXT[r.l];
+    return { title: { absolute: c.title }, description: c.description, alternates: bundCurveAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
   }
   if (r.kind === "insights") {
     const c = INSIGHTS_TEXT[r.l];
@@ -127,7 +133,21 @@ export default async function Detail(props: Props) {
   if (r.kind === "curve") return <CurvePage l={r.l} />;
   if (r.kind === "insights") return <InsightsPage l={r.l} />;
   if (r.kind === "map") return <BondMapPage l={r.l} />;
+  if (r.kind === "bund") return <BundCurvePage l={r.l} />;
   return r.kind === "bonds" ? <ComparisonPage l={r.l} def={r.def} /> : <GuidePage l={r.l} g={r.guide} />;
+}
+
+function BundCurvePage({ l }: { l: Locale }) {
+  const t = T[l];
+  const c = BUND_CURVE_TEXT[l];
+  return (
+    <div>
+      <Breadcrumbs locale={l} siteUrl={SITE_URL} items={[{ name: t.home, href: `/${l}` }, { name: t.knowledge, href: pathOf(l, "knowledge") }, { name: c.h1, href: bundCurvePath(l) }]} />
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight">{c.h1}</h1>
+      <p className="mt-1 text-[15px] text-mute">{c.lead}</p>
+      <BundCurveSection locale={l} text={c} />
+    </div>
+  );
 }
 
 function BondMapPage({ l }: { l: Locale }) {
