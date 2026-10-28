@@ -1293,7 +1293,7 @@ function PfArrows({ prev, next, onStep, busy, children }: { prev: number | null;
 
 function Stat({ value, label, lock, h = "h-[60px]", title }: { value: ReactNode | null; label: string; lock?: { href: string; label: string }; h?: string; title?: string }) {
   return (
-    <div title={title} className={`flex ${h} min-w-0 flex-col items-center justify-center rounded-xl border border-line/70 px-3 py-2 text-center`}>
+    <div title={title} className={`flex ${h} min-w-0 flex-col items-center justify-center rounded-xl border border-line/70 px-2 py-1 text-center`}>
       {value === null ? (
         // Locked: a grey lock and a dash; the one sign-up link sits under the row.
         <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute/60" aria-label={lock?.label}>
@@ -1302,7 +1302,7 @@ function Stat({ value, label, lock, h = "h-[60px]", title }: { value: ReactNode 
       ) : (
         <div className="text-xl font-semibold leading-tight tabular-nums tracking-tight">{value}</div>
       )}
-      <div className="w-full truncate text-[11px] leading-tight text-mute">{label}</div>
+      <div className="w-full break-words text-[11px] leading-[13px] line-clamp-2 text-mute">{label}</div>
     </div>
   );
 }
