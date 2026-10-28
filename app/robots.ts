@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/seo/crawl";
 import { AI_CRAWLERS } from "@/lib/seo/geo";
 import { BOND_SITEMAP } from "@/lib/seo/bondPages";
 
+// The public address, whatever the machine is called (the old fly.dev name only redirects here).
+const ORIGIN = `https://${process.env.CANONICAL_HOST || "10bonds.com"}`;
 const PRIVATE = ["/admin", "/api/", "/redeem", "/account"];
 
 // Search engines may read every public page; admin, account tools and the API stay out. The search and
@@ -14,7 +15,6 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "*", allow: "/", disallow: PRIVATE },
       { userAgent: AI_CRAWLERS, allow: "/", disallow: PRIVATE },
     ],
-    sitemap: [`${SITE_URL}/sitemap.xml`, SITE_URL + BOND_SITEMAP],
-    host: SITE_URL,
+    sitemap: [`${ORIGIN}/sitemap.xml`, ORIGIN + BOND_SITEMAP],
   };
 }

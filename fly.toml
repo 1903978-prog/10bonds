@@ -14,6 +14,13 @@ primary_region = "cdg"
   min_machines_running = 1
 
   # Hide the host's version stamp (Server) and proxy name (Via) from responses (secval, 26/10/2026).
+  # Fly's default allows only 25 requests at once per machine and answers 503 above it (the 26-45th page of a busy moment waited ~30 s). The
+  # server handles far more at a time; heavy work never runs in the web process.
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 150
+    hard_limit = 250
+
   [http_service.http_options.response.headers]
     server = false
     via = false

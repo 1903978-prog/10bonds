@@ -18,7 +18,7 @@ import { screenPrices, type FlaggedBond, type PriceMeta } from "./priceIntegrity
 let sql: ReturnType<typeof postgres> | null = null;
 function db() {
   if (!process.env.DATABASE_URL) return null;
-  sql ??= postgres(cleanPgUrl(process.env.DATABASE_URL), { ssl: "require", max: 3, idle_timeout: 20, prepare: false });
+  sql ??= postgres(cleanPgUrl(process.env.DATABASE_URL), { ssl: "require", max: 6, idle_timeout: 20, prepare: false });
   return sql;
 }
 

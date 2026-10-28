@@ -38,6 +38,7 @@ export default function SliderSnapshotAdmin() {
   const infeasible = d.rows.filter((r) => r.status === "INFEASIBLE").length;
   const unresolved = d.rows.filter((r) => r.status === "ERROR" || r.status === "PENDING").length;
   const ready = cur?.status === "published";
+  const lastJob = d.jobs[0];
   const perH = (h: string) => `${d.rows.filter((r) => r.horizon === h && r.filled).length}/30`;
   const lastOk = d.jobs.find((j) => j.status === "done");
   const lastErr = d.jobs.find((j) => j.status === "failed");
@@ -53,9 +54,10 @@ export default function SliderSnapshotAdmin() {
         {stat("Viewing", cur ? `#${cur.id} · ${cur.status}` : "–")}
         {stat("Price batch data time", when(cur?.data_as_of ?? null))}
         {stat("Last successful run", when(lastOk?.finished_at ?? null))}
-        {stat("Build status", d.jobs[0] ? `${d.jobs[0].status} (${d.jobs[0].trigger})` : "no run yet")}
+        {stat("Published at", when(active?.published_at ?? null))}
+        {stat("Build status", lastJob ? `${lastJob.status} (${lastJob.trigger}): ${lastJob.message ?? ""}`.slice(0, 120) : "no run yet")}
         {stat("Valid / infeasible / unresolved", `${filled} · ${infeasible} · ${unresolved}`)}
-        {stat("Distinct portfolios", String(cur?.distinct_portfolios ?? 0))}
+        {stat("Distinct portfolios", String(cur?.distinct_portfolios || new Set(d.rows.filter((r) => r.filled).map((r) => r.horizon + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => r[`bond_${i}`]).join(","))).size))}
         {stat("Calculation time", cur?.runtime_ms != null ? `${(cur.runtime_ms / 1000).toFixed(1)} s` : "–")}
         {stat("Last error", lastErr ? `${when(lastErr.started_at)}` : "none")}
       </div>

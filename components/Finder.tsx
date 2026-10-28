@@ -911,8 +911,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
           {/* The ETF benchmark shows on the landing page only (the owner, 24/10/2026). */}
           <Stat value={data ? String(Math.min(10, data.rows.length + data.lockedCount)) : "—"} label={t.found} />
-          <Stat value={!data ? "—" : paid ? pct(summary?.avgYtm) : null} label={t.avgYield} lock={lockTo} />
-          <Stat value={!data ? "—" : paid ? (summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—") : null} label={t.lifeLoss} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? (live ? live.ret : pct(summary?.avgYtm)) : null} label={t.avgYield} lock={lockTo} />
+          <Stat value={!data ? "—" : paid ? (live ? live.loss : summary?.lifeLoss != null ? `${summary.lifeLoss.toFixed(2)}%` : "—") : null} label={t.lifeLoss} lock={lockTo} />
           <Stat value={!data ? "—" : paid ? yrs(summary?.avgDuration, t.yrs) : null} label={t.avgDuration} lock={lockTo} />
           <Stat value={!data ? "—" : data.bes?.avg != null ? Math.round(data.bes.avg) : "—"} label={`${t.besTile}${data?.bes ? ` · ${data.bes.scored}/${data.bes.total}` : ""}`} />
           <ScanBox data={data} show={show} lang={lang} currency={currency} />

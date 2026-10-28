@@ -16,7 +16,7 @@ export function accountsConfigured(): boolean {
 function db() {
   const url = process.env.ACCOUNTS_DATABASE_URL;
   if (!url) throw new Error("Accounts are not connected yet.");
-  sql ??= postgres(accountsUrl(url, process.env.DATABASE_URL), { ssl: url.includes("localhost") ? false : "require", max: 3, idle_timeout: 20, prepare: false, onnotice: () => {} });
+  sql ??= postgres(accountsUrl(url, process.env.DATABASE_URL), { ssl: url.includes("localhost") ? false : "require", max: 8, idle_timeout: 20, prepare: false, onnotice: () => {} });
   ready ??= setup(sql).catch((e) => {
     ready = null;
     throw e;
@@ -406,11 +406,23 @@ export async function replacePassword(userId: number, oldTag: (hash: string) => 
   return r.count === 1;
 }
 
+// Every signed-in request reads its user. Requests for the same user that arrive while a read is running share that one read (a burst of
+// 50 pages costs a handful of reads instead of a queue on the small connection pool); nothing is kept once it has answered, so a change is seen at once.
+const userReads = new Map<number, Promise<User | null>>();
+
 export async function findUserById(id: number): Promise<User | null> {
+  const running = userReads.get(id);
+  if (running) return running;
   const { sql, ready } = db();
-  await ready;
-  const rows = await sql<UserRow[]>`select ${sql.unsafe(USER_COLS)} from app.users where id = ${id}`;
-  return rows[0] ? toUser(rows[0]) : null;
+  const p = (async () => {
+    await ready;
+    const rows = await sql<UserRow[]>`select ${sql.unsafe(USER_COLS)} from app.users where id = ${id}`;
+    return rows[0] ? toUser(rows[0]) : null;
+  })();
+  userReads.set(id, p);
+  const done = () => { if (userReads.get(id) === p) userReads.delete(id); };
+  p.then(done, done);
+  return p;
 }
 
 export async function touchLogin(id: number) {
