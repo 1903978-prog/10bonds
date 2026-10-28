@@ -1,21 +1,19 @@
 name: Precompute portfolio lists
-# Solves the spread-rules lists of the default search on a fast runner and saves them in the database, so the live
-# site never has to solve them after a release or a new data copy (a search would otherwise wait several minutes).
-# Saved lists are reused, so a run with nothing new takes seconds.
+# After a release that changes the engine (a push to main touching lib/ or the build scripts) or on demand: makes sure every stored list exists for the current prices
+# and spec version, so the live site never has to solve (a missing list answers "being prepared"). Saved lists are skipped, so a run with nothing new takes seconds.
+# The nightly run (06:00 Asia/Bangkok) is portfolio-efficiency.yml; both use one concurrency group, so only one build runs at a time.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "10 */3 * * *"
   push:
     branches: [main]
-    paths: ["lib/**", "scripts/precompute-frontiers.ts", "scripts/precompute-bands.ts", "scripts/portfolio-efficiency.ts", "scripts/build-slider-snapshot.ts"]
+    paths: ["lib/**", "scripts/portfolio-build.ts", "scripts/portfolio-efficiency.ts", "scripts/build-slider-snapshot.ts"]
 concurrency:
-  group: precompute-frontiers
+  group: portfolio-build
   cancel-in-progress: false
 jobs:
   precompute:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 180
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
@@ -24,33 +22,14 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
-      - run: npx vite-node -c vitest.config.ts scripts/precompute-frontiers.ts
       - name: Portfolio engine (90 positions, terms)
-        if: always()
         run: npx vite-node -c vitest.config.ts scripts/portfolio-efficiency.ts | tee bands.txt
       - name: Slider snapshot (90 positions)
         if: always()
         run: npx vite-node -c vitest.config.ts scripts/build-slider-snapshot.ts | tee snapshot.txt
-      - name: Snapshot table
+      - name: Every other stored list, one horizon at a time
         if: always()
-        run: cat snapshot.txt >> "$GITHUB_STEP_SUMMARY" || true
-      - name: Table
+        run: npx vite-node -c vitest.config.ts scripts/portfolio-build.ts | tee build.txt
+      - name: Tables
         if: always()
-        run: grep '^|' bands.txt >> "$GITHUB_STEP_SUMMARY" || true
-  # Exact years 1 to 15 for Plus and above: its own runner and time limit, so a slow year never holds back the lists everyone sees.
-  # Needs the Bond Efficiency run of the current prices, which the job above makes first.
-  precompute-years:
-    needs: precompute
-    if: always()
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci --silent
-      - name: Exact-year lists
-        run: npx vite-node -c vitest.config.ts scripts/precompute-bands.ts
+        run: cat snapshot.txt build.txt >> "$GITHUB_STEP_SUMMARY"; grep '^|' bands.txt >> "$GITHUB_STEP_SUMMARY" || true

@@ -1,0 +1,37 @@
+name: Nightly live check
+# The ONLY scheduled production check that reports a failure by e-mail (one summary, via the site, to the owner).
+# Runs once per night and once after a successful manual "Deploy to Fly". Never on push, never on a branch.
+on:
+  schedule:
+    - cron: "10 3 * * *"
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy to Fly"]
+    types: [completed]
+concurrency:
+  group: nightly-live-check
+  cancel-in-progress: false
+jobs:
+  check:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --silent
+      - run: npx playwright-core install --with-deps chromium
+      - name: Live finder check (page + list API + score tile)
+        id: live
+        run: node scripts/bes-tile-live-check.mjs 2>&1 | tee live.log
+      - name: One e-mail if it failed
+        if: failure()
+        run: |
+          if [ -z "$ACCOUNTS_DATABASE_URL" ]; then echo "No ACCOUNTS_DATABASE_URL: cannot e-mail."; exit 0; fi
+          token=$(printf 'live-check-alert' | openssl dgst -sha256 -hmac "$ACCOUNTS_DATABASE_URL" -hex | awk '{print $NF}')
+          summary=$(tail -n 6 live.log 2>/dev/null | tr '\n' ' ' | cut -c1-500)
+          body=$(jq -n --arg s "${summary:-the live check could not run}" --arg u "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" '{summary:$s,runUrl:$u}')
+          curl -sS --retry 2 --max-time 30 -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d "$body" https://10bonds.com/api/admin/live-check-alert || true

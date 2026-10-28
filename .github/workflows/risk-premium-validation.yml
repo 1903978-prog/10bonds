@@ -3,8 +3,6 @@ name: Risk premium validation
 # bond copy, current vs risk-adjusted top 10, bonds below the hurdle, exceptional spreads, sensitivity. Read-only.
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/risk-premium-validation.yml", "scripts/risk-premium-validation.ts", "lib/riskPremium/**"]
 jobs:
   validate:
     runs-on: ubuntu-24.04

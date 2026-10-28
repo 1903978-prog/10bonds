@@ -5,9 +5,9 @@ import { LIST_SIZE, statOf, type BandConfig } from "./riskBands";
 import type { StoredBand, StoredBands } from "./riskBandsBuild";
 import { TERMS } from "./limits";
 import { MAX_SPREAD } from "./riskWindow";
-import { newestQuote, PORTFOLIO_SPEC, specRules } from "./portfolioSpec";
+import { newestQuote, poolWindowOf, PORTFOLIO_SPEC, specRules, type LadderStep } from "./portfolioSpec";
 import { checkNsList } from "./netSpread/check";
-import { specCandidates, specExclusion } from "./netSpread/candidates";
+import { sectorExempt, specCandidates, specExclusion } from "./netSpread/candidates";
 
 // Assembles and checks the 90 slider positions (owner, 28/10/2026): 30 per horizon, read from the stored risk-band lists
 // (lib/riskBandsBuild.ts, solved by the precompute job, never here). Nothing is solved in this file and nothing is invented:
@@ -34,6 +34,8 @@ export type SnapshotRow = {
   rowNo: number; horizon: Horizon; position: number; durationTarget: number;
   ytm: number | null; duration: number | null; risk: number | null; expectedLoss: number | null; worstRisk: number | null;
   bandMin: number; bandMax: number; optimal: boolean;
+  /** Anchored bands: the ladder step the list was found at (0 strict; 1..3 = adjusted), the classes the position may hold and its target average risk. */
+  ladder: number | null; classLo: number | null; classHi: number | null; target: number | null;
   /** Risk consistency: lowest and highest individual bond score, their difference and PASS (<= 2) / FAIL. */
   riskMin: number | null; riskMax: number | null; riskSpread: number | null; riskConsistency: "PASS" | "FAIL" | null;
   filled: boolean; error: string | null;
@@ -71,8 +73,12 @@ export function validateBand(sb: StoredBand, bonds: Map<string, PublicBond>, can
     return { ok: false, error: "Stored averages differ from the bond rows (different price batch?)" };
   // The spec's data exclusions, re-judged on today's rows: a stored list never keeps a bond that has since gone stale or turned out subordinated.
   for (const b of rows) { const why = specExclusion(b, newest); if (why) return { ok: false, error: `${b.isin} is excluded by the spec (${why})` }; }
-  // The one validator of the spec: allowed classes of the position, class spread, duration window, issuer and sector caps.
-  const bad = checkNsList(sel.map((c) => ({ isin: c.b.isin, group: c.group ?? c.b.isin, sector: c.sector, cls: c.cls, dur: c.dur })), band.allowed ?? Array.from({ length: 10 }, (_, i) => i + 1), specRules(duration)).filter((c) => !c.ok);
+  // The bond duration window of the ladder step the list was found at (lists of step 2 and 3 may hold bonds outside the strict window).
+  const step = Math.min(3, Math.max(0, sb.ladder ?? 0)) as LadderStep;
+  const win = poolWindowOf(duration, step) * duration + 1e-6;
+  for (const b of rows) if (Math.abs(b.modifiedDuration! - duration) > win + 2) return { ok: false, error: `${b.isin} lies outside the duration window of ladder step ${step}`, min, max };
+  // The one validator of the spec: allowed classes of the position, class spread, the average-risk band, duration window, issuer and sector caps.
+  const bad = checkNsList(sel.map((c, i) => ({ isin: c.b.isin, group: c.group ?? c.b.isin, sector: c.sector, cls: c.cls, dur: c.dur, exempt: sectorExempt(rows[i]) })), band.allowed ?? Array.from({ length: 10 }, (_, i) => i + 1), specRules(duration, step), sb.sumLo !== undefined && sb.sumHi !== undefined ? { sum: { lo: sb.sumLo, hi: sb.sumHi } } : {}).filter((c) => !c.ok);
   if (bad.length) return { ok: false, error: `Breaks the portfolio spec: ${bad.map((c) => c.detail).join("; ")}`, min, max };
   const s = statOf(sel);
   if (![ytm, dur, risk, s.el].every(Number.isFinite)) return { ok: false, error: "Non-finite figure" };
@@ -87,15 +93,17 @@ export function assemble(sets: (StoredBands | null)[], bonds: PublicBond[], cfg:
   const blockers: string[] = [];
   TERMS.forEach((t, h) => {
     const set = sets[h];
-    const cands = new Map(specCandidates(bonds, t.duration).map((c) => [c.b.isin, c]));
+    const wide = specCandidates(bonds, t.duration, 3);
     const seen = new Map<string, number>();
     const part: SnapshotRow[] = [];
-    for (const band of cfg.bands) {
-      const base = { rowNo: h * POSITIONS + band.k, horizon: horizonOf(h), position: band.k, durationTarget: t.duration, bandMin: band.min, bandMax: band.max };
-      const sb = set?.bands[band.k - 1];
+    for (const cb of cfg.bands) {
+      const sb = set?.bands[cb.k - 1];
+      // The band of this key (anchored bands depend on the key); the config only names the positions.
+      const band = sb ? { k: cb.k, min: sb.min, max: sb.max, allowed: sb.allowed } : cb;
+      const base = { rowNo: h * POSITIONS + band.k, horizon: horizonOf(h), position: band.k, durationTarget: t.duration, bandMin: band.min, bandMax: band.max, ladder: sb?.ladder ?? null, classLo: sb?.allowed ? Math.min(...sb.allowed) : null, classHi: sb?.allowed ? Math.max(...sb.allowed) : null, target: sb?.target ?? null };
       const empty: SnapshotRow = { ...base, status: "PENDING", ytm: null, duration: null, risk: null, expectedLoss: null, worstRisk: null, optimal: false, riskMin: null, riskMax: null, riskSpread: null, riskConsistency: null, filled: false, error: null, isins: [], portfolioId: null, sharedWith: null, mappedFrom: null };
       if (!sb) { part.push({ ...empty, error: "Nothing stored for this horizon (run the precompute job)" }); continue; }
-      const v = validateBand(sb, byIsin, cands, t.duration, band, newest);
+      const v = validateBand(sb, byIsin, new Map(wide.map((c) => [c.b.isin, c])), t.duration, band, newest);
       if (!v.ok) { part.push({ ...empty, status: sb.status === "none" && !sb.failed ? "INFEASIBLE" : "ERROR", error: v.error, ...(v.min !== undefined ? { riskMin: v.min, riskMax: v.max!, riskSpread: v.max! - v.min, riskConsistency: "FAIL" as const } : {}) }); continue; }
       const pid = portfolioIdOf(sb.isins);
       const first = seen.get(pid);

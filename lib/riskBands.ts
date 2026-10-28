@@ -8,7 +8,7 @@ import { listLifeLoss } from "./expectedLoss";
 // The bands are a config table (saved in the database, edited at /admin/risk-bands), never hard-coded in a rule.
 // Every figure here is analytic (closed form).
 
-/** Methodology 4 only: `allowed` = the bond risk classes this position may hold (lib/riskMatrix.ts); `step` = place i of m positions sharing them. */
+/** Anchored bands: `allowed` = the bond risk classes this position may hold (a window of three, lib/riskAnchors.ts); `step` is only used by the older engines. */
 export type RiskBand = { k: number; min: number; max: number; allowed?: number[]; step?: { i: number; m: number } };
 export const BAND_COUNT = 30;
 export const LIST_SIZE = 10;

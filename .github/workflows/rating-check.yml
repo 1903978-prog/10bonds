@@ -6,8 +6,6 @@ on:
       duration:
         description: "Horizon in years (±20% window)"
         default: "16.7"
-  push:
-    paths: [".github/workflows/rating-check.yml"]
 jobs:
   count:
     runs-on: ubuntu-24.04
