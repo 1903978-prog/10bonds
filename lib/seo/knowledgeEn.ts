@@ -18,7 +18,7 @@ export const KC_TEXT_EN = {
   lead: "Plain-language guides, a yield calculator and the bond finder, to understand the numbers before you choose.",
   empty: "Pages for this section are being prepared.",
   sections: {
-    best: { name: "Best bonds", intro: "How to compare euro bonds by yield, rating and maturity." },
+    best: { name: "Compare bonds", intro: "How to compare euro bonds by yield, rating and maturity." },
     government: { name: "Government bonds", intro: "BTP, OAT, Bund and other European government bonds." },
     calculators: { name: "Calculators", intro: "Gross and after-tax yield, before you buy." },
     brokers: { name: "Brokers & fees", intro: "What it costs to buy a bond at each broker, by country." },

@@ -5,7 +5,7 @@ import type { Locale } from "./locales";
 // nothing here is invented, and unknown inputs stay unknown.
 
 export const KC_SECTIONS = {
-  best: "Best bonds",
+  best: "Compare bonds",
   government: "Government bonds",
   calculators: "Calculators",
   brokers: "Brokers & Fees",

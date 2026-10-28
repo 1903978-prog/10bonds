@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alternativesOf, cardOf, notShownReason } from "./bondCard";
+import { INFLATION_LINKED, alternativesOf, cardOf, notShownReason } from "./bondCard";
 import { whyHidden } from "./bonds";
 import { SAMPLE_BONDS } from "./sample-bonds";
 
@@ -34,5 +34,8 @@ describe("bond card", () => {
     expect(c.afterLoss).toBeNull();
     expect(c.spreadBp).toBeNull();
     expect(alternativesOf(b, all)).toEqual([]);
+  });
+  it("lists FR0000186413 as inflation-linked so its card never shows a normal yield and spread", () => {
+    expect(INFLATION_LINKED.has("FR0000186413")).toBe(true);
   });
 });
