@@ -141,6 +141,14 @@ async function crawlRole(browser, role) {
   const roleNote = { role, signedIn: null };
   if (role !== "visitor") {
     const r = await ctx.request.post(BASE + "/api/auth/login", { data: { email: ACCOUNTS[role], password: PASSWORD }, timeout: 60_000 });
+    // Over plain http (the CI copy) the session cookie is marked Secure and the request client drops it: set it by hand.
+    if (BASE.startsWith("http:")) {
+      for (const h of r.headersArray().filter((x) => x.name.toLowerCase() === "set-cookie")) {
+        const [pair] = h.value.split(";");
+        const i = pair.indexOf("=");
+        await ctx.addCookies([{ name: pair.slice(0, i), value: pair.slice(i + 1), url: BASE }]);
+      }
+    }
     const me = await ctx.request.get(BASE + "/api/auth/me");
     const info = me.ok() ? await me.json().catch(() => null) : null;
     roleNote.signedIn = { login: r.status(), email: info?.email ?? null, isAdmin: info?.isAdmin ?? null, plan: info?.plan ?? null };
@@ -290,7 +298,7 @@ for (const p of PROMISED) {
   if (r) md.push(`| ${p} | ${r.status} | ${r.finalPath === p ? "same page" : r.finalPath} |`);
 }
 writeFileSync(join(OUT, "link-check.md"), md.join("\n") + "\n");
-console.log(md.slice(0, 12).join("\n"));
+console.log(md.join("\n"));
 console.log(`\n${broken.length} broken page(s) in ${all.length} checked.`);
 const failedChecks = allChecks.filter((c) => !c.ok);
 if (failedChecks.length) console.log(`${failedChecks.length} check(s) failed: ${failedChecks.map((c) => c.role + " " + c.name).join("; ")}`);
