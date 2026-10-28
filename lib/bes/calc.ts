@@ -53,7 +53,7 @@ export type BesRow = {
 /** Government benchmark per currency: country of the curve and the notch used for the benchmark's own (tiny) credit loss. */
 const BENCH: Record<string, { cc: string; name: string; notch: number }> = {
   EUR: { cc: "DE", name: `EUR benchmark table ${FIXED_BENCHMARKS.EUR.version} (reference date ${FIXED_BENCHMARKS.EUR.referenceDate}, supplied by the owner)`, notch: 0 },
-  USD: { cc: "US", name: "US Treasury YTM curve (same daily copy)", notch: 1 },
+  USD: { cc: "US", name: `US Treasury par-yield table ${FIXED_BENCHMARKS.USD.version} (reference date ${FIXED_BENCHMARKS.USD.referenceDate}, supplied by the owner, interim, not yet verified)`, notch: 1 },
   GBP: { cc: "GB", name: "UK Gilt YTM curve (same daily copy)", notch: 1 },
 };
 const MIN_CURVE_POINTS = 6;
