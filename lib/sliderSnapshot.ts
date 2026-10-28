@@ -62,12 +62,14 @@ async function sql() {
       band_min numeric not null, band_max numeric not null,
       optimal boolean not null default false,
       filled boolean not null default false,
+      status text,
       error text,
       portfolio_id text,
       shared_with smallint, mapped_from smallint,
       bond_1 text references app.bond_codes(bond_code), bond_2 text references app.bond_codes(bond_code), bond_3 text references app.bond_codes(bond_code), bond_4 text references app.bond_codes(bond_code), bond_5 text references app.bond_codes(bond_code), bond_6 text references app.bond_codes(bond_code), bond_7 text references app.bond_codes(bond_code), bond_8 text references app.bond_codes(bond_code), bond_9 text references app.bond_codes(bond_code), bond_10 text references app.bond_codes(bond_code),
       primary key (snapshot_id, row_no),
       unique (snapshot_id, horizon, position))`;
+    await s`alter table app.efficient_portfolio_positions add column if not exists status text`;
     await s`create table if not exists app.efficient_portfolio_holdings (
       snapshot_id bigint not null references app.efficient_portfolio_snapshots(id) on delete cascade,
       portfolio_id text not null,
@@ -151,7 +153,7 @@ async function once(trigger: string, f: Pick<BondFilter, "currency" | "size">, f
       on conflict do nothing returning id`;
     if (!ins[0]) return null; // another run saved the same batch a moment ago
     const sid = Number(ins[0].id);
-    const rows = a.rows.map((r) => ({ snapshot_id: sid, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.durationTarget, avg_ytm: r.ytm, avg_duration: r.duration, avg_risk: r.risk, risk_min: r.riskMin, risk_max: r.riskMax, risk_spread: r.riskSpread, risk_consistency: r.riskConsistency, expected_loss: r.expectedLoss, worst_risk: r.worstRisk, band_min: r.bandMin, band_max: r.bandMax, optimal: r.optimal, filled: r.filled, error: r.error, portfolio_id: r.portfolioId ? pidHash(r.horizon + r.portfolioId) : null, shared_with: r.sharedWith, mapped_from: r.mappedFrom, ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`bond_${i + 1}`, [...r.isins].map((x) => codes.get(x)!).sort()[i] ?? null])) }));
+    const rows = a.rows.map((r) => ({ snapshot_id: sid, row_no: r.rowNo, horizon: r.horizon, position: r.position, duration_target: r.durationTarget, avg_ytm: r.ytm, avg_duration: r.duration, avg_risk: r.risk, risk_min: r.riskMin, risk_max: r.riskMax, risk_spread: r.riskSpread, risk_consistency: r.riskConsistency, expected_loss: r.expectedLoss, worst_risk: r.worstRisk, band_min: r.bandMin, band_max: r.bandMax, optimal: r.optimal, filled: r.filled, status: r.status, error: r.error, portfolio_id: r.portfolioId ? pidHash(r.horizon + r.portfolioId) : null, shared_with: r.sharedWith, mapped_from: r.mappedFrom, ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`bond_${i + 1}`, [...r.isins].map((x) => codes.get(x)!).sort()[i] ?? null])) }));
     await tx`insert into app.efficient_portfolio_positions ${tx(rows)}`;
     const seen = new Set<string>();
     const hold: Record<string, unknown>[] = [];
@@ -177,8 +179,8 @@ async function once(trigger: string, f: Pick<BondFilter, "currency" | "size">, f
   await s`update app.efficient_portfolio_jobs set snapshot_id = ${id} where id = ${jobId}`;
   active.delete(filterKey(f));
   return publish
-    ? { status: "published", snapshotId: id, message: `Published snapshot ${id}: 90/90 positions ready`, filled: a.filled, blockers: [] }
-    : { status: "incomplete", snapshotId: id, message: `Not published: ${a.filled}/90 positions ready. The previous snapshot (if any) stays active.`, filled: a.filled, blockers: [...a.blockers, ...notes] };
+    ? { status: "published", snapshotId: id, message: `Published snapshot ${id}: ${a.filled}/90 valid, ${a.rows.filter((r) => r.status === "INFEASIBLE").length} infeasible (no list exists under the approved rules)`, filled: a.filled, blockers: [] }
+    : { status: "incomplete", snapshotId: id, message: `Not published: ${a.filled}/90 valid, ${a.rows.filter((r) => r.status === "ERROR" || r.status === "PENDING").length} unresolved. The previous snapshot (if any) stays active.`, filled: a.filled, blockers: [...a.blockers, ...notes] };
 }
 
 const transient = (e: unknown) => /timeout|ECONN|terminat|reset|too many|57P0|08\d\d\d|53300/i.test((e as Error)?.message ?? "");
@@ -251,7 +253,9 @@ export async function activeSnapshot(f: Pick<BondFilter, "currency" | "size">): 
     if (hit && hit.id === id) { hit.at = Date.now(); return hit.v; }
     const rows = await s`select * from app.efficient_portfolio_positions where snapshot_id = ${id} order by row_no`;
     // Served only if every position still passes today's rules (a snapshot from before a rule, or edited, is never shown); the older one stays for diagnostics.
-    if (rows.length !== 90 || rows.some((r) => r.filled !== true || r.risk_consistency !== "PASS" || Number(r.risk_spread) > MAX_SPREAD || Number(r.risk_max) - Number(r.risk_min) > MAX_SPREAD)) {
+    const badRow = (r: Record<string, unknown>) => r.status === "INFEASIBLE" ? r.filled === true
+      : r.status !== "VALID" || r.filled !== true || r.risk_consistency !== "PASS" || Number(r.risk_spread) > MAX_SPREAD || Number(r.risk_max) - Number(r.risk_min) > MAX_SPREAD;
+    if (rows.length !== 90 || rows.some(badRow)) {
       console.error(`[slider-snapshot] snapshot ${id} fails the current rules; not served`);
       active.delete(key);
       return null;

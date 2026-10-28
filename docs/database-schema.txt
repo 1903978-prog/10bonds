@@ -189,6 +189,7 @@ table app.efficient_portfolio_positions
   band_max numeric not null
   optimal boolean not null default false
   filled boolean not null default false
+  status text
   error text
   portfolio_id text
   shared_with smallint
