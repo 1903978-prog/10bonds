@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { PublicBond } from "./types";
+import type { BesBond } from "./netSpread/build";
 
 // End to end against a real Postgres (TEST_ACCOUNTS_DATABASE_URL): build, publish, idempotence, overlap, a failed rebuild keeps the old snapshot.
 const url = process.env.TEST_ACCOUNTS_DATABASE_URL;
@@ -31,9 +32,8 @@ describe.skipIf(!url)("slider snapshot database", () => {
 
   it("waits for stored lists, publishes 90/90, never duplicates a batch, and a failed new batch keeps the old snapshot", { timeout: 300000 }, async () => {
     const snap = await import("./sliderSnapshot");
-    const { buildBands } = await import("./riskBandsBuild");
-    const { bandsKey } = await import("./riskBandsServe");
-    const { saveStoredBands, loadBandConfig } = await import("./riskBandsStore");
+    const { buildHorizon } = await import("./netSpread/build");
+    const { publishHorizon } = await import("./netSpread/publishBands");
     const { loadBondsFor } = await import("./bonds");
     const { TERMS } = await import("./limits");
     const f = { currency: "EUR", size: "100k" } as const;
@@ -45,9 +45,13 @@ describe.skipIf(!url)("slider snapshot database", () => {
     expect(await snap.activeSnapshot(f)).toBeNull();
 
     // Store the lists of this exact batch, then build: all 90 rows pass and the snapshot is published.
-    const cfg = await loadBandConfig();
-    const src = await loadBondsFor(f as never);
-    for (const t of TERMS) await saveStoredBands(bandsKey(src as never, f as never, t.duration, cfg), await buildBands(src.bonds as PublicBond[], t.duration, cfg, "t"));
+    const storeLists = async () => {
+      const src = await loadBondsFor(f as never);
+      const bonds = src.bonds as PublicBond[];
+      const bes = new Map<string, BesBond>(bonds.map((b) => [b.isin, { isin: b.isin, netSpreadBp: (b.grossYtm! - 1.5) * 100, grossSpreadBp: (b.grossYtm! - 1) * 100, annualLossBp: 5, bes: 50, status: "valid" as const }]));
+      for (const t of TERMS) await publishHorizon(src as never, f as never, t.duration, await buildHorizon({ bonds, bes, seedKey: "t", light: true }, "H", t.duration, 1));
+    };
+    await storeLists();
     const ok = await snap.buildSnapshot("script", f, true);
     expect(ok.status).toBe("published");
     expect(ok.filled).toBe(90);
@@ -77,8 +81,7 @@ describe.skipIf(!url)("slider snapshot database", () => {
     expect((await snap.activeSnapshot(f))!.id).toBe(ok.snapshotId);
 
     // Lists ready for the new batch: the active snapshot switches to the new one and the old one is kept as history.
-    const src2 = await loadBondsFor(f as never);
-    for (const t of TERMS) await saveStoredBands(bandsKey(src2 as never, f as never, t.duration, cfg), await buildBands(src2.bonds as PublicBond[], t.duration, cfg, "t"));
+    await storeLists();
     const next = await snap.buildSnapshot("script", f, true);
     expect(next.status).toBe("published");
     const list = await snap.snapshotList();
