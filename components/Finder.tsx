@@ -39,7 +39,7 @@ import type { WhyRow } from "@/lib/whyList";
 import { createPortal } from "react-dom";
 import { mixTarget } from "@/lib/mixSteps";
 import PortfolioEfficiency from "@/components/PortfolioEfficiency";
-import { SLIDER_POSITIONS, SLIDER_START, tileFigures, type SliderPosition } from "@/lib/sliderPortfolios";
+import { SLIDER_POSITIONS, SLIDER_START, tileFigures, tilesFromPosition, type SliderPosition } from "@/lib/sliderPortfolios";
 import AdminTuner, { TUNER_START, type TunerState } from "./AdminTuner";
 import type { FeatureKey } from "@/lib/features";
 import { FOOTER_NOTE } from "@/lib/footerNote";
@@ -602,7 +602,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         return bandPos.adjusted ? <>{text} · <span title={t.adjustedTip} className="border-b border-dotted border-mute" data-testid="adjusted-badge">{t.adjusted}</span></> : text;
       })()
     : undefined;
-  const live = simple && paid && mode === "portfolio" && data?.band?.source !== "live" ? tileFigures(positions?.[mix - 1]) : null;
+  // The worked-out list's own figures only count while that answer is for this position; an answer still on screen from another position never decides the tiles.
+  const live = simple && paid && mode === "portfolio" && tilesFromPosition(data, mix) ? tileFigures(positions?.[mix - 1]) : null;
   // Production engine: the position's Portfolio Efficiency figures (stored with the list); shown to paid plans and the admin like the two boxes above.
   const effNode: ReactNode = bandPos?.eff && (paid || isAdmin) ? <PortfolioEfficiency eff={bandPos.eff} lang={lang} /> : undefined;
   const signedIn = tier !== "visitor";
