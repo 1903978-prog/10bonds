@@ -57,7 +57,7 @@ try {
     for (const y of YEARS) {
       const key = bandsKey(src, f, y, cfg);
       const saved = await loadStoredBands(key);
-      if (saved && !saved.stale) { skipped += MATRIX_POSITIONS; continue; }
+      if (saved && !saved.stale && process.env.PB_FORCE !== "1") { skipped += MATRIX_POSITIONS; continue; }
       await throttle();
       const h0 = Date.now();
       try {
