@@ -64,16 +64,20 @@ export async function ingestCurves(def: BenchmarkDef, curves: CurveInput[], trig
   const s = await accountsSql();
   let inserted = 0, updated = 0, unchanged = 0;
   await s.begin(async (tx) => {
+    const rows: { curve_type: string; observation_date: string; maturity_years: number; yield_percent: number; series_id: string; basis: string }[] = [];
     for (const c of curves) {
       const old = new Map((await tx`select maturity_years, yield_percent from app.benchmark_curve where benchmark = ${def.benchmark} and curve_type = ${c.curveType} and observation_date = ${c.date}`).map((r) => [Number(r.maturity_years), Number(r.yield_percent)]));
       for (const y of MATURITIES) {
         const o = c.values.get(y)!;
         if (!old.has(y)) inserted++; else if (Math.abs(old.get(y)! - o.value) < 1e-9) { unchanged++; continue; } else updated++;
-        await tx`insert into app.benchmark_curve (benchmark, country, currency, curve_type, observation_date, maturity_years, yield_percent, source, series_id, fetched_at, status, basis)
-          values (${def.benchmark}, ${def.country}, ${def.currency}, ${c.curveType}, ${c.date}, ${y}, ${o.value}, ${def.source}, ${o.seriesId}, ${fetchedAt}, 'valid', ${c.basis ?? "published"})
-          on conflict (benchmark, curve_type, observation_date, maturity_years) do update set yield_percent = excluded.yield_percent, fetched_at = excluded.fetched_at`;
+        rows.push({ curve_type: c.curveType, observation_date: c.date, maturity_years: y, yield_percent: o.value, series_id: o.seriesId, basis: c.basis ?? "published" });
       }
     }
+    // One statement for all changed points (a week of two curves is hundreds of rows; one round trip each is minutes on a remote database).
+    if (rows.length) await tx`insert into app.benchmark_curve (benchmark, country, currency, curve_type, observation_date, maturity_years, yield_percent, source, series_id, fetched_at, status, basis)
+      select ${def.benchmark}, ${def.country}, ${def.currency}, t.curve_type, t.observation_date, t.maturity_years, t.yield_percent, ${def.source}, t.series_id, ${fetchedAt}, 'valid', t.basis
+      from jsonb_to_recordset(${tx.json(rows)}) as t(curve_type text, observation_date date, maturity_years smallint, yield_percent numeric, series_id text, basis text)
+      on conflict (benchmark, curve_type, observation_date, maturity_years) do update set yield_percent = excluded.yield_percent, fetched_at = excluded.fetched_at`;
   });
   const dates = Object.fromEntries(curves.map((c) => [c.curveType, c.date]));
   const r: ImportResult = { ok: true, dates, inserted, updated, unchanged,
