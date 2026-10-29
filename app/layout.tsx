@@ -21,6 +21,7 @@ import NavLink from "@/components/NavLink";
 import UsageStats from "@/components/UsageStats";
 import CopyGuard from "@/components/CopyGuard";
 import GptCalcPopup from "@/components/GptCalcPopup";
+import { Suspense } from "react";
 import { OG_IMAGES } from "@/lib/ogImage";
 import { HYDRATION_REPORT } from "@/lib/hydrationReport";
 
@@ -89,7 +90,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         <main className="mx-auto max-w-6xl px-4 pb-6 pt-3 sm:px-6 sm:pt-5">
           <AccountNotices />
-          {children}
+          {/* Without a boundary here, a page whose data is still arriving makes React throw away the whole hydration and start again, and about 1 load in 10 ended in error #418. */}
+          <Suspense fallback={null}>{children}</Suspense>
         </main>
         <footer className="border-t border-line/70 py-4 text-center text-[11px] leading-snug text-mute">
           <FooterNote />
