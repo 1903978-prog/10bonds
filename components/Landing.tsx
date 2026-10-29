@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import LANDING_BONDS from "@/lib/landingBonds.json";
@@ -111,6 +111,34 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 
 type Num = (n: number, d?: number) => string;
 
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/**
+ * Phones: the comparison card keeps its result in view whatever the screen height (the owner, 29/10/2026: no scrolling).
+ * First the small print goes, then the explanatory line, then the whole card scales down (never below 60%). Larger screens are left alone.
+ * `outer` is the box the card gives us, `inner` the content measured at full size.
+ */
+function useFitHeight(outer: React.RefObject<HTMLDivElement | null>, inner: React.RefObject<HTMLDivElement | null>, deps: unknown[]) {
+  useIsoLayoutEffect(() => {
+    const w = outer.current, c = inner.current;
+    if (!w || !c) return;
+    const fit = () => {
+      c.style.zoom = "";
+      if (!window.matchMedia("(max-width: 639px)").matches) { w.dataset.fit = "0"; return; }
+      for (const level of ["0", "1", "2"]) {
+        w.dataset.fit = level;
+        if (c.offsetHeight <= w.clientHeight) return;
+      }
+      c.style.zoom = String(Math.max(0.6, Math.floor((w.clientHeight / c.offsetHeight) * 97) / 100));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(w);
+    window.addEventListener("resize", fit);
+    return () => { ro.disconnect(); window.removeEventListener("resize", fit); };
+  }, deps);
+}
+
 function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang; num: Num; bench: Bench | null }) {
   // The 10bonds side is the stored top-10 list shown on the carousel's list slide (picked by scripts/landing-snapshot.ts as the
   // list closest to the ETF's risk level, then duration), so both slides tell the same story.
@@ -121,6 +149,9 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
   const closest = bench ? levels.reduce((best, l, i) => (Math.abs(l.avgRisk - bench.risk) < Math.abs(levels[best].avgRisk - bench.risk) ? i : best), 0) : 0;
   const [pick, setPick] = useState<number | null>(null);
   const at = pick ?? closest;
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  useFitHeight(outerRef, innerRef, [pick, lang]);
   const lv = levels[at];
   const p = base && lv ? { ...base, ytm: lv.ytm, avgRisk: lv.avgRisk, duration: lv.duration } : null;
   const copy = p && bench && p.duration != null ? compareCopy(lang, { ytm: p.ytm, risk: p.avgRisk, duration: p.duration }, { ytm: bench.ret, risk: bench.risk, duration: bench.duration }, undefined, lv.expectedLoss / lv.duration) : null;
@@ -148,7 +179,8 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
   return (
     <SlideCard title={actionTitle(t.carousel.act.compare)}>
       {/* Centred in the card, which now grows with the free height. */}
-      <div className="flex flex-1 flex-col justify-center">
+      <div ref={outerRef} className="cmp-fit flex min-h-0 flex-1 flex-col justify-center" data-fit="0">
+      <div ref={innerRef}>
       {copy && <p className="text-[12px] leading-snug lg:text-[13px]" style={{ color: MUTE }} data-testid="compare-sub">{copy.sub}</p>}
       <div className="mt-2 flex h-7 items-center gap-1.5 text-[11px]" style={{ color: MUTE }} role="group" aria-label={t.compare.level} data-testid="compare-levels">
         <span className="min-w-0 truncate">{t.compare.level}</span>
@@ -178,6 +210,7 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
         {copy && <p className="mt-1 text-[12px] font-semibold leading-snug lg:text-[13px]" style={{ color: NAVY }} data-testid="compare-net">{copy.net}</p>}
       </div>
       {copy && <p className="mt-2 text-[9.5px] leading-snug lg:text-[10px]" style={{ color: MUTE }} data-testid="compare-fine">{copy.fine}</p>}
+      </div>
       </div>
     </SlideCard>
   );

@@ -45,6 +45,10 @@ const nextConfig = {
       // The sample company is fictional (ACMA GmbH); the old real-bond links keep working.
       .concat(["risk-assessment", "report"].map((r) => ({ source: `/${r}/FR0013482841`, destination: `/${r}/DE000ACMA031`, permanent: true })));
   },
+  // Browsers and crawlers ask for /favicon.ico by habit; answer with the same icon the pages name, instead of a 404.
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/icon.svg" }];
+  },
   async headers() {
     // /embed/... is shown inside other websites' frames, so it skips the "never in a frame" and same-origin rules.
     // It keeps "require-corp": a page with that rule (ours included) may only frame pages that also have it.
@@ -63,6 +67,8 @@ const nextConfig = {
       },
       { source: "/og.png", headers: day },
       { source: "/carousel-:file.png", headers: day },
+      { source: "/icon.svg", headers: day },
+      { source: "/methodology/:file*", headers: day },
       { source: "/sitemap.xml", headers: hour },
       { source: "/robots.txt", headers: hour },
       { source: "/llms.txt", headers: hour },
