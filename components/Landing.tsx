@@ -143,12 +143,11 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
   // The 10bonds side is the stored top-10 list shown on the carousel's list slide (picked by scripts/landing-snapshot.ts as the
   // list closest to the ETF's risk level, then duration), so both slides tell the same story.
   const base = bench?.portfolio ?? null;
-  // Stored lists of the same term at four risk levels (lib/landingLevels.json). The card opens on the one closest to the ETF's risk
-  // level and the visitor can switch to a higher-risk list; every figure is the stored list's own, nothing is calculated here.
+  // Stored lists of the same term at four risk levels (lib/landingLevels.json). The card opens on level 3 (the owner, 29/10/2026)
+  // and the visitor can switch; every figure is the stored list's own, nothing is calculated here.
   const levels = LANDING_LEVELS.levels;
-  const closest = bench ? levels.reduce((best, l, i) => (Math.abs(l.avgRisk - bench.risk) < Math.abs(levels[best].avgRisk - bench.risk) ? i : best), 0) : 0;
   const [pick, setPick] = useState<number | null>(null);
-  const at = pick ?? closest;
+  const at = pick ?? Math.min(2, levels.length - 1);
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   useFitHeight(outerRef, innerRef, [pick, lang]);
