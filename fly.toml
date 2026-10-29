@@ -36,6 +36,14 @@ primary_region = "cdg"
     method = "GET"
     path = "/api/health"
 
+  # Readiness for blue-green releases (29/10/2026): the new machine joins only after it has rendered the home and plans pages once.
+  [[http_service.checks]]
+    interval = "10s"
+    timeout = "25s"
+    grace_period = "90s"
+    method = "GET"
+    path = "/api/ready"
+
 # 4 shared CPUs (was 1): the single shared CPU was throttled to a small share once its burst credit ran out, so pages took 15+ s. About +2 USD/month.
 [[vm]]
   memory = "1024mb"
