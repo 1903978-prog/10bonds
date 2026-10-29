@@ -111,13 +111,12 @@ for (const [w, h] of WIDTHS) {
   ok(await p.locator('[data-testid="term-picker"]').isVisible(), `${w}px home: term choice present`);
   ok(await p.locator('[data-testid="find-portfolio"]').isVisible(), `${w}px home: Find portfolio button present`);
   // The date line, or the sample-data note that takes its place once sample data has loaded (CI runs on sample data).
-  // Phones show the list (and its date) on their own full-screen page, opened by the button; Back returns to the slider.
+  // Phones show the 10 bonds (and the date) under the sliders, as a compressed list; the button brings it into view (the owner, 29/10/2026).
   if (w < 640) await p.locator('[data-testid="find-portfolio"]').click();
   ok(await p.locator('[data-testid="yields-date"], [data-testid="yields-sample"]').filter({ visible: true }).first().isVisible(), `${w}px home: yields date shown`);
   if (w < 640) {
-    ok(await p.locator('[data-testid="phone-rows"]').isVisible(), `${w}px home: full-screen results page opens`);
-    await p.locator('[data-testid="phone-results-back"]').click();
-    ok(!(await p.locator('[data-testid="phone-results"]').count()), `${w}px home: Back closes the results page`);
+    ok(await p.locator('[data-testid="phone-list"]').isVisible(), `${w}px home: the list sits under the sliders`);
+    ok(!(await p.locator('[data-testid="phone-results"]').count()), `${w}px home: no full-screen results page`);
   }
   const before = await p.locator("main").innerText();
   const valueBefore = await sliders.first().inputValue();
