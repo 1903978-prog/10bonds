@@ -17,7 +17,7 @@ export const actionTitle = ([long, short]: readonly [string, string] | string[])
 
 /** One card of the landing carousel: same white card as the comparison, filling the carousel's fixed height. */
 export function SlideCard({ title, children, href, long }: { title: ReactNode; children: ReactNode; href?: string; long?: boolean }) {
-  const box = "flex h-full flex-col rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5";
+  const box = "flex h-full flex-col [@media(max-width:639px)]:overflow-hidden rounded-[18px] border border-[#e3ebe7] bg-white p-4 shadow-[0_8px_30px_rgba(17,45,59,0.07)] lg:p-5";
   // With `href` the whole card opens that page (the Risk assessment pages, PR #188).
   if (href) return <Link href={href} className={`${box} transition hover:border-[#cfe6da]`} data-testid="slide-link">{inner(title, children, long)}</Link>;
   return <div className={box}>{inner(title, children, long)}</div>;
@@ -56,7 +56,7 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
 
   return (
     <div
-      className="relative flex min-w-0 touch-pan-y flex-col min-h-[max(360px,calc(100svh_-_320px))] lg:h-[min(620px,calc(100vh_/_var(--z)_-_205px))]"
+      className="relative flex min-w-0 touch-pan-y flex-col [@media(max-width:639px)]:min-h-[150px] [@media(max-width:639px)]:flex-1 sm:min-h-[max(360px,calc(100svh_-_320px))] lg:h-[min(620px,calc(100vh_/_var(--z)_-_205px))]"
       role="region"
       aria-roledescription="carousel"
       aria-label={t.carousel.label}

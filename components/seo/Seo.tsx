@@ -55,7 +55,7 @@ export function ToolCta({ locale }: { locale: Locale | "en" }) {
 function Table({ locale, rows, curve, admin }: { locale: Locale | "en"; rows: ComparisonRow[]; curve?: boolean; admin: boolean }) {
   const t = T[locale];
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0}>
       <table className="w-full min-w-[22rem] text-left text-[14px] sm:text-[15px]">
         <thead className="text-xs text-mute">
           <tr>
