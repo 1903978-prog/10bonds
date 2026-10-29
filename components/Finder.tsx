@@ -121,7 +121,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The list replaces the chart only when the main button is pressed (the owner, 26/10/2026); until then the chart follows the horizon.
   const [listOn, setListOn] = useState(fromLanding);
   // iPhone (the owner, 24/10/2026): "Show AI Efficient Portfolio" opens the results as their own full-screen page, no scrolling.
-  const [sheet, setSheet] = useState(() => fromLanding && typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches);
+  // Coming from the landing page the phone shows the sliders first; the results page opens with the main button (the owner, 29/10/2026).
+  const [sheet, setSheet] = useState(false);
   // Each press of "Show AI Efficient Portfolio" runs the search again, so the press always shows the search and a fresh list.
   const [rerun, setRerun] = useState(0);
   const autoRetries = useRef(0);
@@ -132,6 +133,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
+  const phoneList = useRef<HTMLElement>(null);
   const [resultsH, setResultsH] = useState<number | null>(null);
   useLayoutEffect(() => {
     if (mode === "portfolio" && resultsBox.current) setResultsH(resultsBox.current.offsetHeight);
@@ -353,7 +355,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setMode(r.mode);
       setTouched(true);
       setListOn(true);
-      if (r.sheet && r.mode === "portfolio" && window.matchMedia("(max-width: 639px)").matches) setSheet(true);
       setResumed((n) => n + 1);
     });
   }, []);
@@ -806,7 +807,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               // A desired return above the slider's maximum is brought back to it, so the figure shown is the one searched.
               if (caps && ytm > ytmMax) setYtm(ytmMax);
               setRerun((n) => n + 1);
-              if (window.matchMedia("(max-width: 639px)").matches) setSheet(true);
+              if (window.matchMedia("(max-width: 639px)").matches) phoneList.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
               else if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
@@ -986,6 +987,28 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           )}
         </div>
       </section>
+      )}
+      {mode === "portfolio" && listOn && (
+        <section ref={phoneList} className="sm:hidden" data-testid="phone-list">
+          <FinderLangContext.Provider value={lang}>
+            <PhoneList
+              data={data}
+              list={list}
+              features={features}
+              signedIn={signedIn}
+              loading={loading}
+              lang={lang}
+              currency={currency}
+              onExcluded={() => setExcludedAt(Date.now())}
+              message={
+                limit ? <LimitReached quota={limit} />
+                : error ? <ErrorRetry text={error} onRetry={() => setRerun((n) => n + 1)} />
+                : data && data.rows.length === 0 ? <p className="text-sm text-mute">{data.status === "INFEASIBLE" ? (data.band ? t.noBand : t.noOptimised) : t.none}</p>
+                : null
+              }
+            />
+          </FinderLangContext.Provider>
+        </section>
       )}
       <ConsentGate active={listOn && mode === "portfolio"} lang={lang} isAdmin={isAdmin} />
       {sheet && mode === "portfolio" && createPortal(
@@ -1656,6 +1679,55 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
     [["#", t.issuer, t.bond, "ISIN", `${t.yield} %`, t.duration, t.minInvest], ...rows.map((r) => [r.rank, r.issuer, r.name, r.isin, r.ytm, r.duration, minForExcel(r.minInvestment)])],
     "10bonds-top10.xlsx",
     "Top 10",
+  );
+}
+
+/**
+ * iPhone (the owner, 29/10/2026): the sliders and toggles on top, the 10 bonds below them in a compressed list:
+ * issuer, years, return and the minus sign only, one 32 px line each (no ISIN, spread, risk or other detail).
+ */
+function PhoneList({ data, list, features, signedIn, loading, lang, currency, onExcluded, message }: { currency: string; data: Response | null; list: ResultRow[] | null; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; onExcluded: () => void; message: ReactNode | null }) {
+  const t = useFinderText();
+  const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
+  const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
+  const canExclude = features.has("blacklist");
+  const cols = "grid grid-cols-[1.25rem_minmax(0,1fr)_2.25rem_3.75rem_2.25rem] items-center gap-x-1.5";
+  return (
+    <div className={`rounded-lg border border-line bg-white px-3 py-1 transition-opacity ${loading ? "opacity-60" : ""}`}>
+      <div className={`${cols} h-5 border-b border-line text-[11px] text-mute`}>
+        <span>#</span>
+        <span>{t.issuer}</span>
+        <span className="text-right">{t.yrs}</span>
+        <span className="text-right">{t.yield}</span>
+        <span />
+      </div>
+      {message ? (
+        <div className="flex min-h-[120px] items-center justify-center p-4 text-center">{message}</div>
+      ) : (
+        <ul data-testid="phone-list-rows">
+          {rows.map((r, i) => (
+            <li key={r.rank} className={`${cols} h-8 border-b border-line/60`}>
+              <span className="text-[12px] tabular-nums text-mute">{r.rank}</span>
+              <span className="truncate text-[14px] font-medium">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</span>
+              <span className="text-right text-[12px] tabular-nums">{r.duration != null ? r.duration.toFixed(1) : <Dim />}</span>
+              <span className="text-right text-[14px] font-semibold tabular-nums">{pct(r.ytm)}</span>
+              <span className="flex h-8 items-center justify-center"><ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
+            </li>
+          ))}
+          {locked > 0 && (
+            <li className="flex h-10 items-center justify-between gap-2 text-[13px]">
+              <span className="font-medium">{t.more(locked)}</span>
+              <Link href={signupHref(lang)} className="rounded-full bg-accent px-3 py-1.5 text-[12px] font-medium text-white">{t.seeAll}</Link>
+            </li>
+          )}
+        </ul>
+      )}
+      {data?.source === "sample" ? (
+        <p className="mt-1 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
+      ) : (
+        <p className="mt-1 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}</p>
+      )}
+    </div>
   );
 }
 
