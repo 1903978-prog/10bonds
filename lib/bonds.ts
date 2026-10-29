@@ -8,6 +8,9 @@ import { correctedMin } from "./minOverrides";
 import { dormantReason } from "./dormant";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
 import { couponTypeOf } from "./bondFacts";
+import { PORTFOLIO_SPEC } from "./portfolioSpec";
+import { summarise, plainReason, NO_REASON, type Cur, type FreshRow, type NotRefreshedBond } from "./priceFreshness";
+import { lastTradingDay, tradingDaysBetween } from "./tradingCalendar";
 import { judge, missingColumns, type DataHealth } from "./dataHealth";
 import { cleanSd, findOutliers, OUTLIER_SD, type Outlier } from "./outliers";
 import { liveOutlierSd } from "./riskPremium/store";
@@ -328,25 +331,68 @@ function memo2m<T>(fn: () => Promise<T>): () => Promise<T> {
 }
 export const bondDataStats = memo2m(bondDataStatsRaw);
 
-export type CurrencyFreshness = { currency: "EUR" | "USD"; total: number; last24h: number; newest: string | null };
 
-/** One cheap query for the admin home: per currency, bonds whose price (own date when the copy has it, else yield date) is under 24 h old. */
-export async function priceFreshnessByCurrency(): Promise<{ basis: "price_as_of" | "ytm_as_of"; rows: CurrencyFreshness[] } | null> {
+/** Which of the optional refresh columns the copy has yet (the LM op model adds them in its own time). */
+async function refreshColumns(client: NonNullable<ReturnType<typeof db>>) {
+  const cols = (await client`select column_name from information_schema.columns where table_name = 'public_bonds' and column_name in ('price_as_of', 'last_refresh_attempt_at', 'refresh_status', 'refresh_fail_reason')`).map((c) => String(c.column_name));
+  const has = (c: string) => cols.includes(c);
+  return {
+    when: has("price_as_of") ? "coalesce(price_as_of, ytm_as_of)" : "ytm_as_of",
+    status: has("refresh_status") ? "refresh_status::text" : "null::text",
+    reason: has("refresh_fail_reason") ? "refresh_fail_reason::text" : "null::text",
+    attempt: has("last_refresh_attempt_at") ? "last_refresh_attempt_at" : "null::timestamptz",
+    hasAttempt: has("last_refresh_attempt_at"), hasStatus: has("refresh_status"), hasReason: has("refresh_fail_reason"),
+  };
+}
+
+/** Admin: how fresh the quotes are per currency (EUR TARGET2 / USD SIFMA trading days), the last push and the reasons for stale bonds. One grouped query; kept 2 minutes. */
+export const priceFreshnessReport = memo2m(async () => {
   const client = db();
   if (!client) return null;
-  const cols = await client`select column_name from information_schema.columns where table_name = 'public_bonds' and column_name = 'price_as_of'`;
-  const basis = cols.length ? "price_as_of" : "ytm_as_of";
-  const r = await client`
-    select upper(trim(currency)) cur, count(*) total,
-           count(*) filter (where d > now() - interval '24 hours') h24, max(d) newest
-    from (select currency, ${client.unsafe(basis === "price_as_of" ? "coalesce(price_as_of, ytm_as_of)" : "ytm_as_of")} d from public_bonds) t
+  const c = await refreshColumns(client);
+  const grouped = await client`
+    select upper(trim(currency)) cur, (d at time zone 'UTC')::date::text day, st, rs, count(*) n
+    from (select currency, ${client.unsafe(c.when)} d, ${client.unsafe(c.status)} st, ${client.unsafe(c.reason)} rs from public_bonds) t
     where upper(trim(currency)) in ('EUR', 'USD')
-    group by 1`;
-  const rows = (["EUR", "USD"] as const).map((c) => {
-    const x = r.find((y) => y.cur === c);
-    return { currency: c, total: Number(x?.total ?? 0), last24h: Number(x?.h24 ?? 0), newest: x?.newest ? new Date(x.newest).toISOString() : null };
-  });
-  return { basis, rows };
+    group by 1, 2, 3, 4`;
+  const agg = await client`
+    select upper(trim(currency)) cur, max(d) newest, max(att) push, count(*) filter (where d > now() - interval '24 hours') h24
+    from (select currency, ${client.unsafe(c.when)} d, ${client.unsafe(c.attempt)} att from public_bonds) t
+    where upper(trim(currency)) in ('EUR', 'USD') group by 1`;
+  const pick = (k: "newest" | "push"): Record<Cur, string | null> => {
+    const o = { EUR: null, USD: null } as Record<Cur, string | null>;
+    for (const r of agg) o[r.cur as Cur] = r[k] ? new Date(r[k] as string).toISOString() : null;
+    return o;
+  };
+  const h24 = { EUR: 0, USD: 0 } as Record<Cur, number>;
+  for (const r of agg) h24[r.cur as Cur] = Number(r.h24);
+  const rows: FreshRow[] = grouped.map((g) => ({ cur: g.cur as Cur, day: (g.day as string | null) ?? null, status: (g.st as string | null) ?? null, reason: (g.rs as string | null) ?? null, n: Number(g.n) }));
+  const now = new Date();
+  return { ...summarise(rows, pick("newest"), pick("push"), now, h24), columns: { attempt: c.hasAttempt, status: c.hasStatus, reason: c.hasReason }, generatedAt: now.toISOString(), staleRuleDays: PORTFOLIO_SPEC.staleTradingDays };
+});
+
+/** Admin: the bonds whose price is older than 3 trading days (optionally one currency and one reason), for the expandable table and the CSV. */
+export async function notRefreshedBonds(opts: { cur?: Cur; reason?: string; limit?: number } = {}): Promise<NotRefreshedBond[] | null> {
+  const client = db();
+  if (!client) return null;
+  const c = await refreshColumns(client);
+  const r = await client`
+    select isin, name, issuer, upper(trim(currency)) cur, (d at time zone 'UTC')::date::text day, st, rs, att::text att
+    from (select isin, name, issuer, currency, ${client.unsafe(c.when)} d, ${client.unsafe(c.status)} st, ${client.unsafe(c.reason)} rs, ${client.unsafe(c.attempt)} att from public_bonds) t
+    where upper(trim(currency)) in ('EUR', 'USD') ${opts.cur ? client`and upper(trim(currency)) = ${opts.cur}` : client``}
+    order by cur, day nulls first, isin`;
+  const now = new Date().toISOString().slice(0, 10);
+  const out: NotRefreshedBond[] = [];
+  for (const b of r) {
+    const cur = b.cur as Cur;
+    const age = b.day ? tradingDaysBetween(cur, b.day as string, lastTradingDay(cur, now)) : null;
+    if (age !== null && age <= 3) continue;
+    const reason = plainReason(b.rs as string | null);
+    if (opts.reason && reason !== opts.reason) continue;
+    out.push({ isin: b.isin as string, name: (b.name as string | null) ?? null, issuer: (b.issuer as string | null) ?? null, currency: cur, priceDate: (b.day as string | null) ?? null, ageTradingDays: age, status: (b.st as string | null) ?? null, reason: reason || NO_REASON, lastAttempt: b.att ? new Date(b.att as string).toISOString() : null });
+    if (opts.limit && out.length >= opts.limit) break;
+  }
+  return out;
 }
 
 /** Freshness and shape of the bond copy, for /api/health/data and the daily data watch. Numbers only, no bond details. */
