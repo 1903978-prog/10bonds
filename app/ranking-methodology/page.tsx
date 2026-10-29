@@ -7,12 +7,13 @@ import { OUTLIER_SD } from "@/lib/outliers";
 import { liveRiskConfig } from "@/lib/riskPremium/store";
 import { notchOf, riskOfNotch } from "@/lib/ratings";
 import { MethodSections } from "@/components/MethodNav";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const metadata: Metadata = {
   title: "Ranking methodology · 10BONDS",
   description: "How 10BONDS ranks bonds: return after expected losses, the required risk premium per risk level and how unusual prices are handled.",
   alternates: { canonical: "/ranking-methodology" },
-  openGraph: { title: "Ranking methodology · 10BONDS", description: "How 10BONDS ranks bonds: return after expected losses, the required risk premium per risk level and how unusual prices are handled.", url: "/ranking-methodology" },
+  openGraph: { images: OG_IMAGES, title: "Ranking methodology · 10BONDS", description: "How 10BONDS ranks bonds: return after expected losses, the required risk premium per risk level and how unusual prices are handled.", url: "/ranking-methodology" },
 };
 export const dynamic = "force-dynamic";
 

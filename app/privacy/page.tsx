@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { COMPANY, LEGAL_DRAFT_DATE } from "@/lib/legal";
 import { euro, priceCents } from "@/lib/plans";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const metadata: Metadata = {
   title: "Privacy and GDPR · 10BONDS",
   description: "How 10BONDS handles personal data under the GDPR: what is collected, why, for how long, and how to exercise your rights.",
   alternates: { canonical: "/privacy" },
-  openGraph: { title: "Privacy and GDPR · 10BONDS", description: "How 10BONDS handles personal data under the GDPR: what is collected, why, for how long, and how to exercise your rights.", url: "/privacy" },
+  openGraph: { images: OG_IMAGES, title: "Privacy and GDPR · 10BONDS", description: "How 10BONDS handles personal data under the GDPR: what is collected, why, for how long, and how to exercise your rights.", url: "/privacy" },
 };
 
 // The owner's privacy policy text (19 October 2026), with his four checks filled in from how 10BONDS actually works:

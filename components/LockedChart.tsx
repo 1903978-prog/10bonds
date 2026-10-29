@@ -28,7 +28,12 @@ function Shape({ kind }: { kind: LockedKind }) {
   );
 }
 
-export default function LockedChart({ kind, label, href }: { kind: LockedKind; label: string; href: string }) {
+/** Padlock drawn inline, so the locked state reads without colour or text. */
+export const Padlock = () => (
+  <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+);
+
+export default function LockedChart({ kind, label, href, reason }: { kind: LockedKind; label: string; href: string; reason?: string }) {
   return (
     <div className="relative h-full min-h-[300px] overflow-hidden rounded-lg bg-black/[0.02]" data-testid="locked-chart">
       <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full select-none blur-[7px]" aria-hidden="true" preserveAspectRatio="none">
@@ -38,7 +43,8 @@ export default function LockedChart({ kind, label, href }: { kind: LockedKind; l
         {["3.1", "3.6", "4.1", "4.6", "5.1"].map((t, i) => <text key={t} x={L + i * 80} y={H - 8} fontSize={11} fill="#6e6e73">{t}%</text>)}
         <rect x={W - 120} y={4} width={104} height={14} rx={4} fill="#6e6e73" opacity={0.35} />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center p-4">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4">
+        {reason && <p className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[13px] font-medium text-ink" data-testid="locked-chart-reason"><Padlock />{reason}</p>}
         <Link href={href} data-testid="locked-chart-cta" className="rounded-full bg-accent px-5 py-2.5 text-center text-[14px] font-semibold text-white shadow-lg transition hover:opacity-90">
           {label}
         </Link>

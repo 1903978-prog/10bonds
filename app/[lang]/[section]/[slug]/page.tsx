@@ -26,6 +26,7 @@ import { alternates, comparisonAlternates, comparisonPages, fmtDate, guideAltern
 import { guideBySlug, listGuides, listPeople, type Guide } from "@/lib/seo/store";
 import BondIsinPage, { bondByIsin } from "@/components/seo/BondIsinPage";
 import { bondAlternates, bondDescription, bondTitle, isIsin } from "@/lib/seo/bondPages";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const dynamic = "force-dynamic";
 
@@ -73,23 +74,23 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     if (!hit) return { robots: { index: false } };
     const title = bondTitle(r.l, hit.bond);
     const description = bondDescription(r.l, hit.bond);
-    return { title: { absolute: title }, description, alternates: bondAlternates(r.l, r.isin), robots: hit.live ? undefined : { index: false, follow: true }, openGraph: { locale: LOCALE[r.l].ogLocale, title, description } };
+    return { title: { absolute: title }, description, alternates: bondAlternates(r.l, r.isin), robots: hit.live ? undefined : { index: false, follow: true }, openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title, description } };
   }
   if (r.kind === "map") {
     const c = BOND_MAP_TEXT[r.l];
-    return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates(r.l), openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
   }
   if (r.kind === "bund") {
     const c = BUND_CURVE_TEXT[r.l];
-    return { title: { absolute: c.title }, description: c.description, alternates: bundCurveAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: bundCurveAlternates(r.l), openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
   }
   if (r.kind === "insights") {
     const c = INSIGHTS_TEXT[r.l];
-    return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates(r.l), openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
   }
   if (r.kind === "curve") {
     const c = CURVE_TEXT[r.l];
-    return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates(r.l), openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates(r.l), openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description } };
   }
   if (r.kind === "tool") {
     const c = CALCULATORS[r.l];
@@ -98,7 +99,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       title: { absolute: land?.seoTitle ?? c.title },
       description: land?.metaDescription ?? c.description,
       alternates: withEnglish(pathOf(r.l, "tools", c.slug), enPath(CALCULATOR_EN.slug), calcLangs()),
-      openGraph: { locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description },
+      openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title: c.title, description: c.description },
     };
   }
   if (r.kind === "bonds") {
@@ -111,7 +112,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       description: land?.metaDescription ?? x.description,
       alternates: comparisonAlternates(r.l, r.def),
       robots: c && indexable(c, source) ? undefined : { index: false, follow: true },
-      openGraph: { locale: LOCALE[r.l].ogLocale, title: x.title, description: x.description },
+      openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title: x.title, description: x.description },
     };
   }
   const g = r.guide;
@@ -121,7 +122,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     description: g.metaDescription,
     alternates: guideWithEnglish(g, siblings),
     robots: g.noindex || g.status !== "published" ? { index: false, follow: true } : undefined,
-    openGraph: { type: "article", locale: LOCALE[r.l].ogLocale, title: g.seoTitle, description: g.metaDescription, publishedTime: g.publishedAt ?? undefined, modifiedTime: g.reviewedAt ?? g.updatedAt },
+    openGraph: { images: OG_IMAGES, type: "article", locale: LOCALE[r.l].ogLocale, title: g.seoTitle, description: g.metaDescription, publishedTime: g.publishedAt ?? undefined, modifiedTime: g.reviewedAt ?? g.updatedAt },
   };
 }
 

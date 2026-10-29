@@ -3,6 +3,7 @@ import { brokerPath, CONTENT, methodologyPath, sectionPath } from "./content";
 import { PROFILES, SEED_TARIFFS } from "./data";
 import { COUNTRIES, type Country } from "./types";
 import { landingFor } from "@/lib/seo/landingOwner";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 // Page titles, canonical URLs, hreflang links and sitemap entries for the broker section.
 
@@ -24,7 +25,7 @@ export function sectionMetadata(c: Country, published: boolean): Metadata {
     title: land ? { absolute: land.seoTitle } : `${t.metaTitle} · 10BONDS`,
     description: land?.metaDescription ?? t.metaDescription,
     alternates: { canonical: abs(path), languages: { ...hreflang({ it: sectionPath("it"), fr: sectionPath("fr"), de: sectionPath("de") }), "x-default": abs(sectionPath("it")) } },
-    openGraph: { title: t.metaTitle, description: t.metaDescription, url: abs(path), locale: t.lang.replace("-", "_"), type: "article", siteName: "10BONDS" },
+    openGraph: { images: OG_IMAGES, title: t.metaTitle, description: t.metaDescription, url: abs(path), locale: t.lang.replace("-", "_"), type: "article", siteName: "10BONDS" },
     robots: published ? { index: true, follow: true } : { index: false, follow: false },
   };
 }

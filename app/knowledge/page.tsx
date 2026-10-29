@@ -16,6 +16,7 @@ import { bundCurvePath, BUND_CURVE_TEXT } from "@/lib/seo/bundCurve";
 import { CALCULATOR_EN, enPath, hubLangs, KC_TEXT_EN, withEnglish } from "@/lib/seo/knowledgeEn";
 import { LOCALES } from "@/lib/seo/locales";
 import type { KcSection } from "@/lib/seo/knowledge";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 // The English Knowledge Center. Same six sections as /it/sapere, /fr/savoir and /de/wissen, all in English.
 
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
   title: { absolute: k.title },
   description: k.description,
   alternates: withEnglish(enPath(), enPath(), hubLangs()),
-  openGraph: { locale: "en_GB", title: k.title, description: k.description },
+  openGraph: { images: OG_IMAGES, locale: "en_GB", title: k.title, description: k.description },
 };
 
 type Item = { title: string; href: string };

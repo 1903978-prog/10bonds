@@ -78,7 +78,7 @@ const en = {
     same: (r: string, d: string) => `more gross yield per year, at the same risk level (${r}) and similar duration (about ${d} years)`,
     diff: (r1: string, r2: string, d1: string, d2: string) => `gross yield per year, list vs ETF. Risk level ${r1} vs ${r2}, duration ${d1} vs ${d2} years`,
     net: (pp: string) => `${pp} pp after expected credit losses`,
-    fine: "Illustrative, based on today's data. Gross yields, before taxes, broker costs and expected credit losses. The ETF benchmark is provisional and names no provider. Bond lists and ETFs differ in diversification and liquidity. Not a recommendation.",
+    fine: "Illustrative, based on today's data. Gross yields, before taxes, broker costs and expected credit losses. The ETF benchmark names no provider. Bond lists and ETFs differ in diversification and liquidity. Not a recommendation.",
   },
   carousel: {
     // Action titles, one per slide (the owner, 24/10/2026): [desktop, phone].
@@ -175,7 +175,7 @@ const it: LandingText = {
     same: (r, d) => `di rendimento lordo in più all'anno, allo stesso livello di rischio (${r}) e con durata simile (circa ${d} anni)`,
     diff: (r1, r2, d1, d2) => `di rendimento lordo all'anno, lista vs ETF. Livello di rischio ${r1} vs ${r2}, durata ${d1} vs ${d2} anni`,
     net: (pp) => `${pp} pp dopo le perdite attese su crediti`,
-    fine: "A titolo illustrativo, sulla base dei dati di oggi. Rendimenti lordi, al lordo di imposte, costi di intermediazione e perdite attese su crediti. Il benchmark ETF è provvisorio e non cita alcun fornitore. Liste di obbligazioni ed ETF differiscono per diversificazione e liquidità. Non è una raccomandazione.",
+    fine: "A titolo illustrativo, sulla base dei dati di oggi. Rendimenti lordi, al lordo di imposte, costi di intermediazione e perdite attese su crediti. Il benchmark ETF non cita alcun fornitore. Liste di obbligazioni ed ETF differiscono per diversificazione e liquidità. Non è una raccomandazione.",
   },
   carousel: {
     act: {
@@ -270,7 +270,7 @@ const fr: LandingText = {
     same: (r, d) => `de rendement brut en plus par an, au même niveau de risque (${r}) et avec une durée similaire (environ ${d} ans)`,
     diff: (r1, r2, d1, d2) => `de rendement brut par an, liste vs ETF. Niveau de risque ${r1} vs ${r2}, durée ${d1} vs ${d2} ans`,
     net: (pp) => `${pp} pp après pertes de crédit attendues`,
-    fine: "À titre illustratif, sur la base des données du jour. Rendements bruts, avant impôts, frais de courtage et pertes de crédit attendues. La référence ETF est provisoire et ne nomme aucun fournisseur. Les listes d'obligations et les ETF diffèrent par la diversification et la liquidité. Ne constitue pas une recommandation.",
+    fine: "À titre illustratif, sur la base des données du jour. Rendements bruts, avant impôts, frais de courtage et pertes de crédit attendues. La référence ETF ne nomme aucun fournisseur. Les listes d'obligations et les ETF diffèrent par la diversification et la liquidité. Ne constitue pas une recommandation.",
   },
   carousel: {
     act: {
@@ -365,7 +365,7 @@ const de: LandingText = {
     same: (r, d) => `mehr Brutto-Rendite pro Jahr, bei gleicher Risikostufe (${r}) und ähnlicher Laufzeit (etwa ${d} Jahre)`,
     diff: (r1, r2, d1, d2) => `Brutto-Rendite pro Jahr, Liste vs ETF. Risikostufe ${r1} vs ${r2}, Laufzeit ${d1} vs ${d2} Jahre`,
     net: (pp) => `${pp} pp nach erwarteten Kreditverlusten`,
-    fine: "Zur Illustration, auf Basis der heutigen Daten. Brutto-Renditen, vor Steuern, Brokerkosten und erwarteten Kreditverlusten. Der ETF-Vergleichswert ist vorläufig und nennt keinen Anbieter. Anleihelisten und ETFs unterscheiden sich in Diversifikation und Liquidität. Keine Empfehlung.",
+    fine: "Zur Illustration, auf Basis der heutigen Daten. Brutto-Renditen, vor Steuern, Brokerkosten und erwarteten Kreditverlusten. Der ETF-Vergleichswert nennt keinen Anbieter. Anleihelisten und ETFs unterscheiden sich in Diversifikation und Liquidität. Keine Empfehlung.",
   },
   carousel: {
     act: {

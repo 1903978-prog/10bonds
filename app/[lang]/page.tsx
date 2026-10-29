@@ -16,6 +16,7 @@ import { CALCULATORS } from "@/lib/seo/calculators";
 import { isLocale, LOCALE, pathOf, T, type Locale } from "@/lib/seo/locales";
 import { HOME } from "@/lib/seo/pagesText";
 import { alternates, comparisonPages, publishedGuides, shown } from "@/lib/seo/site";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: h.description,
     // The English home is a language version too, so every home lists all four (each one also lists itself).
     alternates: (({ canonical, languages }) => ({ canonical, languages: { ...languages, en: "/" } }))(alternates(lang, (l) => `/${l}`, "/")!),
-    openGraph: { locale: LOCALE[lang].ogLocale, title: h.title, description: h.description, type: "website", siteName: "10BONDS" },
+    openGraph: { images: OG_IMAGES, locale: LOCALE[lang].ogLocale, title: h.title, description: h.description, type: "website", siteName: "10BONDS" },
   };
 }
 

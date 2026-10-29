@@ -68,7 +68,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
           <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="whitespace-nowrap text-[10.5px] font-semibold leading-none underline underline-offset-2 sm:hidden" style={{ color: GREEN }}>{t.paperShort} ↓</a>
         </div>
-        <Title className={`text-[clamp(26px,8vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] ${t.h1a.length > 17 || t.h1b.length > 17 ? "lg:text-[42px]" : "lg:text-[58px]"}`}>
+        <Title className={`text-[clamp(26px,8vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] ${Math.max(t.h1a.length, t.h1b.length) <= 17 ? "lg:text-[58px]" : Math.max(t.h1a.length, t.h1b.length) <= 26 ? "lg:text-[42px]" : "lg:text-[34px]"}`}>
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>

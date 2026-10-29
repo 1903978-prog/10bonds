@@ -8,12 +8,13 @@ import { LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import { OUTLIER_MIN_PEERS } from "@/lib/outliers";
 import { currentOutlierSd } from "@/lib/bonds";
 import { LANDING_TEXT } from "@/lib/landingText";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const metadata: Metadata = {
   title: "Selection methodology · 10BONDS",
   description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest modelled probability of at least one issuer default, and how the list is built.",
   alternates: { canonical: "/selection-methodology" },
-  openGraph: { title: "Selection methodology · 10BONDS", description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest modelled probability of at least one issuer default, and how the list is built.", url: "/selection-methodology" },
+  openGraph: { images: OG_IMAGES, title: "Selection methodology · 10BONDS", description: "How 10BONDS picks a list of 10 bonds for a chosen duration and desired return: one bond per issuer, the lowest modelled probability of at least one issuer default, and how the list is built.", url: "/selection-methodology" },
 };
 export const dynamic = "force-dynamic";
 
