@@ -2,7 +2,7 @@ import { ORGANIZATION } from "@/lib/seo/org";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { JsonLd, prose } from "@/components/seo/Seo";
+import { JsonLd, prose, ToolCta } from "@/components/seo/Seo";
 import CurveSection from "@/components/seo/CurveSection";
 import BundCurveSection from "@/components/seo/BundCurveSection";
 import { bundCurveAlternates, BUND_CURVE_TEXT } from "@/lib/seo/bundCurve";
@@ -11,6 +11,7 @@ import BondMapSection from "@/components/seo/BondMapSection";
 import { bondMapAlternates, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import { insightsAlternates, INSIGHTS_TEXT } from "@/lib/seo/insights";
 import YieldCalculator from "@/components/seo/YieldCalculator";
+import CalculatorExtras from "@/components/seo/CalculatorExtras";
 import { curveAlternates, CURVE_TEXT } from "@/lib/seo/yieldCurves";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { EN_GUIDES } from "@/lib/seo/guidesEn";
@@ -132,6 +133,8 @@ export default async function EnglishKnowledgePage({ params }: Props) {
           <h2 className="text-[22px] font-semibold tracking-tight">{c.how.h2}</h2>
           {c.how.paras.map((p) => <p key={p} className="mt-3">{p}</p>)}
         </section>
+        <CalculatorExtras locale="en" />
+        <ToolCta locale="en" />
         <JsonLd data={{ "@context": "https://schema.org", "@type": "WebApplication", name: c.h1, url: SITE_URL + enPath(c.slug), inLanguage: "en", applicationCategory: "FinanceApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, description: c.description }} />
       </div>
     );

@@ -1,4 +1,5 @@
 import type { KcSection } from "./knowledge";
+import { EN_GUIDES_CALC } from "./guidesEnCalc";
 
 // English versions of the published guides, for the international (English) Knowledge Center at /knowledge.
 // Translated from the Italian originals (and the owner's own article); `group` matches the translation group of the
@@ -1134,4 +1135,5 @@ export const EN_GUIDES: EnGuide[] = [
 <p><em>This article offers general educational information. Rates, auction schedules and tax rules may change. No particular security is recommended.</em></p>
 `,
   },
+  ...EN_GUIDES_CALC,
 ];

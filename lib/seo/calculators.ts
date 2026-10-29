@@ -43,8 +43,8 @@ export const CALCULATORS: Record<Locale, CalculatorText> = {
   },
   fr: {
     slug: "rendement-actuariel",
-    title: "Calcul du rendement actuariel d'une obligation · 10BONDS",
-    description: "Calculez le rendement actuariel brut et net d'une obligation ou d'une OAT à partir du prix, du coupon et de l'échéance.",
+    title: "Calculateur de rendement d'obligation : actuariel et net",
+    description: "Calculateur gratuit de rendement d'obligation : rendement actuariel brut et net, rendement courant et coupon couru pour OAT, Bund, BTP et Treasuries.",
     h1: "Calcul du rendement actuariel d'une obligation",
     intro: [
       "Saisissez le prix, le coupon et l'échéance : le calculateur donne le rendement actuariel brut et, si vous indiquez un taux d'imposition, le rendement net.",
@@ -67,8 +67,8 @@ export const CALCULATORS: Record<Locale, CalculatorText> = {
   },
   de: {
     slug: "anleihen-rendite-berechnen",
-    title: "Anleihen-Rendite berechnen: Rendite bis Fälligkeit · 10BONDS",
-    description: "Rendite bis Fälligkeit einer Anleihe brutto und nach Steuern berechnen: Kurs, Kupon und Fälligkeit eingeben.",
+    title: "Anleihe Rendite Rechner: Rendite bis Fälligkeit",
+    description: "Kostenloser Anleihe-Rendite-Rechner: Rendite bis Fälligkeit brutto und nach Steuern, laufende Rendite und Stückzinsen für Bundesanleihen, OAT, BTP und Treasuries.",
     h1: "Anleihen-Rendite berechnen",
     intro: [
       "Kurs, Kupon und Fälligkeit eingeben: Der Rechner zeigt die Rendite bis Fälligkeit vor und nach Steuern.",

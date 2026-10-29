@@ -77,7 +77,7 @@ export function sanitizeHtml(html: string): string {
 
 /** Question/answer pairs of a guide's FAQ: each h3 after an h2 named "FAQ" (in any of our languages) and its first paragraph. */
 export function faqFromHtml(html: string): { q: string; a: string }[] {
-  const start = html.search(/<h2[^>]*>\s*(domande frequenti|questions fréquentes|faq|häufige fragen)[^<]*<\/h2>/i);
+  const start = html.search(/<h2[^>]*>\s*(domande frequenti|questions fréquentes|frequently asked questions|faq|häufige fragen)[^<]*<\/h2>/i);
   if (start === -1) return [];
   const rest = html.slice(start).replace(/^<h2[\s\S]*?<\/h2>/i, "");
   const section = rest.split(/<h2|<hr/i)[0];
