@@ -176,6 +176,22 @@ async function extraChecks(ctx, role) {
         const isinText = (await ip.getByTestId("isin-result").innerText().catch(() => "")).slice(0, 120);
         rec(`${role}: ISIN search ${paid ? "works" : "locked with a reason"}`, is === 200 && (paid ? lockedIsin === 0 && /Hessen|DE000HEL4BV8/i.test(isinText) : lockedIsin > 0), `HTTP ${is}: ${isinText}`);
         await ip.close();
+        // Payments: the free test account starts a checkout for Plus and Premium (no payment is made; the session only opens and expires by itself).
+        if (role === "free") {
+          for (const [plan, price] of [["plus", /9[.,]00/], ["premium", /19[.,]00/]]) {
+            const r = await ctx.request.post(BASE + "/api/billing/checkout", { data: { plan, interval: "month", startNow: true }, timeout: 60_000 });
+            const j = await r.json().catch(() => ({}));
+            let shown = "";
+            if (j.url && /^https:\/\/checkout\.stripe\.com\//.test(j.url)) {
+              const sp = await ctx.newPage();
+              await sp.goto(j.url, { waitUntil: "domcontentloaded", timeout: 60_000 }).catch(() => {});
+              await sp.waitForTimeout(5000);
+              shown = (await sp.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
+              await sp.close();
+            }
+            rec(`free: Stripe checkout for ${plan} opens with the right price`, r.status() === 200 && price.test(shown), `HTTP ${r.status()} ${j.url ? "session opened" : j.error ?? "no url"}: ${shown}`);
+          }
+        }
       }
       await page.close();
     }

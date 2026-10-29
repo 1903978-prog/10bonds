@@ -147,3 +147,6 @@ html:has(.report) body { overflow-x: clip; }
   body:has([data-landing-fit]) [data-testid="intro-skip"] { padding-top: 0.625rem; padding-bottom: 0.625rem; }
   body:has([data-landing-fit]) [data-testid="landing-carousel"] { min-height: 110px; }
 }
+
+/* Phones: the ETF comparison card keeps its result in view (components/Landing.tsx, useFitHeight): small print first, then the explanatory line. */
+.cmp-fit[data-fit="1"] [data-testid="compare-fine"], .cmp-fit[data-fit="2"] [data-testid="compare-fine"], .cmp-fit[data-fit="2"] [data-testid="compare-sub"] { display: none; }

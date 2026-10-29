@@ -26,6 +26,8 @@ export async function GET() {
         if (cap === null || cap === undefined) continue;
         for (const target of [cap, cap - 0.3, cap - 0.8]) {
           if (target < LIMITS.ytm.min) continue;
+          // Let other requests in between: the 540 lists below take about 18 s of CPU, and the site must keep answering meanwhile (a release check runs this).
+          await new Promise((r) => setImmediate(r));
           const { results } = rankBonds(data.bonds, d, Math.round(target * 100) / 100, undefined, risk);
           if (!results.length) continue;
           const avg = results.reduce((s, r) => s + r.grossYtm!, 0) / results.length;
