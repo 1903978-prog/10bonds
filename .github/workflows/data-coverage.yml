@@ -10,7 +10,10 @@ jobs:
       - run: |
           sudo apt-get install -y -qq postgresql-client >/dev/null 2>&1 || true
           q() { psql "$DATABASE_URL" -X -A -t -F ' | ' -c "$1"; }
-          echo "== per currency: total, with price_as_of, with clean_price, price 24h, coalesce 24h, newest price_as_of"
-          q "select upper(trim(currency)), count(*), count(price_as_of), count(clean_price), count(*) filter (where price_as_of > now() - interval '24 hours'), count(*) filter (where coalesce(price_as_of, ytm_as_of) > now() - interval '24 hours'), max(price_as_of) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1"
-          echo "== per currency per price day (cur, day, dow, n)"
-          q "select upper(trim(currency)), price_as_of::date, extract(dow from price_as_of::date), count(*) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1,2,3 order by 1,2 desc limit 60"
+          echo "== columns"; q "select column_name, data_type from information_schema.columns where table_name='public_bonds' order by ordinal_position"
+          for c in last_refresh_attempt_at refresh_status refresh_fail_reason price_source price_stale price_confirmed; do
+            if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
+              echo "== $c filled"; q "select upper(trim(currency)), count(*), count($c) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1"
+              echo "== $c values"; q "select $c::text, count(*) from public_bonds group by 1 order by 2 desc limit 15"
+            else echo "== $c: NO COLUMN"; fi
+          done
