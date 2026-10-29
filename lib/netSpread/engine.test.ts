@@ -75,6 +75,8 @@ describe("the unified engine on a full synthetic horizon", () => {
       // Return must rise with risk: no list returns less than the one below it, and no position is beaten by a lower one.
       for (let i = 1; i < valid.length; i++) expect(valid[i].metrics!.ytm).toBeGreaterThanOrEqual(valid[i - 1].metrics!.ytm - 0.005);
       expect(dominatedPositions(results)).toEqual([]);
+      // Expected loss never falls with position (owner, 29/10/2026).
+      for (let i = 1; i < valid.length; i++) expect(valid[i].metrics!.creditLossBp).toBeGreaterThanOrEqual(valid[i - 1].metrics!.creditLossBp - 1e-6);
 
       // Infeasible positions are empty with a reason; nothing fills them.
       const infeasible = results.filter((r) => r.status === "infeasible");
