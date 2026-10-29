@@ -45,7 +45,7 @@ export default function PriceFreshnessCard() {
     <section className="rounded-lg border border-line bg-white p-6" data-testid="price-freshness-top">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Price freshness</h2>
-        <a href="/api/admin/price-freshness?csv=1" className="text-sm underline" data-testid="fresh-csv">Download CSV (not refreshed)</a>
+        <button onClick={() => window.location.assign("/api/admin/price-freshness?csv=1")} className="text-sm underline" data-testid="fresh-csv">Download CSV (not refreshed)</button>
       </div>
       {data?.banner.red && (
         <div className="mt-3 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800" role="alert" data-testid="fresh-banner">
@@ -77,7 +77,7 @@ export default function PriceFreshnessCard() {
             ))}
           </div>
           <p className="mt-3 text-xs text-mute">
-            Trading days use the TARGET2 calendar (EUR) and the SIFMA calendar (USD). Price date = the price's own date, else the yield date. Portfolio rule: a price older than {data.staleRuleDays} trading days is left out.
+            Trading days use the TARGET2 calendar (EUR) and the SIFMA calendar (USD). Price date = the date of the quote itself, else the yield date. Portfolio rule: a price older than {data.staleRuleDays} trading days is left out.
             {!data.columns.reason && " The data feed does not send refresh reasons yet, so every group reads “No reason sent by data feed”."}
             {!data.columns.attempt && " It does not send a push time yet either; the newest quote time is shown instead and the 26 h push alert is off."}
           </p>
