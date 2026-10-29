@@ -149,6 +149,9 @@ export async function applyBes(snapshotId?: number): Promise<{ holdings: number;
 
 export type BuildResult = { status: "published" | "incomplete" | "skipped" | "failed"; snapshotId: number | null; message: string; filled: number; blockers: string[] };
 
+/** Which build of the stored lists a snapshot was made from: a newer valid build of the same price batch gets its own snapshot and replaces the published one. */
+const listsStamp = (sets: (StoredBands | null)[]) => createHash("sha1").update(sets.map((x) => x?.builtAt ?? "-").join(",")).digest("hex").slice(0, 10);
+
 /** Inputs of the current price batch: three stored sets (exact batch only) and the bond rows, or the reason they are not ready. */
 async function inputs(f: Pick<BondFilter, "currency" | "size">) {
   const bf = { ...f } as BondFilter;
@@ -163,7 +166,7 @@ async function inputs(f: Pick<BondFilter, "currency" | "size">) {
     sets.push(got && !got.stale ? got.data : null);
   }
   const batch = signatureOf(src);
-  const fingerprint = [batch, configSignature(cfg), GROUP_TABLE_VERSION, METHOD_VERSION, EMPTY_POLICY, filterKey(f)].join("|");
+  const fingerprint = [batch, configSignature(cfg), GROUP_TABLE_VERSION, METHOD_VERSION, EMPTY_POLICY, filterKey(f), listsStamp(sets)].join("|");
   return { src, cfg, sets, notes, batch, fingerprint };
 }
 

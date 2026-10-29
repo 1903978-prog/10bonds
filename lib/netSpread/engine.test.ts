@@ -101,6 +101,10 @@ describe("the unified engine on a full synthetic horizon", () => {
       }
       expect(a.rows.filter((r) => r.status === "ERROR")).toEqual([]);
 
+      // Expected loss never falls with position (owner, 29/10/2026).
+      const els = stored.bands.filter((b) => b.status === "ok").map((b) => b.el!);
+      for (let i = 1; i < els.length; i++) expect(els[i]).toBeGreaterThanOrEqual(els[i - 1] - 0.0011);
+
       // Public slider: valid positions only, renumbered 1..n, repeats out, the stored position kept for the list lookup, risk classes shown.
       const served = positionsOfBands({ stored, stale: false, src: { bonds, source: "live", asOf: NEWEST }, cfg: specConfig(), key: "k" });
       const pub = publicPositions(served);
