@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 type Row = { currency: string; total: number; last24h: number; newest: string | null; within3td: number; withinRule: number };
-type Data = { basis: string; rows: Row[] } | null;
+type Data = { basis: string; ruleDays: number; rows: Row[] } | null;
 
 const when = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "–");
 const pct = (n: number, t: number) => (t ? `${Math.round((n / t) * 100)}%` : "–");
@@ -21,7 +21,7 @@ export default function PriceFreshnessCard() {
           <div key={r.currency} className="rounded-xl bg-canvas p-3" data-testid={`fresh-${r.currency}`}>
             <p className="text-xs text-mute">{r.currency} database</p>
             <p className="mt-1 text-2xl font-semibold">{data ? `${r.last24h.toLocaleString("en")} of ${r.total.toLocaleString("en")} (${pct(r.last24h, r.total)})` : "…"}</p>
-            <p className="mt-1 text-xs text-mute">Within 3 trading days: {data ? `${r.within3td.toLocaleString("en")} (${pct(r.within3td, r.total)})` : "…"} · Within 10 trading days (site rule): {data ? `${r.withinRule.toLocaleString("en")} (${pct(r.withinRule, r.total)})` : "…"}</p>
+            <p className="mt-1 text-xs text-mute">Within 3 trading days: {data ? `${r.within3td.toLocaleString("en")} (${pct(r.within3td, r.total)})` : "…"} · Within {data?.ruleDays ?? 5} trading days (site rule): {data ? `${r.withinRule.toLocaleString("en")} (${pct(r.withinRule, r.total)})` : "…"}</p>
             <p className="mt-1 text-xs text-mute">Newest price: {data ? when(r.newest) : "…"}</p>
           </div>
         ))}

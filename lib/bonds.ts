@@ -317,7 +317,7 @@ export async function bondDataStats(): Promise<{
 export type CurrencyFreshness = { currency: "EUR" | "USD"; total: number; last24h: number; newest: string | null; within3td: number; withinRule: number };
 
 /** One cheap query for the admin home: per currency, bonds whose price (own date when the copy has it, else yield date) is under 24 h old. */
-export async function priceFreshnessByCurrency(): Promise<{ basis: "price_as_of" | "ytm_as_of"; rows: CurrencyFreshness[] } | null> {
+export async function priceFreshnessByCurrency(): Promise<{ basis: "price_as_of" | "ytm_as_of"; ruleDays: number; rows: CurrencyFreshness[] } | null> {
   const client = db();
   if (!client) return null;
   const cols = await client`select column_name from information_schema.columns where table_name = 'public_bonds' and column_name = 'price_as_of'`;
@@ -346,7 +346,7 @@ export async function priceFreshnessByCurrency(): Promise<{ basis: "price_as_of"
     }
     return { currency: c, total: Number(x?.total ?? 0), last24h: Number(x?.h24 ?? 0), newest: newest ? newest.toISOString() : null, within3td, withinRule };
   });
-  return { basis, rows };
+  return { basis, ruleDays: PORTFOLIO_SPEC.staleTradingDays, rows };
 }
 
 /** Freshness and shape of the bond copy, for /api/health/data and the daily data watch. Numbers only, no bond details. */
