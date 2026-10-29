@@ -1,0 +1,35 @@
+{
+  "asOf": "2026-10-28",
+  "snapshot": 23,
+  "term": "mid",
+  "levels": [
+    {
+      "position": 9,
+      "avgRisk": 3.4,
+      "ytm": 4.5,
+      "expectedLoss": 0.38,
+      "duration": 3.9
+    },
+    {
+      "position": 14,
+      "avgRisk": 4.5,
+      "ytm": 4.9,
+      "expectedLoss": 0.66,
+      "duration": 4.0
+    },
+    {
+      "position": 17,
+      "avgRisk": 5.1,
+      "ytm": 5.26,
+      "expectedLoss": 0.94,
+      "duration": 4.0
+    },
+    {
+      "position": 21,
+      "avgRisk": 6,
+      "ytm": 5.73,
+      "expectedLoss": 2.07,
+      "duration": 4.0
+    }
+  ]
+}
