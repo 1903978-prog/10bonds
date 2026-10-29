@@ -1,0 +1,18 @@
+name: tmp fresh prices
+on: workflow_dispatch
+jobs:
+  count:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - run: |
+          sudo apt-get install -y -qq postgresql-client >/dev/null 2>&1 || true
+          q() { psql "$DATABASE_URL" -X -A -t -F ' | ' -c "$1"; }
+          echo "== now"; q "select now()"
+          echo "== columns price_as_of?"; q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name in ('price_as_of','clean_price')"
+          echo "== per currency: total, 24h, newest"
+          q "select upper(trim(currency)), count(*), count(*) filter (where ytm_as_of > now() - interval '24 hours'), max(ytm_as_of) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1"
+          echo "== per currency per day"
+          q "select upper(trim(currency)), ytm_as_of::date, extract(dow from ytm_as_of::date), count(*) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1,2,3 order by 1,2 desc"
