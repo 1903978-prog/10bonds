@@ -621,11 +621,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   return (
     <FinderLangContext.Provider value={lang}>
-    <div ref={pageBox} className={`finder-wide grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:gap-5 ${curveMode ? "" : "lg:grid-cols-[340px_minmax(0,1fr)]"}`}>
+    <div ref={pageBox} className={`finder-wide grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:gap-5 lg:grid-cols-[340px_minmax(0,1fr)]`}>
       {/* Inputs */}
       {/* On phones the mode tabs sit on top so they never move; in 1-bond mode the title and the two portfolio
           sliders give way so slider, options, curve and bond name fit on one screen. */}
-      <section className={`flex flex-col rounded-lg border border-line bg-white p-5 max-sm:py-4 sm:p-6 ${curveMode ? "lg:hidden" : ""}`}>
+      <section className={`flex flex-col rounded-lg border border-line bg-white p-5 max-sm:py-4 sm:p-6`}>
         <div className={mode === "single" ? "max-lg:hidden" : "max-lg:mt-3"}>
         <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
           {t.h1}
