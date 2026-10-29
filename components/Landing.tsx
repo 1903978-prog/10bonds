@@ -74,7 +74,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
         </Title>
         <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-4 lg:max-w-[680px] lg:text-[21px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
-        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div className="order-3 min-w-0 lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
           <LandingCarousel t={t} slides={[
             ...(showBench ? [{ key: "compare", node: LANDING_SNAPSHOT.verified ? <Comparison t={t} lang={lang} num={num} bench={bench} /> : (
@@ -90,7 +90,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           ]} />
         </div>
         {/* The free test is the only button: sign up and sign in are in the header (the owner, 24/10/2026). */}
-        <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
+        <div className="order-2 lg:order-none lg:col-start-1 lg:row-start-2 lg:self-start">
         <div className="flex items-center gap-2 sm:gap-3">
           <button type="button" onClick={() => { trackOnce("cta_click", { variant: "a" }); onClose(); }} data-testid="intro-skip"
             className="flex flex-1 items-center min-w-0 justify-between gap-3 whitespace-nowrap rounded-lg px-3 py-3.5 text-[13px] min-[360px]:px-4 min-[360px]:text-[14px] min-[400px]:text-[15px] sm:flex-none sm:gap-6 sm:px-5 lg:px-7 lg:py-4 lg:text-[17px] font-semibold text-white shadow-sm transition hover:opacity-90"

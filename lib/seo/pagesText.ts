@@ -11,8 +11,8 @@ type Home = {
 
 export const HOME: Record<Locale, Home> = {
   it: {
-    title: "10BONDS · Selezione di obbligazioni con l'AI",
-    description: "Selezione di obbligazioni con l'AI: scegli durata e rendimento obiettivo e 10BONDS ti mostra le 10 più vicine ai tuoi criteri. Dati aggiornati ogni giorno.",
+    title: "10BONDS · Portafogli obbligazionari su base matematica",
+    description: "Portafogli obbligazionari su base matematica: scegli durata e rendimento obiettivo e 10BONDS ti mostra le 10 più vicine ai tuoi criteri. Dati aggiornati ogni giorno.",
     h1: "Confronta le obbligazioni per rendimento e rischio, in pochi secondi",
     lead: "Scegli una duration e un rendimento obiettivo: 10BONDS confronta migliaia di obbligazioni in euro, BTP e corporate, e ti mostra le 10 più vicine, una per emittente.",
     points: ["Rendimento a scadenza, duration e rischio in un'unica lista.", "BTP, titoli di Stato europei e obbligazioni societarie a confronto.", "Dati aggiornati ogni giorno, con la data sempre in vista."],
@@ -25,8 +25,8 @@ export const HOME: Record<Locale, Home> = {
     ], plansLink: "Dettagli dei piani",
   },
   fr: {
-    title: "10BONDS · Sélection d'obligations par IA",
-    description: "Sélection d'obligations par IA : choisissez un horizon et un rendement cible, 10BONDS affiche les 10 plus proches de vos critères. Données quotidiennes.",
+    title: "10BONDS · Portefeuilles obligataires fondés sur les mathématiques",
+    description: "Portefeuilles obligataires fondés sur les mathématiques : choisissez un horizon et un rendement cible, 10BONDS affiche les 10 plus proches de vos critères. Données quotidiennes.",
     h1: "Comparez les obligations selon leur rendement et leur risque",
     lead: "Choisissez une duration et un rendement cible : 10BONDS compare des milliers d'obligations en euros, OAT, emprunts d'État européens et obligations d'entreprise, et affiche les 10 plus proches, une par émetteur.",
     points: ["Rendement à l'échéance, duration et risque dans une seule liste.", "OAT, Bund, BTP et obligations d'entreprise comparés sur les mêmes critères.", "Données mises à jour chaque jour, toujours datées."],
@@ -39,8 +39,8 @@ export const HOME: Record<Locale, Home> = {
     ], plansLink: "Détail des offres",
   },
   de: {
-    title: "10BONDS · KI-gestützte Anleihenauswahl",
-    description: "KI-gestützte Anleihenauswahl: Wählen Sie Laufzeit und Zielrendite, 10BONDS zeigt die 10 Anleihen, die Ihren Kriterien am nächsten kommen. Täglich aktualisiert.",
+    title: "10BONDS · Mathematikbasierte Anleihe-Portfolios",
+    description: "Mathematikbasierte Anleihe-Portfolios: Wählen Sie Laufzeit und Zielrendite, 10BONDS zeigt die 10 Anleihen, die Ihren Kriterien am nächsten kommen. Täglich aktualisiert.",
     h1: "Finden und vergleichen Sie Anleihen nach Rendite und Risiko",
     lead: "Wählen Sie eine Duration und eine Zielrendite: 10BONDS vergleicht Tausende Euro-Anleihen, Bundesanleihen, europäische Staatsanleihen und Unternehmensanleihen, und zeigt die 10 passendsten, eine je Emittent.",
     points: ["Rendite bis Fälligkeit, Duration und Risiko in einer Liste.", "Bundesanleihen, OAT, BTP und Unternehmensanleihen nach denselben Kriterien.", "Täglich aktualisierte Daten, immer mit Datum."],
