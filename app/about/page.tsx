@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { COMPANY } from "@/lib/legal";
 import { OG_IMAGES } from "@/lib/ogImage";
@@ -22,7 +23,7 @@ export default function About() {
       <h2 className="mt-6 font-semibold">Contact</h2>
       <p className="mt-2"><a className="text-accent" href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a> for any question, including privacy and data requests.</p>
       <h2 className="mt-6 font-semibold">Editorial team</h2>
-      <p className="mt-2">Articles and guides are published under the byline “10bonds Analyst”, the editorial team of 10BONDS. The method behind the lists is described in the <a className="text-accent" href="/selection-methodology">selection methodology</a> and the <a className="text-accent" href="/methodology/10bonds-quant-methodology.pdf">scientific methodology (PDF)</a>.</p>
+      <p className="mt-2">Articles and guides are published under the byline “10bonds Analyst”, the editorial team of 10BONDS. The method behind the lists is described in the <Link className="text-accent" href="/selection-methodology">selection methodology</Link> and the <a className="text-accent" href="/methodology/10bonds-quant-methodology.pdf">scientific methodology (PDF)</a>.</p>
     </article>
   );
 }
