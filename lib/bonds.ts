@@ -350,7 +350,7 @@ export const priceFreshnessReport = memo2m(async () => {
   if (!client) return null;
   const c = await refreshColumns(client);
   const grouped = await client`
-    select upper(trim(currency)) cur, (d at time zone 'UTC')::date::text day, st, rs, count(*) n
+    select upper(trim(currency)) cur, (d at time zone 'UTC')::date::text as day, st, rs, count(*) n
     from (select currency, ${client.unsafe(c.when)} d, ${client.unsafe(c.status)} st, ${client.unsafe(c.reason)} rs from public_bonds) t
     where upper(trim(currency)) in ('EUR', 'USD')
     group by 1, 2, 3, 4`;
@@ -376,7 +376,7 @@ export async function notRefreshedBonds(opts: { cur?: Cur; reason?: string; limi
   if (!client) return null;
   const c = await refreshColumns(client);
   const r = await client`
-    select isin, name, issuer, upper(trim(currency)) cur, (d at time zone 'UTC')::date::text day, st, rs, att::text att
+    select isin, name, issuer, upper(trim(currency)) cur, (d at time zone 'UTC')::date::text as day, st, rs, att::text att
     from (select isin, name, issuer, currency, ${client.unsafe(c.when)} d, ${client.unsafe(c.status)} st, ${client.unsafe(c.reason)} rs, ${client.unsafe(c.attempt)} att from public_bonds) t
     where upper(trim(currency)) in ('EUR', 'USD') ${opts.cur ? client`and upper(trim(currency)) = ${opts.cur}` : client``}
     order by cur, day nulls first, isin`;
