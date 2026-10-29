@@ -13,7 +13,7 @@ Diagnostic only. It does not change the optimizer, the 30-band matrix or any por
 - Excluded (unavailable): floating/step/inflation coupons, yield outside -1..30%, quotes over 7 days older than the newest, gross spread beyond 1,500 bp (possible price error), maturity beyond the curve or 15 years.
 
 ## Extensions (owner, 28/10/2026: every bond must be scored where a price exists)
-- Stale limit = the site's own 10 days (lib/bonds.ts STALE_DAYS), no stricter.
+- Stale limit = the site's own 5 trading days (PORTFOLIO_SPEC.staleTradingDays), no stricter.
 - Beyond 15 years: the yearly default hazard of the last table segment is held flat (up to 50 years). Status Limited, never a measured number.
 - Benchmark curve edges: nearest end yield held flat, up to 1 year before the shortest and 10 years beyond the longest government point. Status Limited.
 - Peer fallback: L0 full group, L1 maturity bands merged, L2 neighbouring risk classes (same currency, issuer type, rank). Limited.

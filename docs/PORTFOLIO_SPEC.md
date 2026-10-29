@@ -33,7 +33,7 @@ Inside its band every position maximises the **equal-weight portfolio credit-adj
 | Each bond's duration | within 20% of the horizon; **Long within 30%**. The pool widens in half-years only when fewer than ten issuer groups fit (existing pool rule). |
 | Sector cap | at most 3 bonds per major sector (banks, insurance and financial services count as one sector; unknown sector counts as one sector) |
 | Loss share | no bond above 25% of the list's annual expected loss |
-| Stale price | a bond whose quote is more than **10 trading days** (Mon-Fri) behind the newest quote of the copy is excluded; a bond with no quote date cannot be judged and is kept. Public holiday calendars (TARGET2 for EUR, SIFMA for USD) are not modelled yet. |
+| Stale price | a bond whose quote is more than **5 trading days** (owner, 29/10/2026: was 10; the same rule is the whole site's: `lib/bonds.ts` dropStale, the BES and the risk premium read `staleTradingDays`) (Mon-Fri) behind the newest quote of the copy is excluded; a bond with no quote date cannot be judged and is kept. Public holiday calendars (TARGET2 for EUR, SIFMA for USD) are not modelled yet. |
 | Seniority | subordinated, junior, AT1, CoCo, Tier 1/2, hybrid, perpetual are excluded by the **seniority field** (`lib/seniority.ts` `isExcludedRank`). |
 | Net spread available | a bond without a valid Bond Efficiency net spread is not eligible. |
 

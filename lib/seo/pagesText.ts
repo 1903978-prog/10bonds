@@ -93,7 +93,7 @@ export const METHOD: Record<Locale, Method> = {
         "Nelle pagine di confronto distinguiamo Stati, agenzie e aziende in base al nome dell'emittente; il Paese è quello della sede dell'emittente indicato nei dati.",
       ] },
       { id: "exclusions", h2: "Cosa escludiamo", paras: [
-        "Obbligazioni senza valutazione del rischio o in insolvenza, non in euro, già scadute, senza rendimento o duration, con prezzi fermi da più di 10 giorni rispetto al resto dei dati, e strutture che il nostro sistema non modella in modo affidabile (indicizzate all'inflazione, a tasso variabile, con cedole crescenti).",
+        "Obbligazioni senza valutazione del rischio o in insolvenza, non in euro, già scadute, senza rendimento o duration, con prezzi fermi da più di 5 giorni di borsa rispetto al resto dei dati, e strutture che il nostro sistema non modella in modo affidabile (indicizzate all'inflazione, a tasso variabile, con cedole crescenti).",
       ] },
       { id: "limits", h2: "Limiti e rischi", paras: [
         "I dati possono contenere errori o ritardi: verifica sempre prezzo e rendimento con la tua banca o il tuo broker prima di operare. 10BONDS è uno strumento di ricerca e confronto: non conosce la tua situazione e non fornisce consulenza né raccomandazioni personalizzate. Le obbligazioni possono perdere valore e gli emittenti possono non rimborsare.",
@@ -120,7 +120,7 @@ export const METHOD: Record<Locale, Method> = {
         "Dans les comparatifs, nous distinguons États, agences et entreprises d'après le nom de l'émetteur ; le pays est celui du siège de l'émetteur indiqué dans les données.",
       ] },
       { id: "exclusions", h2: "Ce que nous excluons", paras: [
-        "Les obligations sans évaluation du risque ou en défaut, non libellées en euros, échues, sans rendement ou duration, dont le prix n'a pas bougé depuis plus de 10 jours par rapport au reste des données, et les structures que notre système ne modélise pas de façon fiable (indexées sur l'inflation, à taux variable, à coupons progressifs).",
+        "Les obligations sans évaluation du risque ou en défaut, non libellées en euros, échues, sans rendement ou duration, dont le prix n'a pas bougé depuis plus de 5 jours de bourse par rapport au reste des données, et les structures que notre système ne modélise pas de façon fiable (indexées sur l'inflation, à taux variable, à coupons progressifs).",
       ] },
       { id: "limits", h2: "Limites et risques", paras: [
         "Les données peuvent comporter des erreurs ou des retards : vérifiez toujours prix et rendement auprès de votre banque ou courtier avant d'agir. 10BONDS est un outil de recherche et de comparaison : il ne connaît pas votre situation et ne fournit ni conseil en investissement ni recommandation personnalisée. Une obligation peut perdre de la valeur et un émetteur peut faire défaut.",
@@ -147,7 +147,7 @@ export const METHOD: Record<Locale, Method> = {
         "Auf den Vergleichsseiten unterscheiden wir Staaten, Förderbanken und Unternehmen anhand des Emittentennamens; das Land ist der in den Daten angegebene Sitz des Emittenten.",
       ] },
       { id: "exclusions", h2: "Was wir ausschließen", paras: [
-        "Anleihen ohne Risikobewertung oder im Zahlungsausfall, nicht in Euro, bereits fällig, ohne Rendite oder Duration, mit Kursen, die mehr als 10 Tage hinter den übrigen Daten zurückliegen, sowie Strukturen, die unser System nicht verlässlich abbildet (inflationsindexiert, variabel verzinst, mit steigenden Kupons).",
+        "Anleihen ohne Risikobewertung oder im Zahlungsausfall, nicht in Euro, bereits fällig, ohne Rendite oder Duration, mit Kursen, die mehr als 5 Handelstage hinter den übrigen Daten zurückliegen, sowie Strukturen, die unser System nicht verlässlich abbildet (inflationsindexiert, variabel verzinst, mit steigenden Kupons).",
       ] },
       { id: "limits", h2: "Grenzen und Risiken", paras: [
         "Die Daten können Fehler oder Verzögerungen enthalten: Prüfen Sie Kurs und Rendite vor jeder Order bei Ihrer Bank oder Ihrem Broker. 10BONDS ist ein Recherche- und Vergleichswerkzeug: Es kennt Ihre Situation nicht und bietet keine Anlageberatung oder persönliche Empfehlung. Anleihen können an Wert verlieren, Emittenten können ausfallen.",

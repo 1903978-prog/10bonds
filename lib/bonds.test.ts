@@ -9,9 +9,9 @@ describe("cleanIssuer", () => {
 
 import { dropStale } from "./bonds";
 describe("stale yields", () => {
-  it("drops bonds whose yield date is more than 10 days behind the newest", () => {
+  it("drops bonds whose yield date is more than 5 trading days behind the newest", () => {
     const b = (isin: string, d: string | null) => ({ isin, ytmAsOf: d }) as never;
-    const kept = dropStale([b("NEW", "2026-10-17T00:00:00Z"), b("OK", "2026-10-09T00:00:00Z"), b("OLD", "2026-09-30T00:00:00Z"), b("NODATE", null)]);
+    const kept = dropStale([b("NEW", "2026-10-17T00:00:00Z"), b("OK", "2026-10-12T00:00:00Z"), b("LATE", "2026-10-08T00:00:00Z"), b("OLD", "2026-09-30T00:00:00Z"), b("NODATE", null)]);
     expect(kept.map((x: { isin: string }) => x.isin)).toEqual(["NEW", "OK", "NODATE"]);
   });
 });
