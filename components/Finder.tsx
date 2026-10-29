@@ -445,7 +445,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           return;
         }
         if (!res || !body) throw new Error(errText);
-        if (res.status === 202 || res.status === 429) throw new Error("The lists are still being calculated. Try again in a minute.");
+        if (res.status === 202 || res.status === 429) throw new Error("Being prepared, try again in a minute.");
         // A slower, older search never replaces a newer answer already on screen.
         if (seq < appliedSeq.current) return;
         appliedSeq.current = seq;

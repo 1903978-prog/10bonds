@@ -18,6 +18,7 @@ export default async function AdminBondData() {
       <p className="text-sm"><Link href="/admin" className="text-accent">← Admin</Link></p>
       <h1 className="mt-3 text-2xl font-semibold">Bond data</h1>
       <p className="mt-2 text-sm text-mute">Upload a spreadsheet (xls, xlsx, csv) with an ISIN column. Admin only: nothing from it is shown to customers.</p>
+      <p className="mt-3 rounded-lg bg-yellow-100 px-3 py-2 text-sm" data-testid="price-date-note">Price date (interim): the nightly copy has no price date yet, so the site uses the <b>yield date</b> (ytm_as_of) as the price date everywhere. This switches to the real price date as soon as the data model sends <code>price_date</code>.</p>
       <BondImportPanel />
     </main>
   );

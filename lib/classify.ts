@@ -17,7 +17,7 @@ import { SECTORS, UNCLASSIFIED } from "./sectors";
 //   2. "feed"        public_bonds.issuer_sector when it is one of the twelve sectors of lib/sectors.ts.
 // Anything else stays unclassified and is listed in /admin/classification so it gets a source, not an invention.
 
-export type ClassSource = "feed" | "feed-legacy" | "isin-prefix" | "table" | null;
+export type ClassSource = "feed" | "feed-legacy" | "isin-prefix" | "table" | "enriched" | null;
 export type Classification = { country: string | null; countrySource: ClassSource; sector: string | null; sectorSource: ClassSource };
 
 const NAMES = new Intl.DisplayNames(["en"], { type: "region" });
@@ -65,7 +65,7 @@ const sectorOfFeed = (raw: unknown): string | null => {
 export function classifyRow(r: Record<string, unknown>, issuer: string | null): Classification {
   const isin = String(r.isin ?? "").trim().toUpperCase();
   const table = groupInfo({ issuer, isin }).sector;
-  const fedSector = sectorOfFeed(r.issuer_sector);
+  const fedSector = sectorOfFeed(r.issuer_sector) ?? sectorOfFeed(r.industry);
   const sector = table ?? fedSector;
   const sectorSource: ClassSource = table ? "table" : fedSector ? "feed" : null;
 

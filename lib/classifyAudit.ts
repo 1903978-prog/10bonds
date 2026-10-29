@@ -10,9 +10,10 @@ export async function classificationAudit(): Promise<{ coverage: Coverage; byCur
   const { bonds, source } = await loadAllShown();
   if (source !== "live") return null;
   const cls = (b: (typeof bonds)[number]): Classification => {
-    const t = groupInfo(b).sector;
+    const g = groupInfo(b);
+    const t = g.sector;
     const sector = t ?? b.feedSector ?? null;
-    return { country: b.country, countrySource: (b.countrySource as Classification["countrySource"]) ?? null, sector, sectorSource: t ? "table" : b.feedSector ? "feed" : null };
+    return { country: b.country, countrySource: (b.countrySource as Classification["countrySource"]) ?? null, sector, sectorSource: t ? (g.enriched ? "enriched" : "table") : b.feedSector ? "feed" : null };
   };
   const byCur: Record<string, Classification[]> = {};
   const issuers = new Map<string, UnclassifiedIssuer>();
