@@ -5,6 +5,7 @@ import { enBondsPath, enComparisons, enText, EN_BONDS_BASE } from "@/lib/seo/com
 import { SITE_URL } from "@/lib/seo/crawl";
 import { enPath } from "@/lib/seo/knowledgeEn";
 import { comparisonPages, shown } from "@/lib/seo/site";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 // The hub of the English bond comparison pages: every page with enough bonds behind it today.
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   alternates: { canonical: EN_BONDS_BASE, languages: { en: EN_BONDS_BASE, "x-default": EN_BONDS_BASE } },
-  openGraph: { locale: "en_GB", title: TITLE, description: DESCRIPTION },
+  openGraph: { images: OG_IMAGES, locale: "en_GB", title: TITLE, description: DESCRIPTION },
 };
 
 export default async function EnglishComparisonsHub() {

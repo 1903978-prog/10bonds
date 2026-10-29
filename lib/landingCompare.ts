@@ -31,9 +31,10 @@ function notchOfRisk(score: number): number {
 export const lossAtRisk = (score: number, years: number) => expectedLoss(notchOfRisk(score), years);
 
 /** Gross and net (after expected credit losses) yield advantage of the list over the ETF benchmark, in pp. */
-export function spreads(list: Side, etf: Side, listScores?: number[]): { gross: number; net: number } {
+export function spreads(list: Side, etf: Side, listScores?: number[], listLossPa?: number): { gross: number; net: number } {
   const scores = listScores?.length ? listScores : [list.risk];
-  const listLoss = scores.reduce((s, r) => s + lossAtRisk(r, list.duration), 0) / scores.length;
+  // A stored list's own yearly expected loss (its stored loss to maturity over its duration) wins over the per-bond estimate.
+  const listLoss = listLossPa ?? scores.reduce((s, r) => s + lossAtRisk(r, list.duration), 0) / scores.length;
   const etfLoss = lossAtRisk(etf.risk, etf.duration);
   return { gross: list.ytm - etf.ytm, net: list.ytm - listLoss - (etf.ytm - etfLoss) };
 }
@@ -46,10 +47,10 @@ const signed = (n: number, fmt: (x: number, d?: number) => string) => `${n >= 0 
 
 export type CompareCopy = { sub: string; gross: string; net: string; fine: string; matched: boolean };
 
-export function compareCopy(lang: FinderLang, list: Side, etf: Side, listScores?: number[]): CompareCopy {
+export function compareCopy(lang: FinderLang, list: Side, etf: Side, listScores?: number[], listLossPa?: number): CompareCopy {
   const c = LANDING_TEXT[lang].compare;
   const fmt = (n: number, d = 2) => n.toLocaleString(LANDING_NUM[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
-  const { net } = spreads(list, etf, listScores);
+  const { net } = spreads(list, etf, listScores, listLossPa);
   const matched = isMatched(list, etf);
   const r = (x: number) => fmt(x, 1);
   const d = (x: number) => fmt(x, 1);

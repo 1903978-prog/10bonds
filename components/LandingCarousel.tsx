@@ -56,7 +56,7 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
 
   return (
     <div
-      className="relative flex min-w-0 touch-pan-y flex-col h-[max(360px,calc(100svh_-_320px))] lg:h-[min(740px,calc(100vh_/_var(--z)_-_205px))]"
+      className="relative flex min-w-0 touch-pan-y flex-col min-h-[max(360px,calc(100svh_-_320px))] lg:h-[min(620px,calc(100vh_/_var(--z)_-_205px))]"
       role="region"
       aria-roledescription="carousel"
       aria-label={t.carousel.label}

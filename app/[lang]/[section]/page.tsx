@@ -17,6 +17,7 @@ import { enPath, hubLangs, withEnglish } from "@/lib/seo/knowledgeEn";
 import KnowledgeTools, { FINDER } from "@/components/seo/KnowledgeTools";
 import { comparisonSection, guideSection, KC_ORDER, KC_TEXT, type HubItem } from "@/lib/seo/knowledgeHub";
 import { comparisonPages, fmtDate, publicPeople, publishedGuides, sectionAlternates, shown } from "@/lib/seo/site";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!r) return {};
   const x = TEXT[r.s][r.l];
   const alt = r.s === "knowledge" ? withEnglish(pathOf(r.l, "knowledge"), enPath(), hubLangs()) : sectionAlternates(r.l, r.s);
-  return { title: { absolute: x.title }, description: x.description, alternates: alt, openGraph: { locale: LOCALE[r.l].ogLocale, title: x.title, description: x.description } };
+  return { title: { absolute: x.title }, description: x.description, alternates: alt, openGraph: { images: OG_IMAGES, locale: LOCALE[r.l].ogLocale, title: x.title, description: x.description } };
 }
 
 export default async function SectionPage({ params }: Props) {
