@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import type { FinderLang } from "@/lib/finderText";
 import { trackOnce } from "@/lib/track";
 import LANDING_BONDS from "@/lib/landingBonds.json";
+import LANDING_LEVELS from "@/lib/landingLevels.json";
 import ONE_BOND from "@/lib/landingOneBond.json";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { loadMe } from "@/lib/me";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
-import { compareCopy, listFigures } from "@/lib/landingCompare";
+import { compareCopy } from "@/lib/landingCompare";
 import LandingCarousel, { actionTitle, ListScreen, MultiYearScreen, HeatMapScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
 
 // The owner's landing design (23/10/2026): navy, emerald and a soft green-grey, on white cards.
@@ -113,11 +114,16 @@ type Num = (n: number, d?: number) => string;
 function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang; num: Num; bench: Bench | null }) {
   // The 10bonds side is the stored top-10 list shown on the carousel's list slide (picked by scripts/landing-snapshot.ts as the
   // list closest to the ETF's risk level, then duration), so both slides tell the same story.
-  const snapList = LANDING_BONDS as { ytm?: number; avgRisk?: number; duration?: number | null; bonds: BenchmarkBond[] };
-  const stored = listFigures(snapList.bonds);
   const base = bench?.portfolio ?? null;
-  const p = base ? { ...base, ytm: snapList.ytm ?? stored?.ytm ?? base.ytm, avgRisk: snapList.avgRisk ?? stored?.risk ?? base.avgRisk, duration: snapList.duration ?? base.duration } : null;
-  const copy = p && bench && p.duration != null ? compareCopy(lang, { ytm: p.ytm, risk: p.avgRisk, duration: p.duration }, { ytm: bench.ret, risk: bench.risk, duration: bench.duration }, stored?.riskScores) : null;
+  // Stored lists of the same term at four risk levels (lib/landingLevels.json). The card opens on the one closest to the ETF's risk
+  // level and the visitor can switch to a higher-risk list; every figure is the stored list's own, nothing is calculated here.
+  const levels = LANDING_LEVELS.levels;
+  const closest = bench ? levels.reduce((best, l, i) => (Math.abs(l.avgRisk - bench.risk) < Math.abs(levels[best].avgRisk - bench.risk) ? i : best), 0) : 0;
+  const [pick, setPick] = useState<number | null>(null);
+  const at = pick ?? closest;
+  const lv = levels[at];
+  const p = base && lv ? { ...base, ytm: lv.ytm, avgRisk: lv.avgRisk, duration: lv.duration } : null;
+  const copy = p && bench && p.duration != null ? compareCopy(lang, { ytm: p.ytm, risk: p.avgRisk, duration: p.duration }, { ytm: bench.ret, risk: bench.risk, duration: bench.duration }, undefined, lv.expectedLoss / lv.duration) : null;
   const dp = (d: number) => (Number.isInteger(Math.round(d * 100) / 10) ? 1 : 2);
   const yrs = (d: number | null | undefined) => (d == null ? ["–", "–"] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
   const rows = (dark: boolean, duration: number | null | undefined, risk: string | null, word: string) => (
@@ -144,7 +150,15 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
       {/* Centred in the card, which now grows with the free height. */}
       <div className="flex flex-1 flex-col justify-center">
       {copy && <p className="text-[12px] leading-snug lg:text-[13px]" style={{ color: MUTE }} data-testid="compare-sub">{copy.sub}</p>}
-      <div className="mt-2 grid grid-cols-2 gap-2.5 lg:gap-3">
+      <div className="mt-2 flex h-7 items-center gap-1.5 text-[11px]" style={{ color: MUTE }} role="group" aria-label={t.compare.level} data-testid="compare-levels">
+        <span className="min-w-0 truncate">{t.compare.level}</span>
+        {levels.map((l, i) => (
+          <button key={l.position} type="button" onClick={() => setPick(i)} aria-pressed={i === at} data-testid={`compare-level-${i}`}
+            className={`h-6 shrink-0 rounded-full border px-2.5 text-[12px] font-semibold ${i === at ? "border-transparent text-white" : "border-[#e3ebe7] bg-white"}`}
+            style={i === at ? { background: NAVY } : { color: NAVY }}>{num(l.avgRisk, 1)}</button>
+        ))}
+      </div>
+      <div className="mt-1.5 grid grid-cols-2 gap-2.5 lg:gap-3">
         <div className="rounded-[14px] border border-[#e3ebe7] bg-[#F7F9F8] p-2.5 min-[380px]:p-3 lg:p-4">
           <p className="text-[10px] font-semibold uppercase leading-[1.3] tracking-[0.08em] sm:line-clamp-2 sm:min-h-[2.6em]" style={{ color: MUTE }}><span className="sm:hidden">{t.benchShort}</span><span className="hidden sm:inline">{t.bench}</span></p>
           {big(bench?.ret, false)}

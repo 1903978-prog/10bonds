@@ -72,6 +72,7 @@ const en = {
   // The carousel on the right (the owner, 24/10/2026): one bond's curve first, the reason to sign up.
   // Comparison card copy (the owner, 28/10/2026). The "same risk level" wording is used only when the stored data match (lib/landingCompare.ts).
   compare: {
+    level: "Risk level of the model portfolio",
     sub: "Same risk level, similar duration. How much more yield a 10-bond list can offer than a typical bond ETF today.",
     subNeutral: "Risk level and duration of both sides are shown below. Gross yield difference today.",
     same: (r: string, d: string) => `more gross yield per year, at the same risk level (${r}) and similar duration (about ${d} years)`,
@@ -127,8 +128,8 @@ const it: LandingText = {
   ctaBtn: "Esplora lo strumento",
   sticky: "Apri lo strumento",
   kicker: "Obbligazioni selezionate dal modello",
-  h1a: "Su base matematica:",
-  h1b: "portafogli obbligazionari",
+  h1a: "Portafogli obbligazionari",
+  h1b: "basati sulla matematica",
   lead: "Un esempio di come un portafoglio del modello di 10 obbligazioni possa avere un rendimento stimato più alto di uno scelto a mano, a parità di durata e di rischio stimato.",
   cta: "Trova il portafoglio efficiente di Pareto",
   signUp: "Registrati",
@@ -168,6 +169,7 @@ const it: LandingText = {
   paper: "Metodologia scientifica (PDF, in inglese)",
   paperShort: "Metodologia (PDF)",
   compare: {
+    level: "Livello di rischio del portafoglio",
     sub: "Stesso livello di rischio, durata simile. Quanto rendimento in più può offrire oggi una lista di 10 obbligazioni rispetto a un tipico ETF obbligazionario.",
     subNeutral: "Livello di rischio e durata dei due lati sono indicati qui sotto. Differenza di rendimento lordo oggi.",
     same: (r, d) => `di rendimento lordo in più all'anno, allo stesso livello di rischio (${r}) e con durata simile (circa ${d} anni)`,
@@ -221,8 +223,8 @@ const fr: LandingText = {
   ctaBtn: "Explorer l'outil",
   sticky: "Ouvrir l'outil",
   kicker: "Obligations sélectionnées par le modèle",
-  h1a: "Fondés sur les maths :",
-  h1b: "portefeuilles obligataires",
+  h1a: "Portefeuilles obligataires",
+  h1b: "fondés sur les mathématiques",
   lead: "Une illustration : un portefeuille du modèle de 10 obligations peut atteindre un rendement modélisé plus élevé qu'un portefeuille choisi à la main, à durée et risque modélisé égaux.",
   cta: "Trouver le portefeuille efficient de Pareto",
   signUp: "S'inscrire",
@@ -262,6 +264,7 @@ const fr: LandingText = {
   paper: "Méthodologie scientifique (PDF, en anglais)",
   paperShort: "Méthodologie (PDF)",
   compare: {
+    level: "Niveau de risque du portefeuille",
     sub: "Même niveau de risque, durée similaire. Combien de rendement en plus une liste de 10 obligations peut offrir aujourd'hui par rapport à un ETF obligataire typique.",
     subNeutral: "Le niveau de risque et la durée des deux côtés sont indiqués ci-dessous. Écart de rendement brut aujourd'hui.",
     same: (r, d) => `de rendement brut en plus par an, au même niveau de risque (${r}) et avec une durée similaire (environ ${d} ans)`,
@@ -356,6 +359,7 @@ const de: LandingText = {
   paper: "Wissenschaftliche Methodik (PDF, auf Englisch)",
   paperShort: "Methodik (PDF)",
   compare: {
+    level: "Risikostufe des Portfolios",
     sub: "Gleiche Risikostufe, ähnliche Laufzeit. Wie viel mehr Rendite eine Liste aus 10 Anleihen heute gegenüber einem typischen Anleihen-ETF bieten kann.",
     subNeutral: "Risikostufe und Laufzeit beider Seiten stehen unten. Brutto-Renditeunterschied heute.",
     same: (r, d) => `mehr Brutto-Rendite pro Jahr, bei gleicher Risikostufe (${r}) und ähnlicher Laufzeit (etwa ${d} Jahre)`,

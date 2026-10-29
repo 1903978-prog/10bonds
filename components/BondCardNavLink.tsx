@@ -15,7 +15,7 @@ export default function BondCardNavLink({ admin = false }: { admin?: boolean }) 
   const pathname = usePathname() ?? "/";
   if (!admin) {
     return (
-      <Link href="/isin-search" aria-label="Search by ISIN" title="ISIN" data-testid="nav-isin" className="flex h-5 w-5 items-center justify-center hover:text-ink">{ICON}</Link>
+      <Link href="/isin-search" aria-label="Search by ISIN (Plus)" title="ISIN search, Plus" data-testid="nav-isin" className="flex h-5 items-center justify-center gap-1 hover:text-ink">{ICON}<span className="rounded-full bg-soft px-1.5 text-[10px] font-semibold leading-4 text-accent" data-testid="nav-isin-plus">Plus</span></Link>
     );
   }
   const here = pathname.startsWith("/bond-card");
