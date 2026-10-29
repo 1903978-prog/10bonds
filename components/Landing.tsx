@@ -61,13 +61,13 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
   // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
     <div data-testid="intro" className="landing finder-wide mx-auto max-w-[1400px] lg:max-w-none lg:!w-[min(calc(100vw_/_var(--z)_-_3rem),1320px)] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
-      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.74fr_1.26fr] lg:gap-x-12 lg:w-full lg:gap-y-8">
+      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.9fr_1.1fr] lg:gap-x-12 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
         <div className="mb-1 flex items-baseline justify-end gap-2 sm:hidden">
           {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
           <a href="/methodology/10bonds-quant-methodology.pdf" target="_blank" rel="noopener" className="whitespace-nowrap text-[10.5px] font-semibold leading-none underline underline-offset-2 sm:hidden" style={{ color: GREEN }}>{t.paperShort} ↓</a>
         </div>
-        <Title className="text-[clamp(30px,9vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] lg:text-[68px]">
+        <Title className={`text-[clamp(26px,8vw,40px)] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[48px] ${t.h1a.length > 17 || t.h1b.length > 17 ? "lg:text-[42px]" : "lg:text-[58px]"}`}>
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>

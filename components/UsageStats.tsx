@@ -99,7 +99,16 @@ export default function UsageStats() {
       className="fixed inset-x-2 bottom-2 z-40 mx-auto max-h-[85vh] max-w-5xl overflow-y-auto rounded-lg border border-line bg-white px-4 py-3 text-[12px] shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:inset-x-4 sm:bottom-4 sm:text-[13px]"
     >
       {!settings ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+        <>
+        {/* Phones: one line and two buttons, under 15% of the screen. Reject opposes the audience count and stores nothing. */}
+        <div className="flex flex-col gap-2 sm:hidden" data-testid="cookie-compact">
+          <p className="leading-snug text-mute">{t.short} <button onClick={() => setSettings(true)} className="text-accent underline">{t.details}</button></p>
+          <div className="flex gap-2">
+            <button onClick={() => { setCountOpposed(true); setOpposed(true); choose({ preferences: false, statistics: false, marketing: false }); }} data-testid="cookie-reject" className={`${btn} flex-1 border border-line !py-1.5`}>{t.reject}</button>
+            <button onClick={understand} data-testid="cookie-accept-compact" className={`${btn} flex-1 bg-accent text-white !py-1.5`}>{t.accept}</button>
+          </div>
+        </div>
+        <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center sm:gap-6">
           <p className="leading-snug text-mute">
             {t.notice} <Link href={policy} className="text-accent">{t.learn}</Link>
           </p>
@@ -108,6 +117,7 @@ export default function UsageStats() {
             <button onClick={understand} data-testid="cookie-accept" className={`${btn} flex-1 whitespace-nowrap bg-accent text-white hover:bg-[#0077ed]`}>{t.understand}</button>
           </div>
         </div>
+        </>
       ) : (
         <>
           <p className="text-[15px] font-semibold">{t.title}</p>

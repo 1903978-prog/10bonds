@@ -1,5 +1,5 @@
 // First-use agreement for the portfolio builder. Changing any wording means raising CONSENT_VERSION, so everyone is asked again.
-export const CONSENT_VERSION = "2026-10-26.1";
+export const CONSENT_VERSION = "2026-10-29.1";
 
 export type ConsentLang = "en" | "it" | "fr" | "de";
 
@@ -12,7 +12,7 @@ export const CONSENT_TEXT: Record<ConsentLang, { title: string; points: string[]
     ],
     link: "How we select the 10 bonds ↗",
     agree: "I understand this is a research tool, not investment advice.",
-    button: "View portfolio",
+    button: "I understand — show the portfolio",
   },
   it: {
     title: "Prima di esplorare",
@@ -22,7 +22,7 @@ export const CONSENT_TEXT: Record<ConsentLang, { title: string; points: string[]
     ],
     link: "Come selezioniamo le 10 obbligazioni ↗",
     agree: "Capisco che questo è uno strumento di ricerca, non una consulenza in materia di investimenti.",
-    button: "Vedi il portafoglio",
+    button: "Ho capito — mostra il portafoglio",
   },
   fr: {
     title: "Avant d'explorer",
@@ -32,7 +32,7 @@ export const CONSENT_TEXT: Record<ConsentLang, { title: string; points: string[]
     ],
     link: "Comment nous sélectionnons les 10 obligations ↗",
     agree: "Je comprends qu'il s'agit d'un outil de recherche, et non d'un conseil en investissement.",
-    button: "Voir le portefeuille",
+    button: "J'ai compris — afficher le portefeuille",
   },
   de: {
     title: "Bevor Sie erkunden",
@@ -42,6 +42,6 @@ export const CONSENT_TEXT: Record<ConsentLang, { title: string; points: string[]
     ],
     link: "Wie wir die 10 Anleihen auswählen ↗",
     agree: "Ich verstehe, dass dies ein Recherche-Tool ist und keine Anlageberatung.",
-    button: "Portfolio ansehen",
+    button: "Verstanden — Portfolio anzeigen",
   },
 };

@@ -28,15 +28,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Bing Webmaster Tools site verification (the owner, 19 Oct 2026). Public by design, not a secret.
   verification: { other: { "msvalidate.01": "ADA17531835A822BB9A6870BCE68531B" } },
-  title: "10BONDS · AI-powered bond selection",
-  description: "AI-powered bond selection: pick a duration and a desired return, and 10BONDS shows 10 euro bonds that match. Data updated daily.",
+  title: "10BONDS · Mathematics-based bond portfolios",
+  description: "Mathematics-based bond portfolios: pick a duration and a desired return, and 10BONDS shows 10 euro bonds that match. Data updated daily.",
   openGraph: {
-    title: "10BONDS · AI-powered bond selection",
-    description: "AI-powered bond selection: pick a duration and a desired return, and get 10 euro bonds that match.",
+    title: "10BONDS · Mathematics-based bond portfolios",
+    description: "Mathematics-based bond portfolios: pick a duration and a desired return, and get 10 euro bonds that match.",
     type: "website",
     siteName: "10BONDS",
   },
-  twitter: { card: "summary_large_image", title: "10BONDS · AI-powered bond selection", description: "AI-powered bond selection: pick a duration and a desired return, and get 10 euro bonds that match." },
+  twitter: { card: "summary_large_image", title: "10BONDS · Mathematics-based bond portfolios", description: "Mathematics-based bond portfolios: pick a duration and a desired return, and get 10 euro bonds that match." },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f5f5f7" };

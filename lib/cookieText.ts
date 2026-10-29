@@ -5,6 +5,7 @@ export type CookieText = {
   notice: string; learn: string; details: string; understand: string; title: string; required: string;
   functional: string; functionalText: string; audience: string; audienceText: string; oppose: string; opposed: string; allowAgain: string;
   visitor: string; visitorText: string; policy: string; label: string;
+  short: string; accept: string; reject: string;
 };
 
 export const COOKIE_TEXT: Record<CookieLang, CookieText> = {
@@ -17,6 +18,7 @@ export const COOKIE_TEXT: Record<CookieLang, CookieText> = {
     oppose: "Oppose audience measurement", opposed: "You opposed audience measurement: nothing is counted.", allowAgain: "Allow again",
     visitor: "Visitor statistics (needs your OK)", visitorText: "Anonymous visitor number, pages visited, time on each page, clicks and country, to improve the site. Never sold or shared. Signed-in members who allow it get one free week of Premium.",
     policy: "Cookie policy", label: "Cookie notice",
+    short: "Functional cookies and an anonymous page count only.", accept: "Accept", reject: "Reject",
   },
   it: {
     notice: "Usiamo solo cookie funzionali e una misurazione anonima del pubblico (un conteggio giornaliero delle pagine, nessun identificativo). Possono essere usati senza consenso preventivo, ma ti informiamo. Non vendiamo dati e non usiamo cookie pubblicitari.",
@@ -27,6 +29,7 @@ export const COOKIE_TEXT: Record<CookieLang, CookieText> = {
     oppose: "Opponiti alla misurazione del pubblico", opposed: "Ti sei opposto alla misurazione: nulla viene conteggiato.", allowAgain: "Consenti di nuovo",
     visitor: "Statistiche sui visitatori (serve il tuo consenso)", visitorText: "Numero anonimo del visitatore, pagine viste, tempo su ogni pagina, clic e paese, per migliorare il sito. Mai venduti né condivisi. I membri registrati che acconsentono ricevono una settimana Premium gratis.",
     policy: "Cookie policy", label: "Informativa cookie",
+    short: "Solo cookie funzionali e un conteggio anonimo delle pagine.", accept: "Accetta", reject: "Rifiuta",
   },
   fr: {
     notice: "Nous utilisons uniquement des cookies fonctionnels et une mesure d'audience anonyme (un comptage quotidien des pages, sans identifiant). Ils peuvent être utilisés sans consentement préalable, mais nous vous informons. Nous ne vendons aucune donnée et n'utilisons aucun cookie publicitaire.",
@@ -37,6 +40,7 @@ export const COOKIE_TEXT: Record<CookieLang, CookieText> = {
     oppose: "M'opposer à la mesure d'audience", opposed: "Vous vous êtes opposé à la mesure d'audience : rien n'est compté.", allowAgain: "Autoriser à nouveau",
     visitor: "Statistiques visiteur (votre accord est requis)", visitorText: "Numéro de visiteur anonyme, pages vues, temps passé sur chaque page, clics et pays, pour améliorer le site. Jamais vendus ni partagés. Les membres connectés qui acceptent reçoivent une semaine Premium offerte.",
     policy: "Politique de cookies", label: "Avis sur les cookies",
+    short: "Cookies fonctionnels et comptage anonyme des pages uniquement.", accept: "Accepter", reject: "Refuser",
   },
   de: {
     notice: "Wir verwenden nur funktionale Cookies und eine anonyme Reichweitenmessung (eine tägliche Seitenzählung, keine Kennung). Diese dürfen ohne vorherige Einwilligung genutzt werden, wir informieren Sie aber. Wir verkaufen keine Daten und nutzen keine Werbe-Cookies.",
@@ -47,6 +51,7 @@ export const COOKIE_TEXT: Record<CookieLang, CookieText> = {
     oppose: "Der Reichweitenmessung widersprechen", opposed: "Sie haben der Reichweitenmessung widersprochen: nichts wird gezählt.", allowAgain: "Wieder erlauben",
     visitor: "Besucherstatistik (Ihre Zustimmung nötig)", visitorText: "Anonyme Besuchernummer, besuchte Seiten, Zeit pro Seite, Klicks und Land, um die Seite zu verbessern. Nie verkauft oder weitergegeben. Angemeldete Mitglieder, die zustimmen, erhalten eine Woche Premium gratis.",
     policy: "Cookie-Richtlinie", label: "Cookie-Hinweis",
+    short: "Nur funktionale Cookies und eine anonyme Seitenzählung.", accept: "Akzeptieren", reject: "Ablehnen",
   },
 };
 
