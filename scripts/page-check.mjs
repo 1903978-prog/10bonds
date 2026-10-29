@@ -86,8 +86,7 @@ for (const [w, h] of WIDTHS) {
   await open(p, BASE + "/?intro=0");
   await p.locator('[data-testid="find-portfolio"]').click();
   ok(await p.locator('[data-testid="consent-gate"]').isVisible(), "consent: popup shows on first use");
-  ok(await p.locator('[data-testid="consent-continue"]').isDisabled(), "consent: Continue disabled until ticked");
-  await p.locator('[data-testid="consent-check"]').check();
+  ok(await p.locator('[data-testid="consent-continue"]').isEnabled(), "consent: one button, no tick-box");
   await p.locator('[data-testid="consent-continue"]').click();
   await p.locator('[data-testid="consent-gate"]').waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
   ok(!(await p.locator('[data-testid="consent-gate"]').count()), "consent: popup closes after agreeing");

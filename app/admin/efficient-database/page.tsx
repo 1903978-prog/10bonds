@@ -14,7 +14,7 @@ export default async function AdminSliderSnapshot() {
   if (user?.adminState && user.adminState !== "ok") redirect("/admin");
   if (!user?.isAdmin) notFound();
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <main className="mx-auto max-w-none px-4 py-10">
       <p className="text-sm"><Link href="/admin" className="text-accent">← Admin</Link></p>
       <h1 className="mt-3 text-2xl font-semibold">Efficient Database</h1>
       <p className="mt-2 text-sm text-mute">The 90 slider positions (30 per term) calculated in advance for each new price batch. The website reads only the published snapshot; a snapshot is published only when all 90 positions pass every check.</p>

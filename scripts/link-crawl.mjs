@@ -5,6 +5,8 @@
 //   OUT=<folder>        where link-check.json and link-check.md are written (default ./link-check-out)
 //   EXTRA_CHECKS=1     also run the named checks of extraChecks() (needs the real bond data: live site only)
 //   MAX_PAGES=<n>       pages per role (default 600)
+//   PAID_PAGES=<n>      pages for the Plus, Premium and Pro roles (default 40)
+//   PATHS=<a,b>         visit only these paths (a diagnosis run)
 //   CHROME_PATH / CHROME_CHANNEL  pick the browser (default channel "chrome")
 // Read-only: only GET requests, plus the sign-in POST. Exit code 1 when any page that must work answers 4xx/5xx or fails to load.
 import { mkdirSync, readdirSync, existsSync, writeFileSync } from "node:fs";
@@ -18,7 +20,13 @@ const MAX_PAGES = Number(process.env.MAX_PAGES ?? 600);
 const PASSWORD = process.env.LINKCHECK_PASSWORD ?? "";
 const CONCURRENCY = Number(process.env.CONCURRENCY ?? 3);
 const BOND_SAMPLE = Number(process.env.BOND_SAMPLE ?? 25);
-const ACCOUNTS = { free: "link-check-free@10bonds.com", admin: "link-check-admin@10bonds.com" };
+const ACCOUNTS = {
+  free: "link-check-free@10bonds.com", admin: "link-check-admin@10bonds.com",
+  plus: "link-check-plus@10bonds.com", premium: "link-check-premium@10bonds.com", pro: "link-check-pro@10bonds.com",
+};
+const PAID = ["plus", "premium", "pro"];
+const PAID_PAGES = Number(process.env.PAID_PAGES ?? 40); // paid roles: the core pages and the feature checks only
+const ONLY = (process.env.PATHS ?? "").split(",").map((s) => s.trim()).filter(Boolean); // PATHS=/admin/a,/admin/b: visit just these (diagnosis)
 
 // Pages our specs and notes promise. Each one must answer (a redirect to the real page counts). Admin ones are checked as admin.
 const PROMISED = [
@@ -99,7 +107,7 @@ async function extraChecks(ctx, role) {
     } else {
       const fullCard = (isin) => [isin, new RegExp(isin), "full card"];
       for (const [isin, want, label] of [
-        ["FR0000186413", /does not pay a fixed coupon/i, 'message "does not pay a fixed coupon"'],
+        ["FR0000186413", /does not pay a fixed coupon|struttura che non modelliamo|structure que nous ne mod[ée]lisons|Struktur, die wir nicht modellieren/i, 'message "does not pay a fixed coupon" (any language: the page follows the language cookie the crawl set on /it, /fr or /de)'],
         fullCard("DE000HEL4BV8"), fullCard("GR0128016731"), fullCard("US054989AB41"), fullCard("US263901AA85"),
       ]) {
         const { page, status } = await open(`/bond-card?isin=${isin}`);
@@ -131,10 +139,60 @@ async function extraChecks(ctx, role) {
       const lr = await listed;
       if (lr) await lr.finished().catch(() => null);
       await page.waitForTimeout(3000);
+      // The first-use consent pop-up covers the page until it is accepted (one button).
+      await page.getByRole("button", { name: /I understand/i }).click({ timeout: 5_000 }).catch(() => {});
+      await page.waitForTimeout(1000);
       const tile = page.getByText(/efficiency score/i).first();
       const found = await tile.waitFor({ timeout: 30_000 }).then(() => true).catch(() => false);
       const tileText = found ? await tile.locator("xpath=..").innerText().catch(() => "") : "";
       rec('Finder shows the "efficiency score (avg)" tile', found, `home HTTP ${res?.status()}, list HTTP ${lr?.status() ?? "none"}: ${tileText || "tile not found"}`);
+      // Plan gates (free: locked with a reason; Plus, Premium, Pro: open). Admin is checked elsewhere.
+      if (role !== "admin") {
+        const paid = PAID.includes(role);
+        const locks = {};
+        for (const k of ["chart", "multi", "heat"]) {
+          await page.getByTestId(`view-tab-${k}`).click({ timeout: 10_000 }).catch(() => {});
+          await page.waitForTimeout(2500);
+          locks[k] = await page.getByTestId("locked-chart").count();
+        }
+        await page.getByTestId("view-tab-list").click({ timeout: 10_000 }).catch(() => {});
+        rec(`${role}: chart, multi-year and heat map ${paid ? "open" : "locked with a reason"}`, paid ? Object.values(locks).every((n) => n === 0) : Object.values(locks).every((n) => n > 0), `locked boxes: chart ${locks.chart}, multi-year ${locks.multi}, heat map ${locks.heat}`);
+        const slider = { open: await page.getByTestId("exact-year").count(), locked: await page.getByTestId("exact-year-locked").count() };
+        rec(`${role}: exact-year slider ${paid ? "open" : "locked"}`, paid ? slider.open > 0 : slider.locked > 0, `open ${slider.open}, locked ${slider.locked}`);
+        const dl = paid ? page.waitForEvent("download", { timeout: 15_000 }).catch(() => null) : null;
+        await page.getByTestId("excel-download").click({ timeout: 10_000 }).catch(() => {});
+        if (paid) {
+          const file = await dl;
+          rec(`${role}: Excel download`, !!file, file ? `file ${file.suggestedFilename()}` : "no file came");
+        } else {
+          const up = await page.getByTestId("excel-upsell").waitFor({ timeout: 8_000 }).then(() => true).catch(() => false);
+          rec("free: Excel shows the upgrade pop-up", up, up ? "pop-up shown" : "no pop-up");
+        }
+        const { page: ip, status: is } = await open("/isin-search");
+        await ip.getByTestId("isin-input").fill("DE000HEL4BV8").catch(() => {});
+        await ip.getByTestId("isin-go").click({ timeout: 5_000 }).catch(() => {});
+        await ip.waitForTimeout(4000);
+        const lockedIsin = await ip.getByTestId("isin-locked-reason").count();
+        const isinText = (await ip.getByTestId("isin-result").innerText().catch(() => "")).slice(0, 120);
+        rec(`${role}: ISIN search ${paid ? "works" : "locked with a reason"}`, is === 200 && (paid ? lockedIsin === 0 && /Hessen|DE000HEL4BV8/i.test(isinText) : lockedIsin > 0), `HTTP ${is}: ${isinText}`);
+        await ip.close();
+        // Payments: the free test account starts a checkout for Plus and Premium (no payment is made; the session only opens and expires by itself).
+        if (role === "free") {
+          for (const [plan, price] of [["plus", /9[.,]00/], ["premium", /19[.,]00/]]) {
+            const r = await ctx.request.post(BASE + "/api/billing/checkout", { data: { plan, interval: "month", startNow: true }, timeout: 60_000 });
+            const j = await r.json().catch(() => ({}));
+            let shown = "";
+            if (j.url && /^https:\/\/checkout\.stripe\.com\//.test(j.url)) {
+              const sp = await ctx.newPage();
+              await sp.goto(j.url, { waitUntil: "domcontentloaded", timeout: 60_000 }).catch(() => {});
+              await sp.waitForTimeout(5000);
+              shown = (await sp.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
+              await sp.close();
+            }
+            rec(`free: Stripe checkout for ${plan} opens with the right price`, r.status() === 200 && price.test(shown), `HTTP ${r.status()} ${j.url ? "session opened" : j.error ?? "no url"}: ${shown}`);
+          }
+        }
+      }
       await page.close();
     }
   } catch (e) {
@@ -178,12 +236,19 @@ async function crawlRole(browser, role) {
     seen.add(clean);
     queue.push(clean);
   };
-  add("/");
-  for (const l of ["it", "fr", "de"]) add("/" + l);
-  appRoutes().forEach(add);
-  (await sitemapPaths(ctx.request)).forEach(add);
-  ["/robots.txt", "/llms.txt", "/sitemap.xml", "/bonds/sitemap.xml"].forEach(add);
-  PROMISED.forEach(add);
+  const maxPages = ONLY.length ? ONLY.length : PAID.includes(role) ? PAID_PAGES : MAX_PAGES;
+  if (ONLY.length) ONLY.forEach(add);
+  else {
+    add("/");
+    ["/pricing", "/isin-search", "/account"].forEach(add);
+    if (!PAID.includes(role)) {
+      for (const l of ["it", "fr", "de"]) add("/" + l);
+      appRoutes().forEach(add);
+      (await sitemapPaths(ctx.request)).forEach(add);
+      ["/robots.txt", "/llms.txt", "/sitemap.xml", "/bonds/sitemap.xml"].forEach(add);
+      PROMISED.forEach(add);
+    }
+  }
 
   async function visit(path) {
     const started = Date.now();
@@ -206,7 +271,9 @@ async function crawlRole(browser, role) {
         if (row.status && row.status < 400) {
           const text = (await page.evaluate(() => document.body?.innerText ?? "").catch(() => "")) || "";
           for (const [re, label] of EMPTY_PATTERNS) if (re.test(text)) row.empty.push(label);
-          const dashes = text.split("\n").filter((l) => /^\s*[–—-]\s*$/.test(l)).length;
+          // A "–" inside a table or the heat map is a combination that cannot exist (no bond at that risk and maturity, a horizon that cannot reach that return): by design, not a gap.
+          const loose = await page.evaluate(() => { const c = document.body.cloneNode(true); c.querySelectorAll('table, [data-testid="heat-map"], [data-heat-grid]').forEach((n) => n.remove()); return c.innerText || c.textContent || ""; }).catch(() => text);
+          const dashes = loose.split("\n").filter((l) => /^\s*[–—-]\s*$/.test(l)).length;
           if (dashes >= 12) row.empty.push(`${dashes} empty cells ("–")`);
           if (text.trim().length < 40) row.empty.push("page is almost empty");
           const hrefs = await page.evaluate(() => [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")));
@@ -217,6 +284,14 @@ async function crawlRole(browser, role) {
     } catch (e) {
       row.status = 0;
       row.note = String(e.message).split("\n")[0].slice(0, 160);
+      // The browser hides the answer of an error page: ask again with a plain request and keep the real status, time and first words.
+      const t0 = Date.now();
+      const again = await ctx.request.get(BASE + path, { timeout: 60_000, maxRedirects: 0 }).catch((x) => ({ err: String(x.message).split("\n")[0] }));
+      if (again.err) row.note += ` | plain request: ${again.err.slice(0, 100)}`;
+      else {
+        const body = (await again.text().catch(() => "")).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 140);
+        row.note += ` | plain request: HTTP ${again.status()} in ${Date.now() - t0} ms${body ? `, "${body}"` : ", empty body"}`;
+      }
     }
     row.ms = Date.now() - started;
     rows.push(row);
@@ -226,8 +301,8 @@ async function crawlRole(browser, role) {
   let active = 0;
   const worker = async () => {
     // A worker leaves only when the queue is empty and nobody is still opening a page that may add links.
-    while (rows.length + active < MAX_PAGES || active > 0) {
-      if (idx < queue.length && rows.length + active < MAX_PAGES) {
+    while (rows.length + active < maxPages || active > 0) {
+      if (idx < queue.length && rows.length + active < maxPages) {
         const p = queue[idx++];
         active++;
         await visit(p);
@@ -237,7 +312,7 @@ async function crawlRole(browser, role) {
     }
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  const checks = process.env.EXTRA_CHECKS === "1" ? await extraChecks(ctx, role) : [];
+  const checks = process.env.EXTRA_CHECKS === "1" && !ONLY.length ? await extraChecks(ctx, role) : [];
   await ctx.close();
   return { checks, note: { ...roleNote, denied, pagesLeftUnvisited: Math.max(0, queue.length - rows.length) }, rows };
 }

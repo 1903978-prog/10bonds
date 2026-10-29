@@ -15,12 +15,13 @@ import { activePromo } from "@/lib/promoServer";
 import { promoCents, promoEndLabel, promoLine } from "@/lib/promo";
 import { loadFreeLimits } from "@/lib/searchLimits";
 import TrackView from "@/components/TrackView";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const metadata: Metadata = {
   title: "Plans · 10BONDS",
   description: "10BONDS plans compared: Free, Plus, Premium and Pro. What each plan includes, monthly and yearly prices, and how to redeem a promo code.",
   alternates: { canonical: "/pricing" },
-  openGraph: { title: "Plans · 10BONDS", description: "10BONDS plans compared: Free, Plus, Premium and Pro. What each plan includes, monthly and yearly prices, and how to redeem a promo code.", url: "/pricing" },
+  openGraph: { images: OG_IMAGES, title: "Plans · 10BONDS", description: "10BONDS plans compared: Free, Plus, Premium and Pro. What each plan includes, monthly and yearly prices, and how to redeem a promo code.", url: "/pricing" },
 };
 export const dynamic = "force-dynamic";
 

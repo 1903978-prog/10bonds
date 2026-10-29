@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { applyBes, buildSnapshot, jobHistory, rowDetail, snapshotList, snapshotReport, snapshotRows } from "@/lib/sliderSnapshot";
+import { ALL_FILTERS, applyBes, buildSnapshot, filterKey, jobHistory, rowDetail, snapshotList, snapshotReport, snapshotRows } from "@/lib/sliderSnapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,8 @@ async function admin() {
 export async function GET(req: Request) {
   if (!(await admin())) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const q = new URL(req.url).searchParams;
-  const list = await snapshotList(30);
+  const key = ALL_FILTERS.map(filterKey).includes(q.get("key") ?? "") ? q.get("key")! : filterKey(ALL_FILTERS[0]);
+  const list = (await snapshotList(120)).filter((x) => x.filter_key === key).slice(0, 30);
   const id = Number(q.get("id") ?? (list.find((x) => x.status === "published") ?? list[0])?.id);
   const row = Number(q.get("row"));
   if (Number.isInteger(id) && Number.isInteger(row) && row >= 1 && row <= 90) return NextResponse.json(await rowDetail(id, row), { headers: { "Cache-Control": "no-store" } });
@@ -22,9 +23,10 @@ export async function GET(req: Request) {
 }
 
 /** Rebuilds from the stored lists of the latest price batch. Cheap (no solver), never duplicates a batch, never touches the published snapshot unless all 90 pass. */
-export async function POST() {
+export async function POST(req: Request) {
   if (!(await admin())) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const r = await buildSnapshot("admin", undefined, true);
+  const f = ALL_FILTERS.find((x) => filterKey(x) === new URL(req.url).searchParams.get("key")) ?? ALL_FILTERS[0];
+  const r = await buildSnapshot("admin", f, true);
   const bes = await applyBes().catch((e) => ({ error: (e as Error).message }));
   return NextResponse.json({ ...r, bes }, { headers: { "Cache-Control": "no-store" } });
 }

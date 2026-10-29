@@ -7,6 +7,7 @@ import { comparisonEnBySlug, enBondsPath, enText, EN_BONDS_BASE, guidesFor } fro
 import { SITE_URL } from "@/lib/seo/crawl";
 import { enGuide, enPath } from "@/lib/seo/knowledgeEn";
 import { comparisonPages, indexable, shown } from "@/lib/seo/site";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 // English comparison pages (US and UK readers): the same live bond data as the Italian, French and German pages.
 
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: x.description,
     alternates: { canonical: enBondsPath(x.slug), languages: { en: enBondsPath(x.slug), "x-default": enBondsPath(x.slug) } },
     robots: c && indexable(c, source) ? undefined : { index: false, follow: true },
-    openGraph: { locale: "en_GB", title: x.title, description: x.description },
+    openGraph: { images: OG_IMAGES, locale: "en_GB", title: x.title, description: x.description },
   };
 }
 

@@ -621,11 +621,11 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   return (
     <FinderLangContext.Provider value={lang}>
-    <div ref={pageBox} className={`finder-wide grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:gap-5 ${curveMode ? "" : "lg:grid-cols-[340px_minmax(0,1fr)]"}`}>
+    <div ref={pageBox} className={`finder-wide grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:gap-5 lg:grid-cols-[340px_minmax(0,1fr)]`}>
       {/* Inputs */}
       {/* On phones the mode tabs sit on top so they never move; in 1-bond mode the title and the two portfolio
           sliders give way so slider, options, curve and bond name fit on one screen. */}
-      <section className={`flex flex-col rounded-lg border border-line bg-white p-5 max-sm:py-4 sm:p-6 ${curveMode ? "lg:hidden" : ""}`}>
+      <section className={`flex flex-col rounded-lg border border-line bg-white p-5 max-sm:py-4 sm:p-6`}>
         <div className={mode === "single" ? "max-lg:hidden" : "max-lg:mt-3"}>
         <Title className="text-[24px] font-semibold leading-[1.1] tracking-tight sm:text-[26px]">
           {t.h1}
@@ -850,7 +850,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               </div>
               <div className="relative min-h-0 flex-1" data-testid="loss-chart">
                 {viewLocked ? (
-                  <LockedChart kind={view === "heat" ? "heat" : view === "multi" ? "multi" : "chart"} label={signedIn ? t.chartLock : t.chartSignUp} href={signedIn ? "/pricing" : signupHref(lang)} />
+                  <LockedChart kind={view === "heat" ? "heat" : view === "multi" ? "multi" : "chart"} reason={t.chartReason} label={signedIn ? t.chartLock : t.chartSignUp} href={signedIn ? "/pricing" : signupHref(lang)} />
                 ) : showHeat && canHeat ? (
                   <HeatMapChart plain={!isAdmin} shortlists={shortlistDots} map={heatMap} method={heatMethod} onMethod={setHeatMethod} blacklist={heatBl} onBlacklist={setHeatBl} retLabel={t.chartX} yearsLabel="yrs" picked={heatPick} onPick={(c) => { setTouched(true); setHeatPick(c); }} />
                 ) : showAll && canMulti ? (
@@ -1689,7 +1689,7 @@ function PhoneResults({ caption, arrows, title, onClose, data, list, setList, fe
   // The admin's risk column also holds the S&P slot (fixed width either way, so nothing moves when results arrive).
   const [admin, setAdmin] = useState(false);
   useEffect(() => { loadMe().then((me) => setAdmin(!!me?.isAdmin)); }, []);
-  const cols = `grid ${admin ? "grid-cols-[1rem_minmax(0,1fr)_2.25rem_4.25rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
+  const cols = `grid ${admin ? "grid-cols-[1.25rem_minmax(0,1fr)_2.25rem_4.25rem_3.75rem_1.5rem_2.25rem]" : "grid-cols-[1.25rem_minmax(0,1fr)_2.25rem_1.75rem_3.75rem_1.5rem_2.25rem]"} items-center gap-x-1.5`;
   return (
     <div
       role="dialog"
@@ -1741,7 +1741,7 @@ function PhoneResults({ caption, arrows, title, onClose, data, list, setList, fe
                 {admin ? (
                   <>
                     <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
-                    <div className="flex flex-wrap items-center gap-1 leading-none" data-testid="admin-phone-ratings"><GptRate isin={r.isin} kind="ir" /><GptRate isin={r.isin} /><Spread ytm={r.ytm} years={r.duration} /><RiskPayCell isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
+                    <div className="flex h-4 items-center gap-1 overflow-hidden whitespace-nowrap leading-none" data-testid="admin-phone-ratings"><Spread compact ytm={r.ytm} years={r.duration} /><RiskPayCell compact isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
                   </>
                 ) : paid ? (
                   <CopyIsin isin={r.isin} phone />

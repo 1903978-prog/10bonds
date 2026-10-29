@@ -52,6 +52,7 @@ jobs:
           for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3311/api/health && up=1 && break; sleep 1; done
           [ "$up" = 1 ] || { echo "The site did not start within 60 seconds"; exit 1; }
           BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/page-check.mjs
+          BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/landing-fit-check.mjs
       - name: Server log (on failure)
         if: failure()
         run: tail -100 server.log || true

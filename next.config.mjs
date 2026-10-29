@@ -45,12 +45,33 @@ const nextConfig = {
       // The sample company is fictional (ACMA GmbH); the old real-bond links keep working.
       .concat(["risk-assessment", "report"].map((r) => ({ source: `/${r}/FR0013482841`, destination: `/${r}/DE000ACMA031`, permanent: true })));
   },
+  // Browsers and crawlers ask for /favicon.ico by habit; answer with the same icon the pages name, instead of a 404.
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/icon.svg" }];
+  },
   async headers() {
     // /embed/... is shown inside other websites' frames, so it skips the "never in a frame" and same-origin rules.
     // It keeps "require-corp": a page with that rule (ours included) may only frame pages that also have it.
     const embed = new Set(["X-Frame-Options", "Cross-Origin-Resource-Policy", "Cross-Origin-Opener-Policy"]);
+    // Files that rarely change: the browser and any shared cache may keep them a day and show the old copy for a week while it re-checks.
+    const day = [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }];
+    const hour = [{ key: "Cache-Control", value: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" }];
     return [
       { source: "/((?!embed/).*)", headers: securityHeaders },
+      // A signed-out visitor's page may sit in the browser's back/forward memory ("no-store" switched that off, so Back re-downloaded and re-ran the page).
+      // "no-cache" still makes the browser ask the server before it reuses a stored copy over the network. Signed-in users, the API and admin keep "no-store".
+      {
+        source: "/((?!api/|admin|account|login|signup|forgot-password|reset-password|redeem|pro|embed/|_next/|og.png|sitemap.xml|robots.txt|llms.txt).*)",
+        missing: [{ type: "cookie", key: "tb_session" }],
+        headers: [{ key: "Cache-Control", value: "private, no-cache, max-age=0" }],
+      },
+      { source: "/og.png", headers: day },
+      { source: "/carousel-:file.png", headers: day },
+      { source: "/icon.svg", headers: day },
+      { source: "/methodology/:file*", headers: day },
+      { source: "/sitemap.xml", headers: hour },
+      { source: "/robots.txt", headers: hour },
+      { source: "/llms.txt", headers: hour },
       { source: "/embed/:path*", headers: [...securityHeaders.filter((h) => !embed.has(h.key)), { key: "Cross-Origin-Resource-Policy", value: "cross-origin" }] },
     ];
   },

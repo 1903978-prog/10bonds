@@ -18,6 +18,8 @@ export function FooterLegal() {
     <nav aria-label="Legal" className="mx-auto mt-2 flex max-w-4xl flex-wrap justify-center gap-x-3 gap-y-1 px-4 text-[11px] text-mute" data-testid="footer-legal">
       <Link href={lang === "en" ? "/disclaimer" : `/disclaimer?lang=${lang}`} className={a}>{l.disclaimer}</Link>
       <Link href={lang === "en" ? "/selection-methodology" : `/selection-methodology?lang=${lang}`} className={a}>{l.selection}</Link>
+      <Link href="/about" className={a}>About</Link>
+      <a href="mailto:privacy@10bonds.com" className={a}>Contact</a>
       <Link href="/terms" className={a}>{l.terms}</Link>
       <Link href="/privacy" className={a}>{l.privacy}</Link>
       <Link href="/cookies" className={a}>{l.cookies}</Link>

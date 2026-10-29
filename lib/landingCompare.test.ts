@@ -56,3 +56,18 @@ describe("landing comparison card text", () => {
     expect(isMatched({ ytm: j.ytm!, risk: j.avgRisk!, duration: j.duration! }, etf)).toBe(true);
   });
 });
+
+describe("landing comparison levels", () => {
+  it("stored levels rise in risk and return, and one of them matches the ETF", async () => {
+    const { default: L } = await import("./landingLevels.json");
+    for (let i = 1; i < L.levels.length; i++) {
+      expect(L.levels[i].avgRisk).toBeGreaterThan(L.levels[i - 1].avgRisk);
+      expect(L.levels[i].ytm).toBeGreaterThan(L.levels[i - 1].ytm);
+    }
+    const best = L.levels.reduce((b, l) => (Math.abs(l.avgRisk - etf.risk) < Math.abs(b.avgRisk - etf.risk) ? l : b));
+    expect(isMatched({ ytm: best.ytm, risk: best.avgRisk, duration: best.duration }, etf)).toBe(true);
+  });
+  it("never claims the same risk level for a higher-risk list", () => {
+    expect(compareCopy("en", { ytm: 5.73, risk: 6, duration: 4 }, etf, undefined, 0.5).sub).not.toMatch(/Same risk level/);
+  });
+});

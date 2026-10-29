@@ -20,6 +20,7 @@ import { faqFromHtml, sanitizeHtml } from "@/lib/seo/sanitize";
 import { ANALYST_NAME, listGuides } from "@/lib/seo/store";
 import { enBondsPath, enComparisons, enText } from "@/lib/seo/comparisonsEn";
 import { comparisonPages, shown } from "@/lib/seo/site";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 // English Knowledge Center pages: the guides and the yield calculator.
 
@@ -37,23 +38,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   if (slug === BOND_MAP_TEXT.en.slug) {
     const c = BOND_MAP_TEXT.en;
-    return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: bondMapAlternates("en"), openGraph: { images: OG_IMAGES, locale: "en_GB", title: c.title, description: c.description } };
   }
   if (slug === INSIGHTS_TEXT.en.slug) {
     const c = INSIGHTS_TEXT.en;
-    return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: insightsAlternates("en"), openGraph: { images: OG_IMAGES, locale: "en_GB", title: c.title, description: c.description } };
   }
   if (slug === CURVE_TEXT.en.slug) {
     const c = CURVE_TEXT.en;
-    return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: curveAlternates("en"), openGraph: { images: OG_IMAGES, locale: "en_GB", title: c.title, description: c.description } };
   }
   if (slug === BUND_CURVE_TEXT.en.slug) {
     const c = BUND_CURVE_TEXT.en;
-    return { title: { absolute: c.title }, description: c.description, alternates: bundCurveAlternates("en"), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: bundCurveAlternates("en"), openGraph: { images: OG_IMAGES, locale: "en_GB", title: c.title, description: c.description } };
   }
   if (slug === CALCULATOR_EN.slug) {
     const c = CALCULATOR_EN;
-    return { title: { absolute: c.title }, description: c.description, alternates: withEnglish(enPath(c.slug), enPath(c.slug), calcLangs()), openGraph: { locale: "en_GB", title: c.title, description: c.description } };
+    return { title: { absolute: c.title }, description: c.description, alternates: withEnglish(enPath(c.slug), enPath(c.slug), calcLangs()), openGraph: { images: OG_IMAGES, locale: "en_GB", title: c.title, description: c.description } };
   }
   const g = enGuide(slug);
   if (!g) return { robots: { index: false } };
@@ -61,7 +62,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: { absolute: g.seoTitle },
     description: g.metaDescription,
     alternates: withEnglish(enPath(g.slug), enPath(g.slug), await languageVersions(g.group)),
-    openGraph: { type: "article", locale: "en_GB", title: g.seoTitle, description: g.metaDescription },
+    openGraph: { images: OG_IMAGES, type: "article", locale: "en_GB", title: g.seoTitle, description: g.metaDescription },
   };
 }
 

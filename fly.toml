@@ -3,7 +3,15 @@
 app = "10bonds"
 primary_region = "cdg"
 
+# Old machine keeps answering 12 s after SIGTERM (graceful-exit.cjs); Fly waits up to 30 s before it kills it.
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
 [build]
+
+# Zero-downtime releases (Livio 29/10/2026): the new machine starts and passes /api/health before the old one stops. Costs only the few minutes of the overlap, not a second machine all month.
+[deploy]
+  strategy = "bluegreen"
 
 [http_service]
   internal_port = 8080
@@ -31,6 +39,14 @@ primary_region = "cdg"
     grace_period = "40s"
     method = "GET"
     path = "/api/health"
+
+  # Readiness for blue-green releases (29/10/2026): the new machine joins only after it has rendered the home and plans pages once.
+  [[http_service.checks]]
+    interval = "10s"
+    timeout = "25s"
+    grace_period = "90s"
+    method = "GET"
+    path = "/api/ready"
 
 # 4 shared CPUs (was 1): the single shared CPU was throttled to a small share once its burst credit ran out, so pages took 15+ s. About +2 USD/month.
 [[vm]]

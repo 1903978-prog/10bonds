@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import BondIsinPage, { bondByIsin } from "@/components/seo/BondIsinPage";
 import { bondAlternates, bondDescription, bondTitle, isIsin } from "@/lib/seo/bondPages";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     alternates: bondAlternates("en", isin),
     robots: hit.live ? undefined : { index: false, follow: true },
-    openGraph: { type: "website", locale: "en_GB", title, description },
+    openGraph: { images: OG_IMAGES, type: "website", locale: "en_GB", title, description },
   };
 }
 

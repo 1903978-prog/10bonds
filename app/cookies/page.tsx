@@ -3,12 +3,13 @@ import Link from "next/link";
 import CloseButton from "@/components/CloseButton";
 import { UsageStatsSetting } from "@/components/UsageStats";
 import { COMPANY } from "@/lib/legal";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const metadata: Metadata = {
   title: "Cookie policy · 10BONDS",
   description: "Which cookies 10BONDS uses, what each one is for, and how to change your cookie settings at any time.",
   alternates: { canonical: "/cookies" },
-  openGraph: { title: "Cookie policy · 10BONDS", description: "Which cookies 10BONDS uses, what each one is for, and how to change your cookie settings at any time.", url: "/cookies" },
+  openGraph: { images: OG_IMAGES, title: "Cookie policy · 10BONDS", description: "Which cookies 10BONDS uses, what each one is for, and how to change your cookie settings at any time.", url: "/cookies" },
 };
 
 const td = "border-t border-line px-3 py-2 align-top";

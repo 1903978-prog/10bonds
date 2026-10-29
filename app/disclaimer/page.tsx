@@ -2,12 +2,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { pickedLang } from "@/lib/pageLang";
 import { ASSESSMENTS_ABOUT as A, DISCLAIMER, disclaimerLang } from "@/lib/disclaimer";
+import { OG_IMAGES } from "@/lib/ogImage";
 
 export const metadata: Metadata = {
   title: "Disclaimer · 10BONDS",
   description: "Important information about the data, risk scores and bond lists shown on 10BONDS: information only, not investment advice, returns not guaranteed.",
   alternates: { canonical: "/disclaimer" },
-  openGraph: { title: "Disclaimer · 10BONDS", description: "Important information about the data, risk scores and bond lists shown on 10BONDS: information only, not investment advice, returns not guaranteed.", url: "/disclaimer" },
+  openGraph: { images: OG_IMAGES, title: "Disclaimer · 10BONDS", description: "Important information about the data, risk scores and bond lists shown on 10BONDS: information only, not investment advice, returns not guaranteed.", url: "/disclaimer" },
 };
 
 export default async function Disclaimer({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
