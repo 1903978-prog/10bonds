@@ -92,7 +92,7 @@ const EMPTY_PATTERNS = [
 // admin yes/no switch, which can only take admin powers away and is switched back at the end.
 async function extraChecks(ctx, role) {
   const out = [];
-  const rec = (name, ok, detail) => out.push({ role, name, ok, detail: String(detail).replace(/\s+/g, " ").slice(0, 220) });
+  const rec = (name, ok, detail) => out.push({ role, name, ok, detail: String(detail).replace(/\s+/g, " ").slice(0, 1600) });
   const open = async (path) => {
     const page = await ctx.newPage();
     const res = await page.goto(BASE + path, { waitUntil: "load", timeout: 60_000 });
@@ -105,6 +105,11 @@ async function extraChecks(ctx, role) {
       rec("/bond-card is closed (404)", status === 404, `HTTP ${status}`);
       await page.close();
     } else {
+      // Admin price-freshness section: the figures it shows, as the page's own API returns them.
+      const fr = await ctx.request.get(BASE + "/api/admin/price-freshness", { timeout: 60_000 });
+      const fj = fr.ok() ? await fr.json().catch(() => null) : null;
+      const fd = fj?.data;
+      rec("Admin price freshness figures", !!fd?.rows?.length, fd ? JSON.stringify({ banner: fd.banner, rows: fd.rows.map((c) => ({ cur: c.currency, total: c.total, within1: c.within1, within3: c.within3, within5: c.within5, newestQuote: c.newestQuote, lastPush: c.lastPush, pushIsReal: c.pushIsReal, notRefreshed: c.notRefreshed })) }) : `HTTP ${fr.status()}`);
       const fullCard = (isin) => [isin, new RegExp(isin), "full card"];
       for (const [isin, want, label] of [
         ["FR0000186413", /does not pay a fixed coupon|struttura che non modelliamo|structure que nous ne mod[ée]lisons|Struktur, die wir nicht modellieren/i, 'message "does not pay a fixed coupon" (any language: the page follows the language cookie the crawl set on /it, /fr or /de)'],
