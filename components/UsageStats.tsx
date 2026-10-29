@@ -19,6 +19,7 @@ export default function UsageStats() {
   const [lang, setLang] = useState<CookieLang>("en");
   const [opposed, setOpposed] = useState(false);
   const bonusDone = useRef(false);
+  const [compact, setCompact] = useState(false); // phones: the one-line bar
   const [settings, setSettings] = useState(false); // Details: the purposes and the opt-out; the first view is a short notice
 
   useEffect(() => {
@@ -73,6 +74,13 @@ export default function UsageStats() {
     track("page_view", { referrer: document.referrer ? new URL(document.referrer).host : null, tz: browserZone(), lang: navigator.language?.slice(0, 12) ?? null });
   }, [pathname, consent]);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const set = () => setCompact(mq.matches);
+    set();
+    mq.addEventListener("change", set);
+    return () => mq.removeEventListener("change", set);
+  }, []);
   // While the bar is up, the page gets room below its last line, so nothing (the main button included) hides behind the bar.
   const bar = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -114,14 +122,16 @@ export default function UsageStats() {
       {!settings ? (
         <>
         {/* Phones: one line and two buttons, under 15% of the screen. Reject opposes the audience count and stores nothing. */}
-        <div className="flex flex-col gap-2 sm:hidden" data-testid="cookie-compact">
-          <p className="leading-snug text-mute">{t.short} <button onClick={() => setSettings(true)} className="text-accent underline">{t.details}</button></p>
+        {compact ? (
+        <div className="flex flex-col gap-2" data-testid="cookie-compact">
+          <p className="leading-snug text-mute">{t.short} <button onClick={() => setSettings(true)} data-testid="cookie-settings" className="text-accent underline">{t.details}</button></p>
           <div className="flex gap-2">
             <button onClick={() => { setCountOpposed(true); setOpposed(true); choose({ preferences: false, statistics: false, marketing: false }); }} data-testid="cookie-reject" className={`${btn} flex-1 border border-line !py-1.5`}>{t.reject}</button>
-            <button onClick={understand} data-testid="cookie-accept-compact" className={`${btn} flex-1 bg-accent text-white !py-1.5`}>{t.accept}</button>
+            <button onClick={understand} data-testid="cookie-accept" className={`${btn} flex-1 bg-accent text-white !py-1.5`}>{t.accept}</button>
           </div>
         </div>
-        <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center sm:gap-6">
+        ) : (
+        <div className="flex flex-row items-center gap-6">
           <p className="leading-snug text-mute">
             {t.notice} <Link href={policy} className="text-accent">{t.learn}</Link>
           </p>
@@ -130,6 +140,7 @@ export default function UsageStats() {
             <button onClick={understand} data-testid="cookie-accept" className={`${btn} flex-1 whitespace-nowrap bg-accent text-white hover:bg-[#0077ed]`}>{t.understand}</button>
           </div>
         </div>
+        )}
         </>
       ) : (
         <>
