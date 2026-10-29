@@ -8,7 +8,6 @@ import { correctedMin } from "./minOverrides";
 import { dormantReason } from "./dormant";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
 import { couponTypeOf } from "./bondFacts";
-import { PORTFOLIO_SPEC } from "./portfolioSpec";
 import { summarise, plainReason, NO_REASON, type Cur, type FreshRow, type NotRefreshedBond } from "./priceFreshness";
 import { lastTradingDay, tradingDaysBetween } from "./tradingCalendar";
 import { judge, missingColumns, type DataHealth } from "./dataHealth";
