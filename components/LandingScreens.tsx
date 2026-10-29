@@ -331,7 +331,7 @@ export function HeatMapScreen({ sub, subShort, insightShort, insightK, insight, 
     <div className="flex min-h-0 flex-1 flex-col">
       <p className="text-[13px] text-[#52666F] sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
       {/* Phones: a small picture of the map (no figures, no legend text), like the mockup. */}
-      <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7] p-2 heat-mini" aria-hidden>
+      <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7] p-2 heat-mini" data-heat-grid aria-hidden>
         <HeatMapChart plain map={HEAT_SAMPLE} method="m1" onMethod={() => {}} retLabel={retLabel} yearsLabel={yrs} blacklist={false} onBlacklist={() => {}} />
       </div>
       <div className="mt-2 shrink-0 rounded-[10px] bg-[#EDF6F1] px-3 py-2 text-[12px] leading-snug text-[#132D3B] sm:text-[13px]">
