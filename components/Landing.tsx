@@ -61,8 +61,8 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 
   // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
-    <div data-testid="intro" className="landing finder-wide mx-auto max-w-[1400px] lg:max-w-none lg:!w-[min(calc(100vw_/_var(--z)_-_3rem),1320px)] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
-      <section className="grid items-center gap-5 pt-2 lg:grid-cols-[0.9fr_1.1fr] lg:gap-x-12 lg:w-full lg:gap-y-8">
+    <div data-testid="intro" data-landing-fit className="landing finder-wide [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col mx-auto max-w-[1400px] lg:max-w-none lg:!w-[min(calc(100vw_/_var(--z)_-_3rem),1320px)] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
+      <section className="grid items-center gap-5 pt-2 [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col [@media(max-width:639px)]:items-stretch [@media(max-width:639px)]:gap-3 lg:grid-cols-[0.9fr_1.1fr] lg:gap-x-12 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
         <div className="mb-1 flex items-baseline justify-end gap-2 sm:hidden">
           {/* Phones: the paper link sits on the eyebrow line, so the page keeps its one-screen height. */}
@@ -72,9 +72,9 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>
-        <p className="mt-2 text-[14px] leading-snug sm:text-[16px] lg:mt-4 lg:max-w-[680px] lg:text-[21px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
+        <p className="mt-2 text-[14px] leading-snug [@media(max-width:639px)_and_(max-height:720px)]:hidden sm:text-[16px] lg:mt-4 lg:max-w-[680px] lg:text-[21px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
         </div>
-        <div className="order-3 min-w-0 lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div className="order-3 min-w-0 [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
           <LandingCarousel t={t} slides={[
             ...(showBench ? [{ key: "compare", node: LANDING_SNAPSHOT.verified ? <Comparison t={t} lang={lang} num={num} bench={bench} /> : (

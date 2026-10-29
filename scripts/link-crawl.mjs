@@ -139,6 +139,9 @@ async function extraChecks(ctx, role) {
       const lr = await listed;
       if (lr) await lr.finished().catch(() => null);
       await page.waitForTimeout(3000);
+      // The first-use consent pop-up covers the page until it is accepted (one button).
+      await page.getByRole("button", { name: /I understand/i }).click({ timeout: 5_000 }).catch(() => {});
+      await page.waitForTimeout(1000);
       const tile = page.getByText(/efficiency score/i).first();
       const found = await tile.waitFor({ timeout: 30_000 }).then(() => true).catch(() => false);
       const tileText = found ? await tile.locator("xpath=..").innerText().catch(() => "") : "";
