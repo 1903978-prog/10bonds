@@ -8,6 +8,7 @@ import { correctedMin } from "./minOverrides";
 import { dormantReason } from "./dormant";
 import { applyFilter, DEFAULT_FILTER, minInvestmentOf, type BondFilter } from "./bondFilter";
 import { couponTypeOf } from "./bondFacts";
+import { tradingDaysBetween, PORTFOLIO_SPEC } from "./portfolioSpec";
 import { judge, missingColumns, type DataHealth } from "./dataHealth";
 import { cleanSd, findOutliers, OUTLIER_SD, type Outlier } from "./outliers";
 import { liveOutlierSd } from "./riskPremium/store";
@@ -313,7 +314,7 @@ export async function bondDataStats(): Promise<{
   };
 }
 
-export type CurrencyFreshness = { currency: "EUR" | "USD"; total: number; last24h: number; newest: string | null };
+export type CurrencyFreshness = { currency: "EUR" | "USD"; total: number; last24h: number; newest: string | null; within3td: number; withinRule: number };
 
 /** One cheap query for the admin home: per currency, bonds whose price (own date when the copy has it, else yield date) is under 24 h old. */
 export async function priceFreshnessByCurrency(): Promise<{ basis: "price_as_of" | "ytm_as_of"; rows: CurrencyFreshness[] } | null> {
@@ -327,9 +328,23 @@ export async function priceFreshnessByCurrency(): Promise<{ basis: "price_as_of"
     from (select currency, ${client.unsafe(basis === "price_as_of" ? "coalesce(price_as_of, ytm_as_of)" : "ytm_as_of")} d from public_bonds) t
     where upper(trim(currency)) in ('EUR', 'USD')
     group by 1`;
+  // Same yardstick as the site's stale rule: trading days (Mon-Fri) behind the newest quote of the copy.
+  const byDay = await client`
+    select upper(trim(currency)) cur, d::date day, count(*) n
+    from (select currency, ${client.unsafe(basis === "price_as_of" ? "coalesce(price_as_of, ytm_as_of)" : "ytm_as_of")} d from public_bonds) t
+    where upper(trim(currency)) in ('EUR', 'USD') and d is not null
+    group by 1, 2`;
   const rows = (["EUR", "USD"] as const).map((c) => {
     const x = r.find((y) => y.cur === c);
-    return { currency: c, total: Number(x?.total ?? 0), last24h: Number(x?.h24 ?? 0), newest: x?.newest ? new Date(x.newest).toISOString() : null };
+    const newest = x?.newest ? new Date(x.newest) : null;
+    let within3td = 0, withinRule = 0;
+    if (newest) for (const y of byDay) {
+      if (y.cur !== c) continue;
+      const td = tradingDaysBetween(new Date(y.day as string), newest);
+      if (td <= 3) within3td += Number(y.n);
+      if (td <= PORTFOLIO_SPEC.staleTradingDays) withinRule += Number(y.n);
+    }
+    return { currency: c, total: Number(x?.total ?? 0), last24h: Number(x?.h24 ?? 0), newest: newest ? newest.toISOString() : null, within3td, withinRule };
   });
   return { basis, rows };
 }
