@@ -12,6 +12,7 @@ import BundCurveSection from "@/components/seo/BundCurveSection";
 import { bundCurveAlternates, bundCurvePath, BUND_CURVE_TEXT } from "@/lib/seo/bundCurve";
 import { bondMapAlternates, bondMapPath, BOND_MAP_TEXT } from "@/lib/seo/bondMap";
 import YieldCalculator from "@/components/seo/YieldCalculator";
+import CalculatorExtras from "@/components/seo/CalculatorExtras";
 import { CALCULATORS } from "@/lib/seo/calculators";
 import { comparisonById, comparisonBySlug, type ComparisonDef } from "@/lib/seo/comparisons";
 import { SITE_URL } from "@/lib/seo/crawl";
@@ -210,6 +211,7 @@ function ToolPage({ l }: { l: Locale }) {
         {c.how.paras.map((p) => <p key={p.slice(0, 30)} className="mt-3">{p}</p>)}
         <p className="mt-3"><Link href={pathOf(l, "bonds")} className="text-accent">{t.bonds} ›</Link> · <Link href={pathOf(l, "guides")} className="text-accent">{t.guides} ›</Link></p>
       </section>
+      <CalculatorExtras locale={l} />
       <ToolCta locale={l} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "WebApplication", name: c.h1, url, inLanguage: LOCALE[l].hreflang, applicationCategory: "FinanceApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, description: c.description }} />
     </div>

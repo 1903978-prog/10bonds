@@ -169,4 +169,24 @@ const EXTRA: Record<string, Partial<Seed>> = {
   "de:kreditrisiko anleihen": { section: "risk" },
 };
 
-export const SEED_KEYWORDS: Seed[] = [...BASE.map((k) => ({ ...k, ...EXTRA[`${k.market}:${k.keyword}`] })), ...RESEARCH, ...BTP_SUGGESTIONS, ...USUK];
+/** Keywords of the yield calculator cluster (29 Oct 2026): no volumes until a keyword tool or Search Console gives them. */
+const CALC_CLUSTER: Seed[] = [
+  { ...it("calcolatore rendimento obbligazioni", "/it/guide/calcolatore-rendimento-obbligazioni", "commercial"), section: "calculators", potential: "high" },
+  { ...it("calcolo rendimento btp", "/it/guide/calcolo-rendimento-btp", "commercial"), section: "calculators", potential: "high" },
+  { ...it("rendimento netto obbligazioni", "/it/guide/rendimento-netto-obbligazioni"), section: "calculators" },
+  { ...it("rateo cedola", "/it/guide/prezzo-secco-tel-quel-rateo"), section: "academy" },
+  { ...fr("calculateur rendement obligation", "/fr/guides/calculateur-rendement-obligation", "commercial"), section: "calculators", potential: "high" },
+  { ...fr("coupon couru obligation", "/fr/guides/prix-pied-de-coupon-coupon-couru"), section: "academy" },
+  { ...fr("rendement net obligation", "/fr/guides/rendement-net-obligation"), section: "calculators" },
+  { ...de("anleihe rendite rechner", "/de/ratgeber/anleihe-rendite-rechner", "commercial"), section: "calculators", potential: "high" },
+  { ...de("stückzinsen anleihe", "/de/ratgeber/stueckzinsen-clean-price-dirty-price"), section: "academy" },
+  { ...de("anleihe rendite nach steuern", "/de/ratgeber/anleihe-rendite-nach-steuern"), section: "calculators" },
+  { ...us("ytm calculator", "/knowledge/bond-yield-calculator", "commercial"), section: "calculators", potential: "high" },
+  { ...us("treasury yield calculator", "/knowledge/treasury-yield-calculator", "commercial"), section: "calculators", potential: "high" },
+  { ...us("current yield vs yield to maturity", "/knowledge/current-yield-vs-yield-to-maturity"), section: "academy" },
+  { ...us("clean vs dirty bond price", "/knowledge/clean-vs-dirty-bond-price"), section: "academy" },
+  { ...us("bond yield after tax", "/knowledge/bond-yield-after-tax"), section: "calculators" },
+  { ...us("bond yield calculator excel", "/knowledge/bond-yield-calculator-excel"), section: "calculators" },
+];
+
+export const SEED_KEYWORDS: Seed[] = [...BASE.map((k) => ({ ...k, ...EXTRA[`${k.market}:${k.keyword}`] })), ...RESEARCH, ...BTP_SUGGESTIONS, ...USUK, ...CALC_CLUSTER];

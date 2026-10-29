@@ -32,11 +32,11 @@ export const KC_TEXT_EN = {
 /** English yield calculator. No tax rates are preset: the visitor types their own. */
 export const CALCULATOR_EN: CalculatorText = {
   slug: "bond-yield-calculator",
-  title: "Bond yield calculator: yield to maturity, gross and net · 10BONDS",
-  description: "Calculate a bond's yield to maturity before and after tax: enter price, coupon and maturity. Free, in your browser.",
+  title: "Bond Yield Calculator: YTM, Current Yield, After Tax",
+  description: "Free bond yield calculator: yield to maturity (YTM), current yield, accrued interest and yield after tax for Treasuries, gilts, Bunds and BTPs.",
   h1: "Bond yield calculator",
   intro: [
-    "Enter the price, coupon and maturity: the calculator shows the yield to maturity before and after tax.",
+    "Enter the price, coupon and maturity: the calculator shows the yield to maturity (YTM), the current yield, accrued interest and the clean and dirty price, before and after tax. It works for Treasury notes, gilts, Bunds, BTPs and corporate bonds.",
     "Type your own tax rate to see the yield after tax. Nothing you enter leaves your browser.",
   ],
   labels: {
