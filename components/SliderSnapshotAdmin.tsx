@@ -9,6 +9,8 @@ type Data = { id: number | null; snapshots: Snap[]; rows: Row[]; report: { probl
 type Detail = { row: Row; bonds: { ord: number; isin: string; issuer: string | null; name: string; coupon: string | null; maturity: string | null; rating: string | null; ytm: string; duration: string; risk: string; clean_price: string | null; bes_score?: string | null; bes_status?: string | null; gross_spread_bp?: string | null; delta_loss_bp?: string | null; net_spread_bp?: string | null }[]; snapshot: { batch_id: string; methodology: string; calculated_at: string }; sharedWith: number[] };
 
 const GROUPS = [["SHORT", "SHORT — 2 years: rows 1–30"], ["MEDIUM", "MEDIUM — 4 years: rows 31–60"], ["LONG", "LONG — 10 years: rows 61–90"]] as const;
+const KEYS = [["EUR:100k", "EUR · All"], ["EUR:1k", "EUR · 1k–10k"], ["USD:100k", "USD · All"], ["USD:1k", "USD · 1k–10k"]] as const;
+const bes = (v: string | null | undefined, empty: string) => (v != null ? Number(v).toFixed(1) : empty);
 const when = (x: string | null) => (x ? new Date(x).toLocaleString("en-GB", { timeZone: "Europe/Rome" }) : "–");
 
 export default function SliderSnapshotAdmin() {
@@ -16,21 +18,23 @@ export default function SliderSnapshotAdmin() {
   const [id, setId] = useState<number | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [msg, setMsg] = useState("");
-  const load = useCallback(async (snap?: number | null) => {
-    const r = await fetch(`/api/admin/efficient-database${snap ? `?id=${snap}` : ""}`, { cache: "no-store" });
+  const [key, setKey] = useState<string>("EUR:100k");
+  const load = useCallback(async (snap?: number | null, k: string = key) => {
+    const r = await fetch(`/api/admin/efficient-database?key=${encodeURIComponent(k)}${snap ? `&id=${snap}` : ""}`, { cache: "no-store" });
     if (r.ok) { const j = (await r.json()) as Data; setD(j); setId(j.id); } else setMsg("Could not load.");
-  }, []);
+  }, [key]);
   useEffect(() => { load(); }, [load]);
   const rebuild = async () => {
     setMsg("Rebuilding…");
-    const r = await fetch("/api/admin/efficient-database", { method: "POST" });
+    const r = await fetch(`/api/admin/efficient-database?key=${encodeURIComponent(key)}`, { method: "POST" });
     const j = await r.json().catch(() => ({}));
     setMsg(j.message ?? "Done."); load();
   };
   const open = async (n: number) => {
-    const r = await fetch(`/api/admin/efficient-database?id=${id}&row=${n}`, { cache: "no-store" });
+    const r = await fetch(`/api/admin/efficient-database?key=${encodeURIComponent(key)}&id=${id}&row=${n}`, { cache: "no-store" });
     if (r.ok) setDetail(await r.json());
   };
+  const pick = (k: string) => { setKey(k); setD(null); setDetail(null); };
   if (!d) return <p className="mt-6 text-sm text-mute">{msg || "Loading…"}</p>;
   const cur = d.snapshots.find((s) => s.id === id);
   const active = d.snapshots.find((s) => s.status === "published");
@@ -45,6 +49,7 @@ export default function SliderSnapshotAdmin() {
   const stat = (k: string, v: string) => <div className="rounded-lg border border-line px-3 py-2"><div className="text-[11px] uppercase tracking-wide text-mute">{k}</div><div className="text-sm font-medium tabular-nums">{v}</div></div>;
   return (
     <div className="mt-6 space-y-6">
+      <div className="flex flex-wrap gap-2" data-testid="slider-key-toggle">{KEYS.map(([k, l]) => <button key={k} onClick={() => pick(k)} className={`rounded-lg border px-3 py-1.5 text-sm ${k === key ? "border-accent bg-accent text-white" : "border-line"}`}>{l}</button>)}</div>
       <div className={`rounded-xl border px-4 py-3 ${ready ? "border-green-300 bg-green-50 text-green-900" : "border-amber-300 bg-amber-50 text-amber-900"}`} data-testid="slider-snapshot-status">
         <div className="text-lg font-semibold">{ready ? `PUBLISHED: ${filled}/90 valid, ${infeasible} infeasible` : `Snapshot #${cur?.id ?? "?"} is ${cur?.status ?? "missing"}: ${filled}/90 valid, ${unresolved} unresolved${active ? `. The website serves the published snapshot #${active.id}` : ". Nothing is published yet"}`}</div>
         <div className="text-sm">{ready ? `All 90 rows resolved. Valid per term: short ${perH("SHORT")}, medium ${perH("MEDIUM")}, long ${perH("LONG")}. Infeasible rows are empty on the website (no list exists under the approved rules).` : active ? `The website serves snapshot #${active.id} (published ${when(active.published_at)}, data of ${when(active.data_as_of)}). Use the snapshot list to view it.` : "No complete snapshot is published yet, so the website uses the older per-term path (also instant, from stored lists)."}</div>
@@ -73,10 +78,10 @@ export default function SliderSnapshotAdmin() {
         <span className="text-sm text-mute">{msg}</span>
       </div>
       <div className="overflow-x-auto"><table className="w-full text-sm" data-testid="slider-snapshot-table">
-        <thead><tr className="text-left text-xs text-mute"><th className="py-1">Position</th><th>YTM / Duration</th><th>Band</th><th>Classes</th><th>Average risk</th><th>Step</th><th>Status</th>{Array.from({ length: 10 }, (_, i) => <th key={i}>Bond {i + 1}</th>)}</tr></thead>
+        <thead><tr className="text-left text-xs text-mute"><th className="py-1">Position</th><th>YTM / Duration</th><th>Band</th><th>Classes</th><th>Average risk</th><th>Avg bond BES</th><th>Portfolio BES</th><th>BES %</th><th>Step</th><th>Status</th>{Array.from({ length: 10 }, (_, i) => <th key={i}>Bond {i + 1}</th>)}</tr></thead>
         {GROUPS.map(([h, label]) => (
           <tbody key={h}>
-            <tr><td colSpan={16} className="pt-4 text-xs font-semibold uppercase tracking-wide">{label}</td></tr>
+            <tr><td colSpan={19} className="pt-4 text-xs font-semibold uppercase tracking-wide">{label}</td></tr>
             {d.rows.filter((r) => r.horizon === h).map((r) => (
               <tr key={r.row_no} onClick={() => open(r.row_no)} className="cursor-pointer border-t border-line hover:bg-black/5" title={r.error ?? ""}>
                 <td className="py-1">{h} {String(r.position).padStart(2, "0")} <span className="text-mute">#{r.row_no}{r.mapped_from ? ` · shows ${r.mapped_from}` : r.shared_with ? ` · = ${r.shared_with}` : ""}</span></td>
@@ -84,6 +89,9 @@ export default function SliderSnapshotAdmin() {
                 <td className="tabular-nums">{r.band_min == null ? "–" : Number(r.band_min) === Number(r.band_max) ? Number(r.band_min).toFixed(1) : `${Number(r.band_min).toFixed(1)}–${Number(r.band_max).toFixed(1)}`}</td>
                 <td className="tabular-nums">{r.class_lo == null ? "–" : `${r.class_lo}–${r.class_hi}`}</td>
                 <td className="tabular-nums">{r.filled ? Number(r.avg_risk).toFixed(1) : "–"}</td>
+                <td className="tabular-nums" title={`${r.bes_scored ?? 0} of 10 bonds scored`}>{r.filled ? bes(r.avg_bond_bes, "n/a") : "–"}</td>
+                <td className="tabular-nums" title={r.portfolio_bes_reason ?? ""}>{r.filled ? bes(r.portfolio_bes, "n/a") : "–"}</td>
+                <td className="tabular-nums" title={r.portfolio_bes_reason ?? ""}>{r.filled ? (r.portfolio_bes != null ? `${Number(r.portfolio_bes).toFixed(1)}%` : "n/a") : "–"}</td>
                 <td className="tabular-nums" title="0 = strict rules; 1 to 3 = ladder step (adjusted)">{!r.filled || r.ladder_step == null ? "–" : Number(r.ladder_step) > 0 ? `${r.ladder_step} · adjusted` : "0"}</td>
                 <td className={r.filled ? "text-green-700" : r.status === "INFEASIBLE" ? "text-mute" : "text-red-700"}>{r.status ?? (r.filled ? "VALID" : "PENDING")}</td>
                 {Array.from({ length: 10 }, (_, i) => <td key={i} className="font-mono text-[11px]">{r[`bond_${i + 1}` as `bond_${number}`] ?? "–"}</td>)}
