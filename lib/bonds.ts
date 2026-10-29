@@ -12,6 +12,7 @@ import { judge, missingColumns, type DataHealth } from "./dataHealth";
 import { cleanSd, findOutliers, OUTLIER_SD, type Outlier } from "./outliers";
 import { liveOutlierSd } from "./riskPremium/store";
 import { screenPrices, type FlaggedBond, type PriceMeta } from "./priceIntegrity";
+import { newestQuote as newestQuoteOf, priceStale, PORTFOLIO_SPEC } from "./portfolioSpec";
 
 // The public site only ever READS one table, with a read-only login.
 // It has no connection details for the main app and no way to write anywhere.
@@ -224,15 +225,14 @@ async function priceAuditRaw(): Promise<{ total: number; withPrice: number; bySo
 }
 export const priceAudit = memo2m(priceAuditRaw);
 
-// A yield whose quote is more than this many days older than the newest one in the copy is stale and left out.
-export const STALE_DAYS = 10;
+// A yield whose quote is more than this many trading days (Mon-Fri) older than the newest one in the copy is stale and left out (the spec's one rule).
+export const STALE_DAYS = PORTFOLIO_SPEC.staleTradingDays;
 
 /** Leave out bonds whose yield date is well behind the rest of the copy (a price that stopped updating). */
 export function dropStale(bonds: PublicBond[]): PublicBond[] {
-  const times = bonds.map((b) => (b.ytmAsOf ? Date.parse(b.ytmAsOf) : NaN)).filter(Number.isFinite);
-  if (!times.length) return bonds;
-  const limit = Math.max(...times) - STALE_DAYS * 86_400_000;
-  return bonds.filter((b) => !b.ytmAsOf || Date.parse(b.ytmAsOf) >= limit);
+  const newest = newestQuoteOf(bonds);
+  if (!newest) return bonds;
+  return bonds.filter((b) => !priceStale(b.ytmAsOf, newest));
 }
 
 const asOfOf = new WeakMap<object, string | null>();

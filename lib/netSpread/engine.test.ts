@@ -15,7 +15,7 @@ import { checkNsList } from "./check";
 const GRADES = ["AAA", "AA", "A", "BBB+", "BBB", "BBB-", "BB", "B", "CCC", "CC"];
 const PER_CLASS = [14, 30, 40, 40, 40, 40, 30, 20, 12, 3];
 const NEWEST = "2026-10-27";
-const STALE = "2026-10-09"; // 12 trading days behind
+const STALE = "2026-10-09"; // 12 trading days behind (stale from 5)
 
 function universe(duration: number): { bonds: PublicBond[]; bes: Map<string, BesBond> } {
   let seed = 11;

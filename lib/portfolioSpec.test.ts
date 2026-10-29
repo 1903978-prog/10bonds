@@ -24,8 +24,8 @@ describe("the relaxation ladder (owner, 28/10/2026)", () => {
 });
 
 describe("the spec's constants", () => {
-  it("ten bonds at 10%, one per issuer group, three per sector, 5% average duration, loss share 25%, 10 trading days", () => {
-    expect([PORTFOLIO_SPEC.size, PORTFOLIO_SPEC.weight, PORTFOLIO_SPEC.perIssuerGroup, PORTFOLIO_SPEC.perSector, PORTFOLIO_SPEC.avgDurationTolerance, PORTFOLIO_SPEC.lossShare, PORTFOLIO_SPEC.staleTradingDays]).toEqual([10, 0.1, 1, 3, 0.05, 0.25, 10]);
+  it("ten bonds at 10%, one per issuer group, three per sector, 5% average duration, loss share 25%, 5 trading days", () => {
+    expect([PORTFOLIO_SPEC.size, PORTFOLIO_SPEC.weight, PORTFOLIO_SPEC.perIssuerGroup, PORTFOLIO_SPEC.perSector, PORTFOLIO_SPEC.avgDurationTolerance, PORTFOLIO_SPEC.lossShare, PORTFOLIO_SPEC.staleTradingDays]).toEqual([10, 0.1, 1, 3, 0.05, 0.25, 5]);
     expect(PORTFOLIO_SPEC.positions).toBe(30);
     expect(PORTFOLIO_SPEC.bondDurationWindow.long).toBe(0.3);
     expect(PORTFOLIO_SPEC.readBudgetMs).toBe(300);
@@ -33,16 +33,16 @@ describe("the spec's constants", () => {
   });
 });
 
-describe("stale prices (more than 10 trading days behind the newest quote)", () => {
+describe("stale prices (more than 5 trading days behind the newest quote)", () => {
   it("counts Monday to Friday only", () => {
     expect(tradingDaysBetween("2026-10-23", "2026-10-26")).toBe(1); // Friday -> Monday
     expect(tradingDaysBetween("2026-10-19", "2026-10-26")).toBe(5); // Monday -> next Monday
     expect(tradingDaysBetween("2026-10-26", "2026-10-26")).toBe(0);
     expect(tradingDaysBetween("2026-10-28", "2026-10-26")).toBe(0);
   });
-  it("ten trading days is still fine, eleven is stale, a bond with no date is kept", () => {
-    expect(priceStale("2026-10-12", "2026-10-26")).toBe(false);
-    expect(priceStale("2026-10-09", "2026-10-26")).toBe(true);
+  it("five trading days is still fine, six is stale, a bond with no date is kept", () => {
+    expect(priceStale("2026-10-19", "2026-10-26")).toBe(false);
+    expect(priceStale("2026-10-16", "2026-10-26")).toBe(true);
     expect(priceStale("2026-10-02", "2026-10-26")).toBe(true);
     expect(priceStale(null, "2026-10-26")).toBe(false);
     expect(newestQuote([{ ytmAsOf: "2026-10-20" }, { ytmAsOf: "2026-10-26" }, { ytmAsOf: null }])).toBe("2026-10-26");

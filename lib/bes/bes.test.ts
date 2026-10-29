@@ -190,9 +190,9 @@ describe("BES on a synthetic universe", () => {
       expect(c.benchmarkSource).toMatch(/Bundesbank.*bundesbank-zar-2026-10-27/);
     } finally { FIXED_BENCHMARKS.EUR = owner; }
   });
-  it("a bond 9 days behind the newest quote is still scored (site limit is 10 days)", () => {
+  it("a bond 5 trading days behind the newest quote is still scored (site limit is 5 trading days)", () => {
     const u = universe();
-    u.push({ ...u[20], isin: "OLD9", ytmAsOf: "2026-10-19T00:00:00.000Z" } as PublicBond);
+    u.push({ ...u[20], isin: "OLD9", ytmAsOf: "2026-10-21T00:00:00.000Z" } as PublicBond);
     expect(calculateBes(u, TODAY).find((x) => x.isin === "OLD9")!.bes).not.toBeNull();
     u.push({ ...u[20], isin: "OLD12", ytmAsOf: "2026-10-16T00:00:00.000Z" } as PublicBond);
     expect(calculateBes(u, TODAY).find((x) => x.isin === "OLD12")!.status).toBe("unavailable");

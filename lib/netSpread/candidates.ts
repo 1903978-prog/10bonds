@@ -14,7 +14,7 @@ export function specExclusion(b: Pick<PublicBond, "seniority" | "ytmAsOf">, newe
 /** Sovereigns and agencies (and supranationals, which the agency list holds) do not count towards the sector cap from ladder step 1. */
 export const sectorExempt = (b: Pick<PublicBond, "issuer" | "isin" | "country">): boolean => issuerClass(b) !== "corporate";
 
-/** Candidates of one horizon under the spec: subordinated / AT1 / Tier 2 / hybrid / perpetual (seniority field) and prices more than 10 trading days stale are out; the bond duration window is the ladder step's (Long wider). */
+/** Candidates of one horizon under the spec: subordinated / AT1 / Tier 2 / hybrid / perpetual (seniority field) and prices more than 5 trading days stale (PORTFOLIO_SPEC.staleTradingDays) are out; the bond duration window is the ladder step's (Long wider). */
 export function specCandidates(bonds: PublicBond[], duration: number, step: LadderStep = 0) {
   const newest = newestQuote(bonds);
   return candidatesOf(bonds.filter((b) => !specExclusion(b, newest)), duration, false, poolWindowOf(duration, step));

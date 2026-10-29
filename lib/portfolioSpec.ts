@@ -24,8 +24,8 @@ export const PORTFOLIO_SPEC = {
   bondDurationWindow: { short: 0.2, mid: 0.2, long: 0.3 },
   /** No bond carries more than this share of the list's annual expected loss. */
   lossShare: 0.25,
-  /** A price older than this many trading days (Mon-Fri) behind the newest quote of the copy is stale and the bond is left out. */
-  staleTradingDays: 10,
+  /** A price older than this many trading days (Mon-Fri) behind the newest quote of the copy is stale and the bond is left out. The one stale rule of the site: lib/bonds.ts dropStale, the BES and the risk premium read it from here (owner, 29/10/2026: 10 to 5). */
+  staleTradingDays: 5,
   /** Stored results are read in under this many milliseconds; every position is solved in the nightly job. */
   readBudgetMs: 300,
   /** Nightly rebuild: 06:00 Asia/Bangkok = 23:00 UTC. */

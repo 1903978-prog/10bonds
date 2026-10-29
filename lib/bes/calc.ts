@@ -6,6 +6,7 @@ import { lgdOf, rankOf } from "../seniority";
 import { issuerClass, countryCode } from "../seo/classify";
 import { sectorOf } from "../sectors";
 import { yearsToMaturity } from "../riskPremium/benchmark";
+import { PORTFOLIO_SPEC, priceStale } from "../portfolioSpec";
 import { FIXED_BENCHMARKS, benchmarkLabel } from "./benchmarkTables";
 import { SP_CORPORATE_YEARS, SP_CORPORATE_VERSION, spCorporateRow } from "./spReference";
 import { annualEquivalentPd, annualLossBp, besLabel, cumulativePd, cumulativePdExtended, curveYieldExtended, grossSpreadBp, MIN_PEERS, percentileRank } from "./math";
@@ -57,8 +58,8 @@ const BENCH: Record<string, { cc: string; name: string; notch: number }> = {
   GBP: { cc: "GB", name: "UK Gilt YTM curve (same daily copy)", notch: 1 },
 };
 const MIN_CURVE_POINTS = 6;
-/** Same rule as the site (lib/bonds.ts STALE_DAYS): a quote more than this many days older than the newest one is stale. */
-export const BES_STALE_DAYS = 10;
+/** Same rule as the site (lib/bonds.ts STALE_DAYS): a quote more than this many trading days older than the newest one is stale. */
+export const BES_STALE_DAYS = PORTFOLIO_SPEC.staleTradingDays;
 const BUCKETS = [2, 4, 7, 10, 16];
 const bucketOf = (y: number) => { const i = BUCKETS.findIndex((b) => y < b); return i < 0 ? BUCKETS.length : i; };
 
@@ -114,7 +115,7 @@ export function economics(b: PublicBond, curves: Record<string, Curve>, newest: 
   if (years === null || years <= 0) return fail("No remaining maturity.");
   row.yearsLeft = years;
   if (!(b.grossYtm > -1 && b.grossYtm < 30)) return fail(`Yield ${b.grossYtm}% outside the plausible range.`);
-  if (b.ytmAsOf && newest && Date.parse(newest) - Date.parse(b.ytmAsOf) > BES_STALE_DAYS * 86_400_000) return fail(`Stale price (more than ${BES_STALE_DAYS} days older than the newest quote).`);
+  if (priceStale(b.ytmAsOf, newest)) return fail(`Stale price (more than ${BES_STALE_DAYS} trading days older than the newest quote).`);
   const bench = BENCH[b.currency];
   const curve = curves[b.currency];
   if (!bench || !curve) return fail(`No benchmark curve for ${b.currency}.`);

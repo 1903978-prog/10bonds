@@ -11,6 +11,7 @@ import { bundYieldAt, yearsToMaturity, type BundCurve } from "./benchmark";
 
 export { STATUS_LABEL, type RiskStatus } from "./status";
 import type { RiskStatus } from "./status";
+import { priceStale } from "../portfolioSpec";
 
 export type Evaluation = {
   isin: string;
@@ -53,8 +54,6 @@ const NON_STANDARD = /\b(sub|subord|subordinated|jr|junior|perp|perpetual|hybrid
 const LAENDER = /^(freie und hansestadt |freistaat |land )?(baden wurttemberg|bayern|berlin|brandenburg|bremen|hamburg|hessen|mecklenburg vorpommern|niedersachsen|nordrhein westfalen|rheinland pfalz|saarland|sachsen|sachsen anhalt|schleswig holstein|thuringen)$/;
 const PUBLIC_BANKS = /\b(investitionsbank|waterschapsbank|nederlandse gemeenten|bng bank|kommunalbanken|kommuninvest|municipality finance|foerderbank|forderbank|wirtschafts und infrastrukturbank|action logement)\b/;
 const YTM_RANGE = { min: -2, max: 30 };
-// Same rule as lib/bonds.ts dropStale: a quote this many days behind the newest one is stale.
-const STALE_DAYS = 10;
 const MIN_SPREAD_BP = -10;
 
 export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
@@ -105,7 +104,8 @@ export function evaluateBond(b: PublicBond, ctx: EvalContext): Evaluation {
   if (maturityYears <= 0) return stop("insufficient_data", "Maturity date in the past");
   if (ev.duration > maturityYears + 0.25) return stop("insufficient_data", "Duration longer than the time to maturity");
   if (!b.ytmAsOf) return stop("insufficient_data", "No pricing date");
-  if (ctx.asOf && Date.parse(b.ytmAsOf) < Date.parse(ctx.asOf) - STALE_DAYS * 86_400_000) return stop("insufficient_data", "Stale price");
+  // Same rule as lib/bonds.ts dropStale (lib/portfolioSpec.ts staleTradingDays).
+  if (priceStale(b.ytmAsOf, ctx.asOf)) return stop("insufficient_data", "Stale price");
 
   // 2. Does the Version 1.0 curve apply?
   // Governments, agencies, states and supranationals use the same curve: only the rating matters (the owner, 20/10/2026:
