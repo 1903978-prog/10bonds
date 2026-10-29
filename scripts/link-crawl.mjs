@@ -109,6 +109,7 @@ async function extraChecks(ctx, role) {
       const fr = await ctx.request.get(BASE + "/api/admin/price-freshness", { timeout: 60_000 });
       const fj = fr.ok() ? await fr.json().catch(() => null) : null;
       const fd = fj?.data;
+      console.log("FRESHNESS " + (fd ? JSON.stringify(fd) : `HTTP ${fr.status()}`));
       rec("Admin price freshness figures", !!fd?.rows?.length, fd ? JSON.stringify({ banner: fd.banner, rows: fd.rows.map((c) => ({ cur: c.currency, total: c.total, within1: c.within1, within3: c.within3, within5: c.within5, newestQuote: c.newestQuote, lastPush: c.lastPush, pushIsReal: c.pushIsReal, notRefreshed: c.notRefreshed })) }) : `HTTP ${fr.status()}`);
       const fullCard = (isin) => [isin, new RegExp(isin), "full card"];
       for (const [isin, want, label] of [
