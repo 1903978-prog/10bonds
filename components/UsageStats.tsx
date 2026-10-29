@@ -73,6 +73,18 @@ export default function UsageStats() {
     track("page_view", { referrer: document.referrer ? new URL(document.referrer).host : null, tz: browserZone(), lang: navigator.language?.slice(0, 12) ?? null });
   }, [pathname, consent]);
 
+  // While the bar is up, the page gets room below its last line, so nothing (the main button included) hides behind the bar.
+  const bar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || !bar.current) return;
+    const el = bar.current;
+    const pad = () => { document.body.style.paddingBottom = `${el.offsetHeight + 16}px`; };
+    pad();
+    const ro = new ResizeObserver(pad);
+    ro.observe(el);
+    return () => { ro.disconnect(); document.body.style.paddingBottom = ""; };
+  }, [open, settings]);
+
   if (!open) return null;
   const t = COOKIE_TEXT[lang];
   const choose = (c: Categories) => {
@@ -92,6 +104,7 @@ export default function UsageStats() {
   const btn = "rounded-full px-4 py-2 font-medium";
   return (
     <div
+      ref={bar}
       data-cookie-banner
       data-testid="cookie-banner"
       role="dialog"
