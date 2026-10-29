@@ -107,7 +107,7 @@ async function extraChecks(ctx, role) {
     } else {
       const fullCard = (isin) => [isin, new RegExp(isin), "full card"];
       for (const [isin, want, label] of [
-        ["FR0000186413", /does not pay a fixed coupon/i, 'message "does not pay a fixed coupon"'],
+        ["FR0000186413", /does not pay a fixed coupon|struttura che non modelliamo|structure que nous ne mod[ée]lisons|Struktur, die wir nicht modellieren/i, 'message "does not pay a fixed coupon" (any language: the page follows the language cookie the crawl set on /it, /fr or /de)'],
         fullCard("DE000HEL4BV8"), fullCard("GR0128016731"), fullCard("US054989AB41"), fullCard("US263901AA85"),
       ]) {
         const { page, status } = await open(`/bond-card?isin=${isin}`);
@@ -252,7 +252,9 @@ async function crawlRole(browser, role) {
         if (row.status && row.status < 400) {
           const text = (await page.evaluate(() => document.body?.innerText ?? "").catch(() => "")) || "";
           for (const [re, label] of EMPTY_PATTERNS) if (re.test(text)) row.empty.push(label);
-          const dashes = text.split("\n").filter((l) => /^\s*[–—-]\s*$/.test(l)).length;
+          // A "–" inside a table or the heat map is a combination that cannot exist (no bond at that risk and maturity, a horizon that cannot reach that return): by design, not a gap.
+          const loose = await page.evaluate(() => { const c = document.body.cloneNode(true); c.querySelectorAll('table, [data-testid="heat-map"], [data-heat-grid]').forEach((n) => n.remove()); return c.innerText || c.textContent || ""; }).catch(() => text);
+          const dashes = loose.split("\n").filter((l) => /^\s*[–—-]\s*$/.test(l)).length;
           if (dashes >= 12) row.empty.push(`${dashes} empty cells ("–")`);
           if (text.trim().length < 40) row.empty.push("page is almost empty");
           const hrefs = await page.evaluate(() => [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")));

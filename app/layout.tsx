@@ -22,6 +22,7 @@ import UsageStats from "@/components/UsageStats";
 import CopyGuard from "@/components/CopyGuard";
 import GptCalcPopup from "@/components/GptCalcPopup";
 import { OG_IMAGES } from "@/lib/ogImage";
+import { HYDRATION_REPORT } from "@/lib/hydrationReport";
 
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
@@ -44,7 +45,10 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Builds every page per request, so each one gets the fresh script nonce from middleware.ts.
-  const path = (await headers()).get("x-pathname") ?? "/";
+  const hdrs = await headers();
+  const path = hdrs.get("x-pathname") ?? "/";
+  // The same per-request nonce the middleware put in the content security policy (needed for the one diagnostic script below).
+  const nonce = /'nonce-([^']+)'/.exec(hdrs.get("content-security-policy") ?? "")?.[1];
   // The page language for search engines and screen readers: the Italian, French and German sites are not English.
   // Pages without a language prefix (/pricing, /login) are drawn in the language chosen in the menu (tb_lang cookie), so lang says the same.
   const jar = await cookies();
@@ -57,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang}>
       <body className="font-sans">
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: HYDRATION_REPORT }} />
         <header className="sticky top-0 z-20 border-b border-line bg-white">
           <nav className="header-wide mx-auto flex h-14 min-w-0 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" aria-label="10BONDS home" className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"><Logo className="h-7 w-auto" /></Link>

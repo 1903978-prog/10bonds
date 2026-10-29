@@ -3,6 +3,10 @@
 app = "10bonds"
 primary_region = "cdg"
 
+# Old machine keeps answering 12 s after SIGTERM (graceful-exit.cjs); Fly waits up to 30 s before it kills it.
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
 [build]
 
 # Zero-downtime releases (Livio 29/10/2026): the new machine starts and passes /api/health before the old one stops. Costs only the few minutes of the overlap, not a second machine all month.

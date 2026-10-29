@@ -192,7 +192,7 @@ export async function loadPriceFlagged(): Promise<FlaggedBond[]> {
 }
 
 /** Price audit over the WHOLE copy (every bond, shown or not): counts per currency by problem. Admin only. */
-export async function priceAudit(): Promise<{ total: number; withPrice: number; bySource: Record<string, number>; perCurrency: Record<string, { total: number; withPrice: number; flagged: number }>; reasons: Record<string, number>; flagged: FlaggedBond[] } | null> {
+async function priceAuditRaw(): Promise<{ total: number; withPrice: number; bySource: Record<string, number>; perCurrency: Record<string, { total: number; withPrice: number; flagged: number }>; reasons: Record<string, number>; flagged: FlaggedBond[] } | null> {
   const client = db();
   if (!client) return null;
   const rows = await client`select * from public_bonds`;
@@ -222,6 +222,7 @@ export async function priceAudit(): Promise<{ total: number; withPrice: number; 
   }
   return { total: all.length, withPrice: all.filter((b) => b.cleanPrice != null).length, bySource, perCurrency, reasons, flagged };
 }
+export const priceAudit = memo2m(priceAuditRaw);
 
 // A yield whose quote is more than this many days older than the newest one in the copy is stale and left out.
 export const STALE_DAYS = 10;
@@ -279,7 +280,7 @@ export { cleanIssuer };
 /** Counts over the whole copy (not only what the site shows), for the admin page. Age uses the quote's own time (price_as_of) when the copy has it, else the yield date. */
 export type PriceFreshness = { basis: "price_as_of" | "ytm_as_of"; total: number; last24h: number; last48h: number; olderThan7d: number; noDate: number; newest: string | null; oldest: string | null };
 
-export async function bondDataStats(): Promise<{
+async function bondDataStatsRaw(): Promise<{
   total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number; freshness: PriceFreshness;
 } | null> {
   const client = db();
@@ -312,6 +313,20 @@ export async function bondDataStats(): Promise<{
     freshness: { basis, total: Number(r.total), last24h: Number(f.h24), last48h: Number(f.h48), olderThan7d: Number(f.d7), noDate: Number(f.nodate), newest: iso(f.newest), oldest: iso(f.oldest) },
   };
 }
+
+/** Admin pages that scan the whole copy: one scan at a time, and the answer is kept for 2 minutes, so a crawl or a double click cannot pile up heavy queries (they failed under load in the 29/10/2026 link check). */
+function memo2m<T>(fn: () => Promise<T>): () => Promise<T> {
+  let at = 0;
+  let val: Promise<T> | null = null;
+  return () => {
+    if (!val || Date.now() - at > 120_000) {
+      at = Date.now();
+      val = fn().catch((e) => { val = null; throw e; });
+    }
+    return val;
+  };
+}
+export const bondDataStats = memo2m(bondDataStatsRaw);
 
 export type CurrencyFreshness = { currency: "EUR" | "USD"; total: number; last24h: number; newest: string | null };
 
