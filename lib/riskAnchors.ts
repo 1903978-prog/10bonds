@@ -4,7 +4,7 @@
 //   including, the midpoint of T(n) and T(n+1) on the 0.1 grid. The ten bond risk classes are whole numbers, so the average of a list is a multiple
 //   of 0.1 and everything here is counted in TENTHS (sum of the ten classes). The classes a list may hold are the 3-class window around T(n).
 export const POSITIONS = 30;
-export const ANCHORS_VERSION = "ab3-2026-10-29";
+export const ANCHORS_VERSION = "ab4-2026-10-29";
 export const MAX_RISK_SPREAD = 2;
 /** Classes a list may hold: three consecutive classes (max - min <= 2). */
 export const WINDOW_WIDTH = 3;

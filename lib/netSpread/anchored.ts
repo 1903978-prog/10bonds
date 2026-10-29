@@ -36,7 +36,7 @@ export type PoolFor = (step: LadderStep) => NsCand[];
 
 const meanYtm = (sel: NsCand[]) => sel.reduce((t, c) => t + c.ytm, 0) / (sel.length || 1);
 /** Floor handed to the solver: the list below returns this much; a hair lower so the rounding of the model text never makes an equal list infeasible. */
-const meanLoss = (sel: NsCand[]) => sel.reduce((t, c) => t + c.lossBp, 0) / (sel.length || 1);
+const meanLoss = (sel: NsCand[]) => sel.reduce((t, c) => t + (c.pd ?? 0), 0) / (sel.length || 1);
 const lossFloorOf = (sel: NsCand[] | null) => (sel && sel.length ? meanLoss(sel) - 1e-6 : undefined);
 const floorOf = (sel: NsCand[] | null) => (sel && sel.length ? meanYtm(sel) - 1e-6 : undefined);
 /** Other 3-class windows, nearest to the position's own first (the class spread of 2 is never relaxed). */

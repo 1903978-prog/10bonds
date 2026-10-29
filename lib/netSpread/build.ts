@@ -50,7 +50,7 @@ export function nsCandidates(bonds: PublicBond[], duration: number, bes: Map<str
   for (const c of specCandidates(bonds, duration, step)) {
     const x = bes.get(c.b.isin);
     if (!x) continue;
-    out.push({ isin: c.b.isin, group: c.group ?? c.b.isin, sector: c.sector, exempt: sectorExempt(c.b), cls: c.cls, dur: c.dur, ns: x.netSpreadBp, grossBp: x.grossSpreadBp, lossBp: x.annualLossBp, ytm: c.ret, bes: x.bes });
+    out.push({ isin: c.b.isin, group: c.group ?? c.b.isin, sector: c.sector, exempt: sectorExempt(c.b), cls: c.cls, dur: c.dur, ns: x.netSpreadBp, grossBp: x.grossSpreadBp, lossBp: x.annualLossBp, ytm: c.ret, pd: c.pd, bes: x.bes });
   }
   return out;
 }

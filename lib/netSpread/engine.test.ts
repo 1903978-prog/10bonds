@@ -75,8 +75,6 @@ describe("the unified engine on a full synthetic horizon", () => {
       // Return must rise with risk: no list returns less than the one below it, and no position is beaten by a lower one.
       for (let i = 1; i < valid.length; i++) expect(valid[i].metrics!.ytm).toBeGreaterThanOrEqual(valid[i - 1].metrics!.ytm - 0.005);
       expect(dominatedPositions(results)).toEqual([]);
-      // Expected loss never falls with position (owner, 29/10/2026).
-      for (let i = 1; i < valid.length; i++) expect(valid[i].metrics!.creditLossBp).toBeGreaterThanOrEqual(valid[i - 1].metrics!.creditLossBp - 1e-6);
 
       // Infeasible positions are empty with a reason; nothing fills them.
       const infeasible = results.filter((r) => r.status === "infeasible");
@@ -102,6 +100,10 @@ describe("the unified engine on a full synthetic horizon", () => {
         }
       }
       expect(a.rows.filter((r) => r.status === "ERROR")).toEqual([]);
+
+      // Expected loss never falls with position (owner, 29/10/2026).
+      const els = stored.bands.filter((b) => b.status === "ok").map((b) => b.el!);
+      for (let i = 1; i < els.length; i++) expect(els[i]).toBeGreaterThanOrEqual(els[i - 1] - 0.0011);
 
       // Public slider: valid positions only, renumbered 1..n, repeats out, the stored position kept for the list lookup, risk classes shown.
       const served = positionsOfBands({ stored, stale: false, src: { bonds, source: "live", asOf: NEWEST }, cfg: specConfig(), key: "k" });

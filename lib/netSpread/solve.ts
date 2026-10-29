@@ -26,6 +26,8 @@ export type NsCand = {
   grossBp: number;
   lossBp: number;
   ytm: number;
+  /** Chance of default before maturity in % (the list's displayed expected loss is the mean of this x loss given default). */
+  pd?: number;
   /** Bond-level BES 0-100, secondary indicator only. */
   bes: number | null;
 };
@@ -38,7 +40,7 @@ const num = (x: number) => x.toFixed(6);
 const terms = (idx: number[], coef: (i: number) => number) =>
   idx.reduce((out, i, k) => out + (k === 0 ? "" : k % 8 === 0 ? " +\n  " : " + ") + `${num(coef(i))} x${i}`, "");
 
-type Stage = { objective: "ns" | "loss" | "risk-max" | "risk-min"; nsMin?: number; sum?: SumRange; /** Floor for the average return (ytm, same unit as NsCand.ytm): a riskier position never returns less than the one below it. */ retMin?: number; /** Floor for the average annual expected loss (bp): a riskier position never has a lower expected loss. */ lossMin?: number };
+type Stage = { objective: "ns" | "loss" | "risk-max" | "risk-min"; nsMin?: number; sum?: SumRange; /** Floor for the average return (ytm, same unit as NsCand.ytm): a riskier position never returns less than the one below it. */ retMin?: number; /** Floor for the average chance of default before maturity (%, the displayed expected loss): a riskier position never has a lower expected loss. */ lossMin?: number };
 
 async function stage(cs: NsCand[], rules: NsRules, st: Stage, timeLimit: number): Promise<{ status: NsSolve["status"]; sel: NsCand[] }> {
   const all = cs.map((_, i) => i);
@@ -49,7 +51,7 @@ async function stage(cs: NsCand[], rules: NsRules, st: Stage, timeLimit: number)
   add("dhi", all, (i) => cs[i].dur, "<=", NS_SIZE * rules.duration * (1 + rules.avgTol));
   if (st.nsMin !== undefined) add("nsmin", all, (i) => cs[i].ns, ">=", st.nsMin * NS_SIZE);
   if (st.retMin !== undefined) add("retmin", all, (i) => cs[i].ytm, ">=", st.retMin * NS_SIZE);
-  if (st.lossMin !== undefined) add("lossmin", all, (i) => cs[i].lossBp, ">=", st.lossMin * NS_SIZE);
+  if (st.lossMin !== undefined) add("lossmin", all, (i) => cs[i].pd ?? 0, ">=", st.lossMin * NS_SIZE);
   if (st.sum) { add("rlo", all, (i) => cs[i].cls, ">=", st.sum.lo); add("rhi", all, (i) => cs[i].cls, "<=", st.sum.hi); }
   // No bond above `lossShare` of the list's annual expected loss: loss_i x_i <= share * T, with T the list's total (one extra row, two terms per bond).
   const lossy = all.filter((i) => cs[i].lossBp > 0);
@@ -104,7 +106,7 @@ export async function best(cs: NsCand[], rules: NsRules, limit: number, sum?: Su
 const done = (r: Solved, cs: NsCand[], t0: number): NsSolve => ({ status: r.status, sel: r.sel, objectiveBp: r.sel.length ? mean(r.sel.map((c) => c.ns)) : null, seconds: Math.round((Date.now() - t0) / 100) / 10, candidates: cs.length });
 
 /** Exact best list for one position: the allowed classes, a range for the sum of classes. */
-export async function solvePosition(cands: NsCand[], classLo: number, classHi: number, sum: SumRange, rules: NsRules, opts: { timeLimit?: number; /** Floor for the list's average return (ytm). */ retMin?: number; /** Floor for the list's average annual expected loss (bp). */ lossMin?: number } = {}): Promise<NsSolve> {
+export async function solvePosition(cands: NsCand[], classLo: number, classHi: number, sum: SumRange, rules: NsRules, opts: { timeLimit?: number; /** Floor for the list's average return (ytm). */ retMin?: number; /** Floor for the list's average chance of default before maturity (%). */ lossMin?: number } = {}): Promise<NsSolve> {
   const t0 = Date.now();
   const cs = eligible(cands, classLo, classHi);
   return done(await best(cs, rules, opts.timeLimit ?? SOLVER_OPTIONS.time_limit, sum, opts.retMin, opts.lossMin), cs, t0);
