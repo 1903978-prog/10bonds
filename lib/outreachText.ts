@@ -6,7 +6,7 @@ export type Firm = { firm: string; city: string | null; country: "IT" | "FR" | "
 
 export const LANG_OF: Record<Firm["country"], OutreachLang> = { IT: "it", FR: "fr", DE: "de" };
 const LINK = "https://10bonds.com/pro";
-const SENDER = "SQUARE ONE OÜ, Männimäe/1, Pudisoo küla, Kuusalu vald, 74626 Harju maakond, Estonia";
+const SENDER = "10BONDS";
 
 const T = {
   it: {

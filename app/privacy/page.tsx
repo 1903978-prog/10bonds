@@ -36,8 +36,6 @@ export default function Privacy() {
       <H>2. Data controller</H>
       <p className="mt-2">
         {COMPANY.legalName}
-        <br />Registration number: 14035002 · VAT number: EE102234240
-        <br />Registered address: {COMPANY.address}
         <br />Privacy contact: <a href={`mailto:${COMPANY.privacyEmail}`} className="text-accent">{COMPANY.privacyEmail}</a>
       </p>
 
@@ -155,8 +153,7 @@ export default function Privacy() {
       <H>13. Contact</H>
       <p className="mt-2">
         For questions about this policy or the processing of your personal information:
-        <br />{COMPANY.legalName}, registration number 14035002
-        <br />Männimäe/1, Pudisoo küla, Kuusalu vald, 74626 Harju maakond, Estonia
+        <br />{COMPANY.legalName}
         <br />E-mail: <a href={`mailto:${COMPANY.privacyEmail}`} className="text-accent">{COMPANY.privacyEmail}</a>
       </p>
     </article>

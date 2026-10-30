@@ -61,7 +61,7 @@ function html(title, subtitle, md) {
     small{color:#6e6e73}
   </style></head><body>
     <div class="cover"><div class="brand">10BONDS</div><h1>${esc(title)}</h1><div class="sub">${esc(subtitle)}</div>
-    <div class="note">Information only. Not a credit rating, a probability of default or investment advice. 10BONDS is not a credit rating agency. © ${new Date().getFullYear()} 10BONDS · SQUARE ONE OÜ</div></div>
+    <div class="note">Information only. Not a credit rating, a probability of default or investment advice. 10BONDS is not a credit rating agency. © ${new Date().getFullYear()} 10BONDS</div></div>
     <div class="toc"><h2>Contents</h2><ol>${toc}</ol></div>${body}</body></html>`;
 }
 

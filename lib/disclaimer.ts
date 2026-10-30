@@ -14,18 +14,18 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
   en: {
     title: "Disclaimer",
     intro:
-      "10BONDS, operated by SQUARE ONE OÜ (Estonia), is a bond discovery and ranking tool. Everything it shows is general information, offered as it is, to help you research. It is not built for trading and is not financial, investment, tax, legal or accounting advice.",
+      "10BONDS, operated by 10BONDS, is a bond discovery and ranking tool. Everything it shows is general information, offered as it is, to help you research. It is not built for trading and is not financial, investment, tax, legal or accounting advice.",
     sections: [
       {
         title: "Not advice, not a broker",
         paragraphs: [
-          "10BONDS and SQUARE ONE OÜ are not investment advisers, financial advisers, brokers or banks. No list, ranking or figure is a recommendation, offer or invitation to buy, sell or keep any bond or other financial product, and we express no view on whether any investment is wise or suitable. Showing a bond is not an endorsement of it or of its issuer.",
+          "10BONDS is not investment advisers, financial advisers, brokers or banks. No list, ranking or figure is a recommendation, offer or invitation to buy, sell or keep any bond or other financial product, and we express no view on whether any investment is wise or suitable. Showing a bond is not an endorsement of it or of its issuer.",
         ],
       },
       {
         title: "Your decision, your responsibility",
         paragraphs: [
-          "A bond shown here may not fit your profile, goals or expectations. Only you can judge whether it suits your situation, time horizon and appetite for risk. Do not use 10BONDS as the only basis for an investment decision. SQUARE ONE OÜ accepts no liability for any loss arising from investments or trades in the products mentioned.",
+          "A bond shown here may not fit your profile, goals or expectations. Only you can judge whether it suits your situation, time horizon and appetite for risk. Do not use 10BONDS as the only basis for an investment decision. 10BONDS accepts no liability for any loss arising from investments or trades in the products mentioned.",
         ],
       },
       {
@@ -64,18 +64,18 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
   it: {
     title: "Avvertenze",
     intro:
-      "10BONDS, gestito da SQUARE ONE OÜ (Estonia), è uno strumento per trovare e ordinare obbligazioni. Tutto ciò che mostra è informazione generale, fornita così com'è, per aiutarti nelle tue ricerche. Non è pensato per fare trading e non è consulenza finanziaria, di investimento, fiscale, legale o contabile.",
+      "10BONDS, gestito da 10BONDS, è uno strumento per trovare e ordinare obbligazioni. Tutto ciò che mostra è informazione generale, fornita così com'è, per aiutarti nelle tue ricerche. Non è pensato per fare trading e non è consulenza finanziaria, di investimento, fiscale, legale o contabile.",
     sections: [
       {
         title: "Non è consulenza, non è un broker",
         paragraphs: [
-          "10BONDS e SQUARE ONE OÜ non sono consulenti finanziari o di investimento, broker né banche. Nessuna lista, classifica o cifra è una raccomandazione, un'offerta o un invito a comprare, vendere o tenere un'obbligazione o altro prodotto finanziario, e non esprimiamo alcun parere sull'opportunità o adeguatezza di un investimento. Mostrare un'obbligazione non significa approvarla né approvare il suo emittente.",
+          "10BONDS non è consulenti finanziari o di investimento, broker né banche. Nessuna lista, classifica o cifra è una raccomandazione, un'offerta o un invito a comprare, vendere o tenere un'obbligazione o altro prodotto finanziario, e non esprimiamo alcun parere sull'opportunità o adeguatezza di un investimento. Mostrare un'obbligazione non significa approvarla né approvare il suo emittente.",
         ],
       },
       {
         title: "La decisione è tua",
         paragraphs: [
-          "Un'obbligazione mostrata qui può non essere adatta al tuo profilo, ai tuoi obiettivi o alle tue aspettative. Solo tu puoi valutare se è adatta alla tua situazione, al tuo orizzonte temporale e alla tua propensione al rischio. Non usare 10BONDS come unica base per una decisione di investimento. SQUARE ONE OÜ non risponde di alcuna perdita derivante da investimenti o operazioni sui prodotti citati.",
+          "Un'obbligazione mostrata qui può non essere adatta al tuo profilo, ai tuoi obiettivi o alle tue aspettative. Solo tu puoi valutare se è adatta alla tua situazione, al tuo orizzonte temporale e alla tua propensione al rischio. Non usare 10BONDS come unica base per una decisione di investimento. 10BONDS non risponde di alcuna perdita derivante da investimenti o operazioni sui prodotti citati.",
         ],
       },
       {
@@ -114,18 +114,18 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
   fr: {
     title: "Avertissement",
     intro:
-      "10BONDS, exploité par SQUARE ONE OÜ (Estonie), est un outil de recherche et de classement d'obligations. Tout ce qu'il affiche est une information générale, fournie en l'état, pour vous aider dans vos recherches. Il n'est pas conçu pour le trading et ne constitue pas un conseil financier, d'investissement, fiscal, juridique ou comptable.",
+      "10BONDS, exploité par 10BONDS, est un outil de recherche et de classement d'obligations. Tout ce qu'il affiche est une information générale, fournie en l'état, pour vous aider dans vos recherches. Il n'est pas conçu pour le trading et ne constitue pas un conseil financier, d'investissement, fiscal, juridique ou comptable.",
     sections: [
       {
         title: "Ni conseil, ni courtier",
         paragraphs: [
-          "10BONDS et SQUARE ONE OÜ ne sont ni conseillers en investissement ou financiers, ni courtiers, ni banques. Aucune liste, aucun classement ni aucun chiffre n'est une recommandation, une offre ou une invitation à acheter, vendre ou conserver une obligation ou un autre produit financier, et nous n'émettons aucun avis sur l'opportunité ou l'adéquation d'un investissement. Afficher une obligation ne revient pas à la cautionner, ni son émetteur.",
+          "10BONDS n'est ni conseillers en investissement ou financiers, ni courtiers, ni banques. Aucune liste, aucun classement ni aucun chiffre n'est une recommandation, une offre ou une invitation à acheter, vendre ou conserver une obligation ou un autre produit financier, et nous n'émettons aucun avis sur l'opportunité ou l'adéquation d'un investissement. Afficher une obligation ne revient pas à la cautionner, ni son émetteur.",
         ],
       },
       {
         title: "Votre décision, votre responsabilité",
         paragraphs: [
-          "Une obligation affichée ici peut ne pas convenir à votre profil, à vos objectifs ou à vos attentes. Vous seul pouvez juger si elle correspond à votre situation, à votre horizon et à votre goût du risque. N'utilisez pas 10BONDS comme seule base d'une décision d'investissement. SQUARE ONE OÜ décline toute responsabilité pour les pertes liées à des investissements ou opérations sur les produits mentionnés.",
+          "Une obligation affichée ici peut ne pas convenir à votre profil, à vos objectifs ou à vos attentes. Vous seul pouvez juger si elle correspond à votre situation, à votre horizon et à votre goût du risque. N'utilisez pas 10BONDS comme seule base d'une décision d'investissement. 10BONDS décline toute responsabilité pour les pertes liées à des investissements ou opérations sur les produits mentionnés.",
         ],
       },
       {
@@ -164,18 +164,18 @@ export const DISCLAIMER: Record<DisclaimerLang, Disclaimer> = {
   de: {
     title: "Haftungsausschluss",
     intro:
-      "10BONDS, betrieben von der SQUARE ONE OÜ (Estland), ist ein Werkzeug zum Finden und Sortieren von Anleihen. Alles, was es zeigt, ist allgemeine Information, so bereitgestellt, wie sie ist, als Hilfe bei Ihrer Recherche. Es ist nicht für den Handel gedacht und keine Finanz-, Anlage-, Steuer-, Rechts- oder Buchhaltungsberatung.",
+      "10BONDS, betrieben von 10BONDS, ist ein Werkzeug zum Finden und Sortieren von Anleihen. Alles, was es zeigt, ist allgemeine Information, so bereitgestellt, wie sie ist, als Hilfe bei Ihrer Recherche. Es ist nicht für den Handel gedacht und keine Finanz-, Anlage-, Steuer-, Rechts- oder Buchhaltungsberatung.",
     sections: [
       {
         title: "Keine Beratung, kein Broker",
         paragraphs: [
-          "10BONDS und die SQUARE ONE OÜ sind weder Anlage- oder Finanzberater noch Broker oder Banken. Keine Liste, keine Rangfolge und keine Zahl ist eine Empfehlung, ein Angebot oder eine Aufforderung, eine Anleihe oder ein anderes Finanzprodukt zu kaufen, zu verkaufen oder zu halten, und wir äußern keine Meinung dazu, ob eine Anlage sinnvoll oder geeignet ist. Dass eine Anleihe angezeigt wird, ist keine Befürwortung der Anleihe oder ihres Emittenten.",
+          "10BONDS ist weder Anlage- oder Finanzberater noch Broker oder Banken. Keine Liste, keine Rangfolge und keine Zahl ist eine Empfehlung, ein Angebot oder eine Aufforderung, eine Anleihe oder ein anderes Finanzprodukt zu kaufen, zu verkaufen oder zu halten, und wir äußern keine Meinung dazu, ob eine Anlage sinnvoll oder geeignet ist. Dass eine Anleihe angezeigt wird, ist keine Befürwortung der Anleihe oder ihres Emittenten.",
         ],
       },
       {
         title: "Ihre Entscheidung, Ihre Verantwortung",
         paragraphs: [
-          "Eine hier gezeigte Anleihe passt möglicherweise nicht zu Ihrem Profil, Ihren Zielen oder Erwartungen. Nur Sie können beurteilen, ob sie zu Ihrer Lage, Ihrem Anlagehorizont und Ihrer Risikobereitschaft passt. Nutzen Sie 10BONDS nicht als einzige Grundlage für eine Anlageentscheidung. Die SQUARE ONE OÜ haftet nicht für Verluste aus Anlagen oder Geschäften in den genannten Produkten.",
+          "Eine hier gezeigte Anleihe passt möglicherweise nicht zu Ihrem Profil, Ihren Zielen oder Erwartungen. Nur Sie können beurteilen, ob sie zu Ihrer Lage, Ihrem Anlagehorizont und Ihrer Risikobereitschaft passt. Nutzen Sie 10BONDS nicht als einzige Grundlage für eine Anlageentscheidung. 10BONDS haftet nicht für Verluste aus Anlagen oder Geschäften in den genannten Produkten.",
         ],
       },
       {

@@ -16,7 +16,7 @@ describe("welcome e-mail", () => {
       expect(m.html).not.toContain("<b>");
       expect(m.text).not.toMatch(/\b30\b/);
       expect(welcomeEmail(l, "x", 30).text).toMatch(/\b30\b/);
-      expect(m.text).toContain("SQUARE ONE OÜ");
+      expect(m.text).toContain("10BONDS");
       expect(m.text).toContain("89");
       expect(m.text).toContain("https://10bonds.com/account");
     }

@@ -169,7 +169,7 @@ export function welcomeEmail(lang: WelcomeLang, username: string, trialDays: num
   const p = welcomePaths(lang);
   const u = (path: string) => `${base}${path}`;
   const linkKeys = ["finder", "knowledge", "calculator"] as const;
-  const seller = `${COMPANY.legalName}, ${COMPANY.address}`;
+  const seller = [COMPANY.legalName, COMPANY.address].filter(Boolean).join(", ");
 
   const text = [
     `${t.hi} ${username},`,

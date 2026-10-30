@@ -95,7 +95,7 @@ export function weeklyEmail(rawLang: unknown, picks: WeeklyPicks, unsubscribe: s
   const intro = t.intro(WEEKLY_INPUTS.duration, num(picks.scanned, lang, 0));
   const avg = t.avg(num(avgRet, lang, 2), num(avgRisk, lang, 1));
   const finder = `${base}${lang === "en" ? "/" : pathOf(lang)}`;
-  const seller = `${COMPANY.legalName}, ${COMPANY.address}`;
+  const seller = [COMPANY.legalName, COMPANY.address].filter(Boolean).join(", ");
   const year = (m: string | null) => (m ? m.slice(0, 4) : "–");
   const cell = (r: WeeklyRow) => [r.issuer, year(r.maturity), `${num(r.ret, lang, 2)}%`, r.risk === null ? "–" : String(r.risk)];
 

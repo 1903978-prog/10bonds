@@ -127,7 +127,7 @@ describe("Version C (production default): real ECB figures", () => {
     for (const n of issue.text.match(/-?\d+(?:\.\d+)?(?:%| bp)/g) ?? []) expect(issue.figures).toContain(n);
   });
   it("carries sources, timestamp, definitions, disclosure, sender and unsubscribe", () => {
-    for (const s of ["data-api.ecb.europa.eu", "usage_policy", "Retrieved 2026-10-27", "Published 27 Oct 2026", "Information only, not advice or an offer", "SQUARE ONE", UNSUB, "same e-mail for every subscriber", "Coupon:", "Realised return:", "Spot rate:"]) expect(issue.html + issue.text).toContain(s);
+    for (const s of ["data-api.ecb.europa.eu", "usage_policy", "Retrieved 2026-10-27", "Published 27 Oct 2026", "Information only, not advice or an offer", "10BONDS", UNSUB, "same e-mail for every subscriber", "Coupon:", "Realised return:", "Spot rate:"]) expect(issue.html + issue.text).toContain(s);
   });
   it("is valid for mobile and uses https links only", () => {
     expect(issue.html).toContain('name="viewport"');

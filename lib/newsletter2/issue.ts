@@ -112,7 +112,7 @@ export function buildIssue(input: IssueInput, o: GateOptions = {}): Issue {
   const sameFor = "This is the same e-mail for every subscriber. It is not based on your finances, goals or circumstances.";
   figures.push("1 bp");
   const changed = "Changes in basis points (1 bp = 0.01 percentage point) are calculated by 10BONDS from ECB figures; they are not ECB figures.";
-  const seller = `${COMPANY.legalName}, ${COMPANY.address}`;
+  const seller = [COMPANY.legalName, COMPANY.address].filter(Boolean).join(", ");
   const why = "You get this e-mail because you asked for the weekly 10BONDS e-mail.";
   const cta = "Screen bonds yourself on 10bonds.com";
   const ctaHint = "Choose your own horizon, return and risk level and compare bonds independently.";
