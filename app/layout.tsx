@@ -96,7 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AccountNotices />
           {children}
         </main>
-        <footer className="border-t border-line/70 py-4 text-center text-[11px] leading-snug text-mute">
+        <footer className="border-t border-line/70 py-2 text-center text-[11px] leading-snug text-mute">
           <FooterNote />
           <FooterLegal />
         </footer>

@@ -74,7 +74,7 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)]">
       {slides.map((s, i) => (
         <div key={s.key} data-testid={`slide-${s.key}`} aria-hidden={i !== at} inert={i !== at}
-          className={`h-full min-h-0 min-w-0 [grid-area:1/1] transition-opacity duration-500 ${i === at ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+          className={`h-full min-h-0 min-w-0 [grid-area:1/1] ${i === at ? "opacity-100" : "pointer-events-none opacity-0"}`}>
           {s.node}
         </div>
       ))}

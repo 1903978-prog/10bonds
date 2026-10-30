@@ -287,7 +287,7 @@ export function MultiYearScreen({ sub, subShort, insightShort, yLabel, xLabel, i
   const Y = (v: number) => T + ((6.4 - v) / 3.4) * (H - T - B);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="text-[13px] text-[#52666F] sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
+      <p className="hidden text-[13px] text-[#52666F] sm:block sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
       <div ref={box} className="mt-2 min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7]">
         <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block" fontSize={F} role="img" aria-label={sub}>
           {[3, 3.5, 4, 4.5, 5, 5.5, 6].map((v) => (
@@ -330,7 +330,7 @@ const HEAT_SAMPLE: HeatMap = {
 export function HeatMapScreen({ sub, subShort, insightShort, insightK, insight, retLabel, yrs }: { sub: string; subShort: string; insightShort: string; insightK: string; insight: string; retLabel: string; yrs: string }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="text-[13px] text-[#52666F] sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
+      <p className="hidden text-[13px] text-[#52666F] sm:block sm:text-[14px]"><span className="sm:hidden">{subShort}</span><span className="hidden sm:inline">{sub}</span></p>
       {/* Phones: a small picture of the map (no figures, no legend text), like the mockup. */}
       <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-[12px] border border-[#e3ebe7] p-2 heat-mini" data-heat-grid aria-hidden>
         <HeatMapChart plain map={HEAT_SAMPLE} method="m1" onMethod={() => {}} retLabel={retLabel} yearsLabel={yrs} blacklist={false} onBlacklist={() => {}} />
