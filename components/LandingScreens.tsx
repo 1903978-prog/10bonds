@@ -1,5 +1,6 @@
 "use client";
 
+import { NOT_STATED } from "@/lib/riskWarning";
 import { type ReactNode } from "react";
 import { RiskBadge } from "@/components/RiskBadge";
 import HeatMapChart from "@/components/HeatMapChart";
@@ -129,10 +130,10 @@ function BondList({ f, bonds, compact }: { f: FinderText; bonds: BenchmarkBond[]
         {rows.map((b, i) => (
           <li key={i} className="flex items-center border-b border-[#f3f3f5] text-[15px] tabular-nums last:border-0">
             <span className="w-6 text-[#6b6b72]">{i + 1}</span>
-            <span className="min-w-0 flex-1 truncate font-medium">{b?.name ?? "–"}</span>
-            {!compact && <span className="w-16 text-right text-[#55555b]">{b?.year ?? "–"}</span>}
-            <span className="w-14 text-center">{b?.risk != null ? <RiskBadge risk={b.risk} /> : "–"}</span>
-            <span className="w-16 text-right font-semibold">{b?.ytm != null ? b.ytm.toFixed(2) : "–"}</span>
+            <span className="min-w-0 flex-1 truncate font-medium">{b?.name ?? ""}</span>
+            {!compact && <span className="w-16 text-right text-[#55555b]">{b?.year ?? ""}</span>}
+            <span className="w-14 text-center">{b?.risk != null ? <RiskBadge risk={b.risk} /> : ""}</span>
+            <span className="w-16 text-right font-semibold">{b?.ytm != null ? b.ytm.toFixed(2) : ""}</span>
           </li>
         ))}
       </ol>
@@ -218,7 +219,7 @@ export function OneBondScreen({ lang, data, asOf, locale }: { lang: FinderLang; 
   const sym = b.currency === "USD" ? "US$" : "€";
   const facts: [string, ReactNode][] = [
     ["ISIN", `${b.isin.slice(0, 4)}••••••${b.isin.slice(-2)}`], [f.risk, <RiskBadge key="r" risk={b.risk} />], [f.duration, `${num(b.duration)} ${f.yrs}`],
-    [f.coupon, `${num(b.coupon, 2)}%`], [f.maturity, date], [f.minInvest, b.minInvestment ? `${sym}${num(b.minInvestment / 1000, 0)}k` : "–"],
+    [f.coupon, `${num(b.coupon, 2)}%`], [f.maturity, date], [f.minInvest, b.minInvestment ? `${sym}${num(b.minInvestment / 1000, 0)}k` : NOT_STATED[lang]],
   ];
   return (
     <ScaledScreen render={(wide) => (

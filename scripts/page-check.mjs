@@ -75,6 +75,7 @@ for (const [w, h] of WIDTHS) {
   await p.locator('[data-testid="cookie-settings"]').click().catch(() => {});
   await p.locator('[data-testid="cookie-accept"]').click(); // "I understand" saves the choice (statistics off) and closes the bar
   await p.locator('[data-testid="intro-skip"]').click();
+  await p.locator('[data-testid="term-picker"]').waitFor({ timeout: 10_000 }).catch(() => {}); // the finder code loads when the landing page is left
   ok(await p.locator('[data-testid="term-picker"]').isVisible(), "home: the intro's button opens the finder");
   await ctx.close();
 }

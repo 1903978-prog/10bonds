@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Finder from "@/components/Finder";
+import FinderLazy from "@/components/FinderLazy";
 import { JsonLd } from "@/components/seo/Seo";
 import { ORGANIZATION } from "@/lib/seo/org";
 import { SITE_URL } from "@/lib/seo/crawl";
@@ -32,7 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ i
       <JsonLd data={{ "@context": "https://schema.org", ...ORGANIZATION }} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "WebSite", name: "10BONDS", url: SITE_URL, inLanguage: "en", publisher: ORGANIZATION }} />
       <IntroGate show={intro}>
-        <Finder />
+        {intro ? <FinderLazy /> : <Finder />}
       </IntroGate>
     </>
   );

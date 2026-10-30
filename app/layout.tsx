@@ -24,6 +24,10 @@ import GptCalcPopup from "@/components/GptCalcPopup";
 import { OG_IMAGES } from "@/lib/ogImage";
 import { HYDRATION_REPORT } from "@/lib/hydrationReport";
 
+// Before the first paint: a visitor who has not answered the cookie bar yet gets its room at the bottom at once (globals.css), so the bar appearing
+// a moment later does not move the page (layout shift). The bar then sets the exact value.
+const COOKIE_BAR_SPACE = `try{if(!localStorage.getItem("tb_cookie_consent")&&!localStorage.getItem("tb_consent"))document.documentElement.setAttribute("data-cookie","1")}catch(e){document.documentElement.setAttribute("data-cookie","1")}`;
+
 const SITE_URL = process.env.SITE_URL ?? "https://10bonds.fly.dev";
 
 export const metadata: Metadata = {
@@ -59,8 +63,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Price drops is the admin's only for now (52-week values stay private): drawn on the server, so nothing pops in.
   const admin = hasSession && (await currentUser())?.isAdmin === true;
   return (
-    <html lang={lang}>
-      <body className="font-sans">
+    <html lang={lang} suppressHydrationWarning>
+      <body className="font-sans" suppressHydrationWarning>
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: COOKIE_BAR_SPACE }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: HYDRATION_REPORT }} />
         <header className="sticky top-0 z-20 border-b border-line bg-white">
           <nav className="header-wide mx-auto flex h-14 min-w-0 max-w-6xl items-center justify-between px-4 sm:px-6">

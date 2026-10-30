@@ -6,6 +6,7 @@ import { accountsConfigured } from "@/lib/accounts";
 import { currentUser } from "@/lib/currentUser";
 import { landsInPro } from "@/lib/proView";
 import Finder from "@/components/Finder";
+import FinderLazy from "@/components/FinderLazy";
 import IntroGate from "@/components/IntroGate";
 import { landingFirst } from "@/lib/intro";
 import { headers } from "next/headers";
@@ -55,7 +56,7 @@ export default async function LocaleHome({ params, searchParams }: Props) {
     <div className="space-y-10">
       {/* The finder comes first so it fits on one screen; the page title and intro stay on the page, below it. */}
       <IntroGate show={intro} lang={l} heading={false}>
-        <Finder lang={l} heading={false} />
+        {intro ? <FinderLazy lang={l} heading={false} /> : <Finder lang={l} heading={false} />}
       </IntroGate>
       <section className="mx-auto max-w-3xl text-center">
         <h1 className="text-[34px] font-semibold leading-tight tracking-tight sm:text-[44px]">{h.h1}</h1>

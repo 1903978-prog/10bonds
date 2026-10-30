@@ -11,7 +11,7 @@ export default {
       },
       colors: {
         ink: "#1d1d1f",
-        mute: "#6e6e73",
+        mute: "#636368",
         line: "#e5e5ea",
         canvas: "#f5f5f7",
         // #0066cc: Apple's link blue, readable on white and on the grey canvas (contrast 4.5:1 or more, WCAG AA).

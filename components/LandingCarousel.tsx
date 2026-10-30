@@ -90,7 +90,7 @@ export default function LandingCarousel({ t, slides }: { t: LandingText; slides:
       <div className="flex h-6 shrink-0 items-center justify-center pt-1">
         {slides.map((s, i) => (
           <button key={s.key} type="button" onClick={() => go(i)} aria-label={`${t.carousel.slide} ${i + 1} / ${n}`} aria-current={i === at}
-            data-testid={`dot-${s.key}`} className="grid h-5 w-4 place-items-center">
+            data-testid={`dot-${s.key}`} className="grid h-6 w-6 place-items-center">
             <span className={`block h-1.5 rounded-full transition-all ${i === at ? "w-3.5" : "w-1.5 bg-[#c9d6d0]"}`} style={i === at ? { background: NAVY } : undefined} />
           </button>
         ))}

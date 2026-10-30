@@ -1,5 +1,6 @@
 "use client";
 
+import { RISK_WARNING } from "@/lib/riskWarning";
 import { landOn } from "@/lib/bandSlider";
 import { loadSnapshot, snapshotPositions } from "@/lib/sliderSnapshotClient";
 import Link from "next/link";
@@ -974,7 +975,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
           ) : (
             <p className="truncate text-[11px] leading-snug text-mute" data-testid="yields-date">
               {/* Same text before and after the data arrives: only the date fills in, the line never wraps differently. */}
-              {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}
+              {t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)} <span data-testid="return-warning">{RISK_WARNING[lang]}</span>
               {isAdmin && <span className="text-amber-800" data-testid="admin-method-footer"> Methodology {adminM ?? siteM ?? "…"}.</span>}
             </p>
           )}
@@ -1160,7 +1161,7 @@ function MoreFilters({ label, summary, children }: { label: string; summary: str
   return (
     <div ref={box} className="relative mt-3">
       <button type="button" aria-expanded={open} data-testid="more-filters" onClick={() => setOpen((o) => !o)} className="flex items-center gap-1.5 text-[12px] font-medium text-mute hover:text-ink">
-        {label} <span className="text-mute/70">· {summary}</span> <span aria-hidden>{open ? "▴" : "▾"}</span>
+        {label} <span className="text-mute">· {summary}</span> <span aria-hidden>{open ? "▴" : "▾"}</span>
       </button>
       {open && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border border-line/70 bg-white p-3 shadow-lg [&>div]:mt-0">
@@ -1325,7 +1326,7 @@ function Stat({ value, label, lock, h = "h-[60px]", title }: { value: ReactNode 
     <div title={title} className={`flex ${h} min-w-0 flex-col items-center justify-center rounded-xl border border-line/70 px-2 py-1 text-center`}>
       {value === null ? (
         // Locked: a grey lock and a dash; the one sign-up link sits under the row.
-        <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute/60" aria-label={lock?.label}>
+        <div className="flex items-center gap-1.5 text-xl font-semibold leading-tight text-mute" aria-label={lock?.label}>
           <Lock /> —
         </div>
       ) : (
@@ -1725,7 +1726,7 @@ function PhoneList({ data, list, features, signedIn, loading, lang, currency, on
       {data?.source === "sample" ? (
         <p className="mt-1 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
       ) : (
-        <p className="mt-1 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}</p>
+        <p className="mt-1 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)} <span data-testid="return-warning">{RISK_WARNING[lang]}</span></p>
       )}
     </div>
   );
@@ -1863,9 +1864,9 @@ function PhoneResults({ caption, arrows, title, onClose, data, list, setList, fe
       {data?.source === "sample" ? (
         <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
       ) : (
-        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)}</p>
+        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)} <span data-testid="return-warning">{RISK_WARNING[lang]}</span></p>
       )}
-      <p className="mt-1 shrink-0 text-[9px] leading-tight text-mute/80" data-testid="phone-footer-note">{FOOTER_NOTE[lang]}</p>
+      <p className="mt-1 shrink-0 text-[9px] leading-tight text-mute" data-testid="phone-footer-note">{FOOTER_NOTE[lang]}</p>
     </div>
   );
 }

@@ -8,6 +8,8 @@ import type { FinderLang } from "./finderText";
 const en = {
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
   tagline: "Mathematics instead of guesswork. Bond portfolios built from the data, from lower risk to higher return on one slider.",
+  noData: "not available",
+  fresh: "Prices updated daily, last update",
   cardTitleBench: "Model portfolio vs bond ETF",
   cardTitleBenchShort: "Average Bond ETF vs Model",
   bench: "Bond ETF benchmark",
@@ -73,6 +75,8 @@ const en = {
   // Comparison card copy (the owner, 28/10/2026). The "same risk level" wording is used only when the stored data match (lib/landingCompare.ts).
   compare: {
     level: "Risk level of the model portfolio",
+    details: "Details",
+    plain: (more: boolean) => `${more ? "more" : "less"} gross yield per year than a typical bond ETF`,
     sub: "Same risk level, similar duration. How much more yield a 10-bond list can offer than a typical bond ETF today.",
     subNeutral: "Risk level and duration of both sides are shown below. Gross yield difference today.",
     same: (r: string, d: string) => `more gross yield per year, at the same risk level (${r}) and similar duration (about ${d} years)`,
@@ -108,6 +112,8 @@ export type LandingText = typeof en;
 
 const it: LandingText = {
   tagline: "La matematica al posto delle congetture. Portafogli obbligazionari costruiti sui dati, da meno rischio a più rendimento con un solo cursore.",
+  noData: "non disponibile",
+  fresh: "Prezzi aggiornati ogni giorno, ultimo aggiornamento",
   cardTitleBench: "ETF obbligazionario medio e portafoglio del modello",
   cardTitleBenchShort: "ETF obbligazionario medio e modello",
   bench: "Benchmark di ETF obbligazionari",
@@ -170,6 +176,8 @@ const it: LandingText = {
   paperShort: "Metodologia (PDF)",
   compare: {
     level: "Livello di rischio del portafoglio",
+    details: "Dettagli",
+    plain: (more) => `di rendimento lordo all'anno ${more ? "in più" : "in meno"} di un tipico ETF obbligazionario`,
     sub: "Stesso livello di rischio, durata simile. Quanto rendimento in più può offrire oggi una lista di 10 obbligazioni rispetto a un tipico ETF obbligazionario.",
     subNeutral: "Livello di rischio e durata dei due lati sono indicati qui sotto. Differenza di rendimento lordo oggi.",
     same: (r, d) => `di rendimento lordo in più all'anno, allo stesso livello di rischio (${r}) e con durata simile (circa ${d} anni)`,
@@ -203,6 +211,8 @@ const it: LandingText = {
 
 const fr: LandingText = {
   tagline: "Les mathématiques plutôt que l'intuition. Des portefeuilles obligataires construits sur les données, de moins de risque à plus de rendement avec un seul curseur.",
+  noData: "non disponible",
+  fresh: "Prix mis à jour chaque jour, dernière mise à jour",
   cardTitleBench: "ETF obligataire moyen et portefeuille du modèle",
   cardTitleBenchShort: "ETF obligataire moyen et modèle",
   bench: "Référence d'ETF obligataires",
@@ -265,6 +275,8 @@ const fr: LandingText = {
   paperShort: "Méthodologie (PDF)",
   compare: {
     level: "Niveau de risque du portefeuille",
+    details: "Détails",
+    plain: (more) => `${more ? "de plus" : "de moins"} de rendement brut par an qu'un ETF obligataire typique`,
     sub: "Même niveau de risque, durée similaire. Combien de rendement en plus une liste de 10 obligations peut offrir aujourd'hui par rapport à un ETF obligataire typique.",
     subNeutral: "Le niveau de risque et la durée des deux côtés sont indiqués ci-dessous. Écart de rendement brut aujourd'hui.",
     same: (r, d) => `de rendement brut en plus par an, au même niveau de risque (${r}) et avec une durée similaire (environ ${d} ans)`,
@@ -298,6 +310,8 @@ const fr: LandingText = {
 
 const de: LandingText = {
   tagline: "Mathematik statt Bauchgefühl. Anleihe-Portfolios, aus den Daten aufgebaut, von weniger Risiko bis mehr Rendite mit einem Regler.",
+  noData: "nicht verfügbar",
+  fresh: "Kurse täglich aktualisiert, letzte Aktualisierung",
   cardTitleBench: "Durchschnittlicher Anleihen-ETF und Modell-Portfolio",
   cardTitleBenchShort: "Anleihen-ETF und Modell",
   bench: "Anleihen-ETF-Benchmark",
@@ -360,6 +374,8 @@ const de: LandingText = {
   paperShort: "Methodik (PDF)",
   compare: {
     level: "Risikostufe des Portfolios",
+    details: "Details",
+    plain: (more) => `${more ? "mehr" : "weniger"} Bruttorendite pro Jahr als ein typischer Anleihen-ETF`,
     sub: "Gleiche Risikostufe, ähnliche Laufzeit. Wie viel mehr Rendite eine Liste aus 10 Anleihen heute gegenüber einem typischen Anleihen-ETF bieten kann.",
     subNeutral: "Risikostufe und Laufzeit beider Seiten stehen unten. Brutto-Renditeunterschied heute.",
     same: (r, d) => `mehr Brutto-Rendite pro Jahr, bei gleicher Risikostufe (${r}) und ähnlicher Laufzeit (etwa ${d} Jahre)`,
