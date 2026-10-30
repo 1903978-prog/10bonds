@@ -1,5 +1,5 @@
-// iPhone results (the owner, 29/10/2026): from the home page the main button opens the finder with the sliders and toggles ON TOP and the
-// 10 bonds BELOW them as a compressed list (issuer, years, return, minus sign; one line of at most 34 px each). No full-screen page, no ISIN, no chips.
+// iPhone results (the owner, 30/10/2026): from the home page the main button opens the one-screen results page (no scrolling) with the horizon
+// toggles and the return/risk slider ON TOP, the two result tiles, and the 10 bonds below, all inside the screen.
 // Usage: BASE=http://127.0.0.1:3311 CHROME_PATH=... node scripts/phone-list-check.mjs          (the list answer is stubbed, so it needs no bond data)
 //        BASE=https://10bonds.com LIVE=1 ... node scripts/phone-list-check.mjs                   (the real answer)
 import { chromium } from "playwright-core";
@@ -25,28 +25,28 @@ for (const [w, h] of SIZES) {
   await page.getByTestId("intro-skip").tap();
   await page.waitForTimeout(1500);
   await page.getByRole("button", { name: /I understand/i }).click({ timeout: 4000 }).catch(() => {});
-  await page.getByTestId("phone-list-rows").waitFor({ timeout: 20000 }).catch(() => {});
+  await page.getByTestId("phone-rows").waitFor({ timeout: 20000 }).catch(() => {});
   const m = await page.evaluate(() => {
-    const top = (e) => (e ? Math.round(e.getBoundingClientRect().top) : null);
-    const rows = [...document.querySelectorAll('[data-testid="phone-list-rows"] li')];
-    const slider = document.querySelector('input[type="range"], [role="slider"]');
-    const toggles = [...document.querySelectorAll("button")].filter((b) => /^(Short|Medium|Long)/.test(b.innerText.trim())).length;
+    const sheet = document.querySelector('[data-testid="phone-results"]');
+    const q = (sel) => (sheet ? [...sheet.querySelectorAll(sel)] : []);
+    const rows = q('[data-testid="phone-rows"] > li');
+    const slider = q('input[type="range"]').find((e) => !e.closest("label"));
+    const toggles = q("button").filter((b) => /^(Short|Medium|Long)/.test(b.innerText.trim())).length;
+    const last = rows.length ? rows[rows.length - 1].getBoundingClientRect().bottom : null;
     return {
-      sheet: !!document.querySelector('[data-testid="phone-results"]'),
-      sliderTop: top(slider), toggles, listTop: top(document.querySelector('[data-testid="phone-list"]')),
-      rows: rows.length, rowH: rows.length ? Math.max(...rows.map((r) => Math.round(r.getBoundingClientRect().height))) : null,
-      isin: rows.some((r) => /\b[A-Z]{2}[A-Z0-9]{9}\d\b/.test(r.innerText)),
-      minus: rows.filter((r) => r.querySelector("svg")).length,
-      cut: rows.some((r) => r.scrollWidth > r.clientWidth + 1),
+      sheet: !!sheet, scrolls: sheet ? sheet.scrollHeight > sheet.clientHeight + 1 : null,
+      sliderTop: slider ? Math.round(slider.getBoundingClientRect().top) : null, toggles,
+      firstRowTop: rows.length ? Math.round(rows[0].getBoundingClientRect().top) : null,
+      rows: rows.length, lastBottom: last === null ? null : Math.round(last),
       sideways: document.documentElement.scrollWidth > window.innerWidth,
     };
   });
   const tag = `${w}x${h}`;
-  say(!m.sheet, `${tag} no full-screen results page`, "");
-  say(m.sliderTop !== null && m.toggles >= 3 && m.listTop !== null && m.sliderTop < m.listTop, `${tag} sliders and horizon toggles are above the list`, `slider ${m.sliderTop}, list ${m.listTop}`);
-  say(m.rows === 10, `${tag} ten bonds listed`, `${m.rows}`);
-  say(m.rowH !== null && m.rowH <= 34, `${tag} compressed lines (<= 34 px)`, `${m.rowH}px`);
-  say(!m.isin && m.minus === m.rows && !m.cut && !m.sideways, `${tag} only issuer, years, return, minus sign; nothing cut or sideways`, `isin ${m.isin}, minus ${m.minus}`);
+  say(m.sheet && m.scrolls === false, `${tag} one-screen results page, no scrolling`, `scrolls ${m.scrolls}`);
+  say(m.sliderTop !== null && m.toggles >= 3 && m.firstRowTop !== null && m.sliderTop < m.firstRowTop, `${tag} slider and horizon toggles are above the list`, `slider ${m.sliderTop}, first row ${m.firstRowTop}`);
+  say(m.rows >= 10, `${tag} ten bonds listed`, `${m.rows}`);
+  say(m.lastBottom !== null && m.lastBottom <= h, `${tag} the 10 bonds end inside the screen`, `${m.lastBottom} <= ${h}`);
+  say(!m.sideways, `${tag} nothing sideways`, "");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/phone-list-${tag}.png` });
   await ctx.close();
 }
