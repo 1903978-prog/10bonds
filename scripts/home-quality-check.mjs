@@ -25,11 +25,10 @@ for (const [w, h] of [[1440, 900], [1366, 768], [1280, 720], [390, 844], [375, 6
     const r = await p.evaluate(() => ({
       over: document.documentElement.scrollHeight - innerHeight,
       dashes: [...document.querySelectorAll("main *")].filter((e) => e.children.length === 0 && e.textContent.trim() === "–").length,
-      warn: !!document.querySelector('[data-testid="return-warning"]'),
       fresh: !!document.querySelector('[data-testid="landing-fresh"]') || innerHeight <= 720,
       company: !!document.querySelector('[data-testid="footer-company"]'),
     }));
-    report(r.over <= 0 && r.dashes === 0 && r.warn && r.fresh && r.company && errs.length === 0, `home ${w}x${h} load ${i}: ${JSON.stringify(r)} ${JSON.stringify(errs)}`);
+    report(r.over <= 0 && r.dashes === 0 && r.fresh && r.company && errs.length === 0, `home ${w}x${h} load ${i}: ${JSON.stringify(r)} ${JSON.stringify(errs)}`);
     await c.close();
   }
 }

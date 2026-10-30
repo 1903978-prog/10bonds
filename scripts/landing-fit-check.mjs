@@ -16,7 +16,7 @@ for (const lang of ["en", "it", "fr", "de"]) {
     await p.waitForTimeout(1500);
     // The comparison card's result block (the first slide) must be fully inside its card, not cut off.
     const read = () => p.evaluate(() => {
-      const net = document.querySelector('[data-testid="compare-headline"]');
+      const net = document.querySelector('[data-testid="compare-net"]');
       let card = net;
       while (card && getComputedStyle(card).overflow !== "hidden") card = card.parentElement;
       const cut = net && card ? Math.round(net.getBoundingClientRect().bottom - card.getBoundingClientRect().bottom) : 0;
