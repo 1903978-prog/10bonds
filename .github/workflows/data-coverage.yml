@@ -10,10 +10,14 @@ jobs:
       - run: |
           sudo apt-get install -y -qq postgresql-client >/dev/null 2>&1 || true
           q() { psql "$DATABASE_URL" -X -A -t -F ' | ' -c "$1"; }
-          echo "== columns"; q "select column_name, data_type from information_schema.columns where table_name='public_bonds' order by ordinal_position"
-          for c in last_refresh_attempt_at refresh_status refresh_fail_reason price_source price_stale price_confirmed; do
+          echo "== now"; q "select now()"
+          for c in last_refresh_attempt_at refresh_status refresh_fail_reason; do
             if [ "$(q "select count(*) from information_schema.columns where table_name='public_bonds' and column_name='$c'")" = 1 ]; then
               echo "== $c filled"; q "select upper(trim(currency)), count(*), count($c) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1"
-              echo "== $c values"; q "select $c::text, count(*) from public_bonds group by 1 order by 2 desc limit 15"
+              echo "== $c values"; q "select $c::text, count(*) from public_bonds group by 1 order by 2 desc limit 12"
             else echo "== $c: NO COLUMN"; fi
           done
+          echo "== per currency: total, with price_as_of, newest price_as_of"
+          q "select upper(trim(currency)), count(*), count(price_as_of), max(price_as_of) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1"
+          echo "== per currency per day (coalesce price_as_of, ytm_as_of): cur, day, dow, n"
+          q "select upper(trim(currency)), coalesce(price_as_of, ytm_as_of)::date, extract(dow from coalesce(price_as_of, ytm_as_of)::date), count(*) from public_bonds where upper(trim(currency)) in ('EUR','USD') group by 1,2,3 order by 1,2 desc limit 40"
