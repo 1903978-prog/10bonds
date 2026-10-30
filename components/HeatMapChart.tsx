@@ -73,14 +73,14 @@ export default function HeatMapChart({ map: got, method, onMethod, retLabel, yea
                   return (
                     <div
                       key={`${y}-${i}`}
-                      title={`${horizonLabel(d)} ${yearsLabel} · ${y.toFixed(1)}% → ${c === null ? "–" : `${c.toFixed(2)}%`}`}
+                      title={`${horizonLabel(d)} ${yearsLabel} · ${y.toFixed(1)}% → ${c === null ? "not reachable at this horizon" : `${c.toFixed(2)}%`}`}
                       className={`flex items-center justify-center overflow-hidden rounded-[3px] ${on ? "ring-[3px] ring-inset ring-[#0071e3]" : best ? "ring-2 ring-inset ring-[#1d1d1f]" : ""} ${c !== null && onPick ? "cursor-pointer hover:brightness-110" : ""}`}
                       style={band ? { background: band.bg, color: band.fg } : { background: "#f2f2f4", color: "#a1a1a6" }}
                       onClick={c !== null && onPick ? () => onPick(on ? null : { ytm: y, duration: d }) : undefined}
                       aria-pressed={c !== null && onPick ? on : undefined}
                       data-testid="heat-cell"
                     >
-                      {c === null ? "–" : c.toFixed(2)}
+                      {c === null ? "n/a" : c.toFixed(2)}
                     </div>
                   );
                 }),

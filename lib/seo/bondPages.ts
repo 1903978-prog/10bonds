@@ -65,8 +65,16 @@ export function countryName(l: BondLang, code: string | null): string | null {
 export const issuerOf = (b: PublicBond) => b.issuer?.trim() || b.name;
 
 /** "Landesbank Baden-Württemberg 3.802% Feb 2031 EUR" (without the word "bond"). */
-export function bondLabel(l: BondLang, b: PublicBond): string {
-  const parts = [issuerOf(b)];
+export function bondLabel(l: BondLang, b: PublicBond, max?: number): string {
+  const full = bondLabelOf(l, b, issuerOf(b));
+  if (!max || full.length <= max) return full;
+  // Too long for a title or description: shorten only the issuer's name, never the coupon, month or currency.
+  const rest = full.length - issuerOf(b).length;
+  return bondLabelOf(l, b, shorten(issuerOf(b), Math.max(12, max - rest)));
+}
+
+function bondLabelOf(l: BondLang, b: PublicBond, issuer: string): string {
+  const parts = [issuer];
   if (b.coupon !== null) parts.push(`${fmtCoupon(l, b.coupon)}%`);
   if (b.maturity) parts.push(fmtMonthYear(l, b.maturity));
   parts.push(b.currency);
@@ -74,13 +82,18 @@ export function bondLabel(l: BondLang, b: PublicBond): string {
 }
 
 /** Page title, e.g. "Landesbank Baden-Württemberg 3.802% Feb 2031 EUR Bond | DE000LB39CB2". */
-export const bondTitle = (l: BondLang, b: PublicBond) => `${bondLabel(l, b)} ${BOND_TEXT[l].bond} | ${b.isin}`;
+/** Keeps a long issuer name from pushing a title or description past what search engines show: cut with an ellipsis. */
+const shorten = (s: string, max: number) => (s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`);
+export const bondTitle = (l: BondLang, b: PublicBond) => {
+  const tail = ` ${BOND_TEXT[l].bond} | ${b.isin}`;
+  return `${bondLabel(l, b, 70 - tail.length)}${tail}`;
+};
 
 export function bondDescription(l: BondLang, b: PublicBond): string {
   const t = BOND_TEXT[l];
   const risk = bondRisk(b);
   return t.metaDescription
-    .replace("{label}", bondLabel(l, b))
+    .replace("{label}", bondLabel(l, b, 56))
     .replace("{isin}", b.isin)
     .replace("{risk}", risk === null ? "–" : String(risk));
 }
@@ -127,7 +140,7 @@ type BondText = {
   issuer: string; isin: string; country: string; currency: string; coupon: string; maturity: string; minimum: string;
   risk: string; duration: string; ytm: string; adj: string; rank: string; rankOf: string; locked: string; lockedText: string;
   upgrade: string; signup: string; moreIssuer: string; similar: string; dataAsOf: string; findTen: string; eu: string; note: string;
-  riskLink: string;
+  riskLink: string; readMe: string;
 };
 
 export const BOND_TEXT: Record<BondLang, BondText> = {
@@ -142,6 +155,7 @@ export const BOND_TEXT: Record<BondLang, BondText> = {
     findTen: "Find your 10 bonds", eu: "European Union",
     note: "Information only, not advice or an offer. Gross, indicative figures that can change. The 1-10 risk is a 10BONDS score, not a credit rating.",
     riskLink: "How the risk score works",
+    readMe: "{issuer} pays a {coupon} coupon and matures on {maturity}. The risk score, from 1 (lowest) to 10, is the 10BONDS own assessment of the issuer and is not a credit rating. Figures are indicative, gross of taxes and costs, and past or expected returns are not guaranteed.",
   },
   it: {
     bond: "Obbligazione", allBonds: "Obbligazioni", home: "Home",
@@ -154,6 +168,7 @@ export const BOND_TEXT: Record<BondLang, BondText> = {
     findTen: "Trova le tue 10 obbligazioni", eu: "Unione europea",
     note: "Solo informazione, non consulenza né offerta. Dati lordi e indicativi, possono cambiare. Il rischio 1-10 è una valutazione 10BONDS, non un rating.",
     riskLink: "Come funziona il rischio",
+    readMe: "{issuer} paga una cedola {coupon} e scade il {maturity}. Il punteggio di rischio, da 1 (più basso) a 10, è la valutazione interna di 10BONDS sull'emittente e non è un rating. I dati sono indicativi, al lordo di imposte e costi, e i rendimenti passati o attesi non sono garantiti.",
   },
   fr: {
     bond: "Obligation", allBonds: "Obligations", home: "Accueil",
@@ -166,6 +181,7 @@ export const BOND_TEXT: Record<BondLang, BondText> = {
     findTen: "Trouvez vos 10 obligations", eu: "Union européenne",
     note: "Information uniquement, ni conseil ni offre. Chiffres bruts et indicatifs, susceptibles de changer. Le risque 1-10 est une note 10BONDS, pas une notation de crédit.",
     riskLink: "Comment fonctionne le risque",
+    readMe: "{issuer} verse un coupon de {coupon} et arrive à échéance le {maturity}. Le score de risque, de 1 (le plus bas) à 10, est l'évaluation interne de 10BONDS sur l'émetteur et n'est pas une notation. Les chiffres sont indicatifs, bruts d'impôts et de frais, et les rendements passés ou attendus ne sont pas garantis.",
   },
   de: {
     bond: "Anleihe", allBonds: "Anleihen", home: "Start",
@@ -178,6 +194,7 @@ export const BOND_TEXT: Record<BondLang, BondText> = {
     findTen: "Finden Sie Ihre 10 Anleihen", eu: "Europäische Union",
     note: "Nur zur Information, keine Beratung und kein Angebot. Bruttowerte, unverbindlich und veränderlich. Das Risiko 1-10 ist eine 10BONDS-Bewertung, kein Rating.",
     riskLink: "So funktioniert das Risiko",
+    readMe: "{issuer} zahlt einen Kupon von {coupon} und läuft am {maturity} aus. Der Risikowert von 1 (niedrigster) bis 10 ist die interne Einschätzung von 10BONDS zum Emittenten und kein Rating. Die Zahlen sind unverbindlich, brutto vor Steuern und Kosten, und vergangene oder erwartete Renditen sind nicht garantiert.",
   },
 };
 

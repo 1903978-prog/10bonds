@@ -75,7 +75,7 @@ const pathFor = (l: Locale | "en", slug: string) => (l === "en" ? `/knowledge/${
 export const INSIGHTS_TEXT: Record<Locale | "en", InsightsText> = {
   it: {
     slug: "mercato-obbligazionario-oggi",
-    title: "Mercato obbligazionario oggi: rendimenti in euro aggiornati · 10BONDS",
+    title: "Mercato obbligazionario oggi: rendimenti in euro · 10BONDS",
     description: "I numeri del mercato delle obbligazioni in euro, ricalcolati ogni giorno: rendimento mediano, per duration e per rischio, spread BTP-Bund e OAT-Bund a 10 anni.",
     h1: "Il mercato obbligazionario in euro oggi",
     asOf: "Dati al", empty: "Nessun dato disponibile al momento.",

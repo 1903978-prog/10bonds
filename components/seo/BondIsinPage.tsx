@@ -1,3 +1,4 @@
+import { NO_PRICE, NOT_STATED, RISK_WARNING } from "@/lib/riskWarning";
 import Link from "next/link";
 import { featuresFor } from "@/lib/planFeatures";
 import { notFound } from "next/navigation";
@@ -50,13 +51,13 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
   const facts: [string, React.ReactNode][] = [
     [t.issuer, issuer],
     [t.isin, <span key="i" className="font-mono">{b.isin}</span>],
-    [t.country, countryName(l, b.country) ?? "–"],
+    [t.country, countryName(l, b.country) ?? NOT_STATED[l]],
     [t.currency, b.currency],
-    [t.coupon, b.coupon === null ? "–" : `${fmtCoupon(l, b.coupon)}%`],
+    [t.coupon, b.coupon === null ? NOT_STATED[l] : `${fmtCoupon(l, b.coupon)}%`],
     [f.couponType, couponTypeLabel(l, b.couponType)],
     [f.seniority, seniorityLabel(l, b.seniority)],
-    [t.maturity, b.maturity ? fmtDay(l, b.maturity) : "–"],
-    [f.issueDate, b.issueDate ? fmtDay(l, b.issueDate) : "–"],
+    [t.maturity, b.maturity ? fmtDay(l, b.maturity) : NOT_STATED[l]],
+    [f.issueDate, b.issueDate ? fmtDay(l, b.issueDate) : NOT_STATED[l]],
     [f.callable, callableLabel(l, b.callable)],
     [t.minimum, fmtMin(b.minInvestment, b.currency)],
     [t.risk, <RiskBadge key="r" risk={risk} sp={user?.isAdmin === true ? b.ratingSp?.trim() || null : undefined} />],
@@ -79,6 +80,7 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
         {label} <span className="whitespace-nowrap text-mute">· {b.isin}</span>
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-ink/80">{t.intro.replace("{isin}", b.isin).replace("{issuer}", issuer)}</p>
+      {b.coupon !== null && b.maturity && <p className="mt-2 text-[14px] leading-relaxed text-ink/70" data-testid="bond-read-me">{t.readMe.replace("{issuer}", issuer).replace("{coupon}", `${fmtCoupon(l, b.coupon)}%`).replace("{maturity}", fmtDay(l, b.maturity))}</p>}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <section className={card}>
@@ -97,11 +99,12 @@ export default async function BondIsinPage({ l, isin }: { l: BondLang; isin: str
           {paid ? (
             <section className={card}>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-[14px]">
-                <div><dt className="text-xs text-mute">{t.ytm}</dt><dd className="mt-0.5 font-medium tabular-nums">{b.grossYtm === null ? "–" : `${fmtPct(l, b.grossYtm)}%`}</dd></div>
-                <div><dt className="text-xs text-mute">{t.duration}</dt><dd className="mt-0.5 font-medium tabular-nums">{b.modifiedDuration === null ? "–" : fmtPct(l, b.modifiedDuration, 1)}</dd></div>
-                <div><dt className="text-xs text-mute">{t.adj}</dt><dd className="mt-0.5 font-medium tabular-nums">{rank ? `${fmtPct(l, rank.adj)}%` : "–"}</dd></div>
-                <div><dt className="text-xs text-mute">{t.rank}</dt><dd className="mt-0.5 font-medium tabular-nums">{rank ? `${rank.rank} ${t.rankOf} ${rank.of}` : "–"}</dd></div>
+                <div><dt className="text-xs text-mute">{t.ytm}</dt><dd className="mt-0.5 font-medium tabular-nums">{b.grossYtm === null ? NO_PRICE[l] : `${fmtPct(l, b.grossYtm)}%`}</dd></div>
+                <div><dt className="text-xs text-mute">{t.duration}</dt><dd className="mt-0.5 font-medium tabular-nums">{b.modifiedDuration === null ? NO_PRICE[l] : fmtPct(l, b.modifiedDuration, 1)}</dd></div>
+                <div><dt className="text-xs text-mute">{t.adj}</dt><dd className="mt-0.5 font-medium tabular-nums">{rank ? `${fmtPct(l, rank.adj)}%` : NO_PRICE[l]}</dd></div>
+                <div><dt className="text-xs text-mute">{t.rank}</dt><dd className="mt-0.5 font-medium tabular-nums">{rank ? `${rank.rank} ${t.rankOf} ${rank.of}` : NO_PRICE[l]}</dd></div>
               </dl>
+              <p className="mt-3 text-[11px] leading-snug text-mute" data-testid="return-warning">{RISK_WARNING[l]}</p>
             </section>
           ) : (
             <section className={card}>

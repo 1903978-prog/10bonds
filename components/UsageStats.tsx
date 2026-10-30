@@ -28,6 +28,7 @@ export default function UsageStats() {
       setC(getConsent());
       if (c) setSel(c);
       setOpen(c === null);
+      if (c !== null) document.documentElement.removeAttribute("data-cookie");
     };
     read();
     setLang(cookieLang());
@@ -90,7 +91,7 @@ export default function UsageStats() {
     pad();
     const ro = new ResizeObserver(pad);
     ro.observe(el);
-    return () => { ro.disconnect(); document.body.style.paddingBottom = ""; };
+    return () => { ro.disconnect(); document.body.style.paddingBottom = ""; document.documentElement.removeAttribute("data-cookie"); };
   }, [open, settings]);
 
   if (!open) return null;

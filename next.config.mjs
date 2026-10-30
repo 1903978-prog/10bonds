@@ -21,6 +21,8 @@ const nextConfig = {
   serverExternalPackages: ["highs"],
   outputFileTracingIncludes: { "/api/**/*": ["./node_modules/highs/**", "./lib/highsWorker.mjs"] },
   poweredByHeader: false,
+  // The page's own style rules travel inside the HTML, so a first visit does not wait for a second request before it can draw (page speed, 30/10/2026).
+  experimental: { inlineCss: true },
   // Title, description, canonical and hreflang always in the page <head> for every visitor and crawler
   // (no streamed metadata), so every search engine and the SEO check read them without running scripts.
   htmlLimitedBots: /.*/,
@@ -58,13 +60,7 @@ const nextConfig = {
     const hour = [{ key: "Cache-Control", value: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" }];
     return [
       { source: "/((?!embed/).*)", headers: securityHeaders },
-      // A signed-out visitor's page may sit in the browser's back/forward memory ("no-store" switched that off, so Back re-downloaded and re-ran the page).
-      // "no-cache" still makes the browser ask the server before it reuses a stored copy over the network. Signed-in users, the API and admin keep "no-store".
-      {
-        source: "/((?!api/|admin|account|login|signup|forgot-password|reset-password|redeem|pro|embed/|_next/|og.png|sitemap.xml|robots.txt|llms.txt).*)",
-        missing: [{ type: "cookie", key: "tb_session" }],
-        headers: [{ key: "Cache-Control", value: "private, no-cache, max-age=0" }],
-      },
+      // Signed-out page caching headers are set in middleware.ts (a first-time visitor's page may be shared-cached for minutes).
       { source: "/og.png", headers: day },
       { source: "/carousel-:file.png", headers: day },
       { source: "/icon.svg", headers: day },

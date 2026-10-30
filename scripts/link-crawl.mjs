@@ -80,7 +80,7 @@ async function sitemapPaths(request) {
 }
 
 const EMPTY_PATTERNS = [
-  [/Returns as of\s*[—–-](?!\s*\d)/, 'shows "Returns as of —"'],
+  [/last update\s*[—–-](?!\s*\d)/, 'shows "last update —"'],
   [/\bundefined\b/, 'shows "undefined"'],
   [/\bNaN\b/, 'shows "NaN"'],
   [/\[object Object\]/, 'shows "[object Object]"'],

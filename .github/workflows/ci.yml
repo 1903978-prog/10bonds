@@ -53,6 +53,7 @@ jobs:
           [ "$up" = 1 ] || { echo "The site did not start within 60 seconds"; exit 1; }
           BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/page-check.mjs
           BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/landing-fit-check.mjs
+          BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/home-quality-check.mjs
           BASE=http://127.0.0.1:3311 CHROME_CHANNEL=chrome node scripts/phone-list-check.mjs
       - name: Server log (on failure)
         if: failure()

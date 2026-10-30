@@ -150,3 +150,10 @@ html:has(.report) body { overflow-x: clip; }
 
 /* Phones: the ETF comparison card keeps its result in view (components/Landing.tsx, useFitHeight): small print first, then the explanatory line. */
 .cmp-fit[data-fit="1"] [data-testid="compare-fine"], .cmp-fit[data-fit="2"] [data-testid="compare-fine"], .cmp-fit[data-fit="2"] [data-testid="compare-sub"] { display: none; }
+
+/* Keyboard users always see where they are (WCAG 2.4.7): a clear ring on whatever has focus. */
+:where(a, button, summary, input, select, textarea, [role="button"], [tabindex]):focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
+
+/* Room for the cookie bar from the first paint (see layout.tsx); the bar replaces it with its exact height. */
+html[data-cookie] body { padding-bottom: 96px; }
+@media (max-width: 639px) { html[data-cookie] body { padding-bottom: 112px; } }

@@ -9,6 +9,7 @@ import ONE_BOND from "@/lib/landingOneBond.json";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { loadMe } from "@/lib/me";
+import { RISK_WARNING } from "@/lib/riskWarning";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
 import { compareCopy } from "@/lib/landingCompare";
 import LandingCarousel, { actionTitle, ListScreen, MultiYearScreen, HeatMapScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
@@ -52,6 +53,17 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
     timer = setTimeout(() => load(0), 2500);
     return () => { stop = true; clearTimeout(timer); };
   }, []);
+  // When the prices were last updated (public, counts and times only). Read once the page is idle; the line keeps its place meanwhile.
+  const [updated, setUpdated] = useState<string | null>(null);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      fetch("/api/data-status").then((r) => (r.ok ? r.json() : null)).then((d: { lastUpdate: string | null } | null) => {
+        if (!d?.lastUpdate) { setUpdated(t.noData); return; }
+        setUpdated(new Date(d.lastUpdate).toLocaleString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" }));
+      }).catch(() => setUpdated(t.noData));
+    }, 600);
+    return () => clearTimeout(id);
+  }, [lang, t.noData]);
   // Escape skips to the finder, as the old intro did.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -61,7 +73,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
 
   // Phones: headline, card, buttons, one under the other. Desktop: headline and button on the left, card on the right.
   return (
-    <div data-testid="intro" data-landing-fit className="landing finder-wide [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col mx-auto max-w-[1400px] lg:max-w-none lg:!w-[min(calc(100vw_/_var(--z)_-_3rem),1320px)] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_220px)] lg:items-center">
+    <div data-testid="intro" data-landing-fit className="landing finder-wide [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col mx-auto max-w-[1400px] lg:max-w-none lg:!w-[min(calc(100vw_/_var(--z)_-_3rem),1320px)] text-[#132D3B] lg:flex lg:min-h-[calc(100vh_/_var(--z)_-_302px)] lg:items-center">
       <section className="grid items-center gap-5 pt-2 [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col [@media(max-width:639px)]:items-stretch [@media(max-width:639px)]:gap-3 lg:grid-cols-[0.9fr_1.1fr] lg:gap-x-12 lg:w-full lg:gap-y-8">
         <div className="min-w-0 break-words lg:col-start-1 lg:row-start-1 lg:self-end">
         <div className="mb-1 flex items-baseline justify-end gap-2 sm:hidden">
@@ -73,6 +85,7 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>
         <p className="mt-2 text-[14px] leading-snug [@media(max-width:639px)_and_(max-height:720px)]:hidden sm:text-[16px] lg:mt-4 lg:max-w-[680px] lg:text-[21px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
+        <p className="mt-1.5 text-[11px] leading-snug [@media(max-width:639px)_and_(max-height:720px)]:hidden lg:text-[13px]" style={{ color: MUTE }} data-testid="landing-fresh">{t.fresh} {updated ?? "…"}</p>
         </div>
         <div className="order-3 min-w-0 [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}
@@ -147,21 +160,22 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
   // and the visitor can switch; every figure is the stored list's own, nothing is calculated here.
   const levels = LANDING_LEVELS.levels;
   const [pick, setPick] = useState<number | null>(null);
+  const [openTick, setOpenTick] = useState(0);
   const at = pick ?? Math.min(2, levels.length - 1);
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  useFitHeight(outerRef, innerRef, [pick, lang]);
+  useFitHeight(outerRef, innerRef, [pick, lang, openTick]);
   const lv = levels[at];
   const p = base && lv ? { ...base, ytm: lv.ytm, avgRisk: lv.avgRisk, duration: lv.duration } : null;
   const copy = p && bench && p.duration != null ? compareCopy(lang, { ytm: p.ytm, risk: p.avgRisk, duration: p.duration }, { ytm: bench.ret, risk: bench.risk, duration: bench.duration }, undefined, lv.expectedLoss / lv.duration) : null;
   const dp = (d: number) => (Number.isInteger(Math.round(d * 100) / 10) ? 1 : 2);
-  const yrs = (d: number | null | undefined) => (d == null ? ["–", "–"] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
+  const yrs = (d: number | null | undefined) => (d == null ? [t.noData, t.noData] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
   const rows = (dark: boolean, duration: number | null | undefined, risk: string | null, word: string) => (
     <dl className={`mt-3 space-y-1.5 border-t pt-3 text-[11.5px] min-[380px]:text-[12px] lg:mt-3 lg:text-[12.5px] ${dark ? "border-white/15 text-white/70" : "border-[#e3ebe7]"}`} style={dark ? undefined : { color: MUTE }}>
       {/* Phones get the short words, so nothing is cut at 320 px. */}
       {[
         [t.duration, t.duration, ...yrs(duration)],
-        [t.creditRisk, t.creditRiskShort, risk === null ? "–" : `${risk} ${word}`.trim(), risk ?? "–"],
+        [t.creditRisk, t.creditRiskShort, risk === null ? t.noData : `${risk} ${word}`.trim(), risk ?? t.noData],
       ].map(([k, ks, v, vs]) => (
         <div key={k} className="flex justify-between gap-2">
           <dt className="min-w-0 truncate"><span className="sm:hidden">{ks}</span><span className="hidden sm:inline">{k}</span></dt>
@@ -172,7 +186,7 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
   );
   const big = (v: number | null | undefined, dark: boolean) => (
     <p className={`mt-3 text-[clamp(28px,9vw,40px)] font-bold leading-none tracking-tight lg:mt-4 lg:text-[40px] ${dark ? "text-white" : ""}`}>
-      {v == null ? "–" : num(v)}<span className="text-[0.5em] font-semibold">%</span>
+      {v == null ? t.noData : num(v)}<span className="text-[0.5em] font-semibold">%</span>
     </p>
   );
   return (
@@ -180,7 +194,16 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
       {/* Centred in the card, which now grows with the free height. */}
       <div ref={outerRef} className="cmp-fit flex min-h-0 flex-1 flex-col justify-center" data-fit="0">
       <div ref={innerRef}>
-      {copy && <p className="text-[12px] leading-snug lg:text-[13px]" style={{ color: MUTE }} data-testid="compare-sub">{copy.sub}</p>}
+      {/* First-time visitors get one plain line with one number; the two cards, the risk levels and the small print open with "Details" (tap, click or keyboard). */}
+      <div className="rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3 text-center" data-testid="compare-headline">
+        <p className="text-[28px] font-bold tracking-tight lg:text-[34px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : "−"}${num(Math.abs(p.ytm - bench.ret))}` : t.noData}<span className="text-[0.6em]"> pp</span></p>
+        {p && bench && <p className="text-[13px] leading-snug lg:text-[14px]" style={{ color: MUTE }} data-testid="compare-plain">{t.compare.plain(p.ytm >= bench.ret)}</p>}
+        <p className="mt-1 text-[11px] leading-snug" style={{ color: MUTE }} data-testid="return-warning">{RISK_WARNING[lang]}</p>
+      </div>
+      <details className="group mt-2" data-testid="compare-details" onToggle={() => setOpenTick((n) => n + 1)}>
+        <summary className="cursor-pointer select-none rounded-md px-1 py-1 text-center text-[12px] font-semibold underline underline-offset-2" style={{ color: NAVY }}>{t.compare.details}</summary>
+      {copy && <p className="mt-1 text-[12px] leading-snug lg:text-[13px]" style={{ color: MUTE }} data-testid="compare-sub">{copy.sub}</p>}
+      {copy && <p className="mt-1 text-[11.5px] leading-snug lg:text-[12.5px]" style={{ color: MUTE }} data-testid="compare-gross">{copy.gross}</p>}
       <div className="mt-2 flex h-7 items-center gap-1.5 text-[11px]" style={{ color: MUTE }} role="group" aria-label={t.compare.level} data-testid="compare-levels">
         <span className="min-w-0 truncate">{t.compare.level}</span>
         {levels.map((l, i) => (
@@ -203,12 +226,9 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
           {rows(true, p?.duration, p ? num(p.avgRisk, 1) : null, t.modelEstimated)}
         </div>
       </div>
-      <div className="mt-3 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-2.5 text-center">
-        <p className="text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : "−"}${num(Math.abs(p.ytm - bench.ret))}` : "–"}<span className="text-[0.7em]"> pp</span></p>
-        {copy && <p className="text-[11.5px] leading-snug lg:text-[12.5px]" style={{ color: MUTE }} data-testid="compare-gross">{copy.gross}</p>}
-        {copy && <p className="mt-1 text-[12px] font-semibold leading-snug lg:text-[13px]" style={{ color: NAVY }} data-testid="compare-net">{copy.net}</p>}
-      </div>
+      {copy && <p className="mt-2 text-center text-[12px] font-semibold leading-snug lg:text-[13px]" style={{ color: NAVY }} data-testid="compare-net">{copy.net}</p>}
       {copy && <p className="mt-2 text-[9.5px] leading-snug lg:text-[10px]" style={{ color: MUTE }} data-testid="compare-fine">{copy.fine}</p>}
+      </details>
       </div>
       </div>
     </SlideCard>
