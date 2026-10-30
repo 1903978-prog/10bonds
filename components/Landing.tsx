@@ -9,7 +9,6 @@ import ONE_BOND from "@/lib/landingOneBond.json";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import { LANDING_SNAPSHOT } from "@/lib/landingSnapshot";
 import { loadMe } from "@/lib/me";
-import { RISK_WARNING } from "@/lib/riskWarning";
 import { LANDING_NUM, LANDING_TEXT, type LandingText } from "@/lib/landingText";
 import { compareCopy } from "@/lib/landingCompare";
 import LandingCarousel, { actionTitle, ListScreen, MultiYearScreen, HeatMapScreen, OneBondScreen, ScreenSlide, SlideCard } from "@/components/LandingCarousel";
@@ -160,22 +159,21 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
   // and the visitor can switch; every figure is the stored list's own, nothing is calculated here.
   const levels = LANDING_LEVELS.levels;
   const [pick, setPick] = useState<number | null>(null);
-  const [openTick, setOpenTick] = useState(0);
   const at = pick ?? Math.min(2, levels.length - 1);
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  useFitHeight(outerRef, innerRef, [pick, lang, openTick]);
+  useFitHeight(outerRef, innerRef, [pick, lang]);
   const lv = levels[at];
   const p = base && lv ? { ...base, ytm: lv.ytm, avgRisk: lv.avgRisk, duration: lv.duration } : null;
   const copy = p && bench && p.duration != null ? compareCopy(lang, { ytm: p.ytm, risk: p.avgRisk, duration: p.duration }, { ytm: bench.ret, risk: bench.risk, duration: bench.duration }, undefined, lv.expectedLoss / lv.duration) : null;
   const dp = (d: number) => (Number.isInteger(Math.round(d * 100) / 10) ? 1 : 2);
-  const yrs = (d: number | null | undefined) => (d == null ? [t.noData, t.noData] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
+  const yrs = (d: number | null | undefined) => (d == null ? ["–", "–"] : [t.years(num(d, dp(d))), `${num(d, dp(d))}y`]);
   const rows = (dark: boolean, duration: number | null | undefined, risk: string | null, word: string) => (
     <dl className={`mt-3 space-y-1.5 border-t pt-3 text-[11.5px] min-[380px]:text-[12px] lg:mt-3 lg:text-[12.5px] ${dark ? "border-white/15 text-white/70" : "border-[#e3ebe7]"}`} style={dark ? undefined : { color: MUTE }}>
       {/* Phones get the short words, so nothing is cut at 320 px. */}
       {[
         [t.duration, t.duration, ...yrs(duration)],
-        [t.creditRisk, t.creditRiskShort, risk === null ? t.noData : `${risk} ${word}`.trim(), risk ?? t.noData],
+        [t.creditRisk, t.creditRiskShort, risk === null ? "–" : `${risk} ${word}`.trim(), risk ?? "–"],
       ].map(([k, ks, v, vs]) => (
         <div key={k} className="flex justify-between gap-2">
           <dt className="min-w-0 truncate"><span className="sm:hidden">{ks}</span><span className="hidden sm:inline">{k}</span></dt>
@@ -186,7 +184,7 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
   );
   const big = (v: number | null | undefined, dark: boolean) => (
     <p className={`mt-3 text-[clamp(28px,9vw,40px)] font-bold leading-none tracking-tight lg:mt-4 lg:text-[40px] ${dark ? "text-white" : ""}`}>
-      {v == null ? t.noData : num(v)}<span className="text-[0.5em] font-semibold">%</span>
+      {v == null ? "–" : num(v)}<span className="text-[0.5em] font-semibold">%</span>
     </p>
   );
   return (
@@ -194,16 +192,7 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
       {/* Centred in the card, which now grows with the free height. */}
       <div ref={outerRef} className="cmp-fit flex min-h-0 flex-1 flex-col justify-center" data-fit="0">
       <div ref={innerRef}>
-      {/* First-time visitors get one plain line with one number; the two cards, the risk levels and the small print open with "Details" (tap, click or keyboard). */}
-      <div className="rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-3 text-center" data-testid="compare-headline">
-        <p className="text-[28px] font-bold tracking-tight lg:text-[34px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : "−"}${num(Math.abs(p.ytm - bench.ret))}` : t.noData}<span className="text-[0.6em]"> pp</span></p>
-        {p && bench && <p className="text-[13px] leading-snug lg:text-[14px]" style={{ color: MUTE }} data-testid="compare-plain">{t.compare.plain(p.ytm >= bench.ret)}</p>}
-        <p className="mt-1 text-[11px] leading-snug" style={{ color: MUTE }} data-testid="return-warning">{RISK_WARNING[lang]}</p>
-      </div>
-      <details className="group mt-2" data-testid="compare-details" onToggle={() => setOpenTick((n) => n + 1)}>
-        <summary className="cursor-pointer select-none rounded-md px-1 py-1 text-center text-[12px] font-semibold underline underline-offset-2" style={{ color: NAVY }}>{t.compare.details}</summary>
-      {copy && <p className="mt-1 text-[12px] leading-snug lg:text-[13px]" style={{ color: MUTE }} data-testid="compare-sub">{copy.sub}</p>}
-      {copy && <p className="mt-1 text-[11.5px] leading-snug lg:text-[12.5px]" style={{ color: MUTE }} data-testid="compare-gross">{copy.gross}</p>}
+      {copy && <p className="text-[12px] leading-snug lg:text-[13px]" style={{ color: MUTE }} data-testid="compare-sub">{copy.sub}</p>}
       <div className="mt-2 flex h-7 items-center gap-1.5 text-[11px]" style={{ color: MUTE }} role="group" aria-label={t.compare.level} data-testid="compare-levels">
         <span className="min-w-0 truncate">{t.compare.level}</span>
         {levels.map((l, i) => (
@@ -226,9 +215,12 @@ function Comparison({ t, lang, num, bench }: { t: LandingText; lang: FinderLang;
           {rows(true, p?.duration, p ? num(p.avgRisk, 1) : null, t.modelEstimated)}
         </div>
       </div>
-      {copy && <p className="mt-2 text-center text-[12px] font-semibold leading-snug lg:text-[13px]" style={{ color: NAVY }} data-testid="compare-net">{copy.net}</p>}
+      <div className="mt-3 rounded-[14px] border border-[#cfe6da] bg-[#EDF6F1] px-4 py-2.5 text-center">
+        <p className="text-[24px] font-bold tracking-tight lg:text-[30px]" style={{ color: p && bench && p.ytm < bench.ret ? MUTE : GREEN }}>{p && bench ? `${p.ytm >= bench.ret ? "+" : "−"}${num(Math.abs(p.ytm - bench.ret))}` : "–"}<span className="text-[0.7em]"> pp</span></p>
+        {copy && <p className="text-[11.5px] leading-snug lg:text-[12.5px]" style={{ color: MUTE }} data-testid="compare-gross">{copy.gross}</p>}
+        {copy && <p className="mt-1 text-[12px] font-semibold leading-snug lg:text-[13px]" style={{ color: NAVY }} data-testid="compare-net">{copy.net}</p>}
+      </div>
       {copy && <p className="mt-2 text-[9.5px] leading-snug lg:text-[10px]" style={{ color: MUTE }} data-testid="compare-fine">{copy.fine}</p>}
-      </details>
       </div>
       </div>
     </SlideCard>

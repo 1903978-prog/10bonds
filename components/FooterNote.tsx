@@ -31,7 +31,7 @@ export function FooterLegal() {
       <Link href="/widget" className={a}>{l.widget}</Link>
       <Link href="/how-we-calculate" className={a}>{HOW[lang]}</Link>
     </nav>
-    <p className="mx-auto mt-1 max-w-4xl px-4" data-testid="footer-company">© {new Date().getFullYear()} {COMPANY.legalName} · {COMPANY.registration} · {COMPANY.address} · <a href={`mailto:${COMPANY.privacyEmail}`} className="underline hover:text-ink">{COMPANY.privacyEmail}</a></p>
+    <p className="mx-auto mt-1 max-w-4xl px-4 [@media(max-width:639px)_and_(max-height:700px)]:hidden" data-testid="footer-company">© {new Date().getFullYear()} {COMPANY.legalName} · {COMPANY.registration} · {COMPANY.address} · <a href={`mailto:${COMPANY.privacyEmail}`} className="underline hover:text-ink">{COMPANY.privacyEmail}</a></p>
     </>
   );
 }
