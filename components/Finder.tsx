@@ -122,8 +122,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   // The list replaces the chart only when the main button is pressed (the owner, 26/10/2026); until then the chart follows the horizon.
   const [listOn, setListOn] = useState(fromLanding);
   // iPhone (the owner, 24/10/2026): "Show AI Efficient Portfolio" opens the results as their own full-screen page, no scrolling.
-  // Coming from the landing page the phone shows the sliders first; the results page opens with the main button (the owner, 29/10/2026).
-  const [sheet, setSheet] = useState(false);
+  const [sheet, setSheet] = useState(() => fromLanding && typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches);
   // Each press of "Show AI Efficient Portfolio" runs the search again, so the press always shows the search and a fresh list.
   const [rerun, setRerun] = useState(0);
   const autoRetries = useRef(0);
@@ -134,7 +133,6 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
 
   // The portfolio results box's height, given to the 1-bond box too, so switching mode never resizes the page.
   const resultsBox = useRef<HTMLElement>(null);
-  const phoneList = useRef<HTMLElement>(null);
   const [resultsH, setResultsH] = useState<number | null>(null);
   useLayoutEffect(() => {
     if (mode === "portfolio" && resultsBox.current) setResultsH(resultsBox.current.offsetHeight);
@@ -356,6 +354,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
       setMode(r.mode);
       setTouched(true);
       setListOn(true);
+      if (r.sheet && r.mode === "portfolio" && window.matchMedia("(max-width: 639px)").matches) setSheet(true);
       setResumed((n) => n + 1);
     });
   }, []);
@@ -808,7 +807,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               // A desired return above the slider's maximum is brought back to it, so the figure shown is the one searched.
               if (caps && ytm > ytmMax) setYtm(ytmMax);
               setRerun((n) => n + 1);
-              if (window.matchMedia("(max-width: 639px)").matches) phoneList.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              if (window.matchMedia("(max-width: 639px)").matches) setSheet(true);
               else if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
@@ -989,32 +988,16 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
         </div>
       </section>
       )}
-      {mode === "portfolio" && listOn && (
-        <section ref={phoneList} className="sm:hidden" data-testid="phone-list">
-          <FinderLangContext.Provider value={lang}>
-            <PhoneList
-              data={data}
-              list={list}
-              features={features}
-              signedIn={signedIn}
-              loading={loading}
-              lang={lang}
-              currency={currency}
-              onExcluded={() => setExcludedAt(Date.now())}
-              message={
-                limit ? <LimitReached quota={limit} />
-                : error ? <ErrorRetry text={error} onRetry={() => setRerun((n) => n + 1)} />
-                : data && data.rows.length === 0 ? <p className="text-sm text-mute">{data.status === "INFEASIBLE" ? (data.band ? t.noBand : t.noOptimised) : t.none}</p>
-                : null
-              }
-            />
-          </FinderLangContext.Provider>
-        </section>
-      )}
       <ConsentGate active={listOn && mode === "portfolio"} lang={lang} isAdmin={isAdmin} />
       {sheet && mode === "portfolio" && createPortal(
         <FinderLangContext.Provider value={lang}>
           <PhoneResults
+            controls={mode === "portfolio" && simple ? (
+              <>
+                <TermPicker value={selectedTerm(yearMode, duration)} onChange={(d) => { setYearMode(false); changeDuration(d); }} year={yearMode ? duration : null} canYear={canYear} onYear={(y) => { setYearMode(true); changeDuration(y); }} onLocked={() => setYearUp(true)} />
+                <Slider tip="return" label={t.mixLabel} hint={t.mixLabel} value={mix} display={null} min={1} max={mixMax} step={1} minLabel={t.highReturn} maxLabel={t.lowReturn} reversed onChange={changeMix} />
+              </>
+            ) : undefined}
             caption={bandCaption}
             currency={currency}
             arrows={simple}
@@ -1737,7 +1720,7 @@ function PhoneList({ data, list, features, signedIn, loading, lang, currency, on
  * Top to bottom: return and expected loss, the 10 bonds with a few large columns, over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
  */
-function PhoneResults({ caption, arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency }: { caption?: ReactNode; arrows: boolean; title: (text: string) => ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
+function PhoneResults({ controls, caption, arrows, title, onClose, data, list, setList, features, signedIn, loading, lang, ret, loss, lock, message, onExcluded, currency }: { controls?: ReactNode; caption?: ReactNode; arrows: boolean; title: (text: string) => ReactNode; currency: string; onClose: () => void; data: Response | null; list: ResultRow[] | null; setList: (l: ResultRow[] | null) => void; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; ret: ReactNode | null; loss: ReactNode | null; lock: { href: string; label: string }; message: ReactNode | null; onExcluded: () => void }) {
   const t = useFinderText();
   // The page under it stays still while this one is open.
   useEffect(() => {
@@ -1784,7 +1767,8 @@ function PhoneResults({ caption, arrows, title, onClose, data, list, setList, fe
           {excelUp && <ExcelUpsell onClose={() => setExcelUp(false)} />}
         </span>
       </div>
-      <div className="grid shrink-0 grid-cols-2 gap-2">
+      {controls && <div className="shrink-0 [&>div]:!mt-1" data-testid="phone-controls">{controls}</div>}
+      <div className="mt-1.5 grid shrink-0 grid-cols-2 gap-2">
         <Stat value={ret} label={t.retYear} lock={lock} h="h-[62px]" />
         <Stat value={loss} label={t.lifeLoss} lock={lock} h="h-[62px]" />
       </div>
