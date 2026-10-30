@@ -112,12 +112,13 @@ for (const [w, h] of WIDTHS) {
   ok(await p.locator('[data-testid="term-picker"]').isVisible(), `${w}px home: term choice present`);
   ok(await p.locator('[data-testid="find-portfolio"]').isVisible(), `${w}px home: Find portfolio button present`);
   // The date line, or the sample-data note that takes its place once sample data has loaded (CI runs on sample data).
-  // Phones show the 10 bonds (and the date) under the sliders, as a compressed list; the button brings it into view (the owner, 29/10/2026).
+  // Phones open the one-screen results page (no scrolling): horizon tabs and slider on top, the 10 bonds below (the owner, 30/10/2026).
   if (w < 640) await p.locator('[data-testid="find-portfolio"]').click();
   ok(await p.locator('[data-testid="yields-date"], [data-testid="yields-sample"]').filter({ visible: true }).first().isVisible(), `${w}px home: yields date shown`);
   if (w < 640) {
-    ok(await p.locator('[data-testid="phone-list"]').isVisible(), `${w}px home: the list sits under the sliders`);
-    ok(!(await p.locator('[data-testid="phone-results"]').count()), `${w}px home: no full-screen results page`);
+    ok(await p.locator('[data-testid="phone-results"]').isVisible(), `${w}px home: full-screen results page`);
+    ok(await p.locator('[data-testid="phone-controls"] input[type="range"]').isVisible(), `${w}px home: slider on the results page`);
+    ok(await p.evaluate(() => (() => { const r = document.querySelector('[data-testid="phone-results"]'); return r.scrollHeight <= r.clientHeight + 1; })()), `${w}px home: results page does not scroll`);
   }
   const before = await p.locator("main").innerText();
   const valueBefore = await sliders.first().inputValue();
