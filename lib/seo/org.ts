@@ -11,12 +11,4 @@ export const ORGANIZATION = {
   logo: `${SITE_URL}/icon.svg`,
   legalName: COMPANY.legalName,
   email: COMPANY.privacyEmail,
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "Männimäe/1, Pudisoo küla",
-    addressLocality: "Kuusalu vald",
-    addressRegion: "Harju maakond",
-    postalCode: "74626",
-    addressCountry: "EE",
-  },
 } as const;

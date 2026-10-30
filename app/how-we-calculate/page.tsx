@@ -53,7 +53,7 @@ export default async function HowWeCalculate() {
         <dt className="font-medium">Benchmark curves</dt><dd>Every week, on Monday.</dd>
         <dt className="font-medium">Stale prices</dt><dd>A bond whose price is more than {PORTFOLIO_SPEC.staleTradingDays} trading days old is left out until it is refreshed.</dd>
       </dl>
-      <p className="mt-6 text-[13px] text-mute">Return figures are gross, before taxes and costs. Run by SQUARE ONE OÜ, see <Link className="underline" href="/about">About</Link>.</p>
+      <p className="mt-6 text-[13px] text-mute">Return figures are gross, before taxes and costs.</p>
     </article>
   );
 }

@@ -10,7 +10,7 @@ describe("outreach drafts", () => {
       expect(d.body).toContain(f.firm);
       expect(d.body).toContain("STOP");
       expect(d.body).toContain("https://10bonds.com/pro");
-      expect(d.body).toContain("SQUARE ONE OÜ");
+      expect(d.body).toContain("10BONDS");
     }
   });
   it("uses neutral wording only", () => {

@@ -25,7 +25,7 @@ export const LISTING_SITES: ListingSite[] = [
 
   // Startup and product directories.
   { id: "producthunt", name: "Product Hunt", url: "https://www.producthunt.com/posts/new", market: "global", kind: "startup", priority: 1, tip: "Launch on a Tuesday to Thursday; prepare screenshots first." },
-  { id: "crunchbase", name: "Crunchbase", url: "https://www.crunchbase.com/add-new", market: "global", kind: "startup", priority: 1, tip: "Company profile for SQUARE ONE OÜ / 10BONDS with the website." },
+  { id: "crunchbase", name: "Crunchbase", url: "https://www.crunchbase.com/add-new", market: "global", kind: "startup", priority: 1, tip: "Company profile for 10BONDS with the website." },
   { id: "betalist", name: "BetaList", url: "https://betalist.com/submit", market: "global", kind: "startup", priority: 2, tip: "Free listing has a waiting list." },
   { id: "alternativeto", name: "AlternativeTo", url: "https://alternativeto.net/manage-item/", market: "global", kind: "directory", priority: 2, tip: "List as an alternative to bond screeners." },
   { id: "saashub", name: "SaaSHub", url: "https://www.saashub.com/services/submit", market: "global", kind: "directory", priority: 2, tip: "Free listing with a followed link." },

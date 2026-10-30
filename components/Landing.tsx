@@ -52,17 +52,6 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
     timer = setTimeout(() => load(0), 2500);
     return () => { stop = true; clearTimeout(timer); };
   }, []);
-  // When the prices were last updated (public, counts and times only). Read once the page is idle; the line keeps its place meanwhile.
-  const [updated, setUpdated] = useState<string | null>(null);
-  useEffect(() => {
-    const id = setTimeout(() => {
-      fetch("/api/data-status").then((r) => (r.ok ? r.json() : null)).then((d: { lastUpdate: string | null } | null) => {
-        if (!d?.lastUpdate) { setUpdated(t.noData); return; }
-        setUpdated(new Date(d.lastUpdate).toLocaleString(LANDING_NUM[lang], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" }));
-      }).catch(() => setUpdated(t.noData));
-    }, 600);
-    return () => clearTimeout(id);
-  }, [lang, t.noData]);
   // Escape skips to the finder, as the old intro did.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -83,8 +72,6 @@ export default function Landing({ lang, heading = true, onClose }: { lang: Finde
           <span className="block" style={{ color: NAVY }}>{t.h1a}</span>
           <span className="block" style={{ color: GREEN }}>{t.h1b}</span>
         </Title>
-        <p className="mt-2 text-[14px] leading-snug [@media(max-width:639px)_and_(max-height:720px)]:hidden sm:text-[16px] lg:mt-4 lg:max-w-[680px] lg:text-[21px]" style={{ color: MUTE }} data-testid="landing-tagline">{t.tagline}</p>
-        <p className="mt-1.5 text-[11px] leading-snug [@media(max-width:639px)_and_(max-height:720px)]:hidden lg:text-[13px]" style={{ color: MUTE }} data-testid="landing-fresh">{t.fresh} {updated ?? "…"}</p>
         </div>
         <div className="order-3 min-w-0 [@media(max-width:639px)]:flex [@media(max-width:639px)]:min-h-0 [@media(max-width:639px)]:flex-1 [@media(max-width:639px)]:flex-col lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {/* ETF vs AI first, then one bond's curve, the reason to sign up (the owner, 24/10/2026). */}

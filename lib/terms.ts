@@ -10,7 +10,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     title: "1. Who we are and what this agreement covers",
     paragraphs: [
-      "These Terms of Use and Risk Disclosure (the \"Terms\") form a binding agreement between you and SQUARE ONE OÜ, a company registered in Estonia (registry code 14035002, VAT number EE102234240, Männimäe/1, Pudisoo küla, Kuusalu vald, 74626 Harju maakond), which operates the 10BONDS website and service (\"10BONDS\", \"we\", \"us\", \"our\"). They govern your access to and use of the website at 10bonds.com and any successor domain, every page, tool, list, ranking, figure, e-mail and feature offered under the 10BONDS name (together, the \"Service\").",
+      "These Terms of Use and Risk Disclosure (the \"Terms\") form a binding agreement between you and 10BONDS, which operates the 10BONDS website and service (\"10BONDS\", \"we\", \"us\", \"our\"). They govern your access to and use of the website at 10bonds.com and any successor domain, every page, tool, list, ranking, figure, e-mail and feature offered under the 10BONDS name (together, the \"Service\").",
       "By ticking the acceptance box, creating an account, or otherwise using the Service, you confirm that you have read, understood and agree to be bound by these Terms in full. If you do not agree, you must not create an account and must not use the Service.",
       "If you use the Service on behalf of a company or other organisation, you confirm that you have authority to bind it, and \"you\" includes that organisation.",
     ],
@@ -23,7 +23,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
       "Rankings, lists, \"top 10\" results, scores, averages and any other output are produced mechanically from data and your inputs. They do not take into account your personal circumstances, financial situation, knowledge and experience, investment objectives, time horizon, liquidity needs, tax position or tolerance for risk. A bond appearing in a list, or ranking highly, is not a statement that it is suitable, appropriate, safe, good value or likely to perform well for you or anyone else.",
       "No suitability or appropriateness assessment is performed under the EU Markets in Financial Instruments Directive (MiFID II, Directive 2014/65/EU), the UK Financial Services and Markets Act 2000, the US Investment Advisers Act of 1940, the US Securities Exchange Act of 1934, or any similar law anywhere in the world. You will not receive the protections that such laws give to clients of regulated firms.",
       "Before making any investment decision you should obtain independent advice from a professional who is properly licensed in your country and who knows your circumstances, and you should read the official offering documents (prospectus, base prospectus, final terms, key information document) for any instrument you consider.",
-      "The Service is not designed for trading. SQUARE ONE OÜ expresses no opinion on whether any investment is advisable or suitable, and the mention of any bond, issuer or financial product is not an endorsement of it. You should not use the Service as the only basis for any investment decision.",
+      "The Service is not designed for trading. 10BONDS expresses no opinion on whether any investment is advisable or suitable, and the mention of any bond, issuer or financial product is not an endorsement of it. You should not use the Service as the only basis for any investment decision.",
     ],
   },
   {

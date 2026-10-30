@@ -21,10 +21,8 @@ describe("llms.txt", () => {
 });
 
 describe("organization", () => {
-  it("names the legal entity, its address and a logo", () => {
+  it("names the operator and a logo", () => {
     expect(ORGANIZATION.legalName).toBe(COMPANY.legalName);
-    expect(COMPANY.address).toContain(ORGANIZATION.address.postalCode);
-    expect(COMPANY.address).toContain(ORGANIZATION.address.streetAddress);
     expect(ORGANIZATION.logo.endsWith("/icon.svg")).toBe(true);
   });
 });
