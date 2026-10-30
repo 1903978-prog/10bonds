@@ -1667,55 +1667,6 @@ function downloadTop10(rows: ResultRow[], t: ReturnType<typeof useFinderText>) {
 }
 
 /**
- * iPhone (the owner, 29/10/2026): the sliders and toggles on top, the 10 bonds below them in a compressed list:
- * issuer, years, return and the minus sign only, one 32 px line each (no ISIN, spread, risk or other detail).
- */
-function PhoneList({ data, list, features, signedIn, loading, lang, currency, onExcluded, message }: { currency: string; data: Response | null; list: ResultRow[] | null; features: Set<FeatureKey>; signedIn: boolean; loading: boolean; lang: FinderLang; onExcluded: () => void; message: ReactNode | null }) {
-  const t = useFinderText();
-  const rows = message ? [] : (list ?? data?.rows ?? []).slice(0, SLOTS);
-  const locked = message ? 0 : Math.min(data?.lockedCount ?? 0, SLOTS - rows.length);
-  const canExclude = features.has("blacklist");
-  const cols = "grid grid-cols-[1.25rem_minmax(0,1fr)_2.25rem_3.75rem_2.25rem] items-center gap-x-1.5";
-  return (
-    <div className={`rounded-lg border border-line bg-white px-3 py-1 transition-opacity ${loading ? "opacity-60" : ""}`}>
-      <div className={`${cols} h-5 border-b border-line text-[11px] text-mute`}>
-        <span>#</span>
-        <span>{t.issuer}</span>
-        <span className="text-right">{t.yrs}</span>
-        <span className="text-right">{t.yield}</span>
-        <span />
-      </div>
-      {message ? (
-        <div className="flex min-h-[120px] items-center justify-center p-4 text-center">{message}</div>
-      ) : (
-        <ul data-testid="phone-list-rows">
-          {rows.map((r, i) => (
-            <li key={r.rank} className={`${cols} h-8 border-b border-line/60`}>
-              <span className="text-[12px] tabular-nums text-mute">{r.rank}</span>
-              <span className="truncate text-[14px] font-medium">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</span>
-              <span className="text-right text-[12px] tabular-nums">{r.duration != null ? r.duration.toFixed(1) : <Dim />}</span>
-              <span className="text-right text-[14px] font-semibold tabular-nums">{pct(r.ytm)}</span>
-              <span className="flex h-8 items-center justify-center"><ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
-            </li>
-          ))}
-          {locked > 0 && (
-            <li className="flex h-10 items-center justify-between gap-2 text-[13px]">
-              <span className="font-medium">{t.more(locked)}</span>
-              <Link href={signupHref(lang)} className="rounded-full bg-accent px-3 py-1.5 text-[12px] font-medium text-white">{t.seeAll}</Link>
-            </li>
-          )}
-        </ul>
-      )}
-      {data?.source === "sample" ? (
-        <p className="mt-1 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
-      ) : (
-        <p className="mt-1 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)} <span data-testid="return-warning">{RISK_WARNING[lang]}</span></p>
-      )}
-    </div>
-  );
-}
-
-/**
  * iPhone only (the owner, 24/10/2026): the results as their own full-screen page, opened by "Show AI Efficient Portfolio".
  * Top to bottom: return and expected loss, the 10 bonds with a few large columns, over the site's one disclaimer. It fills exactly the screen (10 equal row slots share the height), never scrolls,
  * and shows the list on screen at once (no staged show). "Back" returns to the slider.
