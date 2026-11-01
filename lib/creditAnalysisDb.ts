@@ -1,5 +1,5 @@
 import { accountsSql } from "./accounts";
-import { CREDIT_POLICY_VERSION, CREDIT_SEEDS, ratingText, type CreditOverlay } from "./creditOverlay";
+import { CREDIT_POLICY_VERSION, CREDIT_SEEDS, type CreditOverlay } from "./creditOverlay";
 
 // One row per ISIN of stored credit analysis (any bond can have one). IR / BR are independent 0-100 scores (range or single value),
 // never agency ratings and never the site's 1-10 risk class. Market history is not touched: this table holds no prices.
