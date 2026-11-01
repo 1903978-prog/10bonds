@@ -7,6 +7,7 @@ import { INFLATION_LINKED, alternativesOf, benchmarkFor, cardOf, notShownReason 
 import { getBundBenchmarkPoints } from "@/lib/bundCurve/store";
 import { getUsBenchmarkPoints } from "@/lib/usTreasury/store";
 import { besPublic } from "@/lib/bes/store";
+import { loadCreditAnalysis } from "@/lib/creditAnalysisDb";
 import type { PublicBond } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -52,9 +53,10 @@ export async function GET(req: Request) {
   const curve = benchmarkFor(bond.currency, all, asOf, { bund: bund?.points ?? null, us: us?.points ?? null });
   const efficiency = excluded ? null : await within(left(), besOf(isin));
   const netSpreadBp = excluded ? null : await within(left(), netBpOf(isin));
+  const credit = await within(left(), loadCreditAnalysis(isin));
   const card = { ...cardOf(bond, all, curve), efficiency, netSpreadBp };
   const withBes = q.get("alts") === "1" && !excluded ? await within(left(), Promise.all(alternativesOf(bond, all).map(async (a) => ({ ...a, efficiency: await besOf(a.isin), netSpreadBp: await netBpOf(a.isin) })))) : null;
   // Most efficient first by the Bond Efficiency Score; bonds without one keep their order after the scored ones.
   const alternatives = withBes?.map((a, i) => ({ a, i })).sort((x, y) => (y.a.efficiency ?? -1) - (x.a.efficiency ?? -1) || x.i - y.i).map(({ a }) => a);
-  return NextResponse.json({ status: "found", card, excluded, checkedAt, ...(alternatives ? { alternatives } : {}) }, { headers });
+  return NextResponse.json({ status: "found", card, credit, excluded, checkedAt, ...(alternatives ? { alternatives } : {}) }, { headers });
 }

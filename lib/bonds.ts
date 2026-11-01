@@ -120,7 +120,9 @@ async function reload() {
   const meta = new Map<string, PriceMeta>(modelled.map((r) => [r.isin, priceMetaOf(r)]));
   const screened = screenPrices(dropStale(bonds), meta, newestQuote(bonds));
   const current = screened.ok;
-  const rated = current.filter(hasRealRating);
+  // Stored credit analysis (app.bond_credit_analysis): the effective grade rides on the bond so every solver can apply the portfolio's minimum grade.
+  const credit = await import("./creditAnalysisDb").then((m) => m.creditAnalysesOrNone());
+  const rated = current.filter(hasRealRating).map((b) => (credit[b.isin]?.effectiveGrade ? { ...b, creditGrade: credit[b.isin].effectiveGrade } : b));
   // Likely subordinated or hybrid bonds (by name, or a statistical yield outlier) are left out too, in outlierCut (the owner, 20/10/2026).
   const [{ total }] = await client`select count(*)::int total from public_bonds`;
   cache = { at: Date.now(), rated, source: "live", unrated: current.length - rated.length, total: Number(total), priceFlagged: screened.flagged, bySd: new Map() };

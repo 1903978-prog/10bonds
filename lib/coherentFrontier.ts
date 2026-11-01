@@ -10,6 +10,7 @@ import { activePolicy, checkList, END_POLICY, factsOf, policySignature, type Coh
 import { activeEngine, engineSignature, type EnginePolicy } from "./enginePolicy";
 import { issuerVerified } from "./issuerGroups";
 import { stepGap } from "./stepGap";
+import { withoutCreditExcluded } from "./creditOverlay";
 import { lifeYears } from "./lifeYears";
 import { loadSolver, MIP_ABS_GAP, SOLVER_OPTIONS } from "./highsSolver";
 import { isSovereignBond } from "./sovereign";
@@ -56,8 +57,9 @@ export type CoherentFrontier = ExactFrontier & { cert: Certificate; policy: Cohe
 type Spec = { objective: "loss" | "ret"; retMin?: number; lossMax?: number; /** 30-band mode: average risk class of the list within [lo, hi]. */ riskBand?: { lo: number; hi: number }; /** The two ends of the slider: no spread rule, and at least this many risk 1 bonds. */ end?: { minRisk1: number } };
 type Outcome = { status: "optimal" | "infeasible" | "uncertified"; sel: Cand[] };
 
-export function candidatesOf(bonds: PublicBond[], duration: number, spreadRule = true, window?: number): Cand[] {
-  const { pool } = portfolioPool(withinRisk(bonds, LIMITS.risk.max), duration, N, window);
+export function candidatesOf(bonds: PublicBond[], duration: number, spreadRule = true, window?: number, minGrade?: string | null): Cand[] {
+  // Stored credit analysis (lib/creditOverlay.ts): a bond below the portfolio's minimum grade (BBB+ unless a looser floor is asked) is out of every solver, not just hidden on screen.
+  const { pool } = portfolioPool(withinRisk(withoutCreditExcluded(bonds, minGrade), LIMITS.risk.max), duration, N, window);
   const cands = pool
     .filter((b) => b.grossYtm !== null && b.grossYtm > 0 && Number.isFinite(b.grossYtm) && b.modifiedDuration !== null && Number.isFinite(b.modifiedDuration) && issuerVerified(b))
     .map((b) => ({ ...factsOf(b), ci: 0, b, ret: b.grossYtm!, dur: b.modifiedDuration!, u: Math.floor(b.grossYtm! / RETURN_UNIT + 1e-9), notch: bondNotch(b) ?? UNRATED_NOTCH, years: lifeYears(b), beatenBy: new Set<string>() }));

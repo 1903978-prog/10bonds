@@ -27,6 +27,7 @@ export type PublicBond = {
   seniority?: string | null; // e.g. "Senior unsecured", "Senior preferred", as the copy writes it
   issueDate?: string | null; // YYYY-MM-DD
   callable?: boolean | null;
+  creditGrade?: string | null; // effective grade from the stored credit analysis (app.bond_credit_analysis), SNP ranking included; decides portfolio eligibility, never shown as an agency rating
 };
 
 // visitor = not signed in; free = signed-in free account.

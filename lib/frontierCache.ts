@@ -8,6 +8,7 @@ import { coherentFrontier, type CoherentFrontier } from "./coherentFrontier";
 import { policySignature } from "./coherence";
 import { engineSignature } from "./enginePolicy";
 import { GROUP_TABLE_VERSION } from "./issuerGroups";
+import { CREDIT_POLICY_VERSION } from "./creditOverlay";
 import { loadSavedFrontier, saveFrontier } from "./frontierStore";
 import { runLow } from "./highsSolver";
 
@@ -36,7 +37,7 @@ const coherentBuilding = new Map<string, Promise<CoherentFrontier>>();
 export type Without = { key: string; fn: (b: PublicBond) => boolean };
 
 export const frontierKey = (src: BondSource, f: BondFilter, duration: number, m: FrontierMethod = "m1", without?: Without | null) =>
-  [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature() + engineSignature(), GROUP_TABLE_VERSION] : []), ...(without ? [`x:${without.key}`] : [])].join("|");
+  [signatureOf(src), f.currency, f.size, duration, m, stepSignature(), ...(m === "spread" ? [policySignature() + engineSignature(), GROUP_TABLE_VERSION, CREDIT_POLICY_VERSION] : []), ...(without ? [`x:${without.key}`] : [])].join("|");
 
 // The web server never solves the standard lists itself (a solve needs about 340 MB for over a minute, which a small
 // machine cannot spare while serving visitors): they come from the database, saved by the "Precompute portfolio lists"

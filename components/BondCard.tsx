@@ -8,6 +8,8 @@ import { callableLabel, couponTypeLabel, seniorityLabel } from "@/lib/bondFacts"
 import { fmtMin } from "@/lib/fmtMin";
 import { bondPagePath, countryName, fmtDay, fmtPct, type BondLang } from "@/lib/seo/bondPages";
 import type { CardAlt, CardBond } from "@/lib/bondCard";
+import type { CreditRow } from "@/lib/creditAnalysisDb";
+import CreditAnalysisPanel from "@/components/CreditAnalysisPanel";
 
 type K = "title" | "lead" | "placeholder" | "search" | "invalid" | "notFound" | "error" | "ret" | "risk" | "industry" | "country" | "spread" | "spreadBund" | "spreadUst" | "efficiency" | "efficiencyHint" | "netSpread" | "afterLoss" | "expLoss" | "defChance" | "coupon" | "maturity" | "duration" | "price" | "seniority" | "couponType" | "callable" | "minimum" | "currency" | "issuer" | "ratingTen" | "alts" | "back" | "altsLead" | "altsNone" | "altsHead" | "open" | "upgrade" | "empty" | "pa" | "perYear" | "toMaturity" | "rank" | "of" | "rNoRating" | "rNotListed" | "rMatured" | "rDormant" | "rNoYield" | "rStructure" | "rQuality" | "retry" | "checked" | "exclPrefix";
 export const CARD_TEXT: Record<BondLang, Record<K, string>> = {
@@ -22,7 +24,7 @@ const SAMPLE: CardBond = {
   minInvestment: 1000, price: 99.1, priceDate: "2026-10-27", risk: 4, lrScore: null, ret: 3.8, duration: 4.6, lifeYears: 4.7, defaultChance: 1.2, lossGivenDefault: 0.6, expectedLoss: 0.15, afterLoss: 3.65, benchmark: "bund", spreadBp: 120, efficiency: 62, peerRank: 100, peers: 260,
 };
 
-type State = { kind: "idle" } | { kind: "busy" } | { kind: "found"; card: CardBond; excluded: string | null } | { kind: "invalid" } | { kind: "not_found"; reason: string; checkedAt: string } | { kind: "error" };
+type State = { kind: "idle" } | { kind: "busy" } | { kind: "found"; card: CardBond; excluded: string | null; credit: CreditRow | null } | { kind: "invalid" } | { kind: "not_found"; reason: string; checkedAt: string } | { kind: "error" };
 const SLOT = "h-[470px]"; // fixed result slot: nothing moves when a bond or the alternatives appear
 
 export default function BondCard({ lang, allowed, initialIsin = "" }: { lang: BondLang; allowed: boolean; initialIsin?: string }) {
@@ -47,7 +49,7 @@ export default function BondCard({ lang, allowed, initialIsin = "" }: { lang: Bo
     try {
       const r = await fetch(`/api/bonds/card?isin=${encodeURIComponent(isin)}`, { cache: "no-store", signal: ctl.signal });
       const j = await r.json();
-      if (j.status === "found") setSt({ kind: "found", card: j.card, excluded: j.excluded ?? null });
+      if (j.status === "found") setSt({ kind: "found", card: j.card, excluded: j.excluded ?? null, credit: j.credit ?? null });
       else if (j.status === "invalid") setSt({ kind: "invalid" });
       else if (j.status === "not_found") setSt({ kind: "not_found", reason: String(j.reason ?? ""), checkedAt: String(j.checkedAt ?? "") });
       else setSt({ kind: "error" });
@@ -103,6 +105,7 @@ export default function BondCard({ lang, allowed, initialIsin = "" }: { lang: Bo
   ];
 
   return (
+    <>
     <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <section>
         <h1 className="text-[24px] font-semibold tracking-tight sm:text-[28px]">{t.title}</h1>
@@ -192,5 +195,7 @@ export default function BondCard({ lang, allowed, initialIsin = "" }: { lang: Bo
         )}
       </section>
     </div>
+    {allowed && st.kind === "found" && st.credit ? <CreditAnalysisPanel credit={st.credit} /> : null}
+    </>
   );
 }
