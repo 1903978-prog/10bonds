@@ -10,7 +10,7 @@ const SIZES = [[390, 844], [375, 667], [414, 896], [390, 664], [430, 932]];
 const STUB = {
   tier: "free", lockedCount: 0, features: [], excluded: false, source: "live", asOf: "2026-10-29T01:00:00.000Z", durationBand: 4, status: "READY", engine: "stored",
   inputs: { duration: 4, ytm: 5, risk: 10 }, summary: { count: 10, avgYtm: 5.07, avgDuration: 4.2, avgRisk: 4.7, lifeLoss: 0.79 },
-  rows: Array.from({ length: 10 }, (_, i) => ({ rank: i + 1, issuer: ["MBH Bank Nyrt.", "Stellantis", "SES", "PLN", "Aareal Bank AG", "Vonovia SE", "LEG Immobilien", "Orano", "Goldman Sachs", "Cofinimmo"][i], ytm: 6.36 - i * 0.2, duration: 4.7 - i * 0.1, risk: 6 - Math.floor(i / 3) })),
+  rows: Array.from({ length: 10 }, (_, i) => ({ rank: i + 1, isin: i === 0 ? "DE000AAR0504" : i === 1 ? "XS2463990775" : `XS00000000${String(i).padStart(2, "0")}`, issuer: ["MBH Bank Nyrt.", "Stellantis", "SES", "PLN", "Aareal Bank AG", "Vonovia SE", "LEG Immobilien", "Orano", "Goldman Sachs", "Cofinimmo"][i], ytm: 6.36 - i * 0.2, duration: 4.7 - i * 0.1, risk: 6 - Math.floor(i / 3) })),
 };
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH, channel: process.env.CHROME_CHANNEL || undefined });
@@ -21,6 +21,7 @@ for (const [w, h] of SIZES) {
   await ctx.addInitScript(() => localStorage.setItem("tb_cookie_consent", JSON.stringify({ necessary: true, statistics: false, marketing: false, at: Date.now() })));
   const page = await ctx.newPage();
   if (!LIVE) await page.route(/\/api\/bonds\?/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(STUB) }));
+  if (!LIVE) await page.route(/\/api\/ir-br/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ratings: { DE000AAR0504: { ir: "66–79", br: "59–73" }, XS2463990775: { ir: "70", br: null } } }) }));
   await page.goto(BASE + "/", { waitUntil: "load" });
   await page.getByTestId("intro-skip").tap();
   await page.waitForTimeout(1500);
@@ -40,6 +41,9 @@ for (const [w, h] of SIZES) {
       rows: rows.length, lastBottom: last === null ? null : Math.round(last),
       sideways: document.documentElement.scrollWidth > window.innerWidth,
       // Rows must stay clean: no row's content taller than the row, no row drawn over the next one.
+      irbr: rows.map((li) => [li.querySelector('[data-testid="ir-pill"]')?.innerText.replace(/\s+/g, " ").trim(), li.querySelector('[data-testid="br-pill"]')?.innerText.replace(/\s+/g, " ").trim()]),
+      stacked: rows.every((li, i) => i === 0 || li.getBoundingClientRect().top >= rows[i - 1].getBoundingClientRect().bottom - 1),
+      listBottom: (() => { const u = sheet?.querySelector('[data-testid="phone-rows"]'); return u ? Math.round(u.getBoundingClientRect().bottom) : null; })(),
       overflowRows: rows.filter((li) => [...li.querySelectorAll("*")].some((e) => { const r = e.getBoundingClientRect(), l = li.getBoundingClientRect(); return r.height > 0 && (r.bottom > l.bottom + 1 || r.top < l.top - 1); })).length,
       footerCut: [...(sheet ? sheet.querySelectorAll('[data-testid="yields-date"],[data-testid="phone-footer-note"]') : [])].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).length,
     };
@@ -48,7 +52,13 @@ for (const [w, h] of SIZES) {
   say(m.sheet && m.scrolls === false, `${tag} one-screen results page, no scrolling`, `scrolls ${m.scrolls}`);
   say(m.sliderTop !== null && m.toggles >= 3 && m.firstRowTop !== null && m.sliderTop < m.firstRowTop, `${tag} slider and horizon toggles are above the list`, `slider ${m.sliderTop}, first row ${m.firstRowTop}`);
   say(m.rows >= 10, `${tag} ten bonds listed`, `${m.rows}`);
-  say(m.lastBottom !== null && m.lastBottom <= h, `${tag} the 10 bonds end inside the screen`, `${m.lastBottom} <= ${h}`);
+  say(m.listBottom !== null && m.listBottom <= h, `${tag} the list sits inside the screen (it scrolls inside itself)`, `${m.listBottom} <= ${h}`);
+  say(m.stacked, `${tag} every bond has its own row, none drawn over another`, "");
+  if (!LIVE) {
+    say(m.irbr[0]?.[0] === "IR 66–79" && m.irbr[0]?.[1] === "BR 59–73", `${tag} stored IR and BR shown as saved`, JSON.stringify(m.irbr[0]));
+    say(m.irbr[1]?.[0] === "IR 70" && m.irbr[1]?.[1] === "BR —", `${tag} only IR stored: BR shows a dash`, JSON.stringify(m.irbr[1]));
+    say(m.irbr[2]?.[0] === "IR —" && m.irbr[2]?.[1] === "BR —", `${tag} nothing stored: both show a dash`, JSON.stringify(m.irbr[2]));
+  }
   say(m.overflowRows === 0, `${tag} no row content overlaps the next row`, `${m.overflowRows} rows overflow`);
   say(m.footerCut === 0, `${tag} footer lines are not cut off`, `${m.footerCut} cut`);
   say(!m.sideways, `${tag} nothing sideways`, "");
