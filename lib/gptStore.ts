@@ -30,7 +30,35 @@ export async function saveGptRatings(ratings: Record<string, GptRating>): Promis
   return true;
 }
 
-const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+// Live update: while a list is on screen, a cheap call every 20 s asks which ISINs are still in the research queue. When one leaves the queue
+// its new IR / BR are fetched and shown without a page refresh. Paused while the tab is hidden.
+let waiting = new Set<string>();
+let timer: ReturnType<typeof setInterval> | null = null;
+async function pollResearch() {
+  if (map === EMPTY) return; // nothing loaded (not an admin page): no polling
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+  const j = await fetch("/api/credit-ratings", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (!j?.pending) return;
+  const now = new Set<string>(j.pending);
+  const done = [...waiting].filter((i) => !now.has(i));
+  waiting = now;
+  if (!done.length) return;
+  const res = await fetch(`/api/credit-ratings?isins=${done.slice(0, 50).join(",")}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (!res?.ratings) return;
+  const next = { ...map };
+  for (const [isin, v] of Object.entries(res.ratings as Record<string, { ir: string | null; br: string | null; status: string | null; at: string | null }>)) {
+    if (!v.ir && !v.br) continue;
+    next[isin] = { ...(next[isin] ?? { rating: null, basis: null }), issuerRating: v.ir, rating: v.br, basis: `Independent assessment ${v.at ?? ""}, ${v.status ?? "provisional"}`.trim(), at: new Date().toISOString() };
+  }
+  map = next;
+  emit();
+}
+
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  if (!timer && typeof window !== "undefined") { void pollResearch(); timer = setInterval(() => void pollResearch(), 20_000); }
+  return () => { listeners.delete(l); if (!listeners.size && timer) { clearInterval(timer); timer = null; waiting = new Set(); } };
+};
 
 /** ISIN -> GPT rating; loads from the database the first time an admin table asks (`on` false: nothing is fetched). */
 export function useGptRatings(on = true): Record<string, StoredGpt> {

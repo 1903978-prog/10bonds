@@ -30,5 +30,6 @@ export const ADMIN_PAGES: AdminPage[] = [
   { href: "/admin/weekly-email", title: "Weekly e-mail", desc: "Preview and settings of the weekly e-mail (sending is off)." },
   { href: "/admin/skills", title: "Rating skills", desc: "Instructions used by the rating tools." },
   { href: "/admin/shortlist", title: "Shortlist", desc: "Saved bond shortlists." },
+  { href: "/admin/credit-research", title: "Credit Research", desc: "Ollama worker, research queue and IR/BR progress." },
   { href: "/admin/landingpage1", title: "Landing page 1 (saved)", desc: "The saved earlier version of the landing page." },
 ];

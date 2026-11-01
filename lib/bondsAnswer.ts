@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enqueueFromSearch } from "@/lib/creditResearchDb";
 import { allow, clientIp } from "@/lib/rateLimit";
 import { currentOutlierSd, loadBondsFor, loadOutliers } from "@/lib/bonds";
 import { cleanSd } from "@/lib/outliers";
@@ -229,6 +230,8 @@ export async function answer(req: Request, step?: BandStep): Promise<Response> {
   // Under the coherence rules a swap or an added bond could break them, so neither is offered there (admin only anyway).
   const alternatives = coherent || bandMode ? undefined : has("swap") || has("add_left_out") ? alternativesFor(pool, results, duration, risk, has("why_table"), undefined, user?.isAdmin === true) : undefined;
   const bes = await besTileFor(results.map((r) => r.isin));
+  // Every Top 10 earmarks its bonds for IR / BR research (asynchronous, deduplicated, never awaited: the answer is not delayed).
+  enqueueFromSearch(results.slice(0, 10).map((r) => r.isin), !!user);
   return NextResponse.json(
     { ...shapeForTier(results, tier, features, user?.isAdmin === true), bes, features: coherent || bandMode ? withoutListEdits(features) : features, excluded: skip !== null && !coherent && !bandMode, band: bandMeta ?? undefined, coherence: coherent && user?.isAdmin ? { ...creditProfile(results.map((r) => factsOf(r))), checks: checkList(results.map((r) => factsOf(r)), coherent.policy).map((c) => ({ rule: c.rule, ok: c.ok, detail: c.detail })), policy: coherent.cert.policy, cert: coherent.cert } : undefined, alternatives, manifest, found: bandMode ? undefined : found, quota: usage ? publicQuota(usage) : null, source: data.source, scanned: data.bonds.length, issuers: new Set(data.bonds.map((b) => b.issuer ?? b.name)).size, asOf: data.asOf, durationBand: band, inputs: { duration, ytm, risk }, nearest, status, engine, outliers, ...(user?.isAdmin ? { methodology: meth } : {}) },
     { headers: { "Cache-Control": "no-store" } },
