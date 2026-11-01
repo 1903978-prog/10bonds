@@ -24,8 +24,11 @@ for (const [w, h] of SIZES) {
   if (!LIVE) await page.route(/\/api\/ir-br/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ratings: { DE000AAR0504: { ir: "66–79", br: "59–73" }, XS2463990775: { ir: "70", br: null } } }) }));
   await page.goto(BASE + "/", { waitUntil: "load" });
   await page.getByTestId("intro-skip").tap();
+  await page.waitForTimeout(2500);
+  // The home page may still be showing: the main button opens the results page, then the terms gate asks once ("I understand - show the portfolio").
+  if (!(await page.getByTestId("phone-results").count())) await page.getByTestId("find-portfolio").tap({ timeout: 4000 }).catch(() => {});
   await page.waitForTimeout(1500);
-  await page.getByRole("button", { name: /I understand/i }).click({ timeout: 4000 }).catch(() => {});
+  await page.getByRole("button", { name: /show the portfolio/i }).tap({ timeout: 4000 }).catch(() => {});
   await page.getByTestId("phone-rows").waitFor({ timeout: 20000 }).catch(() => {});
   const m = await page.evaluate(() => {
     const sheet = document.querySelector('[data-testid="phone-results"]');
