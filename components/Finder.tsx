@@ -1731,7 +1731,7 @@ function PhoneResults({ controls, caption, arrows, title, onClose, data, list, s
       </div>
       <div className={`relative flex min-h-0 flex-1 flex-col transition-opacity ${loading ? "opacity-60" : ""}`}>
         {loading && !arrows && <Spinner />}
-        <div className={`${cols} h-6 shrink-0 border-b border-line text-[11px] text-mute`}>
+        <div className={`${cols} h-6 shrink-0 border-b border-line text-[11px] text-mute ${admin ? "hidden" : ""}`}>
           <span>#</span>
           <span>{t.issuer}</span>
           <span className="text-right">{t.yrs}</span>
@@ -1740,8 +1740,28 @@ function PhoneResults({ controls, caption, arrows, title, onClose, data, list, s
           <span />
           <span />
         </div>
-        <ul className="grid min-h-0 flex-1 grid-rows-10" data-testid="phone-rows">
-          {rows.map((r, i) => (
+        <ul className={admin ? "min-h-0 flex-1 overflow-y-auto" : "grid min-h-0 flex-1 grid-rows-10"} data-testid="phone-rows">
+          {rows.map((r, i) => admin ? (
+            <li key={r.rank} className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_2.25rem] items-center gap-x-1.5 border-b border-line/60 py-1" data-testid="admin-phone-row">
+              <span className="text-[12px] tabular-nums text-mute">{r.rank}</span>
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-medium leading-tight">{r.hidden ? <HiddenName rank={r.rank} /> : r.issuer}</div>
+                <div className="flex min-w-0 items-center gap-1.5 text-[11px] leading-tight">
+                  <span className="min-w-0 shrink"><CopyIsin isin={r.isin} admin phone title={adminFacts(r)} /></span>
+                  <span className="shrink-0 tabular-nums text-mute">{r.duration != null ? `${r.duration.toFixed(1)}y` : "–"}</span>
+                  <span className="shrink-0">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp?.trim() ? r.sp : undefined} /> : <Dim />}</span>
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 leading-none" data-testid="admin-phone-ratings">
+                  <span className="text-[10px] text-mute">IR</span><GptRate isin={r.isin} kind="ir" />
+                  <span className="text-[10px] text-mute">BR</span><GptRate isin={r.isin} />
+                  <Spread compact ytm={r.ytm} years={r.duration} />
+                  <RiskPayCell compact isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} />
+                </div>
+              </div>
+              <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
+              <span className="flex flex-col items-center gap-1">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}<ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
+            </li>
+          ) : (
             <li key={r.rank} className={`${cols} min-h-0 border-b border-line/60`}>
               <span className="text-[12px] tabular-nums text-mute">{r.rank}</span>
               <div className="min-w-0">
@@ -1749,7 +1769,6 @@ function PhoneResults({ controls, caption, arrows, title, onClose, data, list, s
                 {admin ? (
                   <>
                     <CopyIsin isin={r.isin} admin phone title={adminFacts(r)} />
-                    <div className="flex h-4 items-center gap-1 overflow-hidden whitespace-nowrap leading-none" data-testid="admin-phone-ratings"><Spread compact ytm={r.ytm} years={r.duration} /><RiskPayCell compact isin={r.isin} ytm={r.ytm} years={r.duration} pd={r.pd} life={r.life} lgd={r.lgd} /></div>
                   </>
                 ) : paid ? (
                   <CopyIsin isin={r.isin} phone />
@@ -1758,7 +1777,7 @@ function PhoneResults({ controls, caption, arrows, title, onClose, data, list, s
                 )}
               </div>
               <span className="text-right text-[13px] tabular-nums">{r.duration != null ? r.duration.toFixed(1) : <Dim />}</span>
-              <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp} /> : <Dim />}</span>
+              <span className="text-center">{r.risk !== undefined ? <RiskBadge risk={r.risk} title={t.riskNote} sp={r.sp?.trim() ? r.sp : undefined} /> : <Dim />}</span>
                             <span className="text-right text-[15px] font-semibold tabular-nums">{pct(r.ytm)}</span>
               <span className="text-center">{canEdit && canSwap && <SwapButton onClick={() => setPanel(i)} label={`${t.swap}: ${r.issuer}`} />}</span>
               <span className="flex justify-center"><ExcludeButton tip={i === 0} row={r} allowed={canExclude} signedIn={signedIn} onExcluded={onExcluded} big /></span>
@@ -1799,7 +1818,7 @@ function PhoneResults({ controls, caption, arrows, title, onClose, data, list, s
       {data?.source === "sample" ? (
         <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-amber-800" data-testid="yields-date">{t.sample}</p>
       ) : (
-        <p className="mt-1.5 h-[13px] shrink-0 truncate text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)} <span data-testid="return-warning">{RISK_WARNING[lang]}</span></p>
+        <p className="mt-1.5 shrink-0 text-[10px] leading-[13px] text-mute" data-testid="yields-date">{t.asOf} {data?.asOf ? plainDate(data.asOf, lang) : "—"}.{dataFacts(data, lang, currency)} <span data-testid="return-warning">{RISK_WARNING[lang]}</span></p>
       )}
       <p className="mt-1 shrink-0 text-[9px] leading-tight text-mute" data-testid="phone-footer-note">{FOOTER_NOTE[lang]}</p>
     </div>

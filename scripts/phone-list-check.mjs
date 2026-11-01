@@ -39,6 +39,9 @@ for (const [w, h] of SIZES) {
       firstRowTop: rows.length ? Math.round(rows[0].getBoundingClientRect().top) : null,
       rows: rows.length, lastBottom: last === null ? null : Math.round(last),
       sideways: document.documentElement.scrollWidth > window.innerWidth,
+      // Rows must stay clean: no row's content taller than the row, no row drawn over the next one.
+      overflowRows: rows.filter((li) => [...li.querySelectorAll("*")].some((e) => { const r = e.getBoundingClientRect(), l = li.getBoundingClientRect(); return r.height > 0 && (r.bottom > l.bottom + 1 || r.top < l.top - 1); })).length,
+      footerCut: [...(sheet ? sheet.querySelectorAll('[data-testid="yields-date"],[data-testid="phone-footer-note"]') : [])].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).length,
     };
   });
   const tag = `${w}x${h}`;
@@ -46,6 +49,8 @@ for (const [w, h] of SIZES) {
   say(m.sliderTop !== null && m.toggles >= 3 && m.firstRowTop !== null && m.sliderTop < m.firstRowTop, `${tag} slider and horizon toggles are above the list`, `slider ${m.sliderTop}, first row ${m.firstRowTop}`);
   say(m.rows >= 10, `${tag} ten bonds listed`, `${m.rows}`);
   say(m.lastBottom !== null && m.lastBottom <= h, `${tag} the 10 bonds end inside the screen`, `${m.lastBottom} <= ${h}`);
+  say(m.overflowRows === 0, `${tag} no row content overlaps the next row`, `${m.overflowRows} rows overflow`);
+  say(m.footerCut === 0, `${tag} footer lines are not cut off`, `${m.footerCut} cut`);
   say(!m.sideways, `${tag} nothing sideways`, "");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/phone-list-${tag}.png` });
   await ctx.close();
