@@ -77,3 +77,7 @@ If no step gives a list the position is **INFEASIBLE** with its reason and is ne
 ## 9. Tests
 
 `lib/riskAnchors.test.ts` (bands contiguous, targets, windows, narrow range), `lib/portfolioSpec.test.ts` (ladder, constants, trading days), `lib/netSpread/netSpread.test.ts` (solver, anchors, band sums, loss share, ladder steps), `lib/netSpread/engine.test.ts` (a full horizon on the real candidate pipeline: every rule, traps excluded, average risk rises, infeasible stays empty, stored = snapshot = served, public renumbering and adjusted badge), `lib/noRemovedRules.test.ts` (no removed rule or simulation code in the engine files).
+
+## Stored credit analysis (1/11/2026)
+
+`app.bond_credit_analysis` holds one row per ISIN (IR/BR min, max or single value, assessment date, verification status, recommendation, effective grade, detail JSON). The effective grade rides on the bond (`creditGrade`) and `candidatesOf` drops any bond below the portfolio's minimum grade (BBB+ by default) in every solver. The credit policy version is part of `SPEC_VERSION`, so a new analysis rebuilds the stored lists.

@@ -44,7 +44,18 @@ function parseDetail(v: string | null): Detail | null {
 export async function loadGptRatings(): Promise<Record<string, SavedGptRating>> {
   const s = await sql();
   const rows = await s<{ isin: string; rating: string | null; issuer_rating: string | null; risk_pay: string | null; detail: string | null; basis: string | null; pasted_at: Date; model: string | null; full_answer: string | null }[]>`select isin, rating, issuer_rating, risk_pay, detail, basis, pasted_at, model, full_answer from app.gpt_ratings`;
-  return Object.fromEntries(rows.map((r) => [r.isin, { rating: r.rating, issuerRating: r.issuer_rating, riskPay: r.risk_pay, detail: parseDetail(r.detail), basis: r.basis, at: new Date(r.pasted_at).toISOString(), model: r.model, answer: r.full_answer }]));
+  const out = Object.fromEntries(rows.map((r) => [r.isin, { rating: r.rating, issuerRating: r.issuer_rating, riskPay: r.risk_pay, detail: parseDetail(r.detail), basis: r.basis, at: new Date(r.pasted_at).toISOString(), model: r.model, answer: r.full_answer }])) as Record<string, SavedGptRating>;
+  // Stored credit analysis (app.bond_credit_analysis) feeds IR / BR for every ISIN that has one. The newest assessment wins: a pasted GPT value is kept only if it is newer than the analysis date.
+  const { loadCreditAnalyses, irText, brText } = await import("./creditAnalysisDb");
+  const credit = await loadCreditAnalyses().catch(() => ({}));
+  for (const c of Object.values(credit)) {
+    const ir = irText(c), br = brText(c);
+    if (!ir && !br) continue;
+    const old = out[c.isin];
+    const newer = old && c.ratingAssessmentDate && new Date(old.at) > new Date(c.ratingAssessmentDate + "T23:59:59Z");
+    out[c.isin] = { ...(old ?? { rating: null, basis: null, at: c.updatedAt }), issuerRating: newer && old.issuerRating ? old.issuerRating : ir ?? old?.issuerRating ?? null, rating: newer && old.rating ? old.rating : br ?? old?.rating ?? null, basis: old?.basis ?? `Independent assessment ${c.ratingAssessmentDate ?? ""}, ${c.ratingVerificationStatus ?? "provisional"}`.trim() };
+  }
+  return out;
 }
 
 const grade = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 12) : "");
