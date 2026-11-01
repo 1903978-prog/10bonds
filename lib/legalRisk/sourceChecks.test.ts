@@ -98,8 +98,8 @@ describe("data feeds", () => {
 });
 
 describe("rating agencies", () => {
-  // Admin-gated displays of the S&P grade; customers never receive them (server strips the field).
-  const BASELINE = ["components/WhyTable.tsx", "components/Finder.tsx", "components/RiskBadge.tsx", "components/seo/Seo.tsx"];
+  // Admin-gated displays of the S&P grade; customers never receive them (server strips the field). CreditAnalysisPanel is shown on the admin Bond Card only.
+  const BASELINE = ["components/WhyTable.tsx", "components/Finder.tsx", "components/RiskBadge.tsx", "components/seo/Seo.tsx", "components/CreditAnalysisPanel.tsx"];
   it("agency names appear in customer-facing code only where already known", () => {
     const files = customerFiles().filter((f) => !f.startsWith("lib/seo/"));
     const found = hits(/S&P|S&amp;P|Moody|Fitch Ratings|\bFitch\b/, files);
