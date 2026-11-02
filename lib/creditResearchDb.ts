@@ -3,8 +3,9 @@ import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
 import { isIsin } from "./creditResearchSchema";
 import { LBBW_CASE } from "./creditReferenceCases";
-import { parameterReport } from "./creditParameters";
-import { evaluate, GATE_VERSION, sourceKey, type GateOutcome } from "./creditGate";
+import { nextMissing, parameterReport } from "./creditParameters";
+import { blockedMessage } from "./creditParameters";
+import { evaluate, GATE_VERSION, sourceKey, sourceQuality, type GateOutcome } from "./creditGate";
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
 
 // Credit research queue (owner, 1/11/2026). One durable job per ISIN. The web process only writes small queue rows; all research
@@ -323,12 +324,19 @@ export async function overview() {
   const workers = await s`select worker_id, model, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
   const jobs = await s`
     select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status,
-      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
+      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.detail #> '{research,scored}' as scored, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.last_attempt, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
       (select string_agg(x, '; ') from jsonb_array_elements_text(coalesce(a.detail #> '{research,scored,missing}', '[]'::jsonb)) x) as missing
     from app.credit_research_jobs j left join app.bond_credit_analysis a on a.isin = j.isin order by j.updated_at desc limit 40`;
   const [avg] = await s<{ ms: string | null }[]>`select avg(ms)::int as ms from app.credit_research_runs where ok and at > now() - interval '7 days'`;
   // Parameters are always recomputed from the stored facts with the current list, so older rows show the same counts as new ones.
-  const recent = (jobs as unknown as ({ isin: string; facts: unknown } & Record<string, unknown>)[]).map(({ facts, ...r }) => ({ ...r, parameters: facts ? parameterReport(facts as ResearchFacts) : null }));
+  const recent = (jobs as unknown as ({ isin: string; facts: unknown; scored: unknown } & Record<string, unknown>)[]).map(({ facts, scored, ...r }) => {
+    const f = facts as ResearchFacts | null;
+    if (!f) return { ...r, parameters: null, view: null };
+    const parameters = parameterReport(f);
+    const q = sourceQuality(f);
+    const next = nextMissing(f, parameters);
+    return { ...r, parameters, scored, facts: f, view: { issuer: f.issuer?.legalName ?? null, lei: f.issuer?.lei ?? null, primary: q.primary, reliable: q.reliable, sources: f.evidence.length, next, message: blockedMessage(r.publication_status as string | null, parameters, r.gate as { ir?: { reasons?: string[]; missingCritical?: string[] } } | null) } };
+  });
   return { jobs: c, analyses: a, workers, recent, references: await referenceCases(), avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
 }
 

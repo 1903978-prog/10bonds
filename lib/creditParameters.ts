@@ -30,7 +30,9 @@ export const PARAMETERS: ParamDef[] = [
   { key: "primary_sources", label: "Two or more primary sources", group: "Sources", help: "Documents from the issuer or an official body (not only the site's own data copy)." },
 ];
 
-export type ParamStatus = { key: string; label: string; group: ParamGroup; found: boolean; source: string | null; detail: string | null };
+/** What a parameter is needed for: IR (mandatory for the issuer rating), BR (needed for the bond rating) or only supporting evidence. */
+export const NEEDED_FOR = (p: { key: string; group: ParamGroup }): "IR" | "BR" | "supporting" => (p.key === "agency_anchor" ? "supporting" : p.key === "seniority" || p.key === "guarantee" ? "BR" : "IR");
+export type ParamStatus = { key: string; label: string; group: ParamGroup; found: boolean; source: string | null; detail: string | null; neededFor: "IR" | "BR" | "supporting" };
 export type ParamReport = { found: number; max: number; confidence: "high" | "medium" | "low"; items: ParamStatus[] };
 
 const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
@@ -72,8 +74,28 @@ export function parameterReport(f: ResearchFacts): ParamReport {
       }
     }
     if (p.group === "Financials" && found && !source) source = "documents";
-    items.push({ key: p.key, label: p.label, group: p.group, found, source, detail });
+    items.push({ key: p.key, label: p.label, group: p.group, found, source, detail, neededFor: NEEDED_FOR(p) });
   }
   const found = items.filter((i) => i.found).length;
   return { found, max: items.length, confidence: confidenceOf(found, items.length), items };
+}
+
+/** The next parameter the worker will research: publication-critical first (financials, then risks, then bond facts, then sources). */
+export function nextMissing(f: ResearchFacts, rep: ParamReport = parameterReport(f)): string | null {
+  const order: ParamGroup[] = ["Financials", "Risk categories", "Bond", "Sources", "Issuer"];
+  for (const g of order) {
+    const m = rep.items.find((i) => i.group === g && !i.found);
+    if (m) return m.label;
+  }
+  return null;
+}
+
+/** The sentence shown when a rating is not published. */
+export function blockedMessage(status: string | null, rep: ParamReport, gate: { ir?: { reasons?: string[]; missingCritical?: string[] } } | null): string | null {
+  if (status === "publishable" || status === "validated") return null;
+  const miss = rep.items.filter((i) => !i.found && i.neededFor !== "supporting").map((i) => i.label);
+  const head = `Rating not published: only ${rep.found} of ${rep.max} parameters verified.`;
+  const tail = miss.length ? ` Missing: ${miss.slice(0, 5).join(", ")}${miss.length > 5 ? ` and ${miss.length - 5} more` : ""}.` : "";
+  const why = gate?.ir?.reasons?.length ? ` ${gate.ir.reasons[0]}` : "";
+  return head + tail + why;
 }
