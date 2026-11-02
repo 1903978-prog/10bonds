@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
 import { isIsin } from "./creditResearchSchema";
+import { parameterReport } from "./creditParameters";
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
 
 // Credit research queue (owner, 1/11/2026). One durable job per ISIN. The web process only writes small queue rows; all research
@@ -173,16 +174,29 @@ export async function failJob(workerId: string, isin: string, error: string, usa
 
 export type CompleteResult = { ok: true; duplicate: boolean; ir: [number, number]; br: [number, number]; status: string } | { ok: false; error: string; code: number };
 
+/** Other bonds already holding exactly the same IR and BR ranges (a sign that the research found nothing that tells the bonds apart). */
+export async function identicalElsewhere(s: Awaited<ReturnType<typeof sql>>, isin: string, sc: { irMin: number; irMax: number; brMin: number; brMax: number }): Promise<string[]> {
+  const r = await s<{ isin: string }[]>`select isin from app.bond_credit_analysis where isin <> ${isin} and issuer_rating_min = ${sc.irMin} and issuer_rating_max = ${sc.irMax} and bond_rating_min = ${sc.brMin} and bond_rating_max = ${sc.brMax} limit 20`;
+  return r.map((x) => x.isin);
+}
+
 /** Scores the validated facts and publishes IR + BR as ONE atomic version: the previous row is archived and replaced in a single transaction. */
 export async function completeJob(workerId: string, facts: ResearchFacts, usage: { model: string; ms: number; tokensIn: number; tokensOut: number }): Promise<CompleteResult> {
   const s = await sql();
   const [job] = await s<{ status: string; claimed_by: string | null; result_hash: string | null }[]>`select status, claimed_by, result_hash from app.credit_research_jobs where isin = ${facts.isin}`;
   if (!job) return { ok: false, error: "unknown job", code: 404 };
   const scored = scoreResearch(facts);
+  const parameters = parameterReport(facts);
+  const sameAs = await identicalElsewhere(s, facts.isin, scored);
+  if (sameAs.length) {
+    // Different bonds must not silently get the same answer: it means the inputs that separate them were not found.
+    scored.status = "review_required";
+    scored.missing.push(`same IR and BR ranges as ${sameAs.length} other bond(s) (${sameAs.slice(0, 3).join(", ")}): too little bond-specific data`);
+  }
   const resultHash = hash(JSON.stringify({ facts, v: SCORING_VERSION }));
   if (job.status === "done" && job.result_hash === resultHash) return { ok: true, duplicate: true, ir: [scored.irMin, scored.irMax], br: [scored.brMin, scored.brMax], status: scored.status };
   if (job.status !== "processing" || job.claimed_by !== workerId) return { ok: false, error: "job is not claimed by this worker", code: 409 };
-  const research = { facts, scored, usage, publishedAt: new Date().toISOString() };
+  const research = { facts, scored, parameters, sameAs, usage, publishedAt: new Date().toISOString() };
   await s.begin(async (tx) => {
     await tx`insert into app.bond_credit_analysis_history (isin, row) select isin, to_jsonb(t) from app.bond_credit_analysis t where isin = ${facts.isin}`;
     await tx`
@@ -192,6 +206,7 @@ export async function completeJob(workerId: string, facts: ResearchFacts, usage:
         bond_rating_min = excluded.bond_rating_min, bond_rating_max = excluded.bond_rating_max, bond_rating = null,
         rating_assessment_date = current_date, rating_verification_status = excluded.rating_verification_status,
         detail = coalesce(a.detail, '{}'::jsonb) || jsonb_build_object('research', excluded.detail -> 'research'), version = excluded.version, updated_at = now()`;
+    if (sameAs.length) await tx`update app.bond_credit_analysis set rating_verification_status = 'review_required' where isin in ${tx(sameAs)} and rating_verification_status = 'provisional'`;
     await tx`update app.credit_research_jobs set status = 'done', stage = 'published', result_hash = ${resultHash}, last_error = null, claimed_by = null, lease_until = null, completed_at = now(), updated_at = now() where isin = ${facts.isin}`;
     await tx`insert into app.credit_research_runs (isin, worker_id, ok, model, ms, tokens_in, tokens_out, sources) values (${facts.isin}, ${workerId}, true, ${usage.model}, ${usage.ms}, ${usage.tokensIn}, ${usage.tokensOut}, ${facts.evidence.length})`;
   });
@@ -215,11 +230,13 @@ export async function overview() {
   const workers = await s`select worker_id, model, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
   const jobs = await s`
     select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status,
-      a.detail #>> '{research,scored,coverage}' as coverage, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
+      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
       (select string_agg(x, '; ') from jsonb_array_elements_text(coalesce(a.detail #> '{research,scored,missing}', '[]'::jsonb)) x) as missing
     from app.credit_research_jobs j left join app.bond_credit_analysis a on a.isin = j.isin order by j.updated_at desc limit 40`;
   const [avg] = await s<{ ms: string | null }[]>`select avg(ms)::int as ms from app.credit_research_runs where ok and at > now() - interval '7 days'`;
-  return { jobs: c, analyses: a, workers, recent: jobs, avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
+  // Parameters are always recomputed from the stored facts with the current list, so older rows show the same counts as new ones.
+  const recent = (jobs as unknown as ({ isin: string; facts: unknown } & Record<string, unknown>)[]).map(({ facts, ...r }) => ({ ...r, parameters: facts ? parameterReport(facts as ResearchFacts) : null }));
+  return { jobs: c, analyses: a, workers, recent, avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
 }
 
 export async function retryFailed(): Promise<number> {

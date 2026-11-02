@@ -78,6 +78,31 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     const orow = ov.recent.find((r) => r.isin === j1!.isin) as unknown as { sources: number | null; coverage: string | null } | undefined;
     expect(orow?.sources).toBe(2);
     expect(Number(orow?.coverage)).toBeGreaterThan(0);
+  }, 60_000);
+
+  it("flags two different bonds that end up with identical IR/BR ranges", async () => {
+    process.env.ACCOUNTS_DATABASE_URL = url;
+    const db = await import("./creditResearchDb");
+    const { scoreResearch } = await import("./creditScoring");
+    const { accountsSql } = await import("./accounts");
+    const s = await accountsSql();
+    const X = "XS0000000001", Y = "XS0000000002";
+    const sc = scoreResearch(facts(X));
+    await s`delete from app.bond_credit_analysis where isin in (${X}, ${Y})`;
+    await s`delete from app.credit_research_jobs where isin in (${X}, ${Y})`;
+    await s`insert into app.bond_credit_analysis (isin, issuer_rating_min, issuer_rating_max, bond_rating_min, bond_rating_max, rating_assessment_date, rating_verification_status) values (${Y}, ${sc.irMin}, ${sc.irMax}, ${sc.brMin}, ${sc.brMax}, current_date, 'provisional')`;
+    await db.enqueueIsins([X], true, 0);
+    const j = await db.claimJob("wx");
+    expect(j?.isin).toBe(X);
+    const r = await db.completeJob("wx", facts(X), { model: "m", ms: 1, tokensIn: 1, tokensOut: 1 });
+    expect(r.ok && r.status).toBe("review_required");
+    const [other] = await s<{ rating_verification_status: string }[]>`select rating_verification_status from app.bond_credit_analysis where isin = ${Y}`;
+    expect(other.rating_verification_status).toBe("review_required");
+    const ov = await db.overview();
+    const row = ov.recent.find((x) => x.isin === X) as unknown as { same_as: string[]; parameters: { found: number; max: number } };
+    expect(row.same_as).toContain(Y);
+    expect(row.parameters.max).toBeGreaterThan(5);
+    await s`delete from app.bond_credit_analysis where isin in (${X}, ${Y})`;
     await s.end();
   }, 60_000);
 });
