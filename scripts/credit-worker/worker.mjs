@@ -53,19 +53,29 @@ async function allowed(url) {
   }
   return !robots.get(u.origin).some((p) => u.pathname.startsWith(p));
 }
+// Documented public data APIs (they ask for a descriptive user agent, which we send, and publish their own rate limits).
+const API_HOSTS = /^(api\.gleif\.org|api\.worldbank\.org|api\.gdeltproject\.org|[a-z]+\.wikipedia\.org|www\.wikidata\.org)$/;
 async function get(url, asBytes = false) {
-  if (!url.startsWith("https://") || !(await allowed(url))) return null;
+  if (!url.startsWith("https://")) return null;
+  if (!API_HOSTS.test(new URL(url).hostname) && !(await allowed(url))) { log("  skipped (robots.txt):", url.slice(0, 100)); return null; }
   const h = new URL(url).host; const wait = (lastHit.get(h) ?? 0) + 2000 - Date.now(); if (wait > 0) await sleep(wait); lastHit.set(h, Date.now());
   try {
     const r = await fetch(url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(25_000) });
-    if (!r.ok || Number(r.headers.get("content-length") ?? 0) > 30e6) return null;
+    if (!r.ok || Number(r.headers.get("content-length") ?? 0) > 30e6) { if (r.status !== 404) log(`  ${r.status}:`, url.slice(0, 100)); return null; }
     return asBytes ? Buffer.from(await r.arrayBuffer()) : await r.text();
-  } catch { return null; }
+  } catch (e) { log("  failed:", url.slice(0, 100), e.cause?.code ?? e.message); return null; }
 }
 const strip = (h) => h.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 async function pdfText(buf) {
   const dir = await mkdtemp(join(tmpdir(), "cw-")); const f = join(dir, "d.pdf");
-  try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", "40", "-layout", f, "-"], { maxBuffer: 20e6, timeout: 60_000 }); return stdout.replace(/\s+/g, " "); } catch { return ""; } finally { await rm(dir, { recursive: true, force: true }); }
+  try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", "60", "-layout", f, "-"], { maxBuffer: 30e6, timeout: 90_000 }); if (stdout.trim()) return stdout.replace(/\s+/g, " "); } catch { /* pdftotext not installed: try the JavaScript reader */ } finally { await rm(dir, { recursive: true, force: true }); }
+  try {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(buf), useSystemFonts: true, isEvalSupported: false, verbosity: 0 }).promise;
+    let out = "";
+    for (let i = 1; i <= Math.min(doc.numPages, 60) && out.length < 400_000; i++) out += " " + (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
+    return out.replace(/\s+/g, " ");
+  } catch (e) { if (!warnedPdf) { warnedPdf = true; log("PDF reports are skipped: run `npm install` in scripts\\credit-worker (or install pdftotext)", e.code ?? ""); } return ""; }
 }
 
 // ---- retrieval: GLEIF (legal entity + parent), Wikipedia/Wikidata (website), the issuer's investor pages and reports ----
@@ -85,15 +95,79 @@ export function relevantText(text, budget) {
   const top = [...chunks].sort((x, y) => score(y) - score(x)).slice(0, Math.max(1, Math.floor(budget / 700)));
   return top.sort((x, y) => x.i - y.i).map((c) => c.t).join(" … ");
 }
+let warnedPdf = false;
 const IR_PATHS = ["/investors", "/investor-relations", "/en/investors", "/en/investor-relations", "/investor", "/ir", "/en/ir", "/investors/financial-reports", "/en/investors/financial-reports", "/about-us/investors", "/en/about-us/investors", "/company/investors"];
 const baseDomain = (h) => h.split(".").slice(-2).join(".");
-let warnedPdf = false;
+
+// ---- official numbers that need no model: World Bank (country risk, macro, public debt) and GDELT (news headlines) ----
+let wbCountries = null;
+async function wbIso(name) {
+  if (!name) return null;
+  if (!wbCountries) {
+    const t = await get("https://api.worldbank.org/v2/country?format=json&per_page=400");
+    wbCountries = new Map();
+    try { for (const c of JSON.parse(t)[1] ?? []) wbCountries.set(c.name.toLowerCase().replace(/[^a-z]/g, ""), c.id); } catch { /* list not available */ }
+    for (const [a, b] of [["czechrepublic", "czechia"], ["slovakrepublic", "slovakia"], ["turkey", "turkiye"], ["southkorea", "korearep"], ["unitedkingdom", "unitedkingdom"], ["unitedstates", "unitedstates"], ["russia", "russianfederation"], ["egypt", "egyptarabrep"]]) if (!wbCountries.has(a) && wbCountries.has(b)) wbCountries.set(a, wbCountries.get(b));
+  }
+  return wbCountries.get(String(name).toLowerCase().replace(/[^a-z]/g, "")) ?? null;
+}
+/** Latest value of a World Bank indicator for a country: { value, year, url } or null. */
+export async function wbLatest(iso, indicator, source) {
+  const url = `https://api.worldbank.org/v2/country/${iso}/indicator/${indicator}?format=json&mrnev=1${source ? `&source=${source}` : ""}`;
+  const t = await get(url); if (!t) return null;
+  try { const r = JSON.parse(t)[1]?.[0]; return r && typeof r.value === "number" ? { value: r.value, year: r.date, url } : null; } catch { return null; }
+}
+/** Deterministic colours from official numbers. Rules are fixed and written into each explanation. */
+export function countryRisks(wb) {
+  const out = [];
+  if (wb.stability) { const v = wb.stability.value; out.push({ key: "politics_regulation", color: v >= 60 ? "GREEN" : v >= 30 ? "AMBER" : "RED", explanation: `World Bank political stability percentile ${v.toFixed(0)} (${wb.stability.year}); rule: 60+ green, 30-60 amber, below 30 red.`, evidenceUrls: [wb.stability.url] }); }
+  if (wb.inflation && wb.growth) { const i = wb.inflation.value, g = wb.growth.value; out.push({ key: "macro_fx_energy", color: i <= 4 && g >= 0 ? "GREEN" : i > 8 || g < -2 ? "RED" : "AMBER", explanation: `Country inflation ${i.toFixed(1)}% (${wb.inflation.year}), GDP growth ${g.toFixed(1)}% (${wb.growth.year}); rule: inflation up to 4% and growth 0%+ green, inflation above 8% or growth below -2% red, else amber.`, evidenceUrls: [wb.inflation.url, wb.growth.url] }); }
+  return out;
+}
+const NEGATIVE = '(downgrade OR default OR fraud OR investigation OR lawsuit OR insolvency OR "profit warning" OR sanctions OR bankruptcy)';
+/** Recent headlines (GDELT, last 3 months) that mention the issuer with a risk word. */
+export async function newsScan(name) {
+  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`"${name}" ${NEGATIVE}`)}&mode=artlist&maxrecords=15&format=json&timespan=3months&sort=datedesc`;
+  const t = await get(url); if (t === null) return null;
+  let arts = []; try { arts = JSON.parse(t).articles ?? []; } catch { if (!/^\s*\{\s*\}\s*$/.test(t)) return null; }
+  return { url, hits: arts.length, text: arts.length ? arts.map((a) => `${(a.seendate ?? "").slice(0, 8)} ${a.title} (${a.domain})`).join("\n") : `No headlines mentioning "${name}" together with a risk word (downgrade, default, fraud, investigation, lawsuit, insolvency, profit warning, sanctions, bankruptcy) in the last 3 months.` };
+}
+const SLUG_TLDS = [".com", ".de", ".fr", ".it", ".nl", ".es", ".co.uk", ".eu", ".ch", ".at", ".be", ".se"];
+/** When no website is known: try the obvious domains and keep the first whose home page names the company. */
+async function guessSite(core) {
+  const slug = core.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+  if (slug.length < 4) return null;
+  const first = core.toLowerCase().split(/\s+/)[0];
+  for (const tld of SLUG_TLDS) for (const host of [`www.${slug}${tld}`, `${slug}${tld}`]) {
+    const h = await get(`https://${host}/`);
+    if (h && strip(h).toLowerCase().includes(first)) return `https://${host}/`;
+  }
+  return null;
+}
 
 async function collect(job) {
   const docs = []; const names = nameVariants(job.known?.issuer || job.known?.name || "");
   const add = (d) => { if (d?.text && d.text.length > 40 && !docs.some((x) => x.url === d.url)) docs.push({ ...d, text: d.text, retrievedAt: new Date().toISOString() }); };
   const guard = async (f) => { try { return await f(); } catch (e) { log("source step failed:", e.message); return null; } };
   if (!names.length) return docs;
+  // 0. Official numbers: the country's political stability, inflation and growth; recent news headlines. These need no model.
+  job.det = { risks: [], metrics: {} };
+  await guard(async () => {
+    const iso = await wbIso(job.known?.country);
+    if (iso) {
+      const [stability, inflation, growth, debt] = await Promise.all([wbLatest(iso, "PV.PER.RNK", 3), wbLatest(iso, "FP.CPI.TOTL.ZG"), wbLatest(iso, "NY.GDP.MKTP.KD.ZG"), wbLatest(iso, "GC.DOD.TOTL.GD.ZS")]);
+      for (const [d, label] of [[stability, "political stability percentile"], [inflation, "inflation %"], [growth, "GDP growth %"], [debt, "central government debt % of GDP"]])
+        if (d) add({ url: d.url, title: `World Bank: ${label} (${d.year})`, publisher: "World Bank", period: d.year, primary: true, method: "api", text: `${job.known.country}: ${label} = ${d.value.toFixed(1)} (${d.year})` });
+      job.det.risks.push(...countryRisks({ stability, inflation, growth }));
+      if (debt && /republic of|kingdom of|government|bundesrepublik|state of/i.test(job.known?.issuer || job.known?.name || "")) job.det.metrics.debtToGdpPct = Math.round(debt.value * 10) / 10;
+    }
+    const news = await newsScan(names[names.length - 1] ?? names[0]);
+    if (news) {
+      add({ url: news.url, title: `News headlines scan (GDELT), ${news.hits} hit(s)`, publisher: "GDELT", period: null, primary: false, method: "api", text: news.text });
+      if (news.hits === 0) job.det.risks.push({ key: "news_mgmt_legal", color: "GREEN", explanation: "Headline scan of the last 3 months (GDELT) found no article naming the issuer with a risk word (downgrade, default, fraud, investigation, lawsuit, insolvency, profit warning, sanctions, bankruptcy).", evidenceUrls: [news.url] });
+      else job.det.risks.push({ key: "news_mgmt_legal", color: "AMBER", explanation: `${news.hits} recent headline(s) name the issuer with a risk word; they need reading before this can be green.`, evidenceUrls: [news.url] });
+    }
+  });
   // 1. Legal entity (GLEIF) and its ultimate parent: a finance vehicle's credit is its parent's.
   let parent = null;
   await guard(async () => {
@@ -127,6 +201,7 @@ async function collect(job) {
       if (typeof w === "string" && w.startsWith("https://")) site = w;
     });
   }
+  if (!site) site = await guard(() => guessSite(names[names.length - 1]));
   // 3. Investor pages and reports on that website.
   if (site) await guard(async () => {
     const origin = new URL(site).origin, dom = baseDomain(new URL(site).hostname);
@@ -147,7 +222,6 @@ async function collect(job) {
       if (rank(u) >= 6) continue;
       if (/\.pdf($|\?)/i.test(u)) {
         const b = await get(u, true); const t = b ? await pdfText(b) : "";
-        if (!t && b && !warnedPdf) { warnedPdf = true; log("PDF reports are skipped: install pdftotext (poppler) to read them"); }
         if (t) add({ url: u, title: decodeURIComponent(u.split("/").pop() ?? "document").slice(0, 120), publisher: names[0], period: null, primary: true, method: "pdf", text: t });
       } else { const h = await get(u); if (h) add({ url: u, title: "Issuer page", publisher: names[0], period: null, primary: true, method: "html", text: strip(h) }); }
     }
@@ -234,6 +308,22 @@ export function parseJsonReply(text) {
   try { const v = JSON.parse(t.slice(i, k + 1)); return v && typeof v === "object" && !Array.isArray(v) ? v : null; } catch { return null; }
 }
 
+/** Official-number results join the model's: a worse colour from the model stays; evidence urls must be sources that were retrieved. */
+export function mergeDeterministic(result, det) {
+  if (!det) return result;
+  const risks = [...(result.risks ?? [])];
+  const sev = { GREY: 0, GREEN: 1, AMBER: 2, RED: 3 };
+  for (const d of det.risks) {
+    const i = risks.findIndex((r) => r.key === d.key);
+    const entry = { key: d.key, color: d.color, explanation: d.explanation, evidence: d.evidenceUrls };
+    if (i < 0) risks.push(entry);
+    else if ((sev[risks[i].color] ?? 0) <= sev[d.color]) risks[i] = { ...entry, explanation: `${d.explanation}${risks[i].explanation ? ` Model note: ${risks[i].explanation}` : ""}`.slice(0, 600) };
+  }
+  const metrics = { ...(result.metrics ?? {}) };
+  for (const [k, v] of Object.entries(det.metrics)) if (metrics[k] == null) metrics[k] = v;
+  return { ...result, risks, metrics };
+}
+
 async function work(job) {
   let stage = "collecting";
   const beat = setInterval(() => api("heartbeat", { isin: job.isin, stage }).catch(() => {}), 120_000);
@@ -252,7 +342,8 @@ async function work(job) {
     // marked "review required" with the gap listed, instead of the bond staying empty forever.
     if (!x && (job.attempts ?? 1) < 2) throw new Error(problem);
     const evidence = docs.map((d) => ({ url: d.url, title: d.title, publisher: d.publisher, publishedAt: null, period: d.period, retrievedAt: d.retrievedAt, location: null, method: d.method, verification: "unverified", primary: d.primary }));
-    const result = x ? { ...x.result, evidence, usage: { model: MODEL, ms: x.ms, tokensIn: x.tokensIn, tokensOut: x.tokensOut } } : { evidence, notes: [`automatic research incomplete: ${problem}`], usage: { model: MODEL, ms: 0, tokensIn: 0, tokensOut: 0 } };
+    const result0 = x ? { ...x.result, evidence, usage: { model: MODEL, ms: x.ms, tokensIn: x.tokensIn, tokensOut: x.tokensOut } } : { evidence, notes: [`automatic research incomplete: ${problem}`], usage: { model: MODEL, ms: 0, tokensIn: 0, tokensOut: 0 } };
+    const result = mergeDeterministic(result0, job.det);
     stage = "publishing";
     const res = await api("complete", { isin: job.isin, result });
     log(job.isin, "complete", res.status, JSON.stringify({ ir: res.ir, br: res.br, status: res.status }));

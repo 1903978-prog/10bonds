@@ -6,7 +6,7 @@ type Ov = {
   paused: boolean; avgMs: number | null;
   jobs: Record<string, string>; analyses: Record<string, string>;
   workers: { worker_id: string; model: string | null; current_isin: string | null; stage: string | null; host: string | null; last_seen: string; online: boolean }[];
-  recent: { isin: string; priority: number; status: string; stage: string | null; exposure_count: number; attempts: number; last_error: string | null; updated_at: string; issuer_rating_min: string | null; issuer_rating_max: string | null; bond_rating_min: string | null; bond_rating_max: string | null; rating_verification_status: string | null }[];
+  recent: { isin: string; priority: number; status: string; stage: string | null; exposure_count: number; attempts: number; last_error: string | null; updated_at: string; issuer_rating_min: string | null; issuer_rating_max: string | null; bond_rating_min: string | null; bond_rating_max: string | null; rating_verification_status: string | null; coverage: string | null; sources: number | null; missing: string | null }[];
 };
 
 const rng = (a: string | null, b: string | null) => (a === null ? "—" : a === b ? Number(a) : `${Number(a)}–${Number(b)}`);
@@ -61,16 +61,16 @@ export default function CreditResearchAdmin() {
         <div className="mb-1 font-medium">Latest jobs</div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-[12px]">
-            <thead className="text-mute"><tr><th className="py-1">ISIN</th><th>P</th><th>Status</th><th>Stage</th><th>IR</th><th>BR</th><th>Rating status</th><th>Seen</th><th>Tries</th><th>Updated</th><th>Last error</th></tr></thead>
+            <thead className="text-mute"><tr><th className="py-1">ISIN</th><th>P</th><th>Status</th><th>Stage</th><th>IR</th><th>BR</th><th>Rating status</th><th>Sources</th><th>Evidence</th><th>Seen</th><th>Tries</th><th>Updated</th><th>Last error</th></tr></thead>
             <tbody>
               {d.recent.map((r) => (
                 <tr key={r.isin} className="border-t border-line" title={r.last_error ?? undefined}>
                   <td className="py-1 font-mono">{r.isin}</td><td>P{r.priority}</td><td>{r.status}</td><td>{r.stage ?? ""}</td>
                   <td>{rng(r.issuer_rating_min, r.issuer_rating_max)}</td><td>{rng(r.bond_rating_min, r.bond_rating_max)}</td>
-                  <td>{r.rating_verification_status ?? "—"}</td><td>{r.exposure_count}×</td><td>{r.attempts}</td><td>{new Date(r.updated_at).toLocaleString()}</td><td className="max-w-[16rem] truncate text-red-700" title={r.last_error ?? undefined}>{r.last_error ?? ""}</td>
+                  <td>{r.rating_verification_status ?? "—"}</td><td>{r.sources ?? "—"}</td><td title={r.missing ? `Missing: ${r.missing}` : undefined}>{r.coverage ? `${Math.round(Number(r.coverage) * 100)}%` : "—"}</td><td>{r.exposure_count}×</td><td>{r.attempts}</td><td>{new Date(r.updated_at).toLocaleString()}</td><td className="max-w-[16rem] truncate text-red-700" title={r.last_error ?? undefined}>{r.last_error ?? ""}</td>
                 </tr>
               ))}
-              {!d.recent.length && <tr><td colSpan={11} className="py-2 text-mute">No jobs yet. They appear after the next search.</td></tr>}
+              {!d.recent.length && <tr><td colSpan={13} className="py-2 text-mute">No jobs yet. They appear after the next search.</td></tr>}
             </tbody>
           </table>
         </div>
