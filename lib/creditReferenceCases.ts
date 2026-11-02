@@ -37,6 +37,7 @@ export const LBBW_CASE: ReferenceCase = {
     { priority: 1, label: "LBBW agency ratings", url: "https://www.lbbw.de/group/news-and-service/investor-relations/ratings/ratings_7u12dygox_e.html", extract: "Issuer ratings, preferred-debt ratings, standalone assessments" },
     { priority: 1, label: "Börse Stuttgart bond profile", url: "https://www.boerse-stuttgart.de/en/products/bonds/stuttgart/lb2cw1-landesbank-baden-w-rttemberg-mtn-serie-822-v-21-31/", extract: "ISIN, maturity, coupon, callable status, issue size" },
     { priority: 1, label: "Regulatory-derived bond seniority", url: "https://bankingresolution.com/instruments/DE000LB2CW16", extract: "Senior preferred, unsecured, legal issuer, resolution authority" },
+    { priority: 2, label: "LBBW outstanding issues list (issuer bond list, scanned for the ISIN)", url: "https://www.lbbw.de/konzern/investor-relations/refinanzierung/anleihen/outstanding-issues_ahtf9x1ikk_m.pdf", extract: "Seniority wording next to the ISIN, if the list states it" },
     { priority: 2, label: "LBBW 2025 annual report", url: "https://www.lbbw.de/konzern/investor-relations/finanzberichte/geschaeftsberichte/2025/lbbw-annual-report-2025_ampzkh6sv2_m.pdf", extract: "Risk exposure, liquidity, funding, segment credit quality" },
   ],
   pipeline: [

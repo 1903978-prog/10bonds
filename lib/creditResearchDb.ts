@@ -45,6 +45,7 @@ async function sql(): Promise<Sql> {
     await s`create index if not exists credit_research_jobs_pick on app.credit_research_jobs (status, next_attempt_at)`;
     await s`create table if not exists app.credit_research_workers (worker_id text primary key, model text, current_isin text, stage text, host text, last_seen timestamptz not null default now())`;
     await s`create table if not exists app.credit_research_tokens (token_hash text primary key, label text, created_at timestamptz not null default now(), revoked_at timestamptz, last_used_at timestamptz)`;
+    await s`create table if not exists app.credit_worker_kb (key text primary key, value jsonb not null, updated_at timestamp with time zone not null default now())`;
     await s`create table if not exists app.credit_research_settings (key text primary key, value text not null)`;
     await s`create table if not exists app.credit_research_runs (id bigserial primary key, isin text not null, worker_id text, at timestamptz not null default now(), ok boolean not null, model text, ms integer, tokens_in integer, tokens_out integer, sources integer, error text)`;
     await s`create table if not exists app.bond_credit_analysis_history (id bigserial primary key, isin text not null, archived_at timestamptz not null default now(), row jsonb not null)`;
@@ -178,6 +179,28 @@ export async function tokenValid(authHeader: string | null): Promise<boolean> {
   const s = await sql();
   const r = await s`update app.credit_research_tokens set last_used_at = now() where token_hash = ${hash(t)} and revoked_at is null returning 1`;
   return r.length > 0;
+}
+
+/** Shared memory of the research workers (verified issuer websites, dead hosts, cited figures per issuer). Small JSON values under short keys; the worker keeps a local copy as a fallback. */
+export const KB_KEY = /^(domain|dead|fin):[A-Za-z0-9._:-]{2,120}$/;
+const KB_MAX_BYTES = 200_000;
+export async function kbGet(keys: string[]): Promise<Record<string, unknown>> {
+  const s = await sql();
+  const ok = keys.filter((k) => KB_KEY.test(k)).slice(0, 60);
+  if (!ok.length) return {};
+  const rows = await s<{ key: string; value: unknown }[]>`select key, value from app.credit_worker_kb where key in ${s(ok)}`;
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+export async function kbPut(entries: Record<string, unknown>): Promise<{ saved: number; rejected: string[] }> {
+  const s = await sql();
+  let saved = 0; const rejected: string[] = [];
+  for (const [k, v] of Object.entries(entries).slice(0, 60)) {
+    const json = JSON.stringify(v ?? null);
+    if (!KB_KEY.test(k) || v === null || typeof v !== "object" || json.length > KB_MAX_BYTES) { rejected.push(k.slice(0, 60)); continue; }
+    await s`insert into app.credit_worker_kb (key, value, updated_at) values (${k}, ${json}::jsonb, now()) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+    saved++;
+  }
+  return { saved, rejected };
 }
 
 export async function isPaused(): Promise<boolean> {
