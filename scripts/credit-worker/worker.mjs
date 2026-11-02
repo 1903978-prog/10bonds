@@ -19,7 +19,7 @@ const TOKEN = process.env.WORKER_TOKEN ?? "";
 const OLLAMA = (process.env.OLLAMA_URL ?? "http://127.0.0.1:11434").replace(/\/$/, "");
 const MODEL = process.env.OLLAMA_MODEL ?? "";
 const ID = process.env.WORKER_ID ?? `worker-${hostname().replace(/[^A-Za-z0-9._-]/g, "")}`.slice(0, 60);
-export const WORKER_VERSION = "2026-11-02.4";
+export const WORKER_VERSION = "2026-11-02.5";
 let NET_DIAG = null;
 const IDLE_MS = Number(process.env.IDLE_SECONDS ?? 60) * 1000;
 const MAX_DOCS = Number(process.env.MAX_DOCS ?? 6);
@@ -848,7 +848,17 @@ if (isMain) {
   }))).join(" | ");
   log("network check:", NET_DIAG);
   let fails = 0;
+  let lastUpdateCheck = Date.now();
   while (!stopping) {
+    // Self-restart: every 10 minutes, between jobs, look at the published worker; if its version is newer, exit so start-worker.bat downloads it and relaunches.
+    if (Date.now() - lastUpdateCheck > 10 * 60_000) {
+      lastUpdateCheck = Date.now();
+      try {
+        const txt = await fetch("https://raw.githubusercontent.com/1903978-prog/10bonds/main/scripts/credit-worker/worker.mjs", { signal: AbortSignal.timeout(30_000) }).then((x) => x.text());
+        const remote = /WORKER_VERSION = "([^"]+)"/.exec(txt)?.[1];
+        if (remote && remote > WORKER_VERSION) { log(`newer worker ${remote} published: restarting to update`); process.exit(0); }
+      } catch { /* offline: keep working */ }
+    }
     try {
       const r = await api("claim", { version: WORKER_VERSION, diag: NET_DIAG });
       if (r.status === 401) { console.error("token rejected: create a new one in Admin > Credit Research"); process.exit(2); }
