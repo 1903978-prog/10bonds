@@ -62,3 +62,38 @@ describe("parseResult", () => {
     expect(p.facts.metrics.cet1Pct).toBeNull();
   });
 });
+
+import { enrichFromFeed, seniorityOf, issuerTypeOf } from "./creditFeedFacts";
+
+describe("feed facts", () => {
+  const empty = (): ResearchFacts => ({ isin: "DE000AAR0504", issuerType: "corporate", seniority: "unknown", guaranteed: null, agencyRatings: [], metrics: {}, risks: [], conflicts: [], evidence: [], notes: ["automatic research incomplete"] });
+  it("maps seniority words", () => {
+    expect(seniorityOf("Senior Non-Preferred")).toBe("senior_non_preferred");
+    expect(seniorityOf("Senior unsecured")).toBe("senior_unsecured");
+    expect(seniorityOf("Subordinated Tier 2")).toBe("tier2");
+    expect(seniorityOf("Covered / Pfandbrief")).toBe("secured");
+    expect(seniorityOf(null)).toBe("unknown");
+    expect(issuerTypeOf("Aareal Bank AG", "corporate")).toBe("bank");
+  });
+  it("gives IR and BR from the data copy alone, marked review required, with the gap listed", () => {
+    const f = enrichFromFeed(empty(), { issuer: "Vonovia SE", name: "Vonovia 2030", ratingSp: "BBB+", ratingMoodys: null, ratingFitch: null, seniority: "Senior unsecured" });
+    const s = scoreResearch(f);
+    expect(s.anchorGrade).toBe("BBB+");
+    expect(s.irMin).toBeGreaterThan(0);
+    expect(s.status).toBe("review_required");
+    expect(s.missing.some((m) => m.includes("incomplete"))).toBe(true);
+    expect(f.evidence.at(-1)?.verification).toBe("unverified");
+  });
+  it("a subordinated bond's own grade is not taken as the issuer's", () => {
+    const f = enrichFromFeed(empty(), { issuer: "Aareal Bank AG", name: "Aareal SNP", ratingSp: "BBB", ratingMoodys: null, ratingFitch: null, seniority: "Senior non-preferred" });
+    const s = scoreResearch(f);
+    expect(f.agencyRatings[0].scope).toBe("instrument");
+    expect(s.irMax).toBeGreaterThan(s.brMax); // issuer is above the bond
+  });
+  it("never overwrites what the worker found", () => {
+    const base = { ...empty(), seniority: "tier2" as const, agencyRatings: [{ agency: "Fitch", rating: "A", scope: "issuer" as const, date: null }] };
+    const f = enrichFromFeed(base, { issuer: "X", name: "X", ratingSp: "BB", ratingMoodys: null, ratingFitch: null, seniority: "Senior unsecured" });
+    expect(f.seniority).toBe("tier2");
+    expect(f.agencyRatings).toHaveLength(1);
+  });
+});

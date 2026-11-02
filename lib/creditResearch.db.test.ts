@@ -25,6 +25,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     // A: a fresh stored assessment (never queued); B, C: nothing stored.
     await db.enqueueIsins([A], false, 0); // forces the tables (and bond_credit_analysis) into existence
     await s`delete from app.credit_research_jobs`;
+    await s`delete from app.bond_credit_analysis where isin in (${B}, ${C})`;
     await s`insert into app.bond_credit_analysis (isin, issuer_rating_min, issuer_rating_max, bond_rating_min, bond_rating_max, rating_assessment_date, rating_verification_status) values (${A}, 66, 79, 60, 70, current_date, 'provisional') on conflict (isin) do nothing`;
 
     await db.enqueueIsins([A, B, C], false);

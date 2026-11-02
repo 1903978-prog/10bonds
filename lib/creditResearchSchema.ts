@@ -42,7 +42,7 @@ export function parseResult(isin: string, raw: unknown): Parsed {
   const facts: ResearchFacts = {
     isin, issuerType, seniority, guaranteed: typeof r.guaranteed === "boolean" ? r.guaranteed : null, agencyRatings,
     metrics: { netDebtToEbitda: numOrNull(m.netDebtToEbitda), interestCover: numOrNull(m.interestCover), cet1Pct: numOrNull(m.cet1Pct), nplPct: numOrNull(m.nplPct), debtToGdpPct: numOrNull(m.debtToGdpPct) },
-    risks, conflicts: (Array.isArray(r.conflicts) ? r.conflicts : []).map((c) => str(c, 300)).filter(Boolean).slice(0, 10), evidence,
+    risks, notes: (Array.isArray(r.notes) ? r.notes : []).map((c) => str(c, 300)).filter(Boolean).slice(0, 5), conflicts: (Array.isArray(r.conflicts) ? r.conflicts : []).map((c) => str(c, 300)).filter(Boolean).slice(0, 10), evidence,
   };
   return { ok: true, facts, usage: { model: str(u.model, 80), ms: Math.max(0, Math.floor(numOrNull(u.ms) ?? 0)), tokensIn: Math.max(0, Math.floor(numOrNull(u.tokensIn) ?? 0)), tokensOut: Math.max(0, Math.floor(numOrNull(u.tokensOut) ?? 0)) } };
 }
