@@ -115,7 +115,7 @@ export function canPublishIR(f: ResearchFacts, scored: Scored = scoreResearch(f)
 }
 
 /** BR gate: everything the IR gate needs, plus the bond itself. Never BR = agency bond grade minus a generic seniority penalty. */
-export function canPublishBR(f: ResearchFacts, issuer: GateResult, scored: Scored = scoreResearch(f), now: Date = new Date()): GateResult {
+export function canPublishBR(f: ResearchFacts, issuer: GateResult, scored: Scored = scoreResearch(f), _now: Date = new Date()): GateResult {
   const reasons: string[] = [];
   const b = f.bond;
   const width = scored.brMax - scored.brMin;
