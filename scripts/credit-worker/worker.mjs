@@ -19,6 +19,8 @@ const TOKEN = process.env.WORKER_TOKEN ?? "";
 const OLLAMA = (process.env.OLLAMA_URL ?? "http://127.0.0.1:11434").replace(/\/$/, "");
 const MODEL = process.env.OLLAMA_MODEL ?? "";
 const ID = process.env.WORKER_ID ?? `worker-${hostname().replace(/[^A-Za-z0-9._-]/g, "")}`.slice(0, 60);
+export const WORKER_VERSION = "2026-11-02.4";
+let NET_DIAG = null;
 const IDLE_MS = Number(process.env.IDLE_SECONDS ?? 60) * 1000;
 const MAX_DOCS = Number(process.env.MAX_DOCS ?? 6);
 const CTX = Number(process.env.NUM_CTX ?? 8192);
@@ -839,11 +841,16 @@ if (isMain) {
     console.error(t ? `Set OLLAMA_MODEL to one of: ${t.models.map((m) => m.name).join(", ")}` : `Ollama is not answering at ${OLLAMA}`);
     process.exit(1);
   }
-  log(`worker ${ID} -> ${SITE}, model ${MODEL}, ollama ${OLLAMA}`);
+  log(`worker ${ID} v${WORKER_VERSION} -> ${SITE}, model ${MODEL}, ollama ${OLLAMA}`);
+  // One look at what this computer can reach, sent with every job request, so the admin page shows why a job found no sources.
+  NET_DIAG = (await Promise.all(["https://api.gleif.org/api/v1/lei-records?page[size]=1", "https://api.worldbank.org/v2/country/DE?format=json", "https://en.wikipedia.org/w/api.php?action=query&meta=siteinfo&format=json", "https://www.lbbw.de/", "https://www.bundesbank.de/"].map(async (u) => {
+    try { const r = await fetch(u, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(15_000) }); return `${new URL(u).hostname} ${r.status}`; } catch (e) { return `${new URL(u).hostname} ${e.cause?.code ?? e.message}`; }
+  }))).join(" | ");
+  log("network check:", NET_DIAG);
   let fails = 0;
   while (!stopping) {
     try {
-      const r = await api("claim", {});
+      const r = await api("claim", { version: WORKER_VERSION, diag: NET_DIAG });
       if (r.status === 401) { console.error("token rejected: create a new one in Admin > Credit Research"); process.exit(2); }
       fails = 0;
       if (r.job) { log("claimed", r.job.isin, `P${r.job.priority}`); await work(r.job); continue; }

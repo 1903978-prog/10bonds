@@ -178,6 +178,7 @@ table app.credit_research_jobs
   created_at timestamp with time zone not null default now()
   updated_at timestamp with time zone not null default now()
   completed_at timestamp with time zone
+  rerun_epoch smallint not null default 0
 
 table app.credit_research_runs
   id bigint not null default nextval(...)
@@ -210,6 +211,8 @@ table app.credit_research_workers
   stage text
   host text
   last_seen timestamp with time zone not null default now()
+  version text
+  diag text
 
 table app.credit_worker_kb
   key text not null
