@@ -501,3 +501,23 @@ async function progressOf(s: Sql) {
   const [rr] = await s<Record<string, string>[]>`select count(*) filter (where rerun_epoch = ${RERUN_EPOCH}::smallint) queued, count(*) filter (where rerun_epoch = ${RERUN_EPOCH}::smallint and status = 'done') done from app.credit_research_jobs`;
   return { rerun: { total: Number(rr.queued), done: Number(rr.done) }, total, done, failed, remaining, perHour: Math.round(perHour * 10) / 10, etaHours: perHour > 0 ? Math.round((remaining / perHour) * 10) / 10 : null };
 }
+
+/** Public worker summary: no host, no ids, no token. */
+export async function workerStatus() {
+  const s = await sql();
+  const w = await s<{ version: string | null; model: string | null; stage: string | null; seconds_ago: number; diag: string | null }[]>`
+    select version, model, stage, diag, extract(epoch from now() - last_seen)::int as seconds_ago from app.credit_research_workers order by last_seen desc limit 1`;
+  const [c] = await s<{ done_1h: number; done_24h: number; queued: number; processing: number }[]>`
+    select count(*) filter (where status = 'done' and completed_at > now() - interval '1 hour')::int done_1h,
+      count(*) filter (where status = 'done' and completed_at > now() - interval '1 day')::int done_24h,
+      count(*) filter (where status = 'queued')::int queued, count(*) filter (where status = 'processing')::int processing
+    from app.credit_research_jobs`;
+  const x = w[0];
+  return {
+    connected: !!x && x.seconds_ago < 180,
+    lastSeenSecondsAgo: x ? x.seconds_ago : null,
+    version: x?.version ?? null, model: x?.model ?? null, stage: x?.stage ?? null,
+    network: x?.diag ? x.diag.replace(/\s+/g, " ").slice(0, 400) : null,
+    jobsDoneLastHour: c.done_1h, jobsDoneLast24h: c.done_24h, queued: c.queued, processing: c.processing,
+  };
+}
