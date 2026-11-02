@@ -26,6 +26,40 @@ table app.bond_codes
   seq integer not null
   assigned_at timestamp with time zone not null default now()
 
+table app.bond_credit_analysis
+  isin text not null
+  issuer_rating_min numeric
+  issuer_rating_max numeric
+  issuer_rating numeric
+  bond_rating_min numeric
+  bond_rating_max numeric
+  bond_rating numeric
+  rating_assessment_date date
+  rating_verification_status text
+  recommendation numeric
+  recommendation_label text
+  effective_grade text
+  excluded_below_grade text
+  exclusion_reason text
+  risk_pay_website numeric
+  risk_pay_adjusted numeric
+  detail jsonb
+  version text
+  updated_at timestamp with time zone not null default now()
+  publish_ir boolean not null default false
+  publish_br boolean not null default false
+  publication_status text not null default 'insufficient_evidence'::text
+  gate jsonb
+  last_attempt jsonb
+  human_validated_at timestamp with time zone
+  human_validated_by text
+
+table app.bond_credit_analysis_history
+  id bigint not null default nextval(...)
+  isin text not null
+  archived_at timestamp with time zone not null default now()
+  row jsonb not null
+
 table app.bond_daily_prices
   as_of date not null
   isin text not null
@@ -114,6 +148,58 @@ table app.correction_requests
   message text not null
   requested_at timestamp with time zone not null default now()
   status text not null default 'open'::text
+
+table app.credit_research_jobs
+  isin text not null
+  priority smallint not null default 0
+  status text not null default 'queued'::text
+  stage text
+  exposure_count integer not null default 1
+  first_exposed_at timestamp with time zone not null default now()
+  last_exposed_at timestamp with time zone not null default now()
+  account_exposed boolean not null default false
+  attempts integer not null default 0
+  next_attempt_at timestamp with time zone not null default now()
+  claimed_by text
+  claimed_at timestamp with time zone
+  lease_until timestamp with time zone
+  last_error text
+  result_hash text
+  created_at timestamp with time zone not null default now()
+  updated_at timestamp with time zone not null default now()
+  completed_at timestamp with time zone
+
+table app.credit_research_runs
+  id bigint not null default nextval(...)
+  isin text not null
+  worker_id text
+  at timestamp with time zone not null default now()
+  ok boolean not null
+  model text
+  ms integer
+  tokens_in integer
+  tokens_out integer
+  sources integer
+  error text
+
+table app.credit_research_settings
+  key text not null
+  value text not null
+
+table app.credit_research_tokens
+  token_hash text not null
+  label text
+  created_at timestamp with time zone not null default now()
+  revoked_at timestamp with time zone
+  last_used_at timestamp with time zone
+
+table app.credit_research_workers
+  worker_id text not null
+  model text
+  current_isin text
+  stage text
+  host text
+  last_seen timestamp with time zone not null default now()
 
 table app.daily_counts
   day date not null
@@ -623,6 +709,8 @@ constraints
   app.bond_codes bond_codes_currency_seq_key: UNIQUE (currency, seq)
   app.bond_codes bond_codes_pkey: PRIMARY KEY (isin)
   app.bond_codes bond_codes_seq_check: CHECK (((seq >= 1) AND (seq <= 99999)))
+  app.bond_credit_analysis bond_credit_analysis_pkey: PRIMARY KEY (isin)
+  app.bond_credit_analysis_history bond_credit_analysis_history_pkey: PRIMARY KEY (id)
   app.bond_daily_prices bond_daily_prices_pkey: PRIMARY KEY (as_of, isin)
   app.bond_import_batches bond_import_batches_pkey: PRIMARY KEY (id)
   app.bond_import_rows bond_import_rows_pkey: PRIMARY KEY (batch_id, isin)
@@ -636,6 +724,11 @@ constraints
   app.consents consents_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
+  app.credit_research_jobs credit_research_jobs_pkey: PRIMARY KEY (isin)
+  app.credit_research_runs credit_research_runs_pkey: PRIMARY KEY (id)
+  app.credit_research_settings credit_research_settings_pkey: PRIMARY KEY (key)
+  app.credit_research_tokens credit_research_tokens_pkey: PRIMARY KEY (token_hash)
+  app.credit_research_workers credit_research_workers_pkey: PRIMARY KEY (worker_id)
   app.daily_counts daily_counts_pkey: PRIMARY KEY (day, kind, path, country)
   app.discount_codes discount_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.discount_codes discount_codes_pkey: PRIMARY KEY (code)
@@ -757,6 +850,9 @@ indexes
   CREATE UNIQUE INDEX bond_codes_bond_code_key ON app.bond_codes USING btree (bond_code)
   CREATE UNIQUE INDEX bond_codes_currency_seq_key ON app.bond_codes USING btree (currency, seq)
   CREATE UNIQUE INDEX bond_codes_pkey ON app.bond_codes USING btree (isin)
+  CREATE UNIQUE INDEX bond_credit_analysis_pkey ON app.bond_credit_analysis USING btree (isin)
+  CREATE INDEX bond_credit_analysis_history_isin ON app.bond_credit_analysis_history USING btree (isin, archived_at DESC)
+  CREATE UNIQUE INDEX bond_credit_analysis_history_pkey ON app.bond_credit_analysis_history USING btree (id)
   CREATE UNIQUE INDEX bond_daily_prices_pkey ON app.bond_daily_prices USING btree (as_of, isin)
   CREATE UNIQUE INDEX bond_import_batches_pkey ON app.bond_import_batches USING btree (id)
   CREATE UNIQUE INDEX bond_import_rows_pkey ON app.bond_import_rows USING btree (batch_id, isin)
@@ -769,6 +865,12 @@ indexes
   CREATE INDEX consents_user_idx ON app.consents USING btree (user_id, kind, version)
   CREATE UNIQUE INDEX consents_pkey ON app.consents USING btree (id)
   CREATE UNIQUE INDEX correction_requests_pkey ON app.correction_requests USING btree (id)
+  CREATE INDEX credit_research_jobs_pick ON app.credit_research_jobs USING btree (status, next_attempt_at)
+  CREATE UNIQUE INDEX credit_research_jobs_pkey ON app.credit_research_jobs USING btree (isin)
+  CREATE UNIQUE INDEX credit_research_runs_pkey ON app.credit_research_runs USING btree (id)
+  CREATE UNIQUE INDEX credit_research_settings_pkey ON app.credit_research_settings USING btree (key)
+  CREATE UNIQUE INDEX credit_research_tokens_pkey ON app.credit_research_tokens USING btree (token_hash)
+  CREATE UNIQUE INDEX credit_research_workers_pkey ON app.credit_research_workers USING btree (worker_id)
   CREATE UNIQUE INDEX daily_counts_pkey ON app.daily_counts USING btree (day, kind, path, country)
   CREATE UNIQUE INDEX discount_codes_pkey ON app.discount_codes USING btree (code)
   CREATE UNIQUE INDEX efficient_portfolio_holdings_pkey ON app.efficient_portfolio_holdings USING btree (snapshot_id, portfolio_id, horizon, ord)
