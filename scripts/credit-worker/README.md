@@ -17,6 +17,8 @@ Settings (environment variables):
 | `INFERENCE_TIMEOUT_S` | whole-answer limit, default 1800 (30 min); there is no shorter hidden limit |
 | `OLLAMA_THINK` | `1` turns the model's thinking on; default off (thinking makes qwen3 models slow and breaks the JSON) |
 
+**Easiest (Windows): double-click `start-worker.bat`** (download it from https://raw.githubusercontent.com/1903978-prog/10bonds/main/scripts/credit-worker/start-worker.bat). It installs nothing else, updates `worker.mjs` itself at every start, remembers the token (asked once) and the model in `%USERPROFILE%\10bonds-worker\config.txt`, starts Ollama if needed and restarts the worker if it stops.
+
 Run once by hand: `node scripts/credit-worker/worker.mjs`.
 
 Start at boot:

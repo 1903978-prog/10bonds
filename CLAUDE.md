@@ -1,3 +1,5 @@
+# RULE ZERO — NEVER ASK LIVIO TO DO THINGS (Livio, 2/11/2026, "the worst thing you can do"): before any request to him, exhaust every way Claude, a thread, a tool or a script can do it; build one-click scripts for anything on his computer; add repos/settings yourself; never repeat steps he already received. Only a physical, legal or over-ceiling-money act may be asked, with one link and one reply word. Full text: /mnt/project-files/working-rules/never-ask-livio-2026-11-02.md
+
 # LIVIO'S TIME — v4 ADDITIONS (2/11/2026; full text: /mnt/project-files/working-rules/protect-livio-time-v4-2026-11-02.md)
 
 - LINKS: every message prints full clickable https:// URLs for every page, PR, thread, admin route, file, plus a "Links:" line at the end. Never "PR #468" alone, never generic /admin when a specific route exists. Open each link first (200 as the right role) and label it truthfully.
