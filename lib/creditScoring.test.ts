@@ -79,7 +79,9 @@ describe("feed facts", () => {
     const f = enrichFromFeed(empty(), { issuer: "Vonovia SE", name: "Vonovia 2030", ratingSp: "BBB+", ratingMoodys: null, ratingFitch: null, seniority: "Senior unsecured" });
     const s = scoreResearch(f);
     expect(s.anchorGrade).toBe("BBB+");
-    expect(s.irMin).toBeGreaterThan(0);
+    // approved corporate method: the agency grade is NOT an input, so with no company figures the IR is the full unknown range, never a number
+    expect([s.irMin, s.irMax]).toEqual([0, 100]);
+    expect(s.independent).toBe(true);
     expect(s.status).toBe("review_required");
     expect(s.missing.some((m) => m.includes("incomplete"))).toBe(true);
     expect(f.evidence.at(-1)?.verification).toBe("unverified");

@@ -2,8 +2,9 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 
+type Meth = { engine: string; engineVersion: string; methodologyVersion: string; skillHash: string; skillSource: string; pcSkill: string; lastVerified: string; calculationConsistency: string; evidenceGate: string; needsRecalculation: number; cases: { name: string; pass: boolean }[] };
 type Ov = {
-  paused: boolean; avgMs: number | null;
+  methodology?: Meth; paused: boolean; avgMs: number | null;
   jobs: Record<string, string>; analyses: Record<string, string>;
   workers: { worker_id: string; model: string | null; current_isin: string | null; stage: string | null; host: string | null; last_seen: string; online: boolean }[];
   references?: { isin: string; issuer: string; lei: string | null; status: string; source_label: string; data: { inputs: { parameter: string; value: string; unit: string; period: string }[]; example: { ir: { point: number; min: number; max: number }; br: { point: number; min: number; max: number }; note: string }; caveats: string[]; seniority: { value: string; basis: string } } }[];
@@ -20,7 +21,7 @@ type Facts = {
   bond?: { legalIssuerMatchesIsin: boolean; seniorityVerified: boolean; guaranteeStatus: string; bondType: string | null; resolutionTreatment: string | null; callable: boolean | null; embeddedRisksAssessed: boolean };
 };
 type Gate = { allowed?: boolean; reasons?: string[]; rangeWidth?: number | null; coverage?: { found: number; max: number }; sourceQuality?: { primary: number; reliable: number }; methodologyVersion?: string };
-export type Row = { isin: string; priority: number; status: string; stage: string | null; exposure_count: number; attempts: number; last_error: string | null; updated_at: string; issuer_rating_min: string | null; issuer_rating_max: string | null; bond_rating_min: string | null; bond_rating_max: string | null; rating_verification_status: string | null; publication_status: string | null; publish_ir: boolean | null; publish_br: boolean | null; gate: { ir?: Gate; br?: Gate } | null; last_attempt: { blocked?: boolean; at?: string } | null; parameters: Params | null; scored: { steps: { label: string; delta: number }[]; missing: string[]; version: string } | null; facts?: Facts; view: { issuer: string | null; lei: string | null; primary: number; reliable: number; sources: number; next: string | null; message: string | null } | null };
+export type Row = { isin: string; priority: number; status: string; stage: string | null; exposure_count: number; attempts: number; last_error: string | null; updated_at: string; issuer_rating_min: string | null; issuer_rating_max: string | null; bond_rating_min: string | null; bond_rating_max: string | null; rating_verification_status: string | null; publication_status: string | null; publish_ir: boolean | null; publish_br: boolean | null; gate: { ir?: Gate; br?: Gate } | null; last_attempt: { blocked?: boolean; at?: string } | null; parameters: Params | null; scored: { steps: { label: string; delta: number }[]; missing: string[]; version: string } | null; facts?: Facts; trace?: Record<string, unknown> | null; row_version?: string | null; view: { issuer: string | null; lei: string | null; primary: number; reliable: number; sources: number; next: string | null; message: string | null } | null };
 
 const LEGEND: [string, string][] = [
   ["ISIN / Issuer", "The bond's code and the company or country behind it. Click a row for the full calculation and the evidence."],
@@ -59,6 +60,19 @@ export default function CreditResearchAdmin() {
   return (
     <div className="space-y-5 text-sm" data-testid="credit-research">
       <h1 className="text-xl font-semibold">Credit Research</h1>
+      {d.methodology && (() => { const m = d.methodology; const bad = (x: string) => x === "FAIL" ? "text-red-700" : "text-green-700"; return (
+        <section className="rounded border border-line p-2" data-testid="methodology">
+          <div className="mb-1 font-medium">Rating methodology</div>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2">
+            <div>Rating engine: <b>{m.engine}</b></div><div>Engine version: {m.engineVersion}</div>
+            <div>Methodology version: {m.methodologyVersion}</div><div className="break-all">Source skill hash: {m.skillHash}</div>
+            <div>Skill source: {m.skillSource}</div><div>Skill file on the PC: {m.pcSkill}</div>
+            <div>Last verified: {new Date(m.lastVerified).toLocaleString("en-GB", { timeZone: "Europe/Rome" })}</div>
+            <div>Calculation consistency: <b className={bad(m.calculationConsistency)} data-testid="consistency">{m.calculationConsistency}</b></div>
+            <div>Evidence publication gate: <b className={bad(m.evidenceGate)} data-testid="evidence-gate">{m.evidenceGate}</b></div>
+            <div>Published ratings made with another method (to recalculate): {m.needsRecalculation}</div>
+          </div>
+        </section>); })()}
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           ["Worker", w ? (w.online ? "online" : "offline") : "never connected"],
@@ -153,6 +167,7 @@ export function Detail({ r, onValidate }: { r: Row; onValidate?: (isin: string) 
       {v?.message && <p className="rounded border border-amber-400 p-2 text-amber-800" data-testid="blocked">{v.message}</p>}
       {r.last_attempt?.blocked && <p className="rounded border border-line p-2">A newer calculation was blocked by the gate; the earlier {r.rating_verification_status === "validated" ? "validated" : "published"} rating was kept.</p>}
       {!f && <p className="text-mute">No finished research for this bond yet.</p>}
+      {r.trace && <Calc trace={r.trace} version={r.row_version ?? null} />}
       {onValidate && f && r.rating_verification_status !== "validated" && <button className="rounded border border-line px-3 py-1" onClick={(e) => { e.stopPropagation(); if (window.confirm(`Mark ${r.isin} as human validated? Its IR and BR become public.`)) onValidate(r.isin); }}>Mark as human validated</button>}
       {f && (
         <div className="grid gap-2 md:grid-cols-2">
@@ -190,6 +205,28 @@ export function Detail({ r, onValidate }: { r: Row; onValidate?: (isin: string) 
       <details className="text-mute"><summary className="cursor-pointer">Technical details</summary>
         <div>Priority P{r.priority} · stage {r.stage ?? "—"} · tries {r.attempts} · seen {r.exposure_count}× · job status {r.status} · rating status {r.rating_verification_status ?? "—"}{r.last_error ? ` · last error: ${r.last_error}` : ""}</div>
       </details>
+    </div>
+  );
+}
+
+/** "View IR/BR calculation": the stored trace, exactly as the engine produced it (inputs, formulas, weights, intermediate results, adjustments). */
+function Calc({ trace, version }: { trace: Record<string, unknown>; version: string | null }) {
+  const [show, setShow] = useState(false);
+  const t = trace as { engineVersion?: string; methodologyVersion?: string; skillHash?: string; ir?: unknown; br?: unknown; unverified?: string[]; factorScores?: { key: string; weight: number; min: number; max: number; origin: string }[]; bondAdjustments?: { tier: string | null; csaRange: number[] | null; sfaPoints: number; flags: string[] }; publicationEligibility?: { allowed: boolean; reasons: string[] } };
+  return (
+    <div className="rounded border border-line p-2" data-testid="calc">
+      <button className="rounded border border-line px-3 py-1" data-testid="view-calc" onClick={(e) => { e.stopPropagation(); setShow(!show); }}>{show ? "Hide" : "View"} IR/BR calculation</button>
+      {version && t.engineVersion && version !== t.engineVersion && <span className="ml-2 text-amber-800">Stored with another version: needs recalculation.</span>}
+      {show && (
+        <div className="mt-2 space-y-1">
+          <div>Engine {t.engineVersion} · {t.methodologyVersion} · skill hash <span className="break-all">{t.skillHash}</span></div>
+          <div>IR {JSON.stringify(t.ir)} · BR {JSON.stringify(t.br)}{t.unverified?.length ? " · " + t.unverified.join(" ") : ""}</div>
+          {!!t.factorScores?.length && <table className="w-full text-left"><thead><tr><th>Factor</th><th>Weight</th><th>Min</th><th>Max</th><th>Origin</th></tr></thead><tbody>{t.factorScores.map((x) => <tr key={x.key}><td>{x.key}</td><td>{(x.weight * 100).toFixed(2)}%</td><td>{x.min}</td><td>{x.max}</td><td>{x.origin}</td></tr>)}</tbody></table>}
+          {t.bondAdjustments && <div>Bond: tier {t.bondAdjustments.tier ?? "—"} · capital-structure adjustment {JSON.stringify(t.bondAdjustments.csaRange)} · structural points {t.bondAdjustments.sfaPoints} {t.bondAdjustments.flags.join(", ")}</div>}
+          <div>Publication: {t.publicationEligibility ? (t.publicationEligibility.allowed ? "eligible" : "blocked: " + t.publicationEligibility.reasons.join(" ")) : "—"}</div>
+          <details><summary>Full stored trace (JSON)</summary><pre className="max-h-80 overflow-auto whitespace-pre-wrap text-[11px]">{JSON.stringify(trace, null, 2)}</pre></details>
+        </div>
+      )}
     </div>
   );
 }

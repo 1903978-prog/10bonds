@@ -17,6 +17,12 @@ const good = (over: Partial<ResearchFacts> = {}): ResearchFacts => ({
   bond: { legalIssuerMatchesIsin: true, seniorityVerified: true, guaranteeStatus: "none_confirmed", bondType: "senior unsecured MTN", resolutionTreatment: "senior preferred", callable: false, embeddedRisksAssessed: true, evidence: ["https://www.lbbw.de/h1.pdf"] },
   ...over,
 });
+/** A sovereign the owner's table covers (Chile): the one non-corporate type with an approved numerical method. */
+const goodSov = (over: Partial<ResearchFacts> = {}): ResearchFacts => good({
+  isin: "XS2975303483", issuerType: "sovereign", metrics: { debtToGdpPct: 38 }, metricPeriods: { debtToGdpPct: "2025-12-31" },
+  issuer: { canonicalId: "CHILE", legalName: "Republic of Chile", lei: "B81CK4ESI35472RHJ606", identityVerified: false, typeVerified: true },
+  structural: { tier: "senior-unsecured-opco", flags: {} }, ...over,
+});
 const indep = (f: ResearchFacts) => ({ ...scoreResearch(f), independent: true });
 const ir = (f: ResearchFacts) => canPublishIR(f, indep(f), NOW);
 const br = (f: ResearchFacts) => canPublishBR(f, ir(f), indep(f), NOW);
@@ -40,15 +46,20 @@ describe("publication gate", () => {
     expect(r.allowed).toBe(false);
     expect(r.missingCritical).toContain("cet1Pct");
   });
-  it("4. everything present and passing: eligible", () => {
+  it("4a. a bank with every input is STILL blocked: the owner has approved no numerical bank method", () => {
     const r = ir(good());
+    expect(r.allowed).toBe(false);
+    expect(r.reasons.join(" ")).toMatch(/Unverified - insufficient data/);
+  });
+  it("4. everything present and passing: eligible", () => {
+    const r = ir(goodSov());
     expect(r.reasons).toEqual([]);
     expect(r.allowed).toBe(true);
     expect(r.coverage.found).toBeGreaterThanOrEqual(10);
     expect(r.sourceQuality.primary).toBeGreaterThanOrEqual(2);
   });
   it("5. IR eligible but seniority unknown: BR blocked, IR still allowed", () => {
-    const f = good({ seniority: "unknown", bond: { ...good().bond!, seniorityVerified: false } });
+    const f = goodSov({ seniority: "unknown", bond: { ...goodSov().bond!, seniorityVerified: false } });
     // seniority is one of the 12 parameters; 11 of 12 still pass the 10 needed
     expect(ir(f).allowed).toBe(true);
     const b = br(f);
@@ -64,7 +75,7 @@ describe("publication gate", () => {
     expect(ir(byName).reasons.join(" ")).toMatch(/contradicts the legal name/);
   });
   it("10. a bond rating above the issuer rating needs recorded structural adjustments", () => {
-    const f = good({ guaranteed: true, bond: { ...good().bond!, guaranteeStatus: "guaranteed" } });
+    const f = goodSov({ guaranteed: true, structural: { tier: "senior-unsecured-opco", flags: { strongerParentGuarantee: true } }, bond: { ...goodSov().bond!, guaranteeStatus: "guaranteed" } });
     const s = indep(f);
     expect(s.brMax).toBeGreaterThanOrEqual(s.irMax); // guarantee / security lifts BR
     expect(canPublishBR(f, canPublishIR(f, s, NOW), s, NOW).allowed).toBe(true); // the adjustment is recorded in the steps

@@ -773,6 +773,22 @@ export async function selftest() {
   return ok;
 }
 
+
+/** Finds the owner's original $bonds skill on THIS computer and uploads its text (and any files next to it) to the website, which compares its hash. Never edits anything. */
+export async function uploadBondsSkill() {
+  const home = process.env.USERPROFILE || process.env.HOME || "";
+  const cands = [join(home, ".codex", "skills", "bonds", "SKILL.md"), "C:\\Users\\moret\\.codex\\skills\\bonds\\SKILL.md", join(home, ".codex", "skills", "bonds", "skill.md"), join(home, ".agents", "skills", "bonds", "SKILL.md"), join(home, ".claude", "skills", "bonds", "SKILL.md")];
+  for (const p of cands) {
+    try {
+      const text = await readFile(p, "utf8");
+      const r = await kbApi({ op: "put", entries: { "skill:bonds": { path: p, found: true, bytes: text.length, uploadedAt: new Date().toISOString(), text: text.slice(0, 150000) } } });
+      return { found: true, path: p, bytes: text.length, uploaded: !!r?.saved };
+    } catch { /* try the next place */ }
+  }
+  await kbApi({ op: "put", entries: { "skill:bonds": { found: false, tried: cands, uploadedAt: new Date().toISOString() } } });
+  return { found: false, tried: cands };
+}
+
 /** Everything the cloud sandbox cannot see, checked from THIS computer. Writes check-report.txt; the launcher runs it before the worker starts. Needs no job and writes nothing except one small test entry in the shared memory. */
 export async function lenovoCheck() {
   const L = [`Lenovo check ${new Date().toISOString()} · worker ${ID} · site ${SITE}`]; let bad = 0;
@@ -784,6 +800,8 @@ export async function lenovoCheck() {
   line(!!kb && kb.saved === 1, "website database (shared memory) write", kb ? `saved ${kb.saved}` : "route not answering - the site may not have this release yet, or the token is wrong");
   const back = kb ? await kbApi({ op: "get", keys: ["domain:lenovo-check"] }) : null;
   line(!!back?.values?.["domain:lenovo-check"], "website database (shared memory) read");
+  // 1b the original $bonds skill on this computer
+  { const sk = await uploadBondsSkill().catch(() => null); (sk?.found ? line(true, "original $bonds skill file found and uploaded", `${sk.path} (${sk.bytes} bytes)`) : info("original $bonds skill file", "not found in the usual .codex folders - the website keeps its saved copy")); }
   // 2 Ollama, models
   const tags = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).catch(() => null);
   line(!!tags, "Ollama answers", OLLAMA);
