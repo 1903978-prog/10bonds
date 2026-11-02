@@ -155,6 +155,12 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     expect([{ issuer_rating_min: after[0].issuer_rating_min, issuer_rating_max: after[0].issuer_rating_max }]).toEqual(before.map((b) => ({ issuer_rating_min: b.issuer_rating_min, issuer_rating_max: b.issuer_rating_max })));
     expect(after[0].rating_verification_status).toBe("validated");
     expect(after[0].last_attempt.blocked).toBe(true);
+    // the labelled LBBW reference case is stored for the admin, and it never reaches the public API
+    const refs = await db.referenceCases();
+    const lbbw = refs.find((r) => r.isin === "DE000LB2CW16");
+    expect(lbbw?.status).toBe("internal_provisional");
+    expect(lbbw?.lei).toBe("B81CK4ESI35472RHJ606");
+    expect((await db.publicRatings(["DE000LB2CW16"])).ratings["DE000LB2CW16"]).toBeUndefined();
     await s`delete from app.bond_credit_analysis where isin = ${P}`;
     await s.end();
   }, 60_000);

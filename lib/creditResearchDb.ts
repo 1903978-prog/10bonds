@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
 import { isIsin } from "./creditResearchSchema";
+import { LBBW_CASE } from "./creditReferenceCases";
 import { parameterReport } from "./creditParameters";
 import { evaluate, GATE_VERSION, type GateOutcome } from "./creditGate";
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
@@ -48,6 +49,8 @@ async function sql(): Promise<Sql> {
     await s`create table if not exists app.bond_credit_analysis_history (id bigserial primary key, isin text not null, archived_at timestamptz not null default now(), row jsonb not null)`;
     await s`create index if not exists bond_credit_analysis_history_isin on app.bond_credit_analysis_history (isin, archived_at desc)`;
     await ensurePublicationGate(s);
+    await s`create table if not exists app.credit_reference_cases (isin text primary key, issuer text not null, lei text, status text not null default 'internal_provisional', source_label text not null, provided_on date, data jsonb not null, created_at timestamptz not null default now())`;
+    await s`insert into app.credit_reference_cases (isin, issuer, lei, status, source_label, provided_on, data) values (${LBBW_CASE.isin}, ${LBBW_CASE.issuer}, ${LBBW_CASE.lei}, ${LBBW_CASE.status}, ${LBBW_CASE.sourceLabel}, ${LBBW_CASE.providedOn}, ${s.json(LBBW_CASE as never)}) on conflict (isin) do nothing`;
   })().catch((e) => { ready = null; throw e; });
   await ready;
   return s;
@@ -306,7 +309,13 @@ export async function overview() {
   const [avg] = await s<{ ms: string | null }[]>`select avg(ms)::int as ms from app.credit_research_runs where ok and at > now() - interval '7 days'`;
   // Parameters are always recomputed from the stored facts with the current list, so older rows show the same counts as new ones.
   const recent = (jobs as unknown as ({ isin: string; facts: unknown } & Record<string, unknown>)[]).map(({ facts, ...r }) => ({ ...r, parameters: facts ? parameterReport(facts as ResearchFacts) : null }));
-  return { jobs: c, analyses: a, workers, recent, avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
+  return { jobs: c, analyses: a, workers, recent, references: await referenceCases(), avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
+}
+
+/** Labelled reference cases (internal teaching data, never public). */
+export async function referenceCases() {
+  const s = await sql();
+  return s`select isin, issuer, lei, status, source_label, provided_on, data from app.credit_reference_cases order by created_at`;
 }
 
 export async function retryFailed(): Promise<number> {

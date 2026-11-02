@@ -6,6 +6,7 @@ type Ov = {
   paused: boolean; avgMs: number | null;
   jobs: Record<string, string>; analyses: Record<string, string>;
   workers: { worker_id: string; model: string | null; current_isin: string | null; stage: string | null; host: string | null; last_seen: string; online: boolean }[];
+  references?: { isin: string; issuer: string; lei: string | null; status: string; source_label: string; data: { inputs: { parameter: string; value: string; unit: string; period: string }[]; example: { ir: { point: number; min: number; max: number }; br: { point: number; min: number; max: number }; note: string }; caveats: string[]; seniority: { value: string; basis: string } } }[];
   recent: { isin: string; priority: number; status: string; stage: string | null; exposure_count: number; attempts: number; last_error: string | null; updated_at: string; issuer_rating_min: string | null; issuer_rating_max: string | null; bond_rating_min: string | null; bond_rating_max: string | null; rating_verification_status: string | null; coverage: string | null; sources: number | null; missing: string | null; parameters: Params | null; publication_status: string | null; publish_ir: boolean | null; publish_br: boolean | null; gate: { ir?: { reasons?: string[] }; br?: { reasons?: string[] } } | null; same_as: string[] | null; steps: { label: string; delta: number }[] | null }[];
 };
 
@@ -77,6 +78,22 @@ export default function CreditResearchAdmin() {
         <button className="rounded border border-line px-3 py-1" onClick={() => act("revoke")}>Revoke all tokens</button>
         {token && <code className="mt-2 block break-all rounded bg-soft p-2 text-[12px]" data-testid="new-token">{token}</code>}
       </section>
+      {d.references?.length ? (
+        <section className="rounded border border-line p-3" data-testid="reference-cases">
+          <div className="mb-1 font-medium">Reference cases (teaching examples, internal, never public)</div>
+          {d.references.map((c) => (
+            <details key={c.isin} className="mb-1">
+              <summary className="cursor-pointer">{c.isin} · {c.issuer} · LEI {c.lei} · {c.status} · source: {c.source_label}</summary>
+              <div className="mt-1 space-y-1 text-[12px]">
+                <div>Seniority: {c.data.seniority.value} ({c.data.seniority.basis})</div>
+                <div>Example (not from the approved formula): IR {c.data.example.ir.point} ({c.data.example.ir.min}–{c.data.example.ir.max}), BR {c.data.example.br.point} ({c.data.example.br.min}–{c.data.example.br.max}). {c.data.example.note}</div>
+                <div>Inputs: {c.data.inputs.map((i) => `${i.parameter} ${i.value} ${i.unit.split(" ")[0]} (${i.period})`).join("; ")}</div>
+                <ul className="list-disc pl-5 text-red-700">{c.data.caveats.map((x, k) => <li key={k}>{x}</li>)}</ul>
+              </div>
+            </details>
+          ))}
+        </section>
+      ) : null}
       <section>
         <div className="mb-1 font-medium">Latest jobs</div>
         <details className="mb-2 rounded border border-line p-2" open data-testid="legend">
