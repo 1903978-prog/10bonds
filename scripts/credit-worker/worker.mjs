@@ -2,15 +2,16 @@
 // 10bonds credit research worker (runs on the owner's computer, NOT on the website server).
 // Loop: claim a job over HTTPS -> collect public sources -> local Ollama extracts facts as JSON -> send facts + sources back.
 // The website validates the facts and calculates IR / BR itself. Only the local Ollama endpoint is ever used for inference.
-// Needs Node 18+. No packages. Optional: `pdftotext` (poppler) to read PDF reports.
+// Needs Node 18+. One optional package (pdfjs-dist, installed by itself on first use) or `pdftotext` (poppler) to read PDF reports.
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import http from "node:http";
 import https from "node:https";
 import { writeFile, rm, mkdtemp } from "node:fs/promises";
 import { tmpdir, hostname } from "node:os";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { join, dirname } from "node:path";
+import { pathToFileURL, fileURLToPath } from "node:url";
+import { lookup } from "node:dns/promises";
 
 const run = promisify(execFile);
 const SITE = (process.env.BONDS_URL ?? "https://10bonds.com").replace(/\/$/, "");
@@ -70,15 +71,36 @@ const strip = (h) => h.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").
 // ---- Evidence-backed figures (same rules as lib/creditExtract.ts on the website). The model never supplies a number: a figure counts only if a
 // sentence of the retrieved document names it, and that sentence travels with the figure as its citation. No match = missing, never inferred. ----
 const NUM = "(\\d{1,3}(?:[.,]\\d+)?)";
+const AMT = "(\\d{1,3}(?:,\\d{3})+|\\d+(?:[.,]\\d+)?)";
+const PCT = "\\s?(?:%|per ?cent)";
+// Words that put a figure in the PRIOR period or in a business segment, not the group's current figure.
+const PRIOR_CUE = /previous year|prior[- ]year|last year|compared with|versus|\bvs\.?\s/i;
+const SEGMENT_CUE = /segment|Corporate Customers|Real Estate|Capital Markets|Private Customers|Savings Banks|division|business unit/i;
+const lbl = (l) => ({
+  fwd: new RegExp(`${l}[^.;\\n]{0,60}?${NUM}${PCT}`, "gi"),        // "CET1 ratio of 16.1%"
+  rev: new RegExp(`${NUM}${PCT},?\\s+(?:[a-z-]+\\s+){0,2}?${l}`, "gi"), // "At 8.3%, return on equity"
+  tab: new RegExp(`${l}[^\\d.;]{0,60}?${NUM}\\s+${NUM}(?![\\d.,])`, "gi"), // table row: current period first, then prior
+});
+const L_CET1 = "(?:CET\\s?1|common equity tier 1)(?: capital)?(?: ratio)?";
+const L_NPE = "(?:non-?performing exposures?|\\bNPE\\b)(?: ratio)?";
+const L_NPL = "(?:non-?performing loans?|\\bNPL\\b)(?: ratio)?";
+const L_ROE = "(?:return on equity|\\bRoE\\b)";
+const L_CIR = "cost[/ -]?(?:to[- ])?income ratio";
+const L_TCR = "total capital ratio";
 export const BANK_RULES = [
-  { parameter: "cet1Pct", unit: "%", re: new RegExp(`(?:CET\\s?1|common equity tier 1)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
-  { parameter: "npePct", unit: "%", re: new RegExp(`(?:non-?performing exposures?|\\bNPE\\b)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
-  { parameter: "nplPct", unit: "%", re: new RegExp(`(?:non-?performing loans?|\\bNPL\\b)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
-  { parameter: "roePct", unit: "%", re: new RegExp(`(?:return on equity|\\bRoE\\b)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
-  { parameter: "costIncomePct", unit: "%", re: new RegExp(`cost[/ -]?(?:to[- ])?income ratio[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
-  { parameter: "totalCapitalPct", unit: "%", re: new RegExp(`total capital ratio[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
-  { parameter: "pretaxProfitEurM", unit: "EUR m", re: new RegExp(`(?:pre-?tax (?:profit|result)|profit before tax)[^.;\\n]{0,60}?(?:EUR|€)\\s?${NUM}\\s?(?:m\\b|million)`, "i") },
+  { parameter: "cet1Pct", unit: "%", pats: Object.values(lbl(L_CET1)) },
+  { parameter: "npePct", unit: "%", pats: Object.values(lbl(L_NPE)) },
+  { parameter: "nplPct", unit: "%", pats: Object.values(lbl(L_NPL)) },
+  { parameter: "roePct", unit: "%", pats: Object.values(lbl(L_ROE)) },
+  { parameter: "costIncomePct", unit: "%", pats: Object.values(lbl(L_CIR)) },
+  { parameter: "totalCapitalPct", unit: "%", pats: Object.values(lbl(L_TCR)) },
+  { parameter: "pretaxProfitEurM", unit: "EUR m", skipSentence: SEGMENT_CUE, pats: [
+    new RegExp(`(?:EUR|€)\\s?${AMT}\\s?(?:m\\b|million)\\s+(?:\\w+\\s+)?before tax`, "gi"),                         // "EUR 708 million before tax"
+    new RegExp(`consolidated (?:profit|result)(?:/loss)? before tax[^\\d]{0,30}?${AMT}\\s+${AMT}(?![\\d.,])`, "gi"), // group table row, current period first
+    new RegExp(`(?:pre-?tax (?:profit|result)|profit before tax)[^.;\\n]{0,60}?(?:EUR|€)\\s?${AMT}\\s?(?:m\\b|million)`, "gi"),
+  ] },
 ];
+const toNumber = (v) => Number(/^\d{1,3}(,\d{3})+$/.test(v) ? v.replace(/,/g, "") : v.replace(",", "."));
 function sentenceAround(text, start, end) {
   const bounds = [0];
   for (const m of text.matchAll(/(?<=[.!?])\s+(?=[A-Z€(])|\n+/g)) bounds.push(m.index + m[0].length);
@@ -90,9 +112,19 @@ function sentenceAround(text, start, end) {
 export function extractBankFigures(text) {
   const found = [];
   for (const r of BANK_RULES) {
-    const m = r.re.exec(text);
-    if (!m) continue;
-    found.push({ parameter: r.parameter, value: Number(m[1].replace(",", ".")), unit: r.unit, quote: sentenceAround(text, m.index, m.index + m[0].length) });
+    let best = null;
+    for (const re of r.pats) {
+      re.lastIndex = 0;
+      for (const m of text.matchAll(re)) {
+        const quote = sentenceAround(text, m.index, m.index + m[0].length);
+        if (r.skipSentence && r.skipSentence.test(quote)) continue;          // a business segment, not the group
+        const beforeNumber = m[0].slice(0, m[0].indexOf(m[1]));
+        if (PRIOR_CUE.test(beforeNumber)) continue;                          // "... than in the previous year (8.6%)" is last year's figure
+        if (!best || m.index < best.idx) best = { idx: m.index, value: toNumber(m[1]), quote };
+        break;
+      }
+    }
+    if (best) found.push({ parameter: r.parameter, value: best.value, unit: r.unit, quote: best.quote });
   }
   const have = new Set(found.map((f) => f.parameter));
   return { found, missing: BANK_RULES.map((r) => r.parameter).filter((p) => !have.has(p)) };
@@ -136,7 +168,12 @@ async function pdfText(buf) {
     let out = "";
     for (let i = 1; i <= Math.min(doc.numPages, 60) && out.length < 400_000; i++) out += " " + (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
     return out.replace(/\s+/g, " ");
-  } catch (e) { if (!warnedPdf) { warnedPdf = true; log("PDF reports are skipped: run `npm install` in scripts\\credit-worker (or install pdftotext)", e.code ?? ""); } return ""; }
+  } catch (e) {
+    if (e.code === "ERR_MODULE_NOT_FOUND" && !triedInstall) { // install the one optional package by itself, once, then retry
+      triedInstall = true; log("installing the PDF reader (npm install, once) ...");
+      try { await run("npm", ["install", "--silent", "--no-audit", "--no-fund"], { cwd: dirname(fileURLToPath(import.meta.url)), shell: process.platform === "win32", timeout: 240_000 }); return await pdfText(buf); } catch (e2) { log("PDF reader install failed:", e2.message.slice(0, 120)); }
+    }
+    if (!warnedPdf) { warnedPdf = true; log("PDF reports are skipped: run `npm install` in scripts\\credit-worker (or install pdftotext)", e.code ?? ""); } return ""; }
 }
 
 // ---- retrieval: GLEIF (legal entity + parent), Wikipedia/Wikidata (website), the issuer's investor pages and reports ----
@@ -156,7 +193,7 @@ export function relevantText(text, budget) {
   const top = [...chunks].sort((x, y) => score(y) - score(x)).slice(0, Math.max(1, Math.floor(budget / 700)));
   return top.sort((x, y) => x.i - y.i).map((c) => c.t).join(" … ");
 }
-let warnedPdf = false;
+let warnedPdf = false; let triedInstall = false;
 const IR_PATHS = ["/investors", "/investor-relations", "/en/investors", "/en/investor-relations", "/investor", "/ir", "/en/ir", "/investors/financial-reports", "/en/investors/financial-reports", "/about-us/investors", "/en/about-us/investors", "/company/investors"];
 const baseDomain = (h) => h.split(".").slice(-2).join(".");
 
@@ -200,6 +237,7 @@ async function guessSite(core) {
   if (slug.length < 4) return null;
   const first = core.toLowerCase().split(/\s+/)[0];
   for (const tld of SLUG_TLDS) for (const host of [`www.${slug}${tld}`, `${slug}${tld}`]) {
+    if (!(await lookup(host).then(() => true, () => false))) continue; // no such host: skip silently
     const h = await get(`https://${host}/`);
     if (h && strip(h).toLowerCase().includes(first)) return `https://${host}/`;
   }
@@ -261,7 +299,9 @@ async function collect(job) {
     }
   });
   // 2. Website: Wikipedia search -> Wikidata item -> official website (issuer first, then the parent).
+  // the owner's reference sources name the real website: use it before any search or guess
   let site = null;
+  for (const src of [...(job.hints?.sources ?? [])].sort((a, b) => a.priority - b.priority)) { try { const u = new URL(src.url); if (!/boerse|bankingresolution|gleif|wikipedia/.test(u.hostname)) { site = `${u.origin}/`; break; } } catch { /* bad url */ } }
   for (const n of [...names, ...(parent ? nameVariants(parent) : [])]) {
     if (site) break;
     await guard(async () => {
@@ -410,8 +450,11 @@ export async function gatherFigures(job, docs, fetchMore = null, rounds = 2) {
     if (d.method === "api") return;
     const per = reportPeriod(d.text);
     for (const f of extractBankFigures(d.text).found) {
-      if (figures.some((x) => x.parameter === f.parameter)) continue; // the first (highest-priority) document wins; a conflicting second value is reported below
-      figures.push({ ...f, url: d.url, period: per?.label ?? null, reportingDate: per?.end ?? null });
+      const have = figures.find((x) => x.parameter === f.parameter);
+      const rd = per?.end ?? null;
+      // the first (highest-priority) document wins, unless a later document is for a NEWER reporting period (H1 2026 beats FY 2025); a conflicting same-period value is reported below
+      if (have) { if (rd && (!have.reportingDate || rd > have.reportingDate)) figures.splice(figures.indexOf(have), 1); else continue; }
+      figures.push({ ...f, url: d.url, period: per?.label ?? null, reportingDate: rd });
       d.verified = true;
     }
   };

@@ -34,3 +34,19 @@ describe("credit worker helpers", () => {
     expect(String(w.relevantText(long as never, 1400 as never))).toContain("Net debt");
   });
 });
+
+const LBBW_H1_2026 = `Half-year results 2026 LBBW firmly on track LBBW continued its positive performance in the first half of 2026. The bank again recorded strong earnings of EUR 708 million before tax, reaching again the high level of the previous year (EUR 705 million). The cost/income ratio improved to 60.4% (H1 2025: 61.8%) thanks to the bank's stable income. At 8.3%, return on equity (RoE) was marginally lower than in the previous year (8.6%). The common equity Tier 1 capital ratio (CRR III) of 16.1% is far above the regulatory requirements. The portfolio quality continues to be solid; this can also be seen in the low non performing exposures (NPE) ratio of 0.9%. The Corporate Customers segment recorded a pre-tax profit of EUR 312 million (previous year: EUR 360 million). Common Equity Tier 1 ratio (CRR III/phase-in) 16.1 16.6 Total capital ratio (CRR III/phase-in) 19.9 21.6 Return on equity (RoE) 8.3 8.6 Cost/income ratio (CIR) 60.4 61.8 Consolidated profit/loss before tax 708 705 Pre-tax result 312 360`;
+
+describe("LBBW H1 2026 figures (owner's reference values)", () => {
+  it("reads the group's current-period figures, not segment or prior-year ones", async () => {
+    const w = await worker();
+    const { found } = (w.extractBankFigures as unknown as (t: string) => { found: { parameter: string; value: number }[] })(LBBW_H1_2026);
+    const v = Object.fromEntries(found.map((f) => [f.parameter, f.value]));
+    expect(v).toMatchObject({ cet1Pct: 16.1, npePct: 0.9, roePct: 8.3, costIncomePct: 60.4, pretaxProfitEurM: 708, totalCapitalPct: 19.9 });
+  });
+  it("a table row alone gives the current column", async () => {
+    const w = await worker();
+    const { found } = (w.extractBankFigures as unknown as (t: string) => { found: { parameter: string; value: number }[] })("Total capital ratio (CRR III/phase-in) 19.9 21.6 Consolidated profit/loss before tax 708 705");
+    expect(found.map((f) => [f.parameter, f.value])).toEqual(expect.arrayContaining([["totalCapitalPct", 19.9], ["pretaxProfitEurM", 708]]));
+  });
+});
