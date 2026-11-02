@@ -155,6 +155,21 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     expect([{ issuer_rating_min: after[0].issuer_rating_min, issuer_rating_max: after[0].issuer_rating_max }]).toEqual(before.map((b) => ({ issuer_rating_min: b.issuer_rating_min, issuer_rating_max: b.issuer_rating_max })));
     expect(after[0].rating_verification_status).toBe("validated");
     expect(after[0].last_attempt.blocked).toBe(true);
+    // 6. different issuers with identical financial inputs and no separate primary sources are flagged
+    const T1 = "XS0000000021", T2 = "XS0000000022";
+    await s`delete from app.bond_credit_analysis where isin in (${T1}, ${T2})`;
+    await s`delete from app.credit_research_jobs where isin in (${T1}, ${T2})`;
+    const ev1 = [{ url: "https://same.example.com/r.pdf", title: "t", publisher: "S", publishedAt: null, period: null, retrievedAt: "2026-11-01T00:00:00Z", location: null, method: "t", verification: "verified" as const, primary: true }];
+    const mk = (isin: string, lei: string): ResearchFacts => ({ ...facts(isin), metrics: { cet1Pct: 14.2, nplPct: 1.1 }, evidence: ev1, issuer: { canonicalId: lei, legalName: lei, lei, identityVerified: false, typeVerified: true } });
+    for (const [isin, lei] of [[T1, "AAAAAAAAAAAAAAAAAA11"], [T2, "BBBBBBBBBBBBBBBBBB22"]] as const) {
+      await db.enqueueIsins([isin], true, 0);
+      const jj = await db.claimJob("wt");
+      expect(jj?.isin).toBe(isin);
+      await db.completeJob("wt", mk(isin, lei), { model: "m", ms: 1, tokensIn: 1, tokensOut: 1 });
+    }
+    const [t2] = await s<{ detail: { research: { twins: string[] } } }[]>`select detail from app.bond_credit_analysis where isin = ${T2}`;
+    expect(t2.detail.research.twins).toContain(T1);
+    await s`delete from app.bond_credit_analysis where isin in (${T1}, ${T2})`;
     // the labelled LBBW reference case is stored for the admin, and it never reaches the public API
     const refs = await db.referenceCases();
     const lbbw = refs.find((r) => r.isin === "DE000LB2CW16");

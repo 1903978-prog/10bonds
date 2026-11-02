@@ -4,7 +4,7 @@ import { loadCreditAnalysis } from "./creditAnalysisDb";
 import { isIsin } from "./creditResearchSchema";
 import { LBBW_CASE } from "./creditReferenceCases";
 import { parameterReport } from "./creditParameters";
-import { evaluate, GATE_VERSION, type GateOutcome } from "./creditGate";
+import { evaluate, GATE_VERSION, sourceKey, type GateOutcome } from "./creditGate";
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
 
 // Credit research queue (owner, 1/11/2026). One durable job per ISIN. The web process only writes small queue rows; all research
@@ -236,6 +236,22 @@ export async function failJob(workerId: string, isin: string, error: string, usa
 
 export type CompleteResult = { ok: true; duplicate: boolean; ir: [number, number]; br: [number, number]; status: string } | { ok: false; error: string; code: number };
 
+/** Stable fingerprint of the financial inputs (null when there are none). */
+export function inputsFingerprint(f: ResearchFacts): string | null {
+  const nums = Object.entries(f.metrics).filter(([, v]) => typeof v === "number").sort(([a], [b]) => a.localeCompare(b));
+  const fac = Object.entries(f.factors ?? {}).filter(([, v]) => v && (v.origin === "accounts")).map(([k, v]) => [k, v!.value]).sort(([a], [b]) => String(a).localeCompare(String(b)));
+  if (nums.length + fac.length < 2) return null;
+  return hash(JSON.stringify({ nums, fac }));
+}
+
+/** Other ISINs of DIFFERENT issuers with the same financial inputs, unless this issuer's primary sources are all different from theirs (corroborated). */
+export async function identicalInputsElsewhere(s: Awaited<ReturnType<typeof sql>>, f: ResearchFacts, h: string): Promise<string[]> {
+  const rows = await s<{ isin: string; facts: ResearchFacts }[]>`select isin, detail #> '{research,facts}' as facts from app.bond_credit_analysis where isin <> ${f.isin} and detail #>> '{research,inputsHash}' = ${h} limit 20`;
+  const mine = new Set(f.evidence.filter((e) => e.primary).map((e) => sourceKey(e.url)));
+  const sameIssuer = (o: ResearchFacts) => !!f.issuer?.lei && f.issuer.lei === o.issuer?.lei;
+  return rows.filter((r) => r.facts && !sameIssuer(r.facts)).filter((r) => r.facts.evidence.filter((e) => e.primary).some((e) => mine.has(sourceKey(e.url))) || mine.size === 0).map((r) => r.isin);
+}
+
 /** Other bonds already holding exactly the same IR and BR ranges (a sign that the research found nothing that tells the bonds apart). */
 export async function identicalElsewhere(s: Awaited<ReturnType<typeof sql>>, isin: string, sc: { irMin: number; irMax: number; brMin: number; brMax: number }): Promise<string[]> {
   const r = await s<{ isin: string }[]>`select isin from app.bond_credit_analysis where isin <> ${isin} and issuer_rating_min = ${sc.irMin} and issuer_rating_max = ${sc.irMax} and bond_rating_min = ${sc.brMin} and bond_rating_max = ${sc.brMax} limit 20`;
@@ -249,17 +265,21 @@ export async function completeJob(workerId: string, facts: ResearchFacts, usage:
   if (!job) return { ok: false, error: "unknown job", code: 404 };
   const scored = scoreResearch(facts);
   const parameters = parameterReport(facts);
-  const sameAs = await identicalElsewhere(s, facts.isin, scored);
-  if (sameAs.length) {
-    // Different bonds must not silently get the same answer: it means the inputs that separate them were not found.
-    scored.status = "review_required";
-    scored.missing.push(`same IR and BR ranges as ${sameAs.length} other bond(s) (${sameAs.slice(0, 3).join(", ")}): too little bond-specific data`);
+  const gate0 = evaluate(facts, scored);
+  // Identical final ranges are only suspicious when the calculation is NOT independently supported (a bond that passes the gate may legitimately
+  // match another issuer's score). Identical financial INPUTS for different issuers are flagged unless each has its own primary sources.
+  const sameAs = gate0.ir.allowed ? [] : await identicalElsewhere(s, facts.isin, scored);
+  const inputsHash = inputsFingerprint(facts);
+  const twins = inputsHash ? await identicalInputsElsewhere(s, facts, inputsHash) : [];
+  for (const [list, text] of [[sameAs, `same IR and BR ranges as ${sameAs.length} other bond(s) (${sameAs.slice(0, 3).join(", ")}): too little bond-specific data`], [twins, `identical financial inputs as ${twins.length} other issuer(s) (${twins.slice(0, 3).join(", ")}) without issuer-specific corroboration`]] as [string[], string][]) {
+    if (list.length) { scored.status = "review_required"; scored.missing.push(text); }
   }
+  if (twins.length) facts.conflicts = [...facts.conflicts, `Financial inputs identical to ${twins.length} other issuer(s) without separate primary sources.`];
   const resultHash = hash(JSON.stringify({ facts, v: SCORING_VERSION }));
   if (job.status === "done" && job.result_hash === resultHash) return { ok: true, duplicate: true, ir: [scored.irMin, scored.irMax], br: [scored.brMin, scored.brMax], status: scored.status };
   if (job.status !== "processing" || job.claimed_by !== workerId) return { ok: false, error: "job is not claimed by this worker", code: 409 };
-  const gate = evaluate(facts, scored);
-  const research = { facts, scored, parameters, sameAs, usage, publishedAt: new Date().toISOString() };
+  const gate = evaluate(facts, scored); // after the similarity notes above
+  const research = { facts, scored, parameters, sameAs, twins, inputsHash, usage, publishedAt: new Date().toISOString() };
   await s.begin(async (tx) => {
     const [prev] = await tx<{ publish_ir: boolean; publish_br: boolean; human_validated_at: Date | null }[]>`select publish_ir, publish_br, human_validated_at from app.bond_credit_analysis where isin = ${facts.isin} for update`;
     // A validated or already-published rating is never replaced by a calculation that does not pass the gate (or by anything, if a person validated it):

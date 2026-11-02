@@ -52,7 +52,7 @@ export function sourceQuality(f: ResearchFacts, now: Date = new Date()): SourceQ
   const all = new Set(ev.map((e) => sourceKey(e.url)));
   const m = APPROVED_METHODS[f.issuerType];
   const staleMetrics: string[] = [];
-  if (m) {
+  if (m && !(f.issuerType === "corporate" && f.factors)) {
     for (const k of m.mandatory) {
       const p = f.metricPeriods?.[k];
       const t = p ? Date.parse(p) : NaN;
@@ -92,7 +92,17 @@ export function canPublishIR(f: ResearchFacts, scored: Scored = scoreResearch(f)
   if (!method) reasons.push(`No approved scoring method for issuer type "${f.issuerType}": publication is blocked pending model approval.`);
   if (method) {
     if (rep.found < method.minParams) reasons.push(`Only ${rep.found} of ${rep.max} parameters verified; ${method.minParams} are required.`);
-    for (const k of method.mandatory) if (typeof f.metrics[k] !== "number") { missingCritical.push(k); }
+    if (f.issuerType === "corporate" && f.factors) {
+      // the owner's corporate model: the five account-based factors are mandatory and must come from published accounts, dated within the allowed age
+      for (const k of ["leverage", "interestCoverage", "freeCashFlow", "liquidity", "earningsTrend"] as const) {
+        const v = f.factors[k];
+        if (!v || v.origin !== "accounts") { missingCritical.push(k); continue; }
+        const t = v.period ? Date.parse(v.period) : NaN;
+        if (!Number.isFinite(t)) q.staleMetrics.push(`${k} (no reporting period recorded)`);
+        else if ((now.getTime() - t) / (30.44 * 86_400_000) > method.maxMetricAgeMonths) q.staleMetrics.push(`${k} (period ${v.period}, older than ${method.maxMetricAgeMonths} months)`);
+      }
+      // judgment factors must be typed by a person or sourced; estimated sector defaults are unknown and widen the range (checked by the width rule)
+    } else for (const k of method.mandatory) if (typeof f.metrics[k] !== "number") { missingCritical.push(k); }
     if (missingCritical.length) reasons.push(`Missing mandatory financial inputs: ${missingCritical.join(", ")}.`);
     if (q.staleMetrics.length) reasons.push(`Financial information too old or undated: ${q.staleMetrics.join("; ")}.`);
   }

@@ -1,4 +1,5 @@
 import { notchOf, spGradeOf } from "./ratings";
+import { bondLrBounds, issuerLrBounds, type CapitalStructureTier, type FactorMap, type StructuralFlags } from "./livioIssuerModel";
 
 // Deterministic IR / BR calculation for the credit research engine (owner, 1/11/2026). The local model (Ollama) only EXTRACTS facts
 // from documents; every number below is plain arithmetic on those facts, so a score can be reproduced from its stored inputs.
@@ -6,6 +7,7 @@ import { notchOf, spGradeOf } from "./ratings";
 // This is a transparent first model (not calibrated against defaults yet): it never reports "validated" by itself.
 
 export const SCORING_VERSION = "ir-br-v0.1-2026-11-01";
+export const SCORING_VERSION_LIVIO = "ir-br-v0.2-livio-corporate-2026-11-02";
 
 export type Seniority = "senior_preferred" | "senior_unsecured" | "secured" | "senior_non_preferred" | "tier2" | "at1" | "unknown";
 export type IssuerType = "corporate" | "bank" | "insurer" | "financial_holding" | "sovereign" | "supranational" | "structured" | "other";
@@ -49,6 +51,10 @@ export type ResearchFacts = {
   /** Period end (YYYY-MM-DD) of each reported metric; a metric without one counts as stale. */
   metricPeriods?: Partial<Record<keyof Metrics, string>>;
   bond?: BondFacts;
+  /** The owner's 14 issuer factors (corporates). Only "accounts" and "typed" values count; see lib/livioIssuerModel.ts. */
+  factors?: FactorMap;
+  /** Capital structure tier and structural flags of the bond, for the owner's BR adjustments. */
+  structural?: { tier: CapitalStructureTier; flags: StructuralFlags };
 };
 
 export type Scored = {
@@ -93,6 +99,7 @@ function metricSteps(f: ResearchFacts): { steps: { label: string; delta: number 
 
 /** IR and BR from extracted facts. Missing information widens the range and is listed; nothing is filled in with a guess. */
 export function scoreResearch(f: ResearchFacts): Scored {
+  if (f.issuerType === "corporate" && f.factors) return scoreLivioCorporate(f);
   const steps: { label: string; delta: number }[] = [];
   const missing: string[] = [];
   // Anchor: the best issuer-scope agency grade, expressed on the S&P scale. Instrument-scope grades are not used for the issuer.
@@ -160,4 +167,25 @@ export function scoreResearch(f: ResearchFacts): Scored {
   const coverage = Math.round(((slots.filter(Boolean).length + (6 - grey) / 6) / (slots.length + 1)) * 100) / 100;
   const status: Scored["status"] = coverage < 0.5 || f.seniority === "unknown" || f.conflicts.length || (f.notes ?? []).length ? "review_required" : "provisional";
   return { irMin, irMax, brMin, brMax, status, coverage, anchorGrade: notch !== null ? spGradeOf(notch) : null, steps, missing, riskAdjustments, version: SCORING_VERSION, independent: false, usesInstrumentGrade };
+}
+
+
+/** The owner's approved corporate model (lib/livioIssuerModel.ts): IR from his 14 factors, BR from his seniority tier and structural flags.
+ *  Unknown factors keep their 0..100 bounds. The agency grade is not an input. Result: independent = true. */
+function scoreLivioCorporate(f: ResearchFacts): Scored {
+  const ir = issuerLrBounds(f.factors ?? {});
+  const steps: { label: string; delta: number }[] = ir.terms.map((t) => ({ label: `${t.key} weight ${(t.weight * 100).toFixed(2)}% (${t.origin}) range ${t.min}-${t.max}`, delta: Math.round((t.weight * (t.min + t.max)) / 2 * 100) / 100 }));
+  const missing = ir.unknown.map((k) => `factor ${k}`);
+  let brMin = ir.min, brMax = ir.max;
+  if (f.structural) {
+    const b = bondLrBounds(ir, f.structural.tier, f.structural.flags);
+    brMin = b.min; brMax = b.max;
+    steps.push({ label: `Bond structure ${f.structural.tier}: CSA ${b.csa[0]}..${b.csa[1]}, structural flags ${b.sfa}`, delta: (b.csa[0] + b.csa[1]) / 2 + b.sfa });
+  } else missing.push("bond capital structure tier");
+  for (const n of f.notes ?? []) missing.push(n);
+  const agency = f.agencyRatings.filter((a) => a.scope === "issuer").map((a) => notchOf(a.rating)).filter((n): n is number => n !== null && n < 21);
+  const riskAdjustments = RISK_KEYS.map((key) => ({ key, color: (f.risks.find((x) => x.key === key)?.color ?? "GREY") as RiskColor, delta: 0 }));
+  const coverage = Math.round(((14 - ir.unknown.length) / 14) * 100) / 100;
+  const status: Scored["status"] = ir.unknown.length || !f.structural || f.conflicts.length || (f.notes ?? []).length ? "review_required" : "provisional";
+  return { irMin: r0(ir.min), irMax: r0(ir.max), brMin: r0(brMin), brMax: r0(brMax), status, coverage, anchorGrade: agency.length ? spGradeOf(Math.min(...agency)) : null, steps, missing, riskAdjustments, version: SCORING_VERSION_LIVIO, independent: true, usesInstrumentGrade: false };
 }
