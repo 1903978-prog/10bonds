@@ -28,6 +28,8 @@ export type ResearchFacts = {
   risks: RiskInput[];
   conflicts: string[];
   evidence: Evidence[];
+  /** Gaps the research itself reports (e.g. extraction failed); any note makes the assessment "review required". */
+  notes?: string[];
 };
 
 export type Scored = {
@@ -80,10 +82,20 @@ export function scoreResearch(f: ResearchFacts): Scored {
     half = 3;
     steps.push({ label: `Agency anchor ${spGradeOf(notch)} (issuer scope)`, delta: centre });
   } else {
-    centre = 55;
-    half = 14;
-    missing.push("issuer agency rating");
-    steps.push({ label: "No agency anchor: neutral start", delta: centre });
+    // Only a bond-level grade is known: undo the bond's own structure to get back to the issuer (e.g. a subordinated bond is rated below its issuer).
+    const inst = f.agencyRatings.filter((a) => a.scope === "instrument").map((a) => notchOf(a.rating)).filter((n): n is number => n !== null && n < 21);
+    if (inst.length && f.seniority !== "unknown") {
+      const n = Math.round(inst.reduce((s, x) => s + x, 0) / inst.length);
+      centre = anchorScore(n) - STRUCTURE[f.seniority];
+      half = 5;
+      missing.push("issuer agency rating (derived from the bond's grade)");
+      steps.push({ label: `Bond-level grade ${spGradeOf(n)} less structure ${f.seniority}`, delta: centre });
+    } else {
+      centre = 55;
+      half = 14;
+      missing.push("issuer agency rating");
+      steps.push({ label: "No agency anchor: neutral start", delta: centre });
+    }
   }
   const ms = metricSteps(f);
   for (const s of ms.steps) { centre += s.delta; steps.push(s); }
@@ -103,6 +115,7 @@ export function scoreResearch(f: ResearchFacts): Scored {
   }
   half += grey * 1.5;
   if (f.conflicts.length) half += 4;
+  for (const n of f.notes ?? []) missing.push(n);
 
   const irC = clamp(centre);
   const irMin = r0(clamp(irC - half)), irMax = r0(clamp(irC + half));
@@ -120,6 +133,6 @@ export function scoreResearch(f: ResearchFacts): Scored {
   const primary = new Set(f.evidence.filter((e) => e.primary).map((e) => e.url)).size;
   const slots = [notch !== null, ms.used > 0, f.seniority !== "unknown", primary >= 2, grey <= 2];
   const coverage = Math.round(((slots.filter(Boolean).length + (6 - grey) / 6) / (slots.length + 1)) * 100) / 100;
-  const status: Scored["status"] = coverage < 0.5 || f.seniority === "unknown" || f.conflicts.length ? "review_required" : "provisional";
+  const status: Scored["status"] = coverage < 0.5 || f.seniority === "unknown" || f.conflicts.length || (f.notes ?? []).length ? "review_required" : "provisional";
   return { irMin, irMax, brMin, brMax, status, coverage, anchorGrade: notch !== null ? spGradeOf(notch) : null, steps, missing, riskAdjustments, version: SCORING_VERSION };
 }

@@ -77,7 +77,7 @@ export async function enqueueIsins(list: string[], account: boolean, forcePriori
     with want as (
       select v.isin,
         a.isin is not null and (a.issuer_rating_min is not null or a.issuer_rating is not null or a.bond_rating_min is not null or a.bond_rating is not null) as has,
-        coalesce(a.rating_assessment_date >= current_date - ${FRESH_DAYS}::int, false) as fresh
+        coalesce(a.rating_assessment_date >= current_date - (case when a.rating_verification_status = 'review_required' then 1 else ${FRESH_DAYS}::int end), false) as fresh
       from unnest(${list}::text[]) as v(isin) left join app.bond_credit_analysis a on a.isin = v.isin)
     insert into app.credit_research_jobs as j (isin, priority, account_exposed)
     select isin, coalesce(${forcePriority ?? null}::int, case when has then 1 else 0 end), ${account}::boolean from want where ${forcePriority !== undefined}::boolean or not (has and fresh)

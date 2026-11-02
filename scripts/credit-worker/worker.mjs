@@ -5,9 +5,12 @@
 // Needs Node 18+. No packages. Optional: `pdftotext` (poppler) to read PDF reports.
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import http from "node:http";
+import https from "node:https";
 import { writeFile, rm, mkdtemp } from "node:fs/promises";
 import { tmpdir, hostname } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const run = promisify(execFile);
 const SITE = (process.env.BONDS_URL ?? "https://10bonds.com").replace(/\/$/, "");
@@ -18,6 +21,8 @@ const ID = process.env.WORKER_ID ?? `worker-${hostname().replace(/[^A-Za-z0-9._-
 const IDLE_MS = Number(process.env.IDLE_SECONDS ?? 60) * 1000;
 const MAX_DOCS = Number(process.env.MAX_DOCS ?? 6);
 const CTX = Number(process.env.NUM_CTX ?? 8192);
+const NUM_PREDICT = Number(process.env.NUM_PREDICT ?? 2500);
+const THINK = process.env.OLLAMA_THINK === "1"; // thinking stays OFF unless asked for
 const UA = "10bonds-research-bot/1.0 (+https://10bonds.com; credit research, polite rate limits)";
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 
@@ -63,34 +68,120 @@ async function pdfText(buf) {
   try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", "40", "-layout", f, "-"], { maxBuffer: 20e6, timeout: 60_000 }); return stdout.replace(/\s+/g, " "); } catch { return ""; } finally { await rm(dir, { recursive: true, force: true }); }
 }
 
-// ---- retrieval: GLEIF (legal entity), Wikidata/Wikipedia (website, summary), issuer site (investor pages, reports) ----
+// ---- retrieval: GLEIF (legal entity + parent), Wikipedia/Wikidata (website), the issuer's investor pages and reports ----
+const LEGAL = /\b(finance|funding|capital|international|treasury|holdings?|issuer|b\.?v\.?|n\.?v\.?|plc|ag|sa|s\.a\.|se|spa|s\.p\.a\.|gmbh|ltd|limited|inc|corp|co|kgaa|ab|asa|oyj|a\/s|sarl)\b\.?/gi;
+/** Name forms to look for, most specific first: the name without brackets, then without legal forms ("Vonovia Finance B.V." -> "Vonovia"). */
+export function nameVariants(name) {
+  const plain = String(name).replace(/\([^)]*\)/g, " ").replace(/[,]/g, " ").replace(/\s+/g, " ").trim();
+  const core = plain.replace(LEGAL, " ").replace(/[.]/g, " ").replace(/\s+/g, " ").trim();
+  return [...new Set([plain, core].filter((x) => x.length >= 3))];
+}
+const KEYS = /net debt|ebitda|ebit\b|operating (?:profit|income|cash)|free cash|interest cover|leverage|liquidity|refinanc|maturit|covenant|rating|moody|fitch|s&p|standard & poor|scope ratings|cet1|common equity|capital ratio|lcr|nsfr|npl|non-performing|cost of risk|senior|subordinat|guarant|secured|bail-in|prospectus|final terms|dividend|litigation|investigation|downgrade|outlook|debt.{0,20}gdp|deficit/i;
+/** Keeps the passages that mention credit facts (about 700 characters each) until `budget` characters are used, in their original order. */
+export function relevantText(text, budget) {
+  if (text.length <= budget) return text;
+  const chunks = []; for (let i = 0; i < text.length; i += 700) chunks.push({ i, t: text.slice(i, i + 700) });
+  const score = (c) => (c.t.match(new RegExp(KEYS.source, "gi")) ?? []).length + (/\d/.test(c.t) ? 0.5 : 0);
+  const top = [...chunks].sort((x, y) => score(y) - score(x)).slice(0, Math.max(1, Math.floor(budget / 700)));
+  return top.sort((x, y) => x.i - y.i).map((c) => c.t).join(" … ");
+}
+const IR_PATHS = ["/investors", "/investor-relations", "/en/investors", "/en/investor-relations", "/investor", "/ir", "/en/ir", "/investors/financial-reports", "/en/investors/financial-reports", "/about-us/investors", "/en/about-us/investors", "/company/investors"];
+const baseDomain = (h) => h.split(".").slice(-2).join(".");
+let warnedPdf = false;
+
 async function collect(job) {
-  const docs = []; const name = job.known?.issuer || job.known?.name || "";
-  const add = (d) => { if (d?.text) docs.push({ ...d, text: d.text.slice(0, 12_000), retrievedAt: new Date().toISOString() }); };
-  const nameUsed = name.replace(/\b(plc|ag|sa|se|nv|n\.v\.|spa|s\.p\.a\.|gmbh|ltd|inc|corp|co\.?)\b\.?/gi, "").trim();
-  if (nameUsed) {
-    const g = await get(`https://api.gleif.org/api/v1/lei-records?filter[entity.legalName]=${encodeURIComponent(nameUsed)}&page[size]=3`);
-    if (g) { try { const j = JSON.parse(g); const e = j.data?.[0]; if (e) add({ url: `https://search.gleif.org/#/record/${e.id}`, title: `GLEIF record ${e.attributes.entity.legalName.name}`, publisher: "GLEIF", period: null, primary: true, method: "api", text: JSON.stringify({ lei: e.id, legalName: e.attributes.entity.legalName.name, jurisdiction: e.attributes.entity.jurisdiction, status: e.attributes.entity.status, registration: e.attributes.registration?.status }) }); } catch {} }
-    const wd = await get(`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(nameUsed)}&language=en&format=json&limit=1`);
-    let site = null;
-    try { const id = JSON.parse(wd)?.search?.[0]?.id; if (id) { const ent = JSON.parse(await get(`https://www.wikidata.org/wiki/Special:EntityData/${id}.json`) ?? "{}"); site = ent.entities?.[id]?.claims?.P856?.[0]?.mainsnak?.datavalue?.value ?? null; } } catch {}
-    const wp = await get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(nameUsed.replace(/ /g, "_"))}`);
-    try { const j = JSON.parse(wp ?? "{}"); if (j.extract) add({ url: j.content_urls?.desktop?.page ?? "https://en.wikipedia.org/", title: j.title, publisher: "Wikipedia", period: null, primary: false, method: "api", text: j.extract }); } catch {}
-    if (site?.startsWith("https://")) {
-      const home = await get(site);
-      if (home) {
-        add({ url: site, title: "Issuer website", publisher: nameUsed, period: null, primary: true, method: "html", text: strip(home) });
-        const links = [...home.matchAll(/href="([^"#]+)"/gi)].map((m) => { try { return new URL(m[1], site).href; } catch { return null; } }).filter((u) => u && u.startsWith("https://") && new URL(u).host === new URL(site).host);
-        const rank = (u) => (/investor|ir\b/i.test(u) ? 0 : 5) + (/annual|financial|results|report|prospectus|final-terms/i.test(u) ? 0 : 3) + (/\.pdf($|\?)/i.test(u) ? 0 : 1);
-        for (const u of [...new Set(links)].sort((a, b) => rank(a) - rank(b)).slice(0, MAX_DOCS)) {
-          if (docs.length >= MAX_DOCS + 3) break;
-          if (/\.pdf($|\?)/i.test(u)) { const b = await get(u, true); const t = b ? await pdfText(b) : ""; if (t) add({ url: u, title: decodeURIComponent(u.split("/").pop() ?? "document").slice(0, 120), publisher: nameUsed, period: null, primary: true, method: "pdf", text: t }); }
-          else if (rank(u) < 6) { const h = await get(u); if (h) add({ url: u, title: "Issuer page", publisher: nameUsed, period: null, primary: true, method: "html", text: strip(h) }); }
-        }
-      }
+  const docs = []; const names = nameVariants(job.known?.issuer || job.known?.name || "");
+  const add = (d) => { if (d?.text && d.text.length > 40 && !docs.some((x) => x.url === d.url)) docs.push({ ...d, text: d.text, retrievedAt: new Date().toISOString() }); };
+  const guard = async (f) => { try { return await f(); } catch (e) { log("source step failed:", e.message); return null; } };
+  if (!names.length) return docs;
+  // 1. Legal entity (GLEIF) and its ultimate parent: a finance vehicle's credit is its parent's.
+  let parent = null;
+  await guard(async () => {
+    for (const n of names) {
+      const g = await get(`https://api.gleif.org/api/v1/lei-records?filter[entity.legalName]=${encodeURIComponent(n)}&page[size]=1`);
+      const e = g ? JSON.parse(g).data?.[0] : null;
+      if (!e) continue;
+      const en = e.attributes.entity;
+      add({ url: `https://search.gleif.org/#/record/${e.id}`, title: `GLEIF record ${en.legalName.name}`, publisher: "GLEIF", period: null, primary: true, method: "api", text: JSON.stringify({ lei: e.id, legalName: en.legalName.name, jurisdiction: en.jurisdiction, category: en.category, status: en.status, registration: e.attributes.registration?.status }) });
+      const pr = await get(`https://api.gleif.org/api/v1/lei-records/${e.id}/ultimate-parent`);
+      const pn = pr ? JSON.parse(pr).data?.attributes?.entity?.legalName?.name : null;
+      if (pn) { parent = pn; add({ url: `https://api.gleif.org/api/v1/lei-records/${e.id}/ultimate-parent`, title: `Ultimate parent: ${pn}`, publisher: "GLEIF", period: null, primary: true, method: "api", text: `Ultimate parent of ${en.legalName.name}: ${pn}` }); }
+      break;
     }
+  });
+  // 2. Website: Wikipedia search -> Wikidata item -> official website (issuer first, then the parent).
+  let site = null;
+  for (const n of [...names, ...(parent ? nameVariants(parent) : [])]) {
+    if (site) break;
+    await guard(async () => {
+      const q = await get(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(n + " company")}&srlimit=1&format=json`);
+      const title = q ? JSON.parse(q).query?.search?.[0]?.title : null;
+      if (!title) return;
+      const pg = await get(`https://en.wikipedia.org/w/api.php?action=query&prop=pageprops|extracts&exintro=1&explaintext=1&ppprop=wikibase_item&titles=${encodeURIComponent(title)}&format=json`);
+      const page = pg ? Object.values(JSON.parse(pg).query?.pages ?? {})[0] : null;
+      if (page?.extract) add({ url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`, title, publisher: "Wikipedia", period: null, primary: false, method: "api", text: page.extract });
+      const qid = page?.pageprops?.wikibase_item;
+      if (!qid) return;
+      const ent = await get(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
+      const w = ent ? JSON.parse(ent).entities?.[qid]?.claims?.P856?.[0]?.mainsnak?.datavalue?.value : null;
+      if (typeof w === "string" && w.startsWith("https://")) site = w;
+    });
   }
+  // 3. Investor pages and reports on that website.
+  if (site) await guard(async () => {
+    const origin = new URL(site).origin, dom = baseDomain(new URL(site).hostname);
+    const pages = [site, ...IR_PATHS.map((p) => origin + p)];
+    const found = [];
+    for (const u of pages) {
+      if (found.length >= 3) break;
+      const h = await get(u);
+      if (!h) continue;
+      found.push({ u, h });
+      add({ url: u, title: u === site ? "Issuer website" : "Investor relations page", publisher: names[0], period: null, primary: true, method: "html", text: strip(h) });
+    }
+    const links = new Set();
+    for (const { u, h } of found) for (const m of h.matchAll(/href="([^"#]+)"/gi)) { try { const l = new URL(m[1], u); if (l.protocol === "https:" && baseDomain(l.hostname) === dom) links.add(l.href); } catch { /* bad link */ } }
+    const rank = (u) => (/annual|integrated|financial-report|results|interim|half-year|quarter|pillar|prospectus|final-terms|credit|rating|debt|bond/i.test(u) ? 0 : 5) + (/investor|\/ir\b/i.test(u) ? 0 : 2) + (/\.pdf($|\?)/i.test(u) ? 0 : 1);
+    for (const u of [...links].sort((a, b) => rank(a) - rank(b)).slice(0, MAX_DOCS * 2)) {
+      if (docs.length >= MAX_DOCS + 4) break;
+      if (rank(u) >= 6) continue;
+      if (/\.pdf($|\?)/i.test(u)) {
+        const b = await get(u, true); const t = b ? await pdfText(b) : "";
+        if (!t && b && !warnedPdf) { warnedPdf = true; log("PDF reports are skipped: install pdftotext (poppler) to read them"); }
+        if (t) add({ url: u, title: decodeURIComponent(u.split("/").pop() ?? "document").slice(0, 120), publisher: names[0], period: null, primary: true, method: "pdf", text: t });
+      } else { const h = await get(u); if (h) add({ url: u, title: "Issuer page", publisher: names[0], period: null, primary: true, method: "html", text: strip(h) }); }
+    }
+  });
   return docs;
+}
+
+/**
+ * Talks to Ollama with node:http, NOT fetch: Node's fetch gives up after 300 s of waiting for the first byte, and a slow computer or a big model
+ * needs longer than that to read a prompt. The reply is streamed (one JSON line per piece) and only `timeoutMs` as a whole can stop it.
+ */
+function ollamaChat(body, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(`${OLLAMA}/api/chat`);
+    const timer = setTimeout(() => req.destroy(new Error(`no complete answer from Ollama within ${Math.round(timeoutMs / 60000)} min`)), timeoutMs);
+    const req = (u.protocol === "https:" ? https : http).request(u, { method: "POST", headers: { "content-type": "application/json" } }, (res) => {
+      let raw = "", buf = "", content = "", last = {};
+      res.setEncoding("utf8");
+      res.on("data", (d) => {
+        if (raw.length < 200_000) raw += d;
+        buf += d;
+        let i;
+        while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+          if (!line) continue;
+          try { const j = JSON.parse(line); if (j.message?.content) content += j.message.content; if (j.done) last = j; } catch { /* not a stream line (an error body) */ }
+        }
+      });
+      res.on("end", () => { clearTimeout(timer); resolve({ status: res.statusCode, raw, content, last }); });
+      res.on("error", (e) => { clearTimeout(timer); reject(e); });
+    });
+    req.on("error", (e) => { clearTimeout(timer); reject(e); });
+    req.end(JSON.stringify(body));
+  });
 }
 
 // ---- local Ollama extraction (temperature 0, JSON schema) ----
@@ -105,31 +196,65 @@ const SCHEMA = { type: "object", required: ["issuerType", "seniority", "agencyRa
   risks: { type: "array", items: { type: "object", required: ["key", "color", "explanation", "evidence"], properties: { key: { enum: RISKS }, color: { enum: COLORS }, explanation: { type: "string" }, evidence: { type: "array", items: { type: "string" } } } } },
   conflicts: { type: "array", items: { type: "string" } } } };
 
-async function extract(job, docs) {
-  const body = docs.map((d, i) => `### SOURCE ${i + 1}: ${d.url}\n${d.text.slice(0, Math.floor((CTX * 2.5) / Math.max(1, docs.length)))}`).join("\n\n");
+export async function extract(job, docs) {
+  const body = docs.map((d, i) => `### SOURCE ${i + 1}: ${d.url}\n${relevantText(d.text, Math.floor((CTX * 2.5) / Math.max(1, docs.length)))}`).join("\n\n");
   const prompt = `You extract credit facts for ONE bond. Use ONLY the sources below; never use memory or guess. If a fact is not stated, use null / "unknown" / GREY.\n` +
     `Bond: ${JSON.stringify({ isin: job.isin, ...job.known })}\n` +
     `Rules: seniority is the BOND's own ranking (senior_non_preferred, tier2, at1 are NOT senior_preferred), set "unknown" unless the sources state it. agencyRatings: only ratings written in the sources; scope "issuer" for issuer ratings, "instrument" for a single bond/class rating. ` +
     `risks: one entry for each of the six keys (${RISKS.join(", ")}); GREEN only if the sources checked it and show no material risk (list the SOURCE urls in evidence), otherwise GREY; RED/AMBER need an explanation quoting the source. List contradictions between sources in conflicts.\n\n${body}`;
+  // Small and "thinking" models (qwen3 family) often fail here: thinking is on by default and eats the time and the answer budget, or the
+  // JSON schema is refused. So: thinking off, a cap on the answer length, a clean-up of the reply, and a second try with plain JSON mode.
   const t0 = Date.now();
-  const r = await fetch(`${OLLAMA}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.timeout(Number(process.env.INFERENCE_TIMEOUT_S ?? 900) * 1000),
-    body: JSON.stringify({ model: MODEL, stream: false, format: SCHEMA, options: { temperature: 0, num_ctx: CTX }, messages: [{ role: "system", content: "Return only JSON matching the schema." }, { role: "user", content: prompt }] }) });
-  if (!r.ok) throw new Error(`ollama ${r.status}`);
-  const j = await r.json();
-  return { result: JSON.parse(j.message.content), ms: Date.now() - t0, tokensIn: j.prompt_eval_count ?? 0, tokensOut: j.eval_count ?? 0 };
+  const attempts = [{ format: SCHEMA }, { format: "json" }];
+  let lastErr = "";
+  for (const [n, a] of attempts.entries()) {
+    const ask = (withThink) => {
+      const body = { model: MODEL, stream: true, format: a.format, keep_alive: "30m", options: { temperature: 0, num_ctx: CTX, num_predict: NUM_PREDICT },
+        messages: [{ role: "system", content: "Return only JSON, no explanation." + (n ? ` Required keys: ${Object.keys(SCHEMA.properties).join(", ")}.` : "") }, { role: "user", content: prompt }] };
+      if (withThink) body.think = THINK;
+      return ollamaChat(body, Number(process.env.INFERENCE_TIMEOUT_S ?? 1800) * 1000);
+    };
+    let r = await ask(true);
+    if (r.status === 400) { if (/think/i.test(r.raw)) r = await ask(false); else { lastErr = `ollama 400: ${r.raw.slice(0, 200)}`; log(lastErr); continue; } }
+    if (r.status !== 200) { lastErr = `ollama ${r.status}: ${r.raw.slice(0, 200)}`; log(lastErr); continue; }
+    const j = r.last;
+    const parsed = parseJsonReply(r.content);
+    log(`ollama ${MODEL} ${Math.round((Date.now() - t0) / 1000)}s, in ${j.prompt_eval_count ?? "?"} out ${j.eval_count ?? "?"} tokens, ${parsed ? "valid JSON" : "NOT valid JSON"}`);
+    if (parsed) return { result: parsed, ms: Date.now() - t0, tokensIn: j.prompt_eval_count ?? 0, tokensOut: j.eval_count ?? 0 };
+    lastErr = `model did not return JSON (${r.content.slice(0, 160).replace(/\s+/g, " ")}${j.done_reason === "length" ? " ... cut at the length limit" : ""})`;
+  }
+  throw new Error(lastErr || "no answer from Ollama");
+}
+
+/** Reply to JSON: drops <think> blocks and code fences, takes the outermost {...}. Null if it is not an object. */
+export function parseJsonReply(text) {
+  const t = String(text).replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/```(?:json)?/gi, "");
+  const i = t.indexOf("{"), k = t.lastIndexOf("}");
+  if (i < 0 || k <= i) return null;
+  try { const v = JSON.parse(t.slice(i, k + 1)); return v && typeof v === "object" && !Array.isArray(v) ? v : null; } catch { return null; }
 }
 
 async function work(job) {
-  const beat = setInterval(() => api("heartbeat", { isin: job.isin, stage: "working" }).catch(() => {}), 120_000);
+  let stage = "collecting";
+  const beat = setInterval(() => api("heartbeat", { isin: job.isin, stage }).catch(() => {}), 120_000);
   try {
-    await api("heartbeat", { isin: job.isin, stage: "collecting" });
-    const docs = await collect(job);
+    await api("heartbeat", { isin: job.isin, stage });
+    let docs = [];
+    try { docs = await collect(job); } catch (e) { log(job.isin, "collection failed:", e.message); }
     log(job.isin, "sources:", docs.length);
-    if (!docs.length) throw new Error("no public sources found");
-    await api("heartbeat", { isin: job.isin, stage: "extracting" });
-    const x = await extract(job, docs);
+    let x = null, problem = docs.length ? "" : "no public sources found";
+    if (docs.length) {
+      stage = "extracting";
+      await api("heartbeat", { isin: job.isin, stage });
+      try { x = await extract(job, docs); } catch (e) { problem = `extraction failed: ${e.message}`; log(job.isin, problem); }
+    }
+    // Two tries per bond; after that the site still gets a provisional assessment from the data it already holds (ratings, seniority),
+    // marked "review required" with the gap listed, instead of the bond staying empty forever.
+    if (!x && (job.attempts ?? 1) < 2) throw new Error(problem);
     const evidence = docs.map((d) => ({ url: d.url, title: d.title, publisher: d.publisher, publishedAt: null, period: d.period, retrievedAt: d.retrievedAt, location: null, method: d.method, verification: "unverified", primary: d.primary }));
-    const res = await api("complete", { isin: job.isin, result: { ...x.result, evidence, usage: { model: MODEL, ms: x.ms, tokensIn: x.tokensIn, tokensOut: x.tokensOut } } });
+    const result = x ? { ...x.result, evidence, usage: { model: MODEL, ms: x.ms, tokensIn: x.tokensIn, tokensOut: x.tokensOut } } : { evidence, notes: [`automatic research incomplete: ${problem}`], usage: { model: MODEL, ms: 0, tokensIn: 0, tokensOut: 0 } };
+    stage = "publishing";
+    const res = await api("complete", { isin: job.isin, result });
     log(job.isin, "complete", res.status, JSON.stringify({ ir: res.ir, br: res.br, status: res.status }));
     if (res.status >= 400 && res.status !== 409) throw new Error(`complete rejected: ${res.error}`);
   } catch (e) {
@@ -138,21 +263,25 @@ async function work(job) {
   } finally { clearInterval(beat); }
 }
 
-if (!MODEL) {
-  const t = await fetch(`${OLLAMA}/api/tags`).then((r) => r.json()).catch(() => null);
-  console.error(t ? `Set OLLAMA_MODEL to one of: ${t.models.map((m) => m.name).join(", ")}` : `Ollama is not answering at ${OLLAMA}`);
-  process.exit(1);
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  if (!MODEL) {
+    const t = await fetch(`${OLLAMA}/api/tags`).then((r) => r.json()).catch(() => null);
+    console.error(t ? `Set OLLAMA_MODEL to one of: ${t.models.map((m) => m.name).join(", ")}` : `Ollama is not answering at ${OLLAMA}`);
+    process.exit(1);
+  }
+  log(`worker ${ID} -> ${SITE}, model ${MODEL}, ollama ${OLLAMA}`);
+  let fails = 0;
+  while (!stopping) {
+    try {
+      const r = await api("claim", {});
+      if (r.status === 401) { console.error("token rejected: create a new one in Admin > Credit Research"); process.exit(2); }
+      fails = 0;
+      if (r.job) { log("claimed", r.job.isin, `P${r.job.priority}`); await work(r.job); continue; }
+      if (r.paused) log("paused in admin");
+    } catch (e) { fails++; log("website not reachable:", e.message); }
+    await sleep(Math.min(15 * 60_000, IDLE_MS * 2 ** Math.min(fails, 4)));
+  }
+  log("stopped");
+
 }
-log(`worker ${ID} -> ${SITE}, model ${MODEL}, ollama ${OLLAMA}`);
-let fails = 0;
-while (!stopping) {
-  try {
-    const r = await api("claim", {});
-    if (r.status === 401) { console.error("token rejected: create a new one in Admin > Credit Research"); process.exit(2); }
-    fails = 0;
-    if (r.job) { log("claimed", r.job.isin, `P${r.job.priority}`); await work(r.job); continue; }
-    if (r.paused) log("paused in admin");
-  } catch (e) { fails++; log("website not reachable:", e.message); }
-  await sleep(Math.min(15 * 60_000, IDLE_MS * 2 ** Math.min(fails, 4)));
-}
-log("stopped");

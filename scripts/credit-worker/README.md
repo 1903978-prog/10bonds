@@ -13,7 +13,9 @@ Settings (environment variables):
 | `OLLAMA_MODEL` | a model name from `ollama list` |
 | `BONDS_URL` | default `https://10bonds.com` |
 | `OLLAMA_URL` | default `http://127.0.0.1:11434` (refuses non-local addresses) |
-| `NUM_CTX`, `MAX_DOCS`, `IDLE_SECONDS`, `INFERENCE_TIMEOUT_S` | optional limits |
+| `NUM_CTX`, `NUM_PREDICT`, `MAX_DOCS`, `IDLE_SECONDS` | optional limits |
+| `INFERENCE_TIMEOUT_S` | whole-answer limit, default 1800 (30 min); there is no shorter hidden limit |
+| `OLLAMA_THINK` | `1` turns the model's thinking on; default off (thinking makes qwen3 models slow and breaks the JSON) |
 
 Run once by hand: `node scripts/credit-worker/worker.mjs`.
 
