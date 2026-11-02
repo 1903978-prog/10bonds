@@ -214,7 +214,9 @@ export async function overview() {
     from app.bond_credit_analysis`;
   const workers = await s`select worker_id, model, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
   const jobs = await s`
-    select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status
+    select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status,
+      a.detail #>> '{research,scored,coverage}' as coverage, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
+      (select string_agg(x, '; ') from jsonb_array_elements_text(coalesce(a.detail #> '{research,scored,missing}', '[]'::jsonb)) x) as missing
     from app.credit_research_jobs j left join app.bond_credit_analysis a on a.isin = j.isin order by j.updated_at desc limit 40`;
   const [avg] = await s<{ ms: string | null }[]>`select avg(ms)::int as ms from app.credit_research_runs where ok and at > now() - interval '7 days'`;
   return { jobs: c, analyses: a, workers, recent: jobs, avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };

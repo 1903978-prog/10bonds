@@ -74,6 +74,10 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     expect(Number(n)).toBeGreaterThanOrEqual(1);
     const [row] = await s<{ effective_grade: string }[]>`select effective_grade from app.bond_credit_analysis where isin = ${j1!.isin}`;
     expect(row.effective_grade).toBe("BBB");
+    const ov = await db.overview();
+    const orow = ov.recent.find((r) => r.isin === j1!.isin) as unknown as { sources: number | null; coverage: string | null } | undefined;
+    expect(orow?.sources).toBe(2);
+    expect(Number(orow?.coverage)).toBeGreaterThan(0);
     await s.end();
   }, 60_000);
 });

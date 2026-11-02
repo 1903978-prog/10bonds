@@ -1,0 +1,7 @@
+{
+  "name": "10bonds-credit-worker",
+  "private": true,
+  "type": "module",
+  "description": "Optional: reads PDF annual reports in plain JavaScript (run npm install in this folder).",
+  "dependencies": { "pdfjs-dist": "4.10.38" }
+}
