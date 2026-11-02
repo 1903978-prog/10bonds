@@ -1,3 +1,12 @@
+# LIVIO'S TIME — v4 ADDITIONS (2/11/2026; full text: /mnt/project-files/working-rules/protect-livio-time-v4-2026-11-02.md)
+
+- LINKS: every message prints full clickable https:// URLs for every page, PR, thread, admin route, file, plus a "Links:" line at the end. Never "PR #468" alone, never generic /admin when a specific route exists. Open each link first (200 as the right role) and label it truthfully.
+- STEPS when he must act: numbered steps, exact button names, a link per step, expected result, minimal reply, why Claude cannot.
+- CHECK BEFORE ASKING: memory, chat, threads, repo, admin state, docs/livio-asks.md. Done or answered already = do not ask. If Claude can do it, do it.
+- ASK ONLY for: money over ceiling, legal loosening, irreversible actions, things only he can physically do.
+- Small decisions: just do, one line. Re-read the draft before posting (verified this turn, labels right, no repeats, Bangkok/CET). Own mistakes: one line, then fix.
+- Self-score daily, target 9.9/10 (log in the v4 file).
+
 # LIVIO'S TIME — RULE 1
 
 1. Answer first. End every reply with "Need from you: Nothing" or exactly one ask.
