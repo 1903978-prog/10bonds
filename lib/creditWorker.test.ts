@@ -50,3 +50,30 @@ describe("LBBW H1 2026 figures (owner's reference values)", () => {
     expect(found.map((f) => [f.parameter, f.value])).toEqual(expect.arrayContaining([["totalCapitalPct", 19.9], ["pretaxProfitEurM", 708]]));
   });
 });
+
+describe("PDF reports and the issuer figure cache", () => {
+  it("parses a LBBW-style financial PDF with page numbers and the right figures", async () => {
+    const w = await worker();
+    const { readFileSync } = await import("node:fs");
+    const buf = readFileSync("scripts/credit-worker/fixtures/lbbw-h1-2026-extract.pdf");
+    const text = (await (w.pdfText as unknown as (b: Buffer) => Promise<string>)(buf));
+    if (!text) return; // neither pdftotext nor pdfjs-dist installed in this environment
+    expect(text.split("\f").length).toBeGreaterThanOrEqual(2);
+    const { found } = (w.extractBankFigures as unknown as (t: string) => { found: { parameter: string; value: number; offset: number }[] })(text);
+    const v = Object.fromEntries(found.map((f) => [f.parameter, f.value]));
+    expect(v).toMatchObject({ cet1Pct: 16.1, roePct: 8.3, totalCapitalPct: 19.9, pretaxProfitEurM: 708 });
+    const tcr = found.find((f) => f.parameter === "totalCapitalPct")!;
+    expect(text.slice(0, tcr.offset).split("\f").length).toBe(2); // the table is on page 2
+  });
+  it("keeps both values when two documents disagree for the same period, and reuses the newest cited figure", async () => {
+    const w = await worker();
+    const kb = { domains: {}, dead: {}, financials: {} } as Record<string, unknown>;
+    const fig = (value: number, url: string, reportingDate: string) => ({ parameter: "roePct", value, unit: "%", quote: `RoE ${value}%`, url, period: "x", reportingDate });
+    const rec = w.recordFinancials as unknown as (k: string, i: string, f: unknown[], kb: unknown) => string[];
+    expect(rec("lei1", "LBBW", [fig(8.3, "https://a", "2026-06-30")], kb)).toEqual([]);
+    expect(rec("lei1", "LBBW", [fig(8.6, "https://b", "2026-06-30")], kb)).toHaveLength(1); // conflict, both kept
+    expect(rec("lei1", "LBBW", [fig(8.6, "https://c", "2025-06-30")], kb)).toEqual([]); // other period: no conflict
+    const cached = (w.cachedFigure as unknown as (k: string, p: string, kb: unknown) => { reportingDate: string } | null)("lei1", "roePct", kb);
+    expect(cached?.reportingDate).toBe("2026-06-30");
+  });
+});

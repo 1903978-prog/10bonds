@@ -7,8 +7,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import http from "node:http";
 import https from "node:https";
-import { writeFile, rm, mkdtemp } from "node:fs/promises";
-import { tmpdir, hostname } from "node:os";
+import { writeFile, rm, mkdtemp, readFile, mkdir } from "node:fs/promises";
+import { tmpdir, hostname, homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { lookup } from "node:dns/promises";
@@ -26,6 +26,17 @@ const NUM_PREDICT = Number(process.env.NUM_PREDICT ?? 2500);
 const THINK = process.env.OLLAMA_THINK === "1"; // thinking stays OFF unless asked for
 const UA = "10bonds-research-bot/1.0 (+https://10bonds.com; credit research, polite rate limits)";
 const log = (...a) => console.log(new Date().toISOString(), ...a);
+
+// ---- Knowledge kept between jobs (verified issuer websites, hosts that do not exist, period-tagged figures per issuer). Plain JSON in the worker's data folder. ----
+const DATA_DIR = process.env.WORKER_DATA ?? join(homedir(), "10bonds-worker");
+const KB_FILE = join(DATA_DIR, "knowledge.json");
+let KB = { domains: {}, dead: {}, financials: {} };
+async function loadKB() { try { KB = { domains: {}, dead: {}, financials: {}, ...JSON.parse(await readFile(KB_FILE, "utf8")) }; } catch { /* first run */ } }
+async function saveKB() { try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(KB_FILE, JSON.stringify(KB, null, 1)); } catch (e) { log("could not save knowledge file:", e.message); } }
+const issuerKey = (job) => (job.identity?.lei || job.hints?.lei || (job.known?.issuer || job.known?.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")).toString();
+// ---- Per-job counters for the stage summary: discovery, access, parsing, extraction, verification ----
+export const stats = { fetchOk: 0, blocked: {}, failedHosts: {}, pdfParsed: 0, pdfFailed: 0, ollamaMs: 0 };
+export const resetStats = () => { stats.fetchOk = 0; stats.blocked = {}; stats.failedHosts = {}; stats.pdfParsed = 0; stats.pdfFailed = 0; stats.ollamaMs = 0; };
 
 // Inference must stay on this machine: refuse any Ollama address that is not loopback or a private network address.
 const host = new URL(OLLAMA).hostname;
@@ -59,12 +70,20 @@ const API_HOSTS = /^(api\.gleif\.org|api\.worldbank\.org|api\.gdeltproject\.org|
 async function get(url, asBytes = false) {
   if (!url.startsWith("https://")) return null;
   if (!API_HOSTS.test(new URL(url).hostname) && !(await allowed(url))) { log("  skipped (robots.txt):", url.slice(0, 100)); return null; }
-  const h = new URL(url).host; const wait = (lastHit.get(h) ?? 0) + 2000 - Date.now(); if (wait > 0) await sleep(wait); lastHit.set(h, Date.now());
+  const h = new URL(url).host;
+  if (KB.dead[h] && Date.now() - Date.parse(KB.dead[h]) < 24 * 3600e3) return null; // did not resolve in the last 24 h: not retried meanwhile (a name that never existed is not guessed any more)
+  const wait = (lastHit.get(h) ?? 0) + 2000 - Date.now(); if (wait > 0) await sleep(wait); lastHit.set(h, Date.now());
   try {
     const r = await fetch(url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(25_000) });
-    if (!r.ok || Number(r.headers.get("content-length") ?? 0) > 30e6) { if (r.status !== 404) log(`  ${r.status}:`, url.slice(0, 100)); return null; }
+    if (!r.ok || Number(r.headers.get("content-length") ?? 0) > 30e6) { if (r.status !== 404) { (stats.blocked[h] ??= new Set()).add(r.status); if (stats.blocked[h].size === 1 && !(stats.blocked[h].logged)) { stats.blocked[h].logged = true; log(`  access refused (${r.status}) by ${h}`); } } return null; }
+    stats.fetchOk++;
     return asBytes ? Buffer.from(await r.arrayBuffer()) : await r.text();
-  } catch (e) { log("  failed:", url.slice(0, 100), e.cause?.code ?? e.message); return null; }
+  } catch (e) {
+    const code = e.cause?.code ?? e.message;
+    if (code === "ENOTFOUND") { KB.dead[h] = new Date().toISOString(); await saveKB(); } // remembered: this host does not exist
+    if (!stats.failedHosts[h]) { stats.failedHosts[h] = code; log("  unreachable:", h, code); }
+    return null;
+  }
 }
 const strip = (h) => h.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
@@ -124,7 +143,7 @@ export function extractBankFigures(text) {
         break;
       }
     }
-    if (best) found.push({ parameter: r.parameter, value: best.value, unit: r.unit, quote: best.quote });
+    if (best) found.push({ parameter: r.parameter, value: best.value, unit: r.unit, quote: best.quote, offset: best.idx });
   }
   const have = new Set(found.map((f) => f.parameter));
   return { found, missing: BANK_RULES.map((r) => r.parameter).filter((p) => !have.has(p)) };
@@ -159,20 +178,23 @@ export const TARGETS = [
   { parameter: "pretaxProfitEurM", words: /results|financial|profit|report/i },
 ];
 
-async function pdfText(buf) {
+/** PDF text with a form feed between pages, so a figure can be cited with its page number (each page ends with one; page = form feeds before the figure + 1). */
+export async function pdfText(buf) {
   const dir = await mkdtemp(join(tmpdir(), "cw-")); const f = join(dir, "d.pdf");
-  try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", "60", "-layout", f, "-"], { maxBuffer: 30e6, timeout: 90_000 }); if (stdout.trim()) return stdout.replace(/\s+/g, " "); } catch { /* pdftotext not installed: try the JavaScript reader */ } finally { await rm(dir, { recursive: true, force: true }); }
+  try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", "60", "-layout", f, "-"], { maxBuffer: 30e6, timeout: 90_000 }); if (stdout.trim()) { stats.pdfParsed++; return stdout.replace(/[ \t\r\n\v]+/g, " ").replace(/ ?\f ?/g, "\f"); } } catch { /* pdftotext not installed: try the JavaScript reader */ } finally { await rm(dir, { recursive: true, force: true }); }
   try {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const doc = await pdfjs.getDocument({ data: new Uint8Array(buf), useSystemFonts: true, isEvalSupported: false, verbosity: 0 }).promise;
     let out = "";
-    for (let i = 1; i <= Math.min(doc.numPages, 60) && out.length < 400_000; i++) out += " " + (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
-    return out.replace(/\s+/g, " ");
+    for (let i = 1; i <= Math.min(doc.numPages, 60) && out.length < 400_000; i++) out += (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ") + "\f";
+    stats.pdfParsed++;
+    return out.replace(/[ \t\r\n\v]+/g, " ").replace(/ ?\f ?/g, "\f");
   } catch (e) {
     if (e.code === "ERR_MODULE_NOT_FOUND" && !triedInstall) { // install the one optional package by itself, once, then retry
       triedInstall = true; log("installing the PDF reader (npm install, once) ...");
       try { await run("npm", ["install", "--silent", "--no-audit", "--no-fund"], { cwd: dirname(fileURLToPath(import.meta.url)), shell: process.platform === "win32", timeout: 240_000 }); return await pdfText(buf); } catch (e2) { log("PDF reader install failed:", e2.message.slice(0, 120)); }
     }
+    stats.pdfFailed++;
     if (!warnedPdf) { warnedPdf = true; log("PDF reports are skipped: run `npm install` in scripts\\credit-worker (or install pdftotext)", e.code ?? ""); } return ""; }
 }
 
@@ -230,20 +252,6 @@ export async function newsScan(name) {
   let arts = []; try { arts = JSON.parse(t).articles ?? []; } catch { if (!/^\s*\{\s*\}\s*$/.test(t)) return null; }
   return { url, hits: arts.length, text: arts.length ? arts.map((a) => `${(a.seendate ?? "").slice(0, 8)} ${a.title} (${a.domain})`).join("\n") : `No headlines mentioning "${name}" together with a risk word (downgrade, default, fraud, investigation, lawsuit, insolvency, profit warning, sanctions, bankruptcy) in the last 3 months.` };
 }
-const SLUG_TLDS = [".com", ".de", ".fr", ".it", ".nl", ".es", ".co.uk", ".eu", ".ch", ".at", ".be", ".se"];
-/** When no website is known: try the obvious domains and keep the first whose home page names the company. */
-async function guessSite(core) {
-  const slug = core.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
-  if (slug.length < 4) return null;
-  const first = core.toLowerCase().split(/\s+/)[0];
-  for (const tld of SLUG_TLDS) for (const host of [`www.${slug}${tld}`, `${slug}${tld}`]) {
-    if (!(await lookup(host).then(() => true, () => false))) continue; // no such host: skip silently
-    const h = await get(`https://${host}/`);
-    if (h && strip(h).toLowerCase().includes(first)) return `https://${host}/`;
-  }
-  return null;
-}
-
 async function collect(job) {
   const docs = []; const names = nameVariants(job.known?.issuer || job.known?.name || job.hints?.issuer || "");
   const add = (d) => { if (d?.text && d.text.length > 40 && !docs.some((x) => x.url === d.url)) docs.push({ ...d, text: d.text, retrievedAt: new Date().toISOString() }); };
@@ -300,8 +308,9 @@ async function collect(job) {
   });
   // 2. Website: Wikipedia search -> Wikidata item -> official website (issuer first, then the parent).
   // the owner's reference sources name the real website: use it before any search or guess
-  let site = null;
-  for (const src of [...(job.hints?.sources ?? [])].sort((a, b) => a.priority - b.priority)) { try { const u = new URL(src.url); if (!/boerse|bankingresolution|gleif|wikipedia/.test(u.hostname)) { site = `${u.origin}/`; break; } } catch { /* bad url */ } }
+  let siteFrom = null;
+  let site = KB.domains[issuerKey(job)]?.site ?? null; if (site) siteFrom = "cache"; // verified earlier for this issuer
+  if (!site) for (const src of [...(job.hints?.sources ?? [])].sort((a, b) => a.priority - b.priority)) { try { const u = new URL(src.url); if (!/boerse|bankingresolution|gleif|wikipedia/.test(u.hostname)) { site = `${u.origin}/`; siteFrom = "reference"; break; } } catch { /* bad url */ } }
   for (const n of [...names, ...(parent ? nameVariants(parent) : [])]) {
     if (site) break;
     await guard(async () => {
@@ -315,10 +324,17 @@ async function collect(job) {
       if (!qid) return;
       const ent = await get(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
       const w = ent ? JSON.parse(ent).entities?.[qid]?.claims?.P856?.[0]?.mainsnak?.datavalue?.value : null;
-      if (typeof w === "string" && w.startsWith("https://")) site = w;
+      if (typeof w === "string" && w.startsWith("https://")) { site = w; siteFrom = "wikidata"; }
     });
   }
-  if (!site) site = await guard(() => guessSite(names[names.length - 1]));
+  // 2b. Verify the official website once (its home page names the issuer), then remember it for every later bond of this issuer.
+  if (site && siteFrom !== "cache") await guard(async () => {
+    const h = await get(site);
+    const word = (names[0] ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).find((w) => w.length >= 3);
+    if (siteFrom === "reference" || (h && word && strip(h).toLowerCase().includes(word))) { KB.domains[issuerKey(job)] = { site, verifiedAt: new Date().toISOString(), via: siteFrom, issuer: names[0] }; await saveKB(); job.siteVerified = true; }
+    else { log("official website not verified, not used:", site); site = null; }
+  });
+  else if (site) job.siteVerified = true;
   // 3. Investor pages and reports on that website.
   if (site) await guard(async () => {
     const origin = new URL(site).origin, dom = baseDomain(new URL(site).hostname);
@@ -454,7 +470,9 @@ export async function gatherFigures(job, docs, fetchMore = null, rounds = 2) {
       const rd = per?.end ?? null;
       // the first (highest-priority) document wins, unless a later document is for a NEWER reporting period (H1 2026 beats FY 2025); a conflicting same-period value is reported below
       if (have) { if (rd && (!have.reportingDate || rd > have.reportingDate)) figures.splice(figures.indexOf(have), 1); else continue; }
-      figures.push({ ...f, url: d.url, period: per?.label ?? null, reportingDate: rd });
+      const page = d.method === "pdf" ? d.text.slice(0, f.offset).split("\f").length : null;
+      const { offset, ...fig } = f;
+      figures.push({ ...fig, url: d.url, period: per?.label ?? null, reportingDate: rd, ...(page ? { page } : {}) });
       d.verified = true;
     }
   };
@@ -499,7 +517,45 @@ export function buildExtra(job, docs, figures, figConflicts) {
   return { evidence, metrics, extra };
 }
 
+/** Keep every cited figure per issuer with its reporting period; two different values for the SAME parameter and period from different documents are both kept and reported as a conflict (publication stays blocked until reconciled). */
+export function recordFinancials(key, issuer, figures, kb = KB) {
+  const rec = (kb.financials[key] ??= { issuer, records: [] }); rec.issuer = issuer; rec.updatedAt = new Date().toISOString();
+  const conflicts = [];
+  for (const f of figures) {
+    if (f.cached || !f.quote || !f.url) continue;
+    if (!rec.records.some((r) => r.parameter === f.parameter && r.reportingDate === f.reportingDate && r.url === f.url && r.value === f.value)) {
+      const other = rec.records.find((r) => r.parameter === f.parameter && r.reportingDate && r.reportingDate === f.reportingDate && r.value !== f.value && r.url !== f.url);
+      if (other) conflicts.push(`${f.parameter} ${f.period ?? f.reportingDate}: ${other.value} (${other.url}) vs ${f.value} (${f.url})`);
+      rec.records.push({ parameter: f.parameter, value: f.value, unit: f.unit, period: f.period, reportingDate: f.reportingDate, url: f.url, page: f.page ?? null, quote: f.quote, retrievedAt: new Date().toISOString() });
+    }
+  }
+  return conflicts;
+}
+/** A figure already cited in an earlier job for this issuer (newest reporting period first); used only when this job found nothing for that parameter. */
+export function cachedFigure(key, parameter, kb = KB) {
+  const rs = (kb.financials[key]?.records ?? []).filter((r) => r.parameter === parameter).sort((a, b) => (b.reportingDate ?? "").localeCompare(a.reportingDate ?? ""));
+  return rs[0] ? { parameter, value: rs[0].value, unit: rs[0].unit, quote: rs[0].quote, url: rs[0].url, period: rs[0].period, reportingDate: rs[0].reportingDate, ...(rs[0].page ? { page: rs[0].page } : {}), cached: true } : null;
+}
+const MANDATORY = ["cet1Pct", "npePct", "totalCapitalPct", "roePct", "costIncomePct", "pretaxProfitEurM"];
+function summaryBlock(job, docs, figures, conflicts, x, res) {
+  const blocked = Object.entries(stats.blocked).map(([h, set]) => `${h} (${[...set].join("/")})`);
+  const verified = figures.filter((f) => f.quote && f.url);
+  const missing = MANDATORY.filter((p) => !figures.some((f) => f.parameter === p));
+  return [
+    `== ${job.isin} research summary`,
+    `issuer: ${job.identity?.legalName ?? job.known?.issuer ?? "?"}${job.identity?.lei ? ` · LEI ${job.identity.lei}` : ""} · official website ${job.siteVerified ? "verified" : "not verified"}`,
+    `1 discovery:  ${docs.length} source(s) found`,
+    `2 access:     ${stats.fetchOk} fetched, ${blocked.length ? `refused: ${blocked.join(", ")}` : "none refused"}${Object.keys(stats.failedHosts).length ? `, unreachable: ${Object.keys(stats.failedHosts).join(", ")}` : ""}`,
+    `3 parsing:    ${stats.pdfParsed} PDF parsed, ${stats.pdfFailed} failed`,
+    `4 extraction: ${figures.length} figure(s) found${x ? `, model ${Math.round((x.ms ?? 0) / 1000)} s` : ", model not used"}`,
+    `5 verification: ${verified.length} with quote + source (${figures.filter((f) => f.cached).length} from earlier jobs); missing mandatory: ${missing.join(", ") || "none"}; conflicts: ${conflicts.length ? conflicts.join(" | ") : "none"}`,
+    ...figures.map((f) => `   ${f.parameter} = ${f.value} ${f.unit} · ${f.period ?? "period unknown"} · ${f.url.slice(0, 90)}${f.page ? ` p.${f.page}` : ""}${f.cached ? " (cached)" : ""}`),
+    `6 scoring/publication: ${res ? `IR ${res.ir ?? "?"} · BR ${res.br ?? "?"} · ${res.status}` : "not reached"}`,
+  ].join("\n");
+}
+
 async function work(job) {
+  resetStats(); await loadKB();
   let stage = "collecting";
   const beat = setInterval(() => api("heartbeat", { isin: job.isin, stage }).catch(() => {}), 120_000);
   try {
@@ -520,6 +576,10 @@ async function work(job) {
       return out;
     };
     const { figures, conflicts: figConflicts } = await gatherFigures(job, docs, fetchMore);
+    const ikey = issuerKey(job); const cachedList = []; // earlier cited figures: shown in the summary, never sent as if retrieved now
+    for (const t of TARGETS) if (!figures.some((f) => f.parameter === t.parameter)) { const c = cachedFigure(ikey, t.parameter); if (c) cachedList.push(c); }
+    figConflicts.push(...recordFinancials(ikey, job.identity?.legalName ?? job.known?.issuer ?? ikey, figures));
+    await saveKB();
     const wbDebt = docs.find((d) => d.publisher === "World Bank" && /central government debt/.test(d.title));
     if (wbDebt && job.det?.metrics?.debtToGdpPct != null) figures.push({ parameter: "debtToGdpPct", value: job.det.metrics.debtToGdpPct, unit: "% of GDP", quote: wbDebt.text, url: wbDebt.url, period: wbDebt.period ?? null, reportingDate: wbDebt.period ? `${wbDebt.period}-12-31` : null }), (wbDebt.verified = true);
     log(job.isin, "figures with citations:", figures.map((f) => `${f.parameter}=${f.value}`).join(", ") || "none");
@@ -538,6 +598,7 @@ async function work(job) {
     stage = "publishing";
     const res = await api("complete", { isin: job.isin, result });
     log(job.isin, "complete", res.status, JSON.stringify({ ir: res.ir, br: res.br, status: res.status }));
+    console.log(summaryBlock(job, docs, [...figures, ...cachedList.filter((c) => !figures.some((f) => f.parameter === c.parameter))], figConflicts, x, res));
     if (res.status >= 400 && res.status !== 409) throw new Error(`complete rejected: ${res.error}`);
   } catch (e) {
     log(job.isin, "failed:", e.message);
@@ -545,7 +606,54 @@ async function work(job) {
   } finally { clearInterval(beat); }
 }
 
+// ---- Self-test: reads the real LBBW H1 2026 documents (press release page, press-release PDF, half-year report PDF) and prints expected vs retrieved. Needs no Ollama. ----
+const LBBW_DOCS = [
+  { label: "press release (web page)", url: "https://www.lbbw.de/article/press-release/lbbw-firmly-on-track_ancu4bx2g2_e.html", pdf: false },
+  { label: "press release (PDF)", url: "https://www.lbbw.de/konzern/medien-center/presseinfos/2026/20260828-press-release-lbbw-firmly-on-track_ancu39nmvc_m.pdf", pdf: true },
+  { label: "half-year report 2026 (PDF)", url: "https://www.lbbw.de/konzern/investor-relations/finanzberichte/halbjahresberichte/2026/lbbw_half-yearly-financial-report-2026_ancu38v7h4_m.pdf", pdf: true },
+];
+// What the original LBBW report says for 1 Jan-30 Jun 2026 / 30 Jun 2026 (press release of 28 Aug 2026), and what the owner's list had, with the reason it differs.
+const LBBW_EXPECTED = [
+  { p: "cet1Pct", official: 16.1, listed: 16.1, note: "" },
+  { p: "npePct", official: 0.9, listed: 0.9, note: "" },
+  { p: "roePct", official: 8.3, listed: 8.6, note: "8.6 is H1 2025 (prior year)" },
+  { p: "costIncomePct", official: 60.4, listed: 60.4, note: "" },
+  { p: "pretaxProfitEurM", official: 708, listed: 312, note: "312 is the Corporate Customers segment only" },
+  { p: "totalCapitalPct", official: 19.9, listed: 21.61, note: "21.6 is 30 June 2025 (prior year)" },
+];
+export async function selftest() {
+  await loadKB(); resetStats();
+  const rows = []; const lines = [`LBBW self-test ${new Date().toISOString()}`];
+  const got = {};
+  for (const d of LBBW_DOCS) {
+    const raw = await get(d.url, d.pdf);
+    if (!raw) { lines.push(`ACCESS FAILED: ${d.label} ${d.url}`); continue; }
+    const text = d.pdf ? await pdfText(raw) : strip(raw);
+    if (d.pdf && !text) { lines.push(`PARSE FAILED: ${d.label}`); continue; }
+    const per = reportPeriod(text);
+    lines.push(`OK: ${d.label} · ${text.replace(/\f/g, " ").length} characters${d.pdf ? ` · ${text.split("\f").length - (text.endsWith("\f") ? 1 : 0)} pages` : ""} · period ${per?.label ?? "not stated"}`);
+    for (const f of extractBankFigures(text).found) {
+      const page = d.pdf ? text.slice(0, f.offset).split("\f").length : null;
+      (got[f.parameter] ??= []).push({ ...f, label: d.label, url: d.url, page, period: per?.label ?? "?", end: per?.end ?? "" });
+    }
+  }
+  lines.push("", "parameter | owner's list | official H1 2026 | retrieved (period, source, page) | verdict");
+  let ok = 0;
+  for (const e of LBBW_EXPECTED) {
+    const g = (got[e.p] ?? []).sort((a, b) => b.end.localeCompare(a.end))[0];
+    const vals = [...new Set((got[e.p] ?? []).map((x) => x.value))];
+    const verdict = !g ? "NOT RETRIEVED" : vals.length > 1 ? `CONFLICT between documents: ${vals.join(" vs ")}` : g.value === e.official ? `MATCHES official${e.listed !== e.official ? ` (owner's list ${e.listed}: ${e.note})` : ""}` : `DIFFERS from official ${e.official}`;
+    if (g && g.value === e.official && vals.length === 1) ok++;
+    lines.push(`${e.p} | ${e.listed} | ${e.official} | ${g ? `${g.value} (${g.period}, ${g.label}${g.page ? ` p.${g.page}` : ""})` : "-"} | ${verdict}`);
+  }
+  lines.push("", `${ok} of ${LBBW_EXPECTED.length} figures retrieved and equal to the official H1 2026 report`);
+  const out = lines.join("\n"); console.log(out);
+  try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(join(DATA_DIR, "selftest-report.txt"), out); } catch { /* ignore */ }
+  return ok;
+}
+
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain && process.argv.includes("--selftest")) { const ok = await selftest(); process.exit(ok === LBBW_EXPECTED.length ? 0 : 2); }
 if (isMain) {
   if (!MODEL) {
     const t = await fetch(`${OLLAMA}/api/tags`).then((r) => r.json()).catch(() => null);

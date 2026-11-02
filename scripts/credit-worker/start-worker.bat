@@ -52,6 +52,9 @@ powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing '%RAW%/
 powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing '%RAW%/package.json' -OutFile package.json -TimeoutSec 30 } catch {}"
 if not exist node_modules\pdfjs-dist call npm install --silent --no-audit --no-fund >nul 2>nul
 
+echo Checking the engine on the real LBBW H1 2026 reports (result in %DIR%\selftest-report.txt) ...
+set "WORKER_DATA=%DIR%"
+node worker.mjs --selftest
 echo Starting worker with model %OLLAMA_MODEL% ...
 node worker.mjs
 echo Worker stopped. Restarting in 20 seconds (close this window to stop).
