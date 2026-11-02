@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { createWorkerToken, enqueueIsins, overview, retryFailed, revokeWorkerTokens, setPaused } from "@/lib/creditResearchDb";
+import { createWorkerToken, enqueueIsins, overview, retryFailed, revokeWorkerTokens, setPaused, validateRating } from "@/lib/creditResearchDb";
 import { isIsin } from "@/lib/creditResearchSchema";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,13 @@ export async function POST(req: Request) {
       const isin = String(b.isin ?? "").trim().toUpperCase();
       if (!isIsin(isin)) return NextResponse.json({ error: "Not a valid ISIN" }, { status: 400 });
       return NextResponse.json({ ok: true, queued: await enqueueIsins([isin], true, 0) });
+    }
+    case "validate": {
+      // The only way a rating becomes VALIDATED: a person says so (never the engine).
+      const isin = String(b.isin ?? "").trim().toUpperCase();
+      if (!isIsin(isin)) return NextResponse.json({ error: "Not a valid ISIN" }, { status: 400 });
+      const u = await admin();
+      return (await validateRating(isin, u?.email ?? "admin")) ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "No rating stored for this ISIN" }, { status: 404 });
     }
     case "token": return NextResponse.json({ ok: true, token: await createWorkerToken("Lenovo worker") });
     case "revoke": await revokeWorkerTokens(); return NextResponse.json({ ok: true });

@@ -6,7 +6,7 @@ type Ov = {
   paused: boolean; avgMs: number | null;
   jobs: Record<string, string>; analyses: Record<string, string>;
   workers: { worker_id: string; model: string | null; current_isin: string | null; stage: string | null; host: string | null; last_seen: string; online: boolean }[];
-  recent: { isin: string; priority: number; status: string; stage: string | null; exposure_count: number; attempts: number; last_error: string | null; updated_at: string; issuer_rating_min: string | null; issuer_rating_max: string | null; bond_rating_min: string | null; bond_rating_max: string | null; rating_verification_status: string | null; coverage: string | null; sources: number | null; missing: string | null; parameters: Params | null; same_as: string[] | null; steps: { label: string; delta: number }[] | null }[];
+  recent: { isin: string; priority: number; status: string; stage: string | null; exposure_count: number; attempts: number; last_error: string | null; updated_at: string; issuer_rating_min: string | null; issuer_rating_max: string | null; bond_rating_min: string | null; bond_rating_max: string | null; rating_verification_status: string | null; coverage: string | null; sources: number | null; missing: string | null; parameters: Params | null; publication_status: string | null; publish_ir: boolean | null; publish_br: boolean | null; gate: { ir?: { reasons?: string[] }; br?: { reasons?: string[] } } | null; same_as: string[] | null; steps: { label: string; delta: number }[] | null }[];
 };
 
 type Params = { found: number; max: number; confidence: "high" | "medium" | "low"; items: { key: string; label: string; group: string; found: boolean; source: string | null; detail: string | null }[] };
@@ -24,6 +24,8 @@ const LEGEND: [string, string][] = [
   ["Tries", "How many times the worker has tried this bond (failed tries are repeated with a pause)."],
 ];
 const STATUS_HELP: Record<string, string> = { provisional: "Calculated; no person has checked it yet.", review_required: "Calculated, but a person should check it (little data, conflict, or identical to another bond).", validated: "Checked by a person." };
+const PUB_LABEL: Record<string, string> = { researching: "Researching", insufficient_evidence: "Insufficient evidence", review_required: "Review required", publishable: "Publishable", validated: "Human validated" };
+const PUB_HELP = "Whether the rating may be shown to visitors. Only 'Publishable' (all automatic evidence checks passed) or 'Human validated' ratings are public; a finished job is not a publication.";
 const CONF_HELP = "Confidence = parameters found ÷ maximum: high 75%+, medium 50%+, low below 50%.";
 
 const rng = (a: string | null, b: string | null) => (a === null ? "—" : a === b ? Number(a) : `${Number(a)}–${Number(b)}`);
@@ -87,7 +89,7 @@ export default function CreditResearchAdmin() {
           <table className="w-full min-w-[720px] text-left text-[12px]">
             <thead className="text-mute"><tr>
               <th className="py-1" title={LEGEND[0][1]}>ISIN</th><th title={LEGEND[1][1]}>P</th><th title={LEGEND[2][1]}>Status</th><th title={LEGEND[3][1]}>Stage</th>
-              <th title={LEGEND[4][1]}>IR</th><th title={LEGEND[5][1]}>BR</th><th title={LEGEND[6][1]}>Rating status</th><th title={LEGEND[7][1]}>Parameters</th>
+              <th title={LEGEND[4][1]}>IR</th><th title={LEGEND[5][1]}>BR</th><th title={LEGEND[6][1]}>Rating status</th><th title={LEGEND[7][1]}>Parameters</th><th title={PUB_HELP}>Publication</th>
               <th title={LEGEND[8][1]}>Seen</th><th title={LEGEND[9][1]}>Tries</th><th>Updated</th><th>Last error</th>
             </tr></thead>
             <tbody>
@@ -100,11 +102,13 @@ export default function CreditResearchAdmin() {
                       <td>{rng(r.issuer_rating_min, r.issuer_rating_max)}</td><td>{rng(r.bond_rating_min, r.bond_rating_max)}</td>
                       <td title={STATUS_HELP[r.rating_verification_status ?? ""] ?? undefined}>{r.rating_verification_status ?? "—"}</td>
                       <td title={CONF_HELP} data-testid="params-cell">{p ? <>{p.found}/{p.max} <span className={p.confidence === "high" ? "text-green-700" : p.confidence === "medium" ? "text-amber-700" : "text-red-700"}>{p.confidence}</span></> : "—"}</td>
+                      <td title={PUB_HELP} data-testid="pub-cell">{PUB_LABEL[r.publication_status ?? ""] ?? "—"}{r.publish_ir ? " · IR public" : ""}{r.publish_br ? " · BR public" : ""}</td>
                       <td>{r.exposure_count}×</td><td>{r.attempts}</td><td>{new Date(r.updated_at).toLocaleString()}</td><td className="max-w-[16rem] truncate text-red-700">{r.last_error ?? ""}</td>
                     </tr>
                     {open && (
-                      <tr className="bg-soft" data-testid="job-detail"><td colSpan={12} className="p-2">
+                      <tr className="bg-soft" data-testid="job-detail"><td colSpan={13} className="p-2">
                         {r.same_as?.length ? <p className="mb-2 rounded border border-amber-400 p-2 text-amber-800">Same IR and BR ranges as {r.same_as.length} other bond(s) ({r.same_as.slice(0, 3).join(", ")}): the research found too little that tells the bonds apart, so a person should review it.</p> : null}
+                        {r.gate?.ir?.reasons?.length ? <div className="mb-2 rounded border border-line p-2" data-testid="blocked"><div className="font-medium">Not public yet. Reasons:</div><ul className="list-disc pl-5">{[...(r.gate.ir.reasons ?? []), ...(r.gate.br?.reasons ?? []).filter((x) => !(r.gate?.ir?.reasons ?? []).includes(x))].map((x, k) => <li key={k}>{x}</li>)}</ul></div> : null}
                         {p ? (
                           <div className="grid gap-3 md:grid-cols-2">
                             <div>
@@ -125,7 +129,7 @@ export default function CreditResearchAdmin() {
                   </Fragment>
                 );
               })}
-              {!d.recent.length && <tr><td colSpan={12} className="py-2 text-mute">No jobs yet. They appear after the next search.</td></tr>}
+              {!d.recent.length && <tr><td colSpan={13} className="py-2 text-mute">No jobs yet. They appear after the next search.</td></tr>}
             </tbody>
           </table>
         </div>

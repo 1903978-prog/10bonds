@@ -1,3 +1,4 @@
+import { issuerTypeOf } from "./creditFeedFacts";
 import { RISK_KEYS, type Evidence, type ResearchFacts, type RiskColor, type RiskInput, type Seniority, type IssuerType } from "./creditScoring";
 
 // Validation of what the worker sends back. The local model's JSON is untrusted input: anything outside the schema is dropped or rejected,
@@ -8,7 +9,7 @@ export const isIsin = (v: unknown): v is string => typeof v === "string" && ISIN
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const numOrNull = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && Math.abs(v) < 1e6 ? v : null);
 const SENIORITY: Seniority[] = ["senior_preferred", "senior_unsecured", "secured", "senior_non_preferred", "tier2", "at1", "unknown"];
-const ISSUER: IssuerType[] = ["corporate", "bank", "sovereign", "other"];
+const ISSUER: IssuerType[] = ["corporate", "bank", "insurer", "financial_holding", "sovereign", "supranational", "structured", "other"];
 const COLORS: RiskColor[] = ["RED", "AMBER", "GREEN", "GREY"];
 
 export type Parsed = { ok: true; facts: ResearchFacts; usage: { model: string; ms: number; tokensIn: number; tokensOut: number } } | { ok: false; error: string };
@@ -38,11 +39,27 @@ export function parseResult(isin: string, raw: unknown): Parsed {
     const rating = str(a?.rating, 12);
     return rating ? [{ agency: str(a.agency, 20), rating, scope: a.scope === "instrument" ? ("instrument" as const) : ("issuer" as const), date: str(a.date, 20) || null }] : [];
   });
+  const iss = (r.issuer && typeof r.issuer === "object" ? r.issuer : {}) as Record<string, unknown>;
+  const legalName = str(iss.legalName, 200) || null;
+  // The server, not the model, decides whether the type fits the name; identity is checked against evidence in the publication gate.
+  const issuer = legalName ? { canonicalId: str(iss.canonicalId, 80) || null, legalName, lei: str(iss.lei, 20).toUpperCase() || null, identityVerified: false, typeVerified: issuerTypeOf(legalName, issuerType) === issuerType || issuerType === "sovereign" || issuerType === "supranational" } : undefined;
+  const mp = (r.metricPeriods && typeof r.metricPeriods === "object" ? r.metricPeriods : {}) as Record<string, unknown>;
+  const metricPeriods: Record<string, string> = {};
+  for (const k of ["netDebtToEbitda", "interestCover", "cet1Pct", "nplPct", "debtToGdpPct"]) { const v = str(mp[k], 10); if (/^\d{4}-\d{2}-\d{2}$/.test(v)) metricPeriods[k] = v; }
+  const bo = (r.bond && typeof r.bond === "object" ? r.bond : null) as Record<string, unknown> | null;
+  const bond = bo ? {
+    legalIssuerMatchesIsin: bo.legalIssuerMatchesIsin === true, seniorityVerified: bo.seniorityVerified === true,
+    guaranteeStatus: bo.guaranteeStatus === "guaranteed" || bo.guaranteeStatus === "none_confirmed" ? (bo.guaranteeStatus as "guaranteed" | "none_confirmed") : ("unknown" as const),
+    bondType: str(bo.bondType, 80) || null, resolutionTreatment: str(bo.resolutionTreatment, 80) || null,
+    callable: typeof bo.callable === "boolean" ? bo.callable : null, embeddedRisksAssessed: bo.embeddedRisksAssessed === true,
+    evidence: (Array.isArray(bo.evidence) ? bo.evidence : []).map((x) => str(x, 500)).filter((x) => urls.has(x)).slice(0, 8),
+  } : undefined;
   const u = (r.usage && typeof r.usage === "object" ? r.usage : {}) as Record<string, unknown>;
   const facts: ResearchFacts = {
     isin, issuerType, seniority, guaranteed: typeof r.guaranteed === "boolean" ? r.guaranteed : null, agencyRatings,
     metrics: { netDebtToEbitda: numOrNull(m.netDebtToEbitda), interestCover: numOrNull(m.interestCover), cet1Pct: numOrNull(m.cet1Pct), nplPct: numOrNull(m.nplPct), debtToGdpPct: numOrNull(m.debtToGdpPct) },
     risks, notes: (Array.isArray(r.notes) ? r.notes : []).map((c) => str(c, 300)).filter(Boolean).slice(0, 5), conflicts: (Array.isArray(r.conflicts) ? r.conflicts : []).map((c) => str(c, 300)).filter(Boolean).slice(0, 10), evidence,
+    ...(issuer ? { issuer } : {}), ...(Object.keys(metricPeriods).length ? { metricPeriods } : {}), ...(bond ? { bond } : {}),
   };
   return { ok: true, facts, usage: { model: str(u.model, 80), ms: Math.max(0, Math.floor(numOrNull(u.ms) ?? 0)), tokensIn: Math.max(0, Math.floor(numOrNull(u.tokensIn) ?? 0)), tokensOut: Math.max(0, Math.floor(numOrNull(u.tokensOut) ?? 0)) } };
 }
