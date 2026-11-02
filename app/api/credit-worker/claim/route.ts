@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { claimJob, isPaused, touchWorker } from "@/lib/creditResearchDb";
+import { claimJob, isPaused, referenceCases, touchWorker } from "@/lib/creditResearchDb";
 import { workerGate } from "@/lib/creditWorkerAuth";
 import { loadBondsByIsin } from "@/lib/bonds";
 
@@ -18,5 +18,9 @@ export async function POST(req: Request) {
   // What the site already knows about the bond: the worker researches the rest.
   const found = (await loadBondsByIsin([job.isin]).catch(() => []))[0]?.bond;
   const known = found ? { name: found.name, issuer: found.issuer, country: found.country, currency: found.currency, coupon: found.coupon, maturity: found.maturity, seniority: found.seniority ?? null, couponType: found.couponType ?? null, ratingSp: found.ratingSp, ratingMoodys: found.ratingMoodys, ratingFitch: found.ratingFitch } : null;
-  return NextResponse.json({ paused: false, job: { ...job, known } });
+  // Reference cases (owner's worked examples) seed the retrieval: their LEI and the official source pages to read first.
+  const ref = (await referenceCases().catch(() => [])).find((r) => r.isin === job.isin);
+  const data = ref?.data as { sources?: { url: string; label: string; priority: number }[] } | undefined;
+  const hints = ref ? { lei: ref.lei ?? null, issuer: ref.issuer, sources: (data?.sources ?? []).map((x) => ({ url: x.url, label: x.label, priority: x.priority })) } : null;
+  return NextResponse.json({ paused: false, job: { ...job, known, hints } });
 }

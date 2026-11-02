@@ -2,8 +2,10 @@ import { createHash, randomBytes } from "node:crypto";
 import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
 import { isIsin } from "./creditResearchSchema";
-import { parameterReport } from "./creditParameters";
-import { evaluate, GATE_VERSION, type GateOutcome } from "./creditGate";
+import { LBBW_CASE } from "./creditReferenceCases";
+import { nextMissing, parameterReport } from "./creditParameters";
+import { blockedMessage } from "./creditParameters";
+import { evaluate, GATE_VERSION, sourceKey, sourceQuality, type GateOutcome } from "./creditGate";
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
 
 // Credit research queue (owner, 1/11/2026). One durable job per ISIN. The web process only writes small queue rows; all research
@@ -48,6 +50,8 @@ async function sql(): Promise<Sql> {
     await s`create table if not exists app.bond_credit_analysis_history (id bigserial primary key, isin text not null, archived_at timestamptz not null default now(), row jsonb not null)`;
     await s`create index if not exists bond_credit_analysis_history_isin on app.bond_credit_analysis_history (isin, archived_at desc)`;
     await ensurePublicationGate(s);
+    await s`create table if not exists app.credit_reference_cases (isin text primary key, issuer text not null, lei text, status text not null default 'internal_provisional', source_label text not null, provided_on date, data jsonb not null, created_at timestamptz not null default now())`;
+    await s`insert into app.credit_reference_cases (isin, issuer, lei, status, source_label, provided_on, data) values (${LBBW_CASE.isin}, ${LBBW_CASE.issuer}, ${LBBW_CASE.lei}, ${LBBW_CASE.status}, ${LBBW_CASE.sourceLabel}, ${LBBW_CASE.providedOn}, ${s.json(LBBW_CASE as never)}) on conflict (isin) do nothing`;
   })().catch((e) => { ready = null; throw e; });
   await ready;
   return s;
@@ -233,6 +237,22 @@ export async function failJob(workerId: string, isin: string, error: string, usa
 
 export type CompleteResult = { ok: true; duplicate: boolean; ir: [number, number]; br: [number, number]; status: string } | { ok: false; error: string; code: number };
 
+/** Stable fingerprint of the financial inputs (null when there are none). */
+export function inputsFingerprint(f: ResearchFacts): string | null {
+  const nums = Object.entries(f.metrics).filter(([, v]) => typeof v === "number").sort(([a], [b]) => a.localeCompare(b));
+  const fac = Object.entries(f.factors ?? {}).filter(([, v]) => v && (v.origin === "accounts")).map(([k, v]) => [k, v!.value]).sort(([a], [b]) => String(a).localeCompare(String(b)));
+  if (nums.length + fac.length < 2) return null;
+  return hash(JSON.stringify({ nums, fac }));
+}
+
+/** Other ISINs of DIFFERENT issuers with the same financial inputs, unless this issuer's primary sources are all different from theirs (corroborated). */
+export async function identicalInputsElsewhere(s: Awaited<ReturnType<typeof sql>>, f: ResearchFacts, h: string): Promise<string[]> {
+  const rows = await s<{ isin: string; facts: ResearchFacts }[]>`select isin, detail #> '{research,facts}' as facts from app.bond_credit_analysis where isin <> ${f.isin} and detail #>> '{research,inputsHash}' = ${h} limit 20`;
+  const mine = new Set(f.evidence.filter((e) => e.primary).map((e) => sourceKey(e.url)));
+  const sameIssuer = (o: ResearchFacts) => !!f.issuer?.lei && f.issuer.lei === o.issuer?.lei;
+  return rows.filter((r) => r.facts && !sameIssuer(r.facts)).filter((r) => r.facts.evidence.filter((e) => e.primary).some((e) => mine.has(sourceKey(e.url))) || mine.size === 0).map((r) => r.isin);
+}
+
 /** Other bonds already holding exactly the same IR and BR ranges (a sign that the research found nothing that tells the bonds apart). */
 export async function identicalElsewhere(s: Awaited<ReturnType<typeof sql>>, isin: string, sc: { irMin: number; irMax: number; brMin: number; brMax: number }): Promise<string[]> {
   const r = await s<{ isin: string }[]>`select isin from app.bond_credit_analysis where isin <> ${isin} and issuer_rating_min = ${sc.irMin} and issuer_rating_max = ${sc.irMax} and bond_rating_min = ${sc.brMin} and bond_rating_max = ${sc.brMax} limit 20`;
@@ -246,17 +266,21 @@ export async function completeJob(workerId: string, facts: ResearchFacts, usage:
   if (!job) return { ok: false, error: "unknown job", code: 404 };
   const scored = scoreResearch(facts);
   const parameters = parameterReport(facts);
-  const sameAs = await identicalElsewhere(s, facts.isin, scored);
-  if (sameAs.length) {
-    // Different bonds must not silently get the same answer: it means the inputs that separate them were not found.
-    scored.status = "review_required";
-    scored.missing.push(`same IR and BR ranges as ${sameAs.length} other bond(s) (${sameAs.slice(0, 3).join(", ")}): too little bond-specific data`);
+  const gate0 = evaluate(facts, scored);
+  // Identical final ranges are only suspicious when the calculation is NOT independently supported (a bond that passes the gate may legitimately
+  // match another issuer's score). Identical financial INPUTS for different issuers are flagged unless each has its own primary sources.
+  const sameAs = gate0.ir.allowed ? [] : await identicalElsewhere(s, facts.isin, scored);
+  const inputsHash = inputsFingerprint(facts);
+  const twins = inputsHash ? await identicalInputsElsewhere(s, facts, inputsHash) : [];
+  for (const [list, text] of [[sameAs, `same IR and BR ranges as ${sameAs.length} other bond(s) (${sameAs.slice(0, 3).join(", ")}): too little bond-specific data`], [twins, `identical financial inputs as ${twins.length} other issuer(s) (${twins.slice(0, 3).join(", ")}) without issuer-specific corroboration`]] as [string[], string][]) {
+    if (list.length) { scored.status = "review_required"; scored.missing.push(text); }
   }
+  if (twins.length) facts.conflicts = [...facts.conflicts, `Financial inputs identical to ${twins.length} other issuer(s) without separate primary sources.`];
   const resultHash = hash(JSON.stringify({ facts, v: SCORING_VERSION }));
   if (job.status === "done" && job.result_hash === resultHash) return { ok: true, duplicate: true, ir: [scored.irMin, scored.irMax], br: [scored.brMin, scored.brMax], status: scored.status };
   if (job.status !== "processing" || job.claimed_by !== workerId) return { ok: false, error: "job is not claimed by this worker", code: 409 };
-  const gate = evaluate(facts, scored);
-  const research = { facts, scored, parameters, sameAs, usage, publishedAt: new Date().toISOString() };
+  const gate = evaluate(facts, scored); // after the similarity notes above
+  const research = { facts, scored, parameters, sameAs, twins, inputsHash, usage, publishedAt: new Date().toISOString() };
   await s.begin(async (tx) => {
     const [prev] = await tx<{ publish_ir: boolean; publish_br: boolean; human_validated_at: Date | null }[]>`select publish_ir, publish_br, human_validated_at from app.bond_credit_analysis where isin = ${facts.isin} for update`;
     // A validated or already-published rating is never replaced by a calculation that does not pass the gate (or by anything, if a person validated it):
@@ -300,13 +324,26 @@ export async function overview() {
   const workers = await s`select worker_id, model, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
   const jobs = await s`
     select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status,
-      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
+      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.detail #> '{research,scored}' as scored, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.last_attempt, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
       (select string_agg(x, '; ') from jsonb_array_elements_text(coalesce(a.detail #> '{research,scored,missing}', '[]'::jsonb)) x) as missing
     from app.credit_research_jobs j left join app.bond_credit_analysis a on a.isin = j.isin order by j.updated_at desc limit 40`;
   const [avg] = await s<{ ms: string | null }[]>`select avg(ms)::int as ms from app.credit_research_runs where ok and at > now() - interval '7 days'`;
   // Parameters are always recomputed from the stored facts with the current list, so older rows show the same counts as new ones.
-  const recent = (jobs as unknown as ({ isin: string; facts: unknown } & Record<string, unknown>)[]).map(({ facts, ...r }) => ({ ...r, parameters: facts ? parameterReport(facts as ResearchFacts) : null }));
-  return { jobs: c, analyses: a, workers, recent, avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
+  const recent = (jobs as unknown as ({ isin: string; facts: unknown; scored: unknown } & Record<string, unknown>)[]).map(({ facts, scored, ...r }) => {
+    const f = facts as ResearchFacts | null;
+    if (!f) return { ...r, parameters: null, view: null };
+    const parameters = parameterReport(f);
+    const q = sourceQuality(f);
+    const next = nextMissing(f, parameters);
+    return { ...r, parameters, scored, facts: f, view: { issuer: f.issuer?.legalName ?? null, lei: f.issuer?.lei ?? null, primary: q.primary, reliable: q.reliable, sources: f.evidence.length, next, message: blockedMessage(r.publication_status as string | null, parameters, r.gate as { ir?: { reasons?: string[]; missingCritical?: string[] } } | null) } };
+  });
+  return { jobs: c, analyses: a, workers, recent, references: await referenceCases(), avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
+}
+
+/** Labelled reference cases (internal teaching data, never public). */
+export async function referenceCases() {
+  const s = await sql();
+  return s`select isin, issuer, lei, status, source_label, provided_on, data from app.credit_reference_cases order by created_at`;
 }
 
 export async function retryFailed(): Promise<number> {

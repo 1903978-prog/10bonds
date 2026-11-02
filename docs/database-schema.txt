@@ -149,6 +149,16 @@ table app.correction_requests
   requested_at timestamp with time zone not null default now()
   status text not null default 'open'::text
 
+table app.credit_reference_cases
+  isin text not null
+  issuer text not null
+  lei text
+  status text not null default 'internal_provisional'::text
+  source_label text not null
+  provided_on date
+  data jsonb not null
+  created_at timestamp with time zone not null default now()
+
 table app.credit_research_jobs
   isin text not null
   priority smallint not null default 0
@@ -724,6 +734,7 @@ constraints
   app.consents consents_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
+  app.credit_reference_cases credit_reference_cases_pkey: PRIMARY KEY (isin)
   app.credit_research_jobs credit_research_jobs_pkey: PRIMARY KEY (isin)
   app.credit_research_runs credit_research_runs_pkey: PRIMARY KEY (id)
   app.credit_research_settings credit_research_settings_pkey: PRIMARY KEY (key)
@@ -865,6 +876,7 @@ indexes
   CREATE INDEX consents_user_idx ON app.consents USING btree (user_id, kind, version)
   CREATE UNIQUE INDEX consents_pkey ON app.consents USING btree (id)
   CREATE UNIQUE INDEX correction_requests_pkey ON app.correction_requests USING btree (id)
+  CREATE UNIQUE INDEX credit_reference_cases_pkey ON app.credit_reference_cases USING btree (isin)
   CREATE INDEX credit_research_jobs_pick ON app.credit_research_jobs USING btree (status, next_attempt_at)
   CREATE UNIQUE INDEX credit_research_jobs_pkey ON app.credit_research_jobs USING btree (isin)
   CREATE UNIQUE INDEX credit_research_runs_pkey ON app.credit_research_runs USING btree (id)

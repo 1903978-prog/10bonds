@@ -66,6 +66,67 @@ async function get(url, asBytes = false) {
   } catch (e) { log("  failed:", url.slice(0, 100), e.cause?.code ?? e.message); return null; }
 }
 const strip = (h) => h.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+// ---- Evidence-backed figures (same rules as lib/creditExtract.ts on the website). The model never supplies a number: a figure counts only if a
+// sentence of the retrieved document names it, and that sentence travels with the figure as its citation. No match = missing, never inferred. ----
+const NUM = "(\\d{1,3}(?:[.,]\\d+)?)";
+export const BANK_RULES = [
+  { parameter: "cet1Pct", unit: "%", re: new RegExp(`(?:CET\\s?1|common equity tier 1)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "npePct", unit: "%", re: new RegExp(`(?:non-?performing exposures?|\\bNPE\\b)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "nplPct", unit: "%", re: new RegExp(`(?:non-?performing loans?|\\bNPL\\b)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "roePct", unit: "%", re: new RegExp(`(?:return on equity|\\bRoE\\b)[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "costIncomePct", unit: "%", re: new RegExp(`cost[/ -]?(?:to[- ])?income ratio[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "totalCapitalPct", unit: "%", re: new RegExp(`total capital ratio[^.;\\n]{0,60}?${NUM}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "pretaxProfitEurM", unit: "EUR m", re: new RegExp(`(?:pre-?tax (?:profit|result)|profit before tax)[^.;\\n]{0,60}?(?:EUR|€)\\s?${NUM}\\s?(?:m\\b|million)`, "i") },
+];
+function sentenceAround(text, start, end) {
+  const bounds = [0];
+  for (const m of text.matchAll(/(?<=[.!?])\s+(?=[A-Z€(])|\n+/g)) bounds.push(m.index + m[0].length);
+  bounds.push(text.length);
+  let i = 0; while (i + 1 < bounds.length - 1 && bounds[i + 1] <= start) i++;
+  let j = i; while (j + 1 < bounds.length - 1 && bounds[j + 1] < end) j++;
+  return text.slice(bounds[i], bounds[j + 1]).replace(/\s+/g, " ").trim();
+}
+export function extractBankFigures(text) {
+  const found = [];
+  for (const r of BANK_RULES) {
+    const m = r.re.exec(text);
+    if (!m) continue;
+    found.push({ parameter: r.parameter, value: Number(m[1].replace(",", ".")), unit: r.unit, quote: sentenceAround(text, m.index, m.index + m[0].length) });
+  }
+  const have = new Set(found.map((f) => f.parameter));
+  return { found, missing: BANK_RULES.map((r) => r.parameter).filter((p) => !have.has(p)) };
+}
+/** The reporting period a document talks about, as a label and its end date (H1 2026 -> 2026-06-30). Null when the text does not say. */
+export function reportPeriod(text) {
+  const t = text.slice(0, 20000);
+  let m = /(?:first half(?: of)?|H1|half-year(?: results)?(?: of)?)\s*(?:of\s*)?(20\d\d)/i.exec(t);
+  if (m) return { label: `H1 ${m[1]}`, end: `${m[1]}-06-30` };
+  m = /(?:nine months|9M)\s*(?:of\s*)?(20\d\d)/i.exec(t); if (m) return { label: `9M ${m[1]}`, end: `${m[1]}-09-30` };
+  m = /(?:first quarter|Q1)\s*(?:of\s*)?(20\d\d)/i.exec(t); if (m) return { label: `Q1 ${m[1]}`, end: `${m[1]}-03-31` };
+  m = /(?:full[- ]year|annual report|financial year|FY)\s*(20\d\d)/i.exec(t); if (m) return { label: `FY ${m[1]}`, end: `${m[1]}-12-31` };
+  return null;
+}
+/** Seniority stated on a regulatory-reference page, near the ISIN when the page lists several instruments. */
+export function seniorityFromText(text, isin) {
+  const i = isin ? text.indexOf(isin) : -1;
+  const win = i >= 0 ? text.slice(Math.max(0, i - 400), i + 800) : text;
+  if (/senior non[- ]?preferred|\bSNP\b/i.test(win)) return "Senior Non-Preferred";
+  if (/senior preferred|preferred senior/i.test(win)) return "Senior Preferred";
+  return null;
+}
+// The metric the website's gate needs, per figure; NPE stays an NPE figure (not relabelled as NPL).
+const METRIC_OF = { cet1Pct: "cet1Pct", nplPct: "nplPct", debtToGdpPct: "debtToGdpPct" };
+/** Parameters the next retrieval round must look for, most publication-critical first, and the words that find the right document. */
+export const TARGETS = [
+  { parameter: "cet1Pct", words: /capital|pillar|results|financial|interim|half-year|report/i },
+  { parameter: "nplPct", words: /asset.?quality|risk|results|financial|report/i },
+  { parameter: "totalCapitalPct", words: /capital|pillar|results/i },
+  { parameter: "roePct", words: /results|financial|profit|report/i },
+  { parameter: "costIncomePct", words: /results|financial|report/i },
+  { parameter: "pretaxProfitEurM", words: /results|financial|profit|report/i },
+];
+
 async function pdfText(buf) {
   const dir = await mkdtemp(join(tmpdir(), "cw-")); const f = join(dir, "d.pdf");
   try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", "60", "-layout", f, "-"], { maxBuffer: 30e6, timeout: 90_000 }); if (stdout.trim()) return stdout.replace(/\s+/g, " "); } catch { /* pdftotext not installed: try the JavaScript reader */ } finally { await rm(dir, { recursive: true, force: true }); }
@@ -146,9 +207,25 @@ async function guessSite(core) {
 }
 
 async function collect(job) {
-  const docs = []; const names = nameVariants(job.known?.issuer || job.known?.name || "");
+  const docs = []; const names = nameVariants(job.known?.issuer || job.known?.name || job.hints?.issuer || "");
   const add = (d) => { if (d?.text && d.text.length > 40 && !docs.some((x) => x.url === d.url)) docs.push({ ...d, text: d.text, retrievedAt: new Date().toISOString() }); };
   const guard = async (f) => { try { return await f(); } catch (e) { log("source step failed:", e.message); return null; } };
+  // -1. Seed from the owner's reference case when this ISIN has one: the issuer's LEI (official register = identity) and the official pages to read first.
+  if (job.hints) await guard(async () => {
+    if (job.hints.lei) {
+      const g = await get(`https://api.gleif.org/api/v1/lei-records/${encodeURIComponent(job.hints.lei)}`);
+      const e = g ? JSON.parse(g).data : null;
+      const en = e?.attributes?.entity;
+      if (en?.legalName?.name && e.id === job.hints.lei) {
+        job.identity = { legalName: en.legalName.name, lei: e.id, status: en.status ?? null };
+        add({ url: `https://api.gleif.org/api/v1/lei-records/${e.id}`, title: `GLEIF record ${en.legalName.name}`, publisher: "gleif.org", period: null, primary: true, method: "api", verified: true, text: JSON.stringify({ lei: e.id, legalName: en.legalName.name, status: en.status, jurisdiction: en.jurisdiction }) });
+      }
+    }
+    for (const src of [...(job.hints.sources ?? [])].sort((a, b) => a.priority - b.priority)) {
+      if (/\.pdf($|\?)/i.test(src.url)) { const b = await get(src.url, true); const t = b ? await pdfText(b) : ""; if (t) add({ url: src.url, title: src.label, publisher: new URL(src.url).hostname.replace(/^www\./, ""), period: null, primary: !/boerse|bankingresolution/.test(src.url), method: "pdf", text: t }); }
+      else { const h = await get(src.url); if (h) add({ url: src.url, title: src.label, publisher: new URL(src.url).hostname.replace(/^www\./, ""), period: null, primary: !/boerse|bankingresolution/.test(src.url), method: "html", text: strip(h) }); }
+    }
+  });
   if (!names.length) return docs;
   // 0. Official numbers: the country's political stability, inflation and growth; recent news headlines. These need no model.
   job.det = { risks: [], metrics: {} };
@@ -216,6 +293,7 @@ async function collect(job) {
     }
     const links = new Set();
     for (const { u, h } of found) for (const m of h.matchAll(/href="([^"#]+)"/gi)) { try { const l = new URL(m[1], u); if (l.protocol === "https:" && baseDomain(l.hostname) === dom) links.add(l.href); } catch { /* bad link */ } }
+    job.linkPool = [...links];
     const rank = (u) => (/annual|integrated|financial-report|results|interim|half-year|quarter|pillar|prospectus|final-terms|credit|rating|debt|bond/i.test(u) ? 0 : 5) + (/investor|\/ir\b/i.test(u) ? 0 : 2) + (/\.pdf($|\?)/i.test(u) ? 0 : 1);
     for (const u of [...links].sort((a, b) => rank(a) - rank(b)).slice(0, MAX_DOCS * 2)) {
       if (docs.length >= MAX_DOCS + 4) break;
@@ -324,6 +402,60 @@ export function mergeDeterministic(result, det) {
   return { ...result, risks, metrics };
 }
 
+
+/** Deterministic figures from every retrieved document; a document that yields a quoted figure counts as verified. Then targeted retrieval rounds for what is still missing. */
+export async function gatherFigures(job, docs, fetchMore = null, rounds = 2) {
+  const figures = [];
+  const take = (d) => {
+    if (d.method === "api") return;
+    const per = reportPeriod(d.text);
+    for (const f of extractBankFigures(d.text).found) {
+      if (figures.some((x) => x.parameter === f.parameter)) continue; // the first (highest-priority) document wins; a conflicting second value is reported below
+      figures.push({ ...f, url: d.url, period: per?.label ?? null, reportingDate: per?.end ?? null });
+      d.verified = true;
+    }
+  };
+  const conflicts = [];
+  for (const d of docs) take(d);
+  // a second document naming a different value for the same figure is a conflict, not a tie-break
+  for (const d of docs) {
+    if (d.method === "api") continue;
+    for (const f of extractBankFigures(d.text).found) {
+      const have = figures.find((x) => x.parameter === f.parameter);
+      if (have && have.value !== f.value && have.url !== d.url && have.reportingDate === (reportPeriod(d.text)?.end ?? null)) conflicts.push(`${f.parameter}: ${have.value} (${have.url}) vs ${f.value} (${d.url})`);
+    }
+  }
+  const critical = ["cet1Pct", "npePct"];
+  for (let round = 1; round <= rounds && fetchMore && critical.some((p) => !figures.some((f) => f.parameter === p)); round++) {
+    const want = TARGETS.filter((t) => !figures.some((f) => f.parameter === t.parameter));
+    // look for the NEXT missing parameter specifically (e.g. CET1 in the capital/results documents), not for the ISIN again
+    const next = want.find((t) => critical.includes(t.parameter)) ?? want[0];
+    const more = await fetchMore(next, round);
+    for (const d of more) { docs.push(d); take(d); }
+    await sleep(2000 * round);
+  }
+  return { figures, conflicts };
+}
+
+/** Evidence records (verified only when a quoted figure or an official register record backs them), cited metrics and the extra facts sent to the website. */
+export function buildExtra(job, docs, figures, figConflicts) {
+  const evidence = docs.map((d) => ({ url: d.url, title: d.title, publisher: d.publisher, publishedAt: null, period: d.period, retrievedAt: d.retrievedAt, location: null, method: d.method, verification: d.verified ? "verified" : "unverified", primary: d.primary }));
+  // The reported metrics come ONLY from cited figures (NPE is not relabelled as NPL); the website drops any metric without an accepted citation.
+  const metrics = {}; const metricPeriods = {};
+  for (const f of figures) { const k = METRIC_OF[f.parameter]; if (k) { metrics[k] = f.value; if (f.reportingDate) metricPeriods[k] = f.reportingDate; } }
+  const regDoc = docs.find((d) => /bankingresolution\.com/.test(d.url));
+  const extra = {
+    figures, metricPeriods, conflicts: figConflicts,
+    ...(job.identity ? { issuer: { canonicalId: job.identity.lei, legalName: job.identity.legalName, lei: job.identity.lei } } : {}),
+    seniorityEvidence: { dataCopy: job.known?.seniority ?? null, regulatory: regDoc ? seniorityFromText(regDoc.text, job.isin) : null, finalTerms: null },
+    notes: [
+      ...(figures.some((f) => f.parameter === "npePct") && !figures.some((f) => f.parameter === "nplPct") ? ["NPE ratio published; NPL ratio not found (the two are different metrics and are not relabelled)"] : []),
+      ...TARGETS.filter((t) => !figures.some((f) => f.parameter === t.parameter)).map((t) => `not found after targeted retrieval: ${t.parameter}`).slice(0, 6),
+    ],
+  };
+  return { evidence, metrics, extra };
+}
+
 async function work(job) {
   let stage = "collecting";
   const beat = setInterval(() => api("heartbeat", { isin: job.isin, stage }).catch(() => {}), 120_000);
@@ -332,6 +464,22 @@ async function work(job) {
     let docs = [];
     try { docs = await collect(job); } catch (e) { log(job.isin, "collection failed:", e.message); }
     log(job.isin, "sources:", docs.length);
+    const fetchMore = async (target, round) => {
+      const pool = (job.linkPool ?? []).filter((u) => !docs.some((d) => d.url === u) && target.words.test(u)).slice(0, 3);
+      log(job.isin, `targeted retrieval round ${round}: looking for ${target.parameter} in ${pool.length} document(s)`);
+      const out = [];
+      for (const u of pool) {
+        try {
+          if (/\.pdf($|\?)/i.test(u)) { const b = await get(u, true); const t = b ? await pdfText(b) : ""; if (t) out.push({ url: u, title: decodeURIComponent(u.split("/").pop() ?? "document").slice(0, 120), publisher: new URL(u).hostname.replace(/^www\./, ""), period: null, primary: true, method: "pdf", text: t, retrievedAt: new Date().toISOString() }); }
+          else { const h = await get(u); if (h) out.push({ url: u, title: "Issuer page", publisher: new URL(u).hostname.replace(/^www\./, ""), period: null, primary: true, method: "html", text: strip(h), retrievedAt: new Date().toISOString() }); }
+        } catch (e) { log("targeted fetch failed:", e.message); }
+      }
+      return out;
+    };
+    const { figures, conflicts: figConflicts } = await gatherFigures(job, docs, fetchMore);
+    const wbDebt = docs.find((d) => d.publisher === "World Bank" && /central government debt/.test(d.title));
+    if (wbDebt && job.det?.metrics?.debtToGdpPct != null) figures.push({ parameter: "debtToGdpPct", value: job.det.metrics.debtToGdpPct, unit: "% of GDP", quote: wbDebt.text, url: wbDebt.url, period: wbDebt.period ?? null, reportingDate: wbDebt.period ? `${wbDebt.period}-12-31` : null }), (wbDebt.verified = true);
+    log(job.isin, "figures with citations:", figures.map((f) => `${f.parameter}=${f.value}`).join(", ") || "none");
     let x = null, problem = docs.length ? "" : "no public sources found";
     if (docs.length) {
       stage = "extracting";
@@ -341,8 +489,8 @@ async function work(job) {
     // Two tries per bond; after that the site still gets a provisional assessment from the data it already holds (ratings, seniority),
     // marked "review required" with the gap listed, instead of the bond staying empty forever.
     if (!x && (job.attempts ?? 1) < 2) throw new Error(problem);
-    const evidence = docs.map((d) => ({ url: d.url, title: d.title, publisher: d.publisher, publishedAt: null, period: d.period, retrievedAt: d.retrievedAt, location: null, method: d.method, verification: "unverified", primary: d.primary }));
-    const result0 = x ? { ...x.result, evidence, usage: { model: MODEL, ms: x.ms, tokensIn: x.tokensIn, tokensOut: x.tokensOut } } : { evidence, notes: [`automatic research incomplete: ${problem}`], usage: { model: MODEL, ms: 0, tokensIn: 0, tokensOut: 0 } };
+    const { evidence, metrics, extra } = buildExtra(job, docs, figures, figConflicts);
+    const result0 = x ? { ...x.result, ...extra, metrics: { ...(x.result.metrics ?? {}), ...metrics }, notes: [...(x.result.notes ?? []), ...extra.notes], conflicts: [...(x.result.conflicts ?? []), ...extra.conflicts], evidence, usage: { model: MODEL, ms: x.ms, tokensIn: x.tokensIn, tokensOut: x.tokensOut } } : { ...extra, metrics, notes: [`automatic research incomplete: ${problem}`, ...extra.notes], evidence, usage: { model: MODEL, ms: 0, tokensIn: 0, tokensOut: 0 } };
     const result = mergeDeterministic(result0, job.det);
     stage = "publishing";
     const res = await api("complete", { isin: job.isin, result });

@@ -32,6 +32,9 @@ export function enrichFromFeed(f: ResearchFacts, bond: FeedBond | null): Researc
   const out: ResearchFacts = { ...f, agencyRatings: [...f.agencyRatings], evidence: [...f.evidence] };
   const seniority = f.seniority === "unknown" ? seniorityOf(bond.seniority) : f.seniority;
   out.seniority = seniority;
+  // The data copy is only a hint: if it disagrees with what the research found, that is a recorded conflict (it blocks publication until resolved).
+  const copySen = seniorityOf(bond.seniority);
+  if (f.seniority !== "unknown" && copySen !== "unknown" && copySen !== f.seniority) out.conflicts = [...f.conflicts, `Seniority: the site's data copy says ${copySen}, the research found ${f.seniority}.`];
   out.issuerType = issuerTypeOf(bond.issuer ?? bond.name, f.issuerType);
   const have = f.agencyRatings.some((a) => notchOf(a.rating) !== null);
   let used = false;
@@ -46,4 +49,27 @@ export function enrichFromFeed(f: ResearchFacts, bond: FeedBond | null): Researc
     out.evidence.push(e);
   }
   return out;
+}
+
+
+export type SeniorityEvidence = { dataCopy?: string | null; regulatory?: string | null; finalTerms?: string | null };
+export type SeniorityVerdict = { seniority: Seniority; verified: boolean; conflicts: string[]; basis: string };
+
+/**
+ * Seniority from three kinds of source, never from the site's own data copy alone (LBBW DE000LB2CW16, 2/11/2026: the copy said senior non-preferred,
+ * regulatory reference data said senior preferred). The data copy is a hint and is never a verification.
+ * verified = regulatory reference data AND the final terms agree. Regulatory data alone gives the value but stays unverified; any disagreement is a
+ * conflict (which blocks publication) and the regulatory value is used meanwhile.
+ */
+export function reconcileSeniority(e: SeniorityEvidence): SeniorityVerdict {
+  const copy = e.dataCopy ? seniorityOf(e.dataCopy) : "unknown";
+  const reg = e.regulatory ? seniorityOf(e.regulatory) : "unknown";
+  const terms = e.finalTerms ? seniorityOf(e.finalTerms) : "unknown";
+  const conflicts: string[] = [];
+  const vals: [string, Seniority][] = [["site data copy", copy], ["regulatory reference data", reg], ["final terms", terms]];
+  const distinct = new Set(vals.filter(([, v]) => v !== "unknown").map(([, v]) => v));
+  if (distinct.size > 1) conflicts.push(`Seniority sources disagree: ${vals.filter(([, v]) => v !== "unknown").map(([n, v]) => `${n}: ${v}`).join("; ")}.`);
+  if (terms !== "unknown") return { seniority: terms, verified: reg === terms, conflicts, basis: reg === terms ? "final terms and regulatory data agree" : "final terms (not corroborated by regulatory data)" };
+  if (reg !== "unknown") return { seniority: reg, verified: false, conflicts, basis: "regulatory reference data; final terms not checked" };
+  return { seniority: copy, verified: false, conflicts, basis: copy === "unknown" ? "no source" : "site data copy only (a hint, not a verification)" };
 }
