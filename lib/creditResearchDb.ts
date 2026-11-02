@@ -53,6 +53,9 @@ async function sql(): Promise<Sql> {
   return s;
 }
 
+/** Creates (or checks) every credit-research table, the publication columns and the guard trigger. */
+export async function creditResearchTablesReady(): Promise<void> { await sql(); }
+
 // ---- Publication gate storage (owner, 2/11/2026): a rating is public only if publish_ir / publish_br are true, and the database itself
 // refuses to keep them true unless the stored gate result allows it (or a person validated the rating). ----
 
