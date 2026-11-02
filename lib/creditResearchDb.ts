@@ -7,6 +7,8 @@ import { nextMissing, parameterReport } from "./creditParameters";
 import { blockedMessage } from "./creditParameters";
 import { evaluate, GATE_VERSION, sourceKey, sourceQuality, type GateOutcome } from "./creditGate";
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
+import { buildTrace, ENGINE_VERSION, hashSkill, evaluatePublicationEligibility, METHODOLOGY_VERSION, SKILL_HASH, type FactsLike } from "./bondsEngine";
+import { BENCHMARK, runSelfTest } from "./bondsBenchmark";
 
 // Credit research queue (owner, 1/11/2026). One durable job per ISIN. The web process only writes small queue rows; all research
 // (downloads, Ollama, extraction) runs in the worker on the owner's computer, which talks to /api/credit-worker/* over HTTPS.
@@ -45,6 +47,7 @@ async function sql(): Promise<Sql> {
     await s`create index if not exists credit_research_jobs_pick on app.credit_research_jobs (status, next_attempt_at)`;
     await s`create table if not exists app.credit_research_workers (worker_id text primary key, model text, current_isin text, stage text, host text, last_seen timestamptz not null default now())`;
     await s`create table if not exists app.credit_research_tokens (token_hash text primary key, label text, created_at timestamptz not null default now(), revoked_at timestamptz, last_used_at timestamptz)`;
+    await s`create table if not exists app.credit_worker_kb (key text primary key, value jsonb not null, updated_at timestamp with time zone not null default now())`;
     await s`create table if not exists app.credit_research_settings (key text primary key, value text not null)`;
     await s`create table if not exists app.credit_research_runs (id bigserial primary key, isin text not null, worker_id text, at timestamptz not null default now(), ok boolean not null, model text, ms integer, tokens_in integer, tokens_out integer, sources integer, error text)`;
     await s`create table if not exists app.bond_credit_analysis_history (id bigserial primary key, isin text not null, archived_at timestamptz not null default now(), row jsonb not null)`;
@@ -180,6 +183,28 @@ export async function tokenValid(authHeader: string | null): Promise<boolean> {
   return r.length > 0;
 }
 
+/** Shared memory of the research workers (verified issuer websites, dead hosts, cited figures per issuer). Small JSON values under short keys; the worker keeps a local copy as a fallback. */
+export const KB_KEY = /^(domain|dead|fin|skill):[A-Za-z0-9._:-]{2,120}$/;
+const KB_MAX_BYTES = 200_000;
+export async function kbGet(keys: string[]): Promise<Record<string, unknown>> {
+  const s = await sql();
+  const ok = keys.filter((k) => KB_KEY.test(k)).slice(0, 60);
+  if (!ok.length) return {};
+  const rows = await s<{ key: string; value: unknown }[]>`select key, value from app.credit_worker_kb where key in ${s(ok)}`;
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+export async function kbPut(entries: Record<string, unknown>): Promise<{ saved: number; rejected: string[] }> {
+  const s = await sql();
+  let saved = 0; const rejected: string[] = [];
+  for (const [k, v] of Object.entries(entries).slice(0, 60)) {
+    const json = JSON.stringify(v ?? null);
+    if (!KB_KEY.test(k) || v === null || typeof v !== "object" || json.length > KB_MAX_BYTES) { rejected.push(k.slice(0, 60)); continue; }
+    await s`insert into app.credit_worker_kb (key, value, updated_at) values (${k}, ${json}::jsonb, now()) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+    saved++;
+  }
+  return { saved, rejected };
+}
+
 export async function isPaused(): Promise<boolean> {
   const s = await sql();
   const [r] = await s<{ value: string }[]>`select value from app.credit_research_settings where key = 'paused'`;
@@ -280,7 +305,8 @@ export async function completeJob(workerId: string, facts: ResearchFacts, usage:
   if (job.status === "done" && job.result_hash === resultHash) return { ok: true, duplicate: true, ir: [scored.irMin, scored.irMax], br: [scored.brMin, scored.brMax], status: scored.status };
   if (job.status !== "processing" || job.claimed_by !== workerId) return { ok: false, error: "job is not claimed by this worker", code: 409 };
   const gate = evaluate(facts, scored); // after the similarity notes above
-  const research = { facts, scored, parameters, sameAs, twins, inputsHash, usage, publishedAt: new Date().toISOString() };
+  const trace = buildTrace(facts as unknown as FactsLike, { gate: gateJson(gate), evidenceUrls: facts.evidence.map((e) => e.url) });
+  const research = { facts, scored, parameters, sameAs, twins, inputsHash, usage, trace, publishedAt: new Date().toISOString() };
   await s.begin(async (tx) => {
     const [prev] = await tx<{ publish_ir: boolean; publish_br: boolean; human_validated_at: Date | null }[]>`select publish_ir, publish_br, human_validated_at from app.bond_credit_analysis where isin = ${facts.isin} for update`;
     // A validated or already-published rating is never replaced by a calculation that does not pass the gate (or by anything, if a person validated it):
@@ -324,7 +350,7 @@ export async function overview() {
   const workers = await s`select worker_id, model, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
   const jobs = await s`
     select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status,
-      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.detail #> '{research,scored}' as scored, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.last_attempt, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
+      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.detail #> '{research,scored}' as scored, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.last_attempt, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, a.detail #> '{research,trace}' as trace, a.version as row_version, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
       (select string_agg(x, '; ') from jsonb_array_elements_text(coalesce(a.detail #> '{research,scored,missing}', '[]'::jsonb)) x) as missing
     from app.credit_research_jobs j left join app.bond_credit_analysis a on a.isin = j.isin order by j.updated_at desc limit 40`;
   const [avg] = await s<{ ms: string | null }[]>`select avg(ms)::int as ms from app.credit_research_runs where ok and at > now() - interval '7 days'`;
@@ -337,7 +363,7 @@ export async function overview() {
     const next = nextMissing(f, parameters);
     return { ...r, parameters, scored, facts: f, view: { issuer: f.issuer?.legalName ?? null, lei: f.issuer?.lei ?? null, primary: q.primary, reliable: q.reliable, sources: f.evidence.length, next, message: blockedMessage(r.publication_status as string | null, parameters, r.gate as { ir?: { reasons?: string[]; missingCritical?: string[] } } | null) } };
   });
-  return { jobs: c, analyses: a, workers, recent, references: await referenceCases(), avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
+  return { methodology: await methodology(), jobs: c, analyses: a, workers, recent, references: await referenceCases(), avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
 }
 
 /** Labelled reference cases (internal teaching data, never public). */
@@ -375,4 +401,33 @@ export async function publicRatings(isins: string[]) {
     ratings[String(r.isin)] = { ir: r.publish_ir ? irText(sc) : null, br: r.publish_br ? brText(sc) : null, status: (r.publication_status as string) ?? null, at: r.rating_assessment_date ? new Date(String(r.rating_assessment_date)).toISOString().slice(0, 10) : null };
   }
   return { ratings, pending: pend.map((p) => p.isin) };
+}
+
+/** The methodology monitor: what the rating engine is, whether its calculation tests really ran and passed just now, and which stored ratings used another method. */
+export async function methodology() {
+  const s = await sql();
+  const test = runSelfTest(); // runs the frozen five-bond benchmark through the live engine: PASS only if it actually ran and matched
+  const chile = BENCHMARK.find((c) => c.name.includes("Chile"))!, bank = BENCHMARK.find((c) => c.name.includes("LBBW"))!;
+  const ok = { f: chile.facts, storedIr: [74, 74] as [number, number], storedBr: [74, 74] as [number, number], storedEngineVersion: ENGINE_VERSION, conflicts: [], evidenceCoverageOk: true, mandatoryOk: true, bondFactsOk: true };
+  const gatePass = evaluatePublicationEligibility(ok).allowed === true
+    && evaluatePublicationEligibility({ ...ok, storedEngineVersion: "other" }).allowed === false
+    && evaluatePublicationEligibility({ ...ok, mandatoryOk: false }).allowed === false
+    && evaluatePublicationEligibility({ ...ok, f: bank.facts, storedIr: [null, null], storedBr: [null, null] }).allowed === false;
+  type Pc = { text?: string; sha256?: string; path?: string; bytes?: number; uploadedAt?: string; found?: boolean };
+  let pc = null as Pc | null;
+  let recalc = 0;
+  try {
+    const kb = await kbGet(["skill:bonds"]);
+    pc = (kb["skill:bonds"] as Pc | undefined) ?? null;
+    if (pc?.text) pc = { ...pc, sha256: hashSkill(pc.text), text: undefined }; // the server hashes the uploaded text itself with the same normalisation
+    const [r] = await s<{ n: string }[]>`select count(*) n from app.bond_credit_analysis where (publish_ir or publish_br) and coalesce(version, '') <> ${ENGINE_VERSION}`;
+    recalc = Number(r?.n ?? 0);
+  } catch { /* the monitor must never break the page */ }
+  return {
+    engine: "$bonds", engineVersion: ENGINE_VERSION, methodologyVersion: METHODOLOGY_VERSION, skillHash: SKILL_HASH,
+    skillSource: "copy saved in the app (lib/bondsSkill.ts)",
+    pcSkill: !pc ? "not uploaded yet" : pc.found === false ? "not found on the PC" : pc.sha256 === SKILL_HASH ? "PC file matches" : "PC file DIFFERS", pcSkillInfo: pc,
+    lastVerified: test.ranAt, calculationConsistency: test.pass ? "PASS" : "FAIL", cases: test.cases.map((c) => ({ name: c.name, pass: c.pass })),
+    evidenceGate: gatePass ? "PASS" : "FAIL", needsRecalculation: recalc,
+  };
 }

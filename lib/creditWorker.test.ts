@@ -77,3 +77,51 @@ describe("PDF reports and the issuer figure cache", () => {
     expect(cached?.reportingDate).toBe("2026-06-30");
   });
 });
+
+describe("shared memory, liquidity ratios and final-terms seniority (worker)", () => {
+  it("reads LCR and NSFR with their period and ignores numbers outside a sane band", async () => {
+    const { extractBankFigures } = (await worker()) as any;
+    const t = "The liquidity coverage ratio (LCR) stood at 152.4% and the net stable funding ratio (NSFR) at 118.7% on 30 June 2026. LCR of 5% in a sample table.";
+    const f = Object.fromEntries(extractBankFigures(t).found.map((x: { parameter: string; value: number }) => [x.parameter, x.value]));
+    expect(f.lcrPct).toBe(152.4);
+    expect(f.nsfrPct).toBe(118.7);
+    expect(extractBankFigures("LCR of 5%").found.some((x: { parameter: string }) => x.parameter === "lcrPct")).toBe(false);
+  });
+  it("final terms: seniority only from a document that names this ISIN, in labels the website reads correctly", async () => {
+    const { finalTermsSeniority } = (await worker()) as any;
+    const { seniorityOf } = await import("./creditFeedFacts");
+    const isin = "DE000LB2CW16";
+    expect(finalTermsSeniority("Notes ISIN DE000LB2CW16 ... Senior Preferred Notes", isin)).toBe("Senior Preferred");
+    expect(finalTermsSeniority("Notes ISIN DE000LB2CW16 are Senior Non-Preferred notes under § 46f (6) KWG", isin)).toBe("Senior Non-Preferred");
+    expect(finalTermsSeniority("DE000LB2CW16 Schuldtitel gemäß § 46f Abs. 6 Satz 1 KWG", isin)).toBe("Senior Non-Preferred");
+    expect(finalTermsSeniority("Tier 2 subordinated notes DE000LB2CW16", isin)).toBe("Subordinated");
+    expect(finalTermsSeniority("Senior Preferred Notes of another bond", isin)).toBeNull();      // no ISIN: not this bond's document
+    const implied = finalTermsSeniority("DE000LB2CW16 The Notes constitute unsecured and unsubordinated obligations", isin)!;
+    expect(seniorityOf(implied)).toBe("senior_preferred");                                          // the label must not read as subordinated
+    expect(seniorityOf(finalTermsSeniority("DE000LB2CW16 Senior Non-Preferred", isin))).toBe("senior_non_preferred");
+  });
+  it("shared memory: figures and verified sites are pushed to and pulled from the website, merged without duplicates", async () => {
+    const { kbPush, kbPull } = (await worker()) as any;
+    const store: Record<string, unknown> = {};
+    const call = async (b: { op: string; keys?: string[]; entries?: Record<string, unknown> }) => b.op === "put" ? (Object.assign(store, b.entries), { saved: Object.keys(b.entries!).length }) : { values: Object.fromEntries((b.keys ?? []).filter((k) => k in store).map((k) => [k, store[k]])) };
+    const a = { domains: { LEI1: { site: "https://x.example/", verifiedAt: "2026-11-02" } }, dead: {}, financials: { LEI1: { issuer: "X", records: [{ parameter: "cet1Pct", value: 16.1, unit: "%", reportingDate: "2026-06-30", url: "https://x.example/r.pdf", retrievedAt: "2026-11-02T00:00:00Z" }] } } };
+    expect(await kbPush("LEI1", a, call)).toBe(true);
+    expect(Object.keys(store).sort()).toEqual(["domain:LEI1", "fin:LEI1"]);
+    const b = { domains: {}, dead: {}, financials: {} } as typeof a;
+    expect(await kbPull("LEI1", b, call)).toBe(true);
+    expect(b.domains.LEI1.site).toBe("https://x.example/");
+    expect(b.financials.LEI1.records).toHaveLength(1);
+    await kbPull("LEI1", b, call);                                                                   // pulling again adds nothing twice
+    expect(b.financials.LEI1.records).toHaveLength(1);
+    expect(await kbPull("LEI1", b, async () => null)).toBe(false);                                   // website down: the local copy stays usable
+  });
+  it("BGE-M3 retrieval picks the passage closest to the question, and is off when the model is not installed", async () => {
+    const { semanticPick } = (await worker()) as any;
+    expect(await semanticPick([{ url: "u", method: "html", text: "x".repeat(5000) }], 1400, null, false)).toBeNull();
+    const vec = (t: string) => (/CET1|capital|ratio|rank|guarantee|rating|EBITDA|refinanc|proceedings/i.test(t) ? [1, 0] : [0, 1]);
+    const call = async (ts: string[]) => ts.map(vec);
+    const text = "Weather in the region. ".repeat(40).slice(0, 700) + "The CET1 capital ratio was 16.1% at 30 June 2026. " + "Canteen menu. ".repeat(80);
+    const pick = await semanticPick([{ url: "u", method: "html", text }], 700, call, true);
+    expect(pick?.get("u")).toContain("CET1 capital ratio was 16.1%");
+  });
+});

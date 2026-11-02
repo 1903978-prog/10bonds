@@ -1,5 +1,6 @@
 import { parameterReport } from "./creditParameters";
 import { issuerTypeOf } from "./creditFeedFacts";
+import { evaluatePublicationEligibility } from "./bondsEngine";
 import { RISK_KEYS, scoreResearch, SCORING_VERSION, type Evidence, type IssuerType, type Metrics, type ResearchFacts, type Scored } from "./creditScoring";
 
 // PUBLICATION GATE (owner, 2/11/2026). A job being "done" is not a publication. IR and BR reach the public only when the gate below
@@ -13,7 +14,7 @@ export const MIN_RELIABLE_SOURCES = 3;
 
 /** Issuer types that have an approved scoring method. Everything else is blocked "pending model approval". */
 export const APPROVED_METHODS: Partial<Record<IssuerType, { minParams: number; mandatory: (keyof Metrics)[]; maxMetricAgeMonths: number }>> = {
-  bank: { minParams: 10, mandatory: ["cet1Pct", "nplPct"], maxMetricAgeMonths: 18 },
+  bank: { minParams: 10, mandatory: ["cet1Pct", "nplPct"], maxMetricAgeMonths: 18 }, // parameters are collected; the ENGINE still refuses to publish a bank IR (no approved numerical method)
   corporate: { minParams: 10, mandatory: ["netDebtToEbitda", "interestCover"], maxMetricAgeMonths: 18 },
   sovereign: { minParams: 9, mandatory: ["debtToGdpPct"], maxMetricAgeMonths: 24 },
 };
@@ -118,6 +119,9 @@ export function canPublishIR(f: ResearchFacts, scored: Scored = scoreResearch(f)
   // Provenance: the stored numbers must be exactly what the current model gives for these facts, and must not start from an agency grade.
   const again = scoreResearch(f);
   if (again.version !== scored.version || again.irMin !== scored.irMin || again.irMax !== scored.irMax || !scored.steps.length) reasons.push("Calculation provenance invalid: the stored result cannot be reproduced from the stored facts.");
+  // The methodology half (approved $bonds engine, version, reproducibility) is decided by the one engine, not re-implemented here.
+  const el = evaluatePublicationEligibility({ f, storedIr: [scored.irMin, scored.irMax], storedBr: [scored.brMin, scored.brMax], storedEngineVersion: scored.version, conflicts, evidenceCoverageOk: q.primary >= MIN_PRIMARY_SOURCES, mandatoryOk: missingCritical.length === 0, bondFactsOk: true });
+  for (const r of el.reasons) if (/^IR: |not the approved|cannot be reproduced/.test(r) && !reasons.includes(r)) reasons.push(r);
   if (!scored.independent) reasons.push("IR is not yet computed from the issuer's own financial and risk factors (the agency grade is still its starting point).");
   if (f.notes?.length) reasons.push(`Research reported gaps: ${f.notes.join("; ")}.`);
 

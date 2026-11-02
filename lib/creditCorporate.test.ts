@@ -25,7 +25,7 @@ const A = () => corp("XS0000000101", "Alpha Industrial plc", "AAAAAAAAAAAAAAAAAA
 describe("owner's corporate model through the gate", () => {
   it("fully evidenced corporate: IR and BR are computed from the owner's factors and may publish", () => {
     const f = A(); const s = scoreResearch(f);
-    expect(s.version).toMatch(/livio-corporate/);
+    expect(s.version).toMatch(/bonds-engine/);
     expect(s.irMin).toBe(s.irMax); // everything known: the range collapses
     const g = evaluate(f, s, NOW);
     expect(g.ir.reasons).toEqual([]);

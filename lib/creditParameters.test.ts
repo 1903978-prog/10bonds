@@ -42,11 +42,12 @@ describe("why different bonds can look alike", () => {
     expect([a.irMin, a.irMax, a.brMin, a.brMax]).toEqual([b.irMin, b.irMax, b.brMin, b.brMax]);
     expect(a.status).toBe("review_required"); // low coverage already needs a person
   });
-  it("a different grade or any extra finding separates them", () => {
+  it("an agency grade never moves an approved-method IR; a company figure does", () => {
     const a = scoreResearch(base("A"));
     const other = scoreResearch(base("B", { agencyRatings: [{ agency: "S&P (data copy)", rating: "A-", scope: "issuer", date: null }] }));
-    const metric = scoreResearch(base("C", { metrics: { netDebtToEbitda: 5 } }));
-    expect(other.irMin).not.toBe(a.irMin);
-    expect(metric.irMin).not.toBe(a.irMin);
+    const fig = (parameter: string, value: number) => ({ parameter, value, unit: "x", quote: `${parameter} ${value}`, url: "https://x.example.com/a", period: "FY2025", reportingDate: "2025-12-31" });
+    const withFigs = scoreResearch(base("C", { figures: [fig("netDebt", 1000), fig("ebitda", 1000)] }));
+    expect([other.irMin, other.irMax]).toEqual([a.irMin, a.irMax]);
+    expect(withFigs.irMax).toBeLessThan(a.irMax);
   });
 });

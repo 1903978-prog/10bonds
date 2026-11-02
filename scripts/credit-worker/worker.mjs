@@ -33,6 +33,36 @@ const KB_FILE = join(DATA_DIR, "knowledge.json");
 let KB = { domains: {}, dead: {}, financials: {} };
 async function loadKB() { try { KB = { domains: {}, dead: {}, financials: {}, ...JSON.parse(await readFile(KB_FILE, "utf8")) }; } catch { /* first run */ } }
 async function saveKB() { try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(KB_FILE, JSON.stringify(KB, null, 1)); } catch (e) { log("could not save knowledge file:", e.message); } }
+// ---- Shared memory on the website (verified issuer websites and cited figures per issuer): survives a new computer and is the same for every worker. The local file stays as the fallback. ----
+let kbWarned = false;
+async function kbApi(body) {
+  try { const r = await api("kb", body); if (r.status === 200) return r; if (!kbWarned) { kbWarned = true; log(`shared memory on the website answered HTTP ${r.status}; using the local file only`); } }
+  catch (e) { if (!kbWarned) { kbWarned = true; log("shared memory on the website not reachable:", e.message, "- using the local file only"); } }
+  return null;
+}
+const kbName = (ikey) => String(ikey).replace(/[^A-Za-z0-9._:-]/g, "-").slice(0, 120);
+const sameRecord = (a, b) => a.parameter === b.parameter && a.reportingDate === b.reportingDate && a.url === b.url && a.value === b.value;
+/** Reads the issuer's verified website and cited figures from the website database and merges them into the local copy. Returns true when the website answered. */
+export async function kbPull(ikey, kb = KB, call = kbApi) {
+  const k = kbName(ikey); if (k.length < 2) return false;
+  const r = await call({ op: "get", keys: [`domain:${k}`, `fin:${k}`] });
+  if (!r?.values) return false;
+  const d = r.values[`domain:${k}`]; if (d?.site && !kb.domains[ikey]) kb.domains[ikey] = d;
+  const f = r.values[`fin:${k}`];
+  if (Array.isArray(f?.records)) { const rec = (kb.financials[ikey] ??= { issuer: f.issuer, records: [] }); for (const x of f.records) if (x?.parameter && !rec.records.some((y) => sameRecord(y, x))) rec.records.push(x); }
+  return true;
+}
+/** Writes the issuer's verified website and cited figures (newest 150) to the website database. */
+export async function kbPush(ikey, kb = KB, call = kbApi) {
+  const k = kbName(ikey); if (k.length < 2) return false;
+  const entries = {};
+  if (kb.domains[ikey]) entries[`domain:${k}`] = kb.domains[ikey];
+  const fin = kb.financials[ikey];
+  if (fin) entries[`fin:${k}`] = { ...fin, records: [...fin.records].sort((a, b) => (b.retrievedAt ?? "").localeCompare(a.retrievedAt ?? "")).slice(0, 150) };
+  if (!Object.keys(entries).length) return false;
+  const r = await call({ op: "put", entries });
+  return !!r && r.saved > 0;
+}
 const issuerKey = (job) => (job.identity?.lei || job.hints?.lei || (job.known?.issuer || job.known?.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")).toString();
 // ---- Per-job counters for the stage summary: discovery, access, parsing, extraction, verification ----
 export const stats = { fetchOk: 0, blocked: {}, failedHosts: {}, pdfParsed: 0, pdfFailed: 0, ollamaMs: 0 };
@@ -97,7 +127,7 @@ const PRIOR_CUE = /previous year|prior[- ]year|last year|compared with|versus|\b
 const SEGMENT_CUE = /segment|Corporate Customers|Real Estate|Capital Markets|Private Customers|Savings Banks|division|business unit/i;
 const lbl = (l) => ({
   fwd: new RegExp(`${l}[^.;\\n]{0,60}?${NUM}${PCT}`, "gi"),        // "CET1 ratio of 16.1%"
-  rev: new RegExp(`${NUM}${PCT},?\\s+(?:[a-z-]+\\s+){0,2}?${l}`, "gi"), // "At 8.3%, return on equity"
+  rev: new RegExp(`${NUM}${PCT},?\\s+(?:(?!and\\b|or\\b|the\\b|with\\b|of\\b)[a-z-]+\\s+){0,2}?${l}`, "gi"), // "At 8.3%, return on equity" (the gap never crosses "and", "the"...: "16.1% and the NPE ratio" is not an NPE figure)
   tab: new RegExp(`${l}[^\\d.;]{0,60}?${NUM}\\s+${NUM}(?![\\d.,])`, "gi"), // table row: current period first, then prior
 });
 const L_CET1 = "(?:CET\\s?1|common equity tier 1)(?: capital)?(?: ratio)?";
@@ -106,6 +136,8 @@ const L_NPL = "(?:non-?performing loans?|\\bNPL\\b)(?: ratio)?";
 const L_ROE = "(?:return on equity|\\bRoE\\b)";
 const L_CIR = "cost[/ -]?(?:to[- ])?income ratio";
 const L_TCR = "total capital ratio";
+const L_LCR = "(?:liquidity coverage ratio|\\bLCR\\b)";
+const L_NSFR = "(?:net stable funding ratio|\\bNSFR\\b)";
 export const BANK_RULES = [
   { parameter: "cet1Pct", unit: "%", pats: Object.values(lbl(L_CET1)) },
   { parameter: "npePct", unit: "%", pats: Object.values(lbl(L_NPE)) },
@@ -113,6 +145,9 @@ export const BANK_RULES = [
   { parameter: "roePct", unit: "%", pats: Object.values(lbl(L_ROE)) },
   { parameter: "costIncomePct", unit: "%", pats: Object.values(lbl(L_CIR)) },
   { parameter: "totalCapitalPct", unit: "%", pats: Object.values(lbl(L_TCR)) },
+  // Liquidity: both ratios are regulatory minimums of 100%; a printed figure outside a sane band is a page artefact, not a ratio.
+  { parameter: "lcrPct", unit: "%", range: [60, 600], pats: Object.values(lbl(L_LCR)) },
+  { parameter: "nsfrPct", unit: "%", range: [60, 400], pats: Object.values(lbl(L_NSFR)) },
   { parameter: "pretaxProfitEurM", unit: "EUR m", skipSentence: SEGMENT_CUE, pats: [
     new RegExp(`(?:EUR|€)\\s?${AMT}\\s?(?:m\\b|million)\\s+(?:\\w+\\s+)?before tax`, "gi"),                         // "EUR 708 million before tax"
     new RegExp(`consolidated (?:profit|result)(?:/loss)? before tax[^\\d]{0,30}?${AMT}\\s+${AMT}(?![\\d.,])`, "gi"), // group table row, current period first
@@ -137,6 +172,7 @@ export function extractBankFigures(text) {
       for (const m of text.matchAll(re)) {
         const quote = sentenceAround(text, m.index, m.index + m[0].length);
         if (r.skipSentence && r.skipSentence.test(quote)) continue;          // a business segment, not the group
+        if (r.range && (toNumber(m[1]) < r.range[0] || toNumber(m[1]) > r.range[1])) continue;
         const beforeNumber = m[0].slice(0, m[0].indexOf(m[1]));
         if (PRIOR_CUE.test(beforeNumber)) continue;                          // "... than in the previous year (8.6%)" is last year's figure
         if (!best || m.index < best.idx) best = { idx: m.index, value: toNumber(m[1]), quote };
@@ -166,6 +202,35 @@ export function seniorityFromText(text, isin) {
   if (/senior preferred|preferred senior/i.test(win)) return "Senior Preferred";
   return null;
 }
+const FT_URL = /final[-_ ]?terms|endg(?:ue|ü)ltige[-_ ]?bedingungen|pricing[-_ ]?supplement|conditions[-_ ]?of[-_ ]?the[-_ ]?notes/i;
+/**
+ * Seniority as the bond's OWN terms (final terms) or the issuer's bond list state it. The document must name THIS ISIN; the words are read in a window around it.
+ * The returned strings are chosen so the website reads them correctly (no word like "subordinated" inside a senior label).
+ */
+export function finalTermsSeniority(text, isin) {
+  const i = isin ? text.indexOf(isin) : -1; if (i < 0) return null;
+  const win = text.slice(Math.max(0, i - 3000), i + 6000);
+  if (/senior non[- ]?preferred|non[- ]?preferred senior|nicht bevorrechtigt|46f\s*(?:abs\.?|\()?\s*\(?6/i.test(win)) return "Senior Non-Preferred";
+  if (/\btier\s?2\b|nachrang|additional tier 1/i.test(win) && !/unsubordinated|nicht nachrangig/i.test(win)) return "Subordinated";
+  if (/senior preferred|preferred senior/i.test(win)) return "Senior Preferred";
+  if (/unsecured and unsubordinated|unbesichert und nicht nachrangig|nicht nachrangig\w* und unbesichert/i.test(win)) return "Senior Preferred (unsecured, ranking equally with other senior obligations)";
+  return null;
+}
+/** Looks for the bond's final terms: documents already read, links of the issuer's site named "final terms", then the issuer's bond lists (searched for the ISIN, up to 900 pages). Null when none states the seniority. */
+export async function findFinalTerms(job, docs) {
+  const tried = [];
+  for (const d of docs) if (d.method !== "api" && !/bankingresolution|boerse-stuttgart|businessinsider/.test(d.url) && d.text.includes(job.isin)) { const s = finalTermsSeniority(d.text, job.isin); tried.push(d.url); if (s) return { url: d.url, seniority: s, kind: FT_URL.test(d.url) ? "final terms" : "issuer document naming the ISIN", doc: null }; }
+  const urls = [...new Set([...(job.linkPool ?? []).filter((u) => FT_URL.test(u)), ...(job.bondLists ?? [])])].filter((u) => !tried.includes(u)).slice(0, 4);
+  for (const u of urls) {
+    try {
+      const isPdf = /\.pdf($|\?)/i.test(u); const raw = await get(u, isPdf); if (!raw) continue;
+      const text = isPdf ? await pdfText(raw, { maxPages: 900, needle: job.isin }) : strip(raw);
+      const s = text ? finalTermsSeniority(text, job.isin) : null; tried.push(u);
+      if (s) return { url: u, seniority: s, kind: (job.bondLists ?? []).includes(u) ? "issuer bond list" : "final terms", doc: { url: u, title: decodeURIComponent(u.split("/").pop() ?? "document").slice(0, 120), publisher: new URL(u).hostname.replace(/^www\./, ""), period: null, primary: true, method: isPdf ? "pdf" : "html", text: text.slice(Math.max(0, text.indexOf(job.isin) - 3000), text.indexOf(job.isin) + 6000), verified: true, retrievedAt: new Date().toISOString() } };
+    } catch (e) { log("final terms candidate failed:", e.message); }
+  }
+  return { url: null, seniority: null, tried: tried.length + urls.length };
+}
 // The metric the website's gate needs, per figure; NPE stays an NPE figure (not relabelled as NPL).
 const METRIC_OF = { cet1Pct: "cet1Pct", nplPct: "nplPct", debtToGdpPct: "debtToGdpPct" };
 /** Parameters the next retrieval round must look for, most publication-critical first, and the words that find the right document. */
@@ -173,26 +238,29 @@ export const TARGETS = [
   { parameter: "cet1Pct", words: /capital|pillar|results|financial|interim|half-year|report/i },
   { parameter: "nplPct", words: /asset.?quality|risk|results|financial|report/i },
   { parameter: "totalCapitalPct", words: /capital|pillar|results/i },
+  { parameter: "lcrPct", words: /liquidity|funding|pillar|capital|results|report/i },
+  { parameter: "nsfrPct", words: /liquidity|funding|pillar|capital|results|report/i },
   { parameter: "roePct", words: /results|financial|profit|report/i },
   { parameter: "costIncomePct", words: /results|financial|report/i },
   { parameter: "pretaxProfitEurM", words: /results|financial|profit|report/i },
 ];
 
 /** PDF text with a form feed between pages, so a figure can be cited with its page number (each page ends with one; page = form feeds before the figure + 1). */
-export async function pdfText(buf) {
+export async function pdfText(buf, opts = {}) {
+  const maxPages = opts.maxPages ?? 60;
   const dir = await mkdtemp(join(tmpdir(), "cw-")); const f = join(dir, "d.pdf");
-  try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", "60", "-layout", f, "-"], { maxBuffer: 30e6, timeout: 90_000 }); if (stdout.trim()) { stats.pdfParsed++; return stdout.replace(/[ \t\r\n\v]+/g, " ").replace(/ ?\f ?/g, "\f"); } } catch { /* pdftotext not installed: try the JavaScript reader */ } finally { await rm(dir, { recursive: true, force: true }); }
+  try { await writeFile(f, buf); const { stdout } = await run("pdftotext", ["-l", String(maxPages), "-layout", f, "-"], { maxBuffer: 120e6, timeout: maxPages > 60 ? 240_000 : 90_000 }); if (stdout.trim()) { stats.pdfParsed++; return stdout.replace(/[ \t\r\n\v]+/g, " ").replace(/ ?\f ?/g, "\f"); } } catch { /* pdftotext not installed: try the JavaScript reader */ } finally { await rm(dir, { recursive: true, force: true }); }
   try {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const doc = await pdfjs.getDocument({ data: new Uint8Array(buf), useSystemFonts: true, isEvalSupported: false, verbosity: 0 }).promise;
     let out = "";
-    for (let i = 1; i <= Math.min(doc.numPages, 60) && out.length < 400_000; i++) out += (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ") + "\f";
+    for (let i = 1; i <= Math.min(doc.numPages, maxPages) && out.length < (maxPages > 60 ? 6_000_000 : 400_000); i++) { out += (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ") + "\f"; if (opts.needle && out.includes(opts.needle)) break; }
     stats.pdfParsed++;
     return out.replace(/[ \t\r\n\v]+/g, " ").replace(/ ?\f ?/g, "\f");
   } catch (e) {
     if (e.code === "ERR_MODULE_NOT_FOUND" && !triedInstall) { // install the one optional package by itself, once, then retry
       triedInstall = true; log("installing the PDF reader (npm install, once) ...");
-      try { await run("npm", ["install", "--silent", "--no-audit", "--no-fund"], { cwd: dirname(fileURLToPath(import.meta.url)), shell: process.platform === "win32", timeout: 240_000 }); return await pdfText(buf); } catch (e2) { log("PDF reader install failed:", e2.message.slice(0, 120)); }
+      try { await run("npm", ["install", "--silent", "--no-audit", "--no-fund"], { cwd: dirname(fileURLToPath(import.meta.url)), shell: process.platform === "win32", timeout: 240_000 }); return await pdfText(buf, opts); } catch (e2) { log("PDF reader install failed:", e2.message.slice(0, 120)); }
     }
     stats.pdfFailed++;
     if (!warnedPdf) { warnedPdf = true; log("PDF reports are skipped: run `npm install` in scripts\\credit-worker (or install pdftotext)", e.code ?? ""); } return ""; }
@@ -268,6 +336,7 @@ async function collect(job) {
       }
     }
     for (const src of [...(job.hints.sources ?? [])].sort((a, b) => a.priority - b.priority)) {
+      if (/outstanding issues|bond list/i.test(src.label)) { (job.bondLists ??= []).push(src.url); continue; }
       if (/\.pdf($|\?)/i.test(src.url)) { const b = await get(src.url, true); const t = b ? await pdfText(b) : ""; if (t) add({ url: src.url, title: src.label, publisher: new URL(src.url).hostname.replace(/^www\./, ""), period: null, primary: !/boerse|bankingresolution/.test(src.url), method: "pdf", text: t }); }
       else { const h = await get(src.url); if (h) add({ url: src.url, title: src.label, publisher: new URL(src.url).hostname.replace(/^www\./, ""), period: null, primary: !/boerse|bankingresolution/.test(src.url), method: "html", text: strip(h) }); }
     }
@@ -404,8 +473,54 @@ const SCHEMA = { type: "object", required: ["issuerType", "seniority", "agencyRa
   risks: { type: "array", items: { type: "object", required: ["key", "color", "explanation", "evidence"], properties: { key: { enum: RISKS }, color: { enum: COLORS }, explanation: { type: "string" }, evidence: { type: "array", items: { type: "string" } } } } },
   conflicts: { type: "array", items: { type: "string" } } } };
 
+// ---- Optional semantic retrieval with BGE-M3 (only when the model is installed in Ollama; nothing is downloaded by the worker). It only chooses WHICH passages the model reads;
+// every figure still needs a quoted sentence found by the fixed rules, so it cannot invent a number. Embeddings are cached on disk by passage hash. ----
+const EMBED_MODEL = process.env.EMBED_MODEL ?? "bge-m3";
+const EMBED_FILE = join(DATA_DIR, "embeddings.json");
+let embedState = null; let EMB = null;
+export const embedStats = { used: false, chunks: 0, fromCache: 0 };
+export async function embedAvailable() {
+  if (embedState !== null) return embedState;
+  try { const t = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(5000) }).then((r) => r.json()); embedState = (t.models ?? []).some((m) => m.name.split(":")[0] === EMBED_MODEL); } catch { embedState = false; }
+  return embedState;
+}
+export const cosine = (a, b) => { let d = 0, x = 0, y = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; x += a[i] * a[i]; y += b[i] * b[i]; } return x && y ? d / Math.sqrt(x * y) : 0; };
+async function embedTexts(texts, call = null) {
+  if (call) return call(texts);
+  const r = await fetch(`${OLLAMA}/api/embed`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: EMBED_MODEL, input: texts }), signal: AbortSignal.timeout(120_000) });
+  if (!r.ok) throw new Error(`embed HTTP ${r.status}`);
+  return (await r.json()).embeddings;
+}
+async function loadEmb() { if (EMB) return; try { EMB = JSON.parse(await readFile(EMBED_FILE, "utf8")); } catch { EMB = {}; } }
+async function saveEmb() { try { const keys = Object.keys(EMB); if (keys.length > 1200) for (const k of keys.slice(0, keys.length - 1200)) delete EMB[k]; await mkdir(DATA_DIR, { recursive: true }); await writeFile(EMBED_FILE, JSON.stringify(EMB)); } catch { /* cache only */ } }
+const QUERIES = ["Common Equity Tier 1 capital ratio CET1", "liquidity coverage ratio LCR and net stable funding ratio NSFR", "non-performing exposures ratio NPE", "total capital ratio, return on equity, cost income ratio, profit before tax",
+  "ranking of the notes: senior preferred, senior non-preferred, subordinated", "guarantee of the notes", "credit ratings Moody's S&P Fitch", "net debt to EBITDA leverage and interest cover", "refinancing, liquidity and maturity profile", "legal proceedings, investigation, sanctions"];
+/** For each document, the passages (about 700 characters) closest in meaning to what is still to be found, as text in reading order. Returns null when BGE-M3 is not installed or fails. */
+export async function semanticPick(docs, budgetPerDoc, call = null, avail = null) {
+  if (!(avail ?? await embedAvailable()) ) return null;
+  try {
+    await loadEmb();
+    const crypto = await import("node:crypto");
+    const key = (t) => crypto.createHash("sha1").update(t).digest("hex");
+    const qv = await embedTexts(QUERIES, call);
+    const out = new Map();
+    for (const d of docs) {
+      if (d.method === "api" || d.text.length <= budgetPerDoc) continue;
+      const chunks = []; for (let i = 0; i < d.text.length && chunks.length < 400; i += 700) chunks.push({ i, t: d.text.slice(i, i + 700) });
+      const need = chunks.filter((c) => !EMB[key(c.t)]);
+      embedStats.fromCache += chunks.length - need.length;
+      for (let b = 0; b < need.length; b += 24) { const vs = await embedTexts(need.slice(b, b + 24).map((c) => c.t), call); need.slice(b, b + 24).forEach((c, j) => { EMB[key(c.t)] = vs[j].map((x) => Math.round(x * 1e4) / 1e4); }); }
+      embedStats.chunks += need.length;
+      const scored = chunks.map((c) => ({ ...c, sc: Math.max(...qv.map((q) => cosine(q, EMB[key(c.t)]))) })).sort((x, y) => y.sc - x.sc).slice(0, Math.max(1, Math.floor(budgetPerDoc / 700)));
+      out.set(d.url, scored.sort((x, y) => x.i - y.i).map((c) => c.t).join(" … "));
+    }
+    embedStats.used = true; await saveEmb();
+    return out;
+  } catch (e) { log("semantic retrieval failed, using keyword retrieval:", e.message); return null; }
+}
+
 export async function extract(job, docs) {
-  const body = docs.map((d, i) => `### SOURCE ${i + 1}: ${d.url}\n${relevantText(d.text, Math.floor((CTX * 2.5) / Math.max(1, docs.length)))}`).join("\n\n");
+  const body = docs.map((d, i) => `### SOURCE ${i + 1}: ${d.url}\n${job.semantic?.get(d.url) ?? relevantText(d.text, Math.floor((CTX * 2.5) / Math.max(1, docs.length)))}`).join("\n\n");
   const prompt = `You extract credit facts for ONE bond. Use ONLY the sources below; never use memory or guess. If a fact is not stated, use null / "unknown" / GREY.\n` +
     `Bond: ${JSON.stringify({ isin: job.isin, ...job.known })}\n` +
     `Rules: seniority is the BOND's own ranking (senior_non_preferred, tier2, at1 are NOT senior_preferred), set "unknown" unless the sources state it. agencyRatings: only ratings written in the sources; scope "issuer" for issuer ratings, "instrument" for a single bond/class rating. ` +
@@ -508,8 +623,9 @@ export function buildExtra(job, docs, figures, figConflicts) {
   const extra = {
     figures, metricPeriods, conflicts: figConflicts,
     ...(job.identity ? { issuer: { canonicalId: job.identity.lei, legalName: job.identity.legalName, lei: job.identity.lei } } : {}),
-    seniorityEvidence: { dataCopy: job.known?.seniority ?? null, regulatory: regDoc ? seniorityFromText(regDoc.text, job.isin) : null, finalTerms: null },
+    seniorityEvidence: { dataCopy: job.known?.seniority ?? null, regulatory: regDoc ? seniorityFromText(regDoc.text, job.isin) : null, finalTerms: job.finalTerms?.seniority ?? null },
     notes: [
+      job.finalTerms?.seniority ? `seniority read in ${job.finalTerms.kind}: ${job.finalTerms.url}` : `final terms not found (${job.finalTerms?.tried ?? 0} candidate document(s) tried); seniority rests on regulatory reference data`,
       ...(figures.some((f) => f.parameter === "npePct") && !figures.some((f) => f.parameter === "nplPct") ? ["NPE ratio published; NPL ratio not found (the two are different metrics and are not relabelled)"] : []),
       ...TARGETS.filter((t) => !figures.some((f) => f.parameter === t.parameter)).map((t) => `not found after targeted retrieval: ${t.parameter}`).slice(0, 6),
     ],
@@ -536,7 +652,7 @@ export function cachedFigure(key, parameter, kb = KB) {
   const rs = (kb.financials[key]?.records ?? []).filter((r) => r.parameter === parameter).sort((a, b) => (b.reportingDate ?? "").localeCompare(a.reportingDate ?? ""));
   return rs[0] ? { parameter, value: rs[0].value, unit: rs[0].unit, quote: rs[0].quote, url: rs[0].url, period: rs[0].period, reportingDate: rs[0].reportingDate, ...(rs[0].page ? { page: rs[0].page } : {}), cached: true } : null;
 }
-const MANDATORY = ["cet1Pct", "npePct", "totalCapitalPct", "roePct", "costIncomePct", "pretaxProfitEurM"];
+const MANDATORY = ["cet1Pct", "npePct", "totalCapitalPct", "roePct", "costIncomePct", "pretaxProfitEurM", "lcrPct", "nsfrPct"];
 function summaryBlock(job, docs, figures, conflicts, x, res) {
   const blocked = Object.entries(stats.blocked).map(([h, set]) => `${h} (${[...set].join("/")})`);
   const verified = figures.filter((f) => f.quote && f.url);
@@ -545,9 +661,11 @@ function summaryBlock(job, docs, figures, conflicts, x, res) {
     `== ${job.isin} research summary`,
     `issuer: ${job.identity?.legalName ?? job.known?.issuer ?? "?"}${job.identity?.lei ? ` · LEI ${job.identity.lei}` : ""} · official website ${job.siteVerified ? "verified" : "not verified"}`,
     `1 discovery:  ${docs.length} source(s) found`,
+    `   bond terms: seniority ${job.finalTerms?.seniority ? `${job.finalTerms.seniority} from ${job.finalTerms.kind} (${job.finalTerms.url})` : "final terms not found"}; regulatory reference: ${docs.some((d) => /bankingresolution/.test(d.url)) ? (seniorityFromText(docs.find((d) => /bankingresolution/.test(d.url)).text, job.isin) ?? "page read, no seniority stated") : "not read"}`,
+    `   shared memory: ${kbWarned ? "website database not available (local file used)" : "website database in use"}`,
     `2 access:     ${stats.fetchOk} fetched, ${blocked.length ? `refused: ${blocked.join(", ")}` : "none refused"}${Object.keys(stats.failedHosts).length ? `, unreachable: ${Object.keys(stats.failedHosts).join(", ")}` : ""}`,
     `3 parsing:    ${stats.pdfParsed} PDF parsed, ${stats.pdfFailed} failed`,
-    `4 extraction: ${figures.length} figure(s) found${x ? `, model ${Math.round((x.ms ?? 0) / 1000)} s` : ", model not used"}`,
+    `4 extraction: ${figures.length} figure(s) found${x ? `, model ${Math.round((x.ms ?? 0) / 1000)} s` : ", model not used"}; retrieval: ${embedStats.used ? `BGE-M3 (${embedStats.chunks} passages embedded, ${embedStats.fromCache} from cache)` : embedState === false ? "keywords (BGE-M3 not installed: ollama pull bge-m3 to enable)" : "keywords"}`,
     `5 verification: ${verified.length} with quote + source (${figures.filter((f) => f.cached).length} from earlier jobs); missing mandatory: ${missing.join(", ") || "none"}; conflicts: ${conflicts.length ? conflicts.join(" | ") : "none"}`,
     ...figures.map((f) => `   ${f.parameter} = ${f.value} ${f.unit} · ${f.period ?? "period unknown"} · ${f.url.slice(0, 90)}${f.page ? ` p.${f.page}` : ""}${f.cached ? " (cached)" : ""}`),
     `6 scoring/publication: ${res ? `IR ${res.ir ?? "?"} · BR ${res.br ?? "?"} · ${res.status}` : "not reached"}`,
@@ -555,7 +673,8 @@ function summaryBlock(job, docs, figures, conflicts, x, res) {
 }
 
 async function work(job) {
-  resetStats(); await loadKB();
+  resetStats(); embedStats.used = false; embedStats.chunks = 0; embedStats.fromCache = 0; await loadKB();
+  const ikey0 = issuerKey(job); const pulled = await kbPull(ikey0); if (pulled) await saveKB();
   let stage = "collecting";
   const beat = setInterval(() => api("heartbeat", { isin: job.isin, stage }).catch(() => {}), 120_000);
   try {
@@ -579,7 +698,8 @@ async function work(job) {
     const ikey = issuerKey(job); const cachedList = []; // earlier cited figures: shown in the summary, never sent as if retrieved now
     for (const t of TARGETS) if (!figures.some((f) => f.parameter === t.parameter)) { const c = cachedFigure(ikey, t.parameter); if (c) cachedList.push(c); }
     figConflicts.push(...recordFinancials(ikey, job.identity?.legalName ?? job.known?.issuer ?? ikey, figures));
-    await saveKB();
+    try { job.finalTerms = await findFinalTerms(job, docs); if (job.finalTerms?.doc) docs.push(job.finalTerms.doc); } catch (e) { log("final terms search failed:", e.message); }
+    await saveKB(); await kbPush(ikey);
     const wbDebt = docs.find((d) => d.publisher === "World Bank" && /central government debt/.test(d.title));
     if (wbDebt && job.det?.metrics?.debtToGdpPct != null) figures.push({ parameter: "debtToGdpPct", value: job.det.metrics.debtToGdpPct, unit: "% of GDP", quote: wbDebt.text, url: wbDebt.url, period: wbDebt.period ?? null, reportingDate: wbDebt.period ? `${wbDebt.period}-12-31` : null }), (wbDebt.verified = true);
     log(job.isin, "figures with citations:", figures.map((f) => `${f.parameter}=${f.value}`).join(", ") || "none");
@@ -587,7 +707,7 @@ async function work(job) {
     if (docs.length) {
       stage = "extracting";
       await api("heartbeat", { isin: job.isin, stage });
-      try { x = await extract(job, docs); } catch (e) { problem = `extraction failed: ${e.message}`; log(job.isin, problem); }
+      try { job.semantic = await semanticPick(docs, Math.floor((CTX * 2.5) / Math.max(1, docs.length))); x = await extract(job, docs); } catch (e) { problem = `extraction failed: ${e.message}`; log(job.isin, problem); }
     }
     // Two tries per bond; after that the site still gets a provisional assessment from the data it already holds (ratings, seniority),
     // marked "review required" with the gap listed, instead of the bond staying empty forever.
@@ -646,13 +766,72 @@ export async function selftest() {
     if (g && g.value === e.official && vals.length === 1) ok++;
     lines.push(`${e.p} | ${e.listed} | ${e.official} | ${g ? `${g.value} (${g.period}, ${g.label}${g.page ? ` p.${g.page}` : ""})` : "-"} | ${verdict}`);
   }
+  for (const p of ["lcrPct", "nsfrPct"]) { const g = (got[p] ?? []).sort((a, b) => b.end.localeCompare(a.end))[0]; lines.push(`${p} (liquidity, not in the owner's list) | ${g ? `${g.value} (${g.period}, ${g.label}${g.page ? ` p.${g.page}` : ""})` : "not found in these documents"}`); }
   lines.push("", `${ok} of ${LBBW_EXPECTED.length} figures retrieved and equal to the official H1 2026 report`);
   const out = lines.join("\n"); console.log(out);
   try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(join(DATA_DIR, "selftest-report.txt"), out); } catch { /* ignore */ }
   return ok;
 }
 
+
+/** Finds the owner's original $bonds skill on THIS computer and uploads its text (and any files next to it) to the website, which compares its hash. Never edits anything. */
+export async function uploadBondsSkill() {
+  const home = process.env.USERPROFILE || process.env.HOME || "";
+  const cands = [join(home, ".codex", "skills", "bonds", "SKILL.md"), "C:\\Users\\moret\\.codex\\skills\\bonds\\SKILL.md", join(home, ".codex", "skills", "bonds", "skill.md"), join(home, ".agents", "skills", "bonds", "SKILL.md"), join(home, ".claude", "skills", "bonds", "SKILL.md")];
+  for (const p of cands) {
+    try {
+      const text = await readFile(p, "utf8");
+      const r = await kbApi({ op: "put", entries: { "skill:bonds": { path: p, found: true, bytes: text.length, uploadedAt: new Date().toISOString(), text: text.slice(0, 150000) } } });
+      return { found: true, path: p, bytes: text.length, uploaded: !!r?.saved };
+    } catch { /* try the next place */ }
+  }
+  await kbApi({ op: "put", entries: { "skill:bonds": { found: false, tried: cands, uploadedAt: new Date().toISOString() } } });
+  return { found: false, tried: cands };
+}
+
+/** Everything the cloud sandbox cannot see, checked from THIS computer. Writes check-report.txt; the launcher runs it before the worker starts. Needs no job and writes nothing except one small test entry in the shared memory. */
+export async function lenovoCheck() {
+  const L = [`Lenovo check ${new Date().toISOString()} · worker ${ID} · site ${SITE}`]; let bad = 0;
+  const line = (ok, name, detail) => { if (!ok) bad++; L.push(`${ok ? "OK    " : "FAIL  "}${name}${detail ? ` · ${detail}` : ""}`); };
+  const info = (name, detail) => L.push(`info  ${name}${detail ? ` · ${detail}` : ""}`);
+  await loadKB(); resetStats();
+  // 1 website door and the shared memory
+  const kb = await kbApi({ op: "put", entries: { "domain:lenovo-check": { site: "https://example.invalid/", checkedAt: new Date().toISOString() } } });
+  line(!!kb && kb.saved === 1, "website database (shared memory) write", kb ? `saved ${kb.saved}` : "route not answering - the site may not have this release yet, or the token is wrong");
+  const back = kb ? await kbApi({ op: "get", keys: ["domain:lenovo-check"] }) : null;
+  line(!!back?.values?.["domain:lenovo-check"], "website database (shared memory) read");
+  // 1b the original $bonds skill on this computer
+  { const sk = await uploadBondsSkill().catch(() => null); (sk?.found ? line(true, "original $bonds skill file found and uploaded", `${sk.path} (${sk.bytes} bytes)`) : info("original $bonds skill file", "not found in the usual .codex folders - the website keeps its saved copy")); }
+  // 2 Ollama, models
+  const tags = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).catch(() => null);
+  line(!!tags, "Ollama answers", OLLAMA);
+  line(!!tags?.models?.some((m) => m.name === MODEL), `model ${MODEL} installed`);
+  const emb = await embedAvailable(); info("BGE-M3 retrieval", emb ? "installed - used for choosing passages" : "not installed (optional): run `ollama pull bge-m3` to enable; keyword retrieval is used meanwhile");
+  if (emb) { try { const v = await embedTexts(["capital ratio"]); line(Array.isArray(v?.[0]) && v[0].length > 100, "BGE-M3 embedding works", `${v?.[0]?.length ?? 0} dimensions`); } catch (e) { line(false, "BGE-M3 embedding works", e.message); } }
+  // 3 PDF reader
+  let pdfOk = false; try { await run("pdftotext", ["-v"], { timeout: 8000 }); pdfOk = true; } catch (e) { pdfOk = e.code !== "ENOENT" && !!e.stderr; }
+  if (!pdfOk) { try { await import("pdfjs-dist/legacy/build/pdf.mjs"); pdfOk = true; } catch { /* missing */ } }
+  line(pdfOk, "PDF reader (pdftotext or pdfjs-dist)");
+  // 4 reach of the sites that matter for bank bonds
+  for (const [name, url, must] of [["LBBW website", "https://www.lbbw.de/", true], ["Banking Resolution (regulatory data)", "https://bankingresolution.com/instruments/DE000LB2CW16", true], ["Börse Stuttgart", "https://www.boerse-stuttgart.de/en/products/bonds/stuttgart/lb2cw1-landesbank-baden-w-rttemberg-mtn-serie-822-v-21-31/", false], ["GLEIF register", "https://api.gleif.org/api/v1/lei-records/B81CK4ESI35472RHJ606", true]]) {
+    const h = await get(url);
+    if (must) line(!!h, `reach ${name}`, h ? `${h.length} characters` : "refused or unreachable");
+    else info(`reach ${name}`, h ? `${h.length} characters` : "refused or unreachable (expected for this site, only logged; other sources cover the same facts)");
+    if (h && name.startsWith("Banking")) { const sen = seniorityFromText(strip(h), "DE000LB2CW16"); line(sen === "Senior Preferred", "bond terms: seniority of DE000LB2CW16 from regulatory data", sen ?? "not stated"); }
+  }
+  // 5 final terms discovery for the reference bond (issuer bond list scanned for the ISIN)
+  const ft = await findFinalTerms({ isin: "DE000LB2CW16", bondLists: ["https://www.lbbw.de/konzern/investor-relations/refinanzierung/anleihen/outstanding-issues_ahtf9x1ikk_m.pdf"], linkPool: [] }, []);
+  info("final terms / bond list for DE000LB2CW16", ft.seniority ? `${ft.seniority} (${ft.kind}: ${ft.url})` : `no seniority wording found (${ft.tried ?? 0} candidate(s)); the worker then relies on regulatory data and says so`);
+  // 6 the real LBBW figures, including liquidity
+  const ok = await selftest();
+  line(ok === LBBW_EXPECTED.length, "LBBW H1 2026 figures", `${ok} of ${LBBW_EXPECTED.length}`);
+  const out = L.join("\n"); console.log(out);
+  try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(join(DATA_DIR, "check-report.txt"), out); } catch { /* ignore */ }
+  return bad;
+}
+
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain && process.argv.includes("--check")) { const bad = await lenovoCheck(); process.exit(bad ? 2 : 0); }
 if (isMain && process.argv.includes("--selftest")) { const ok = await selftest(); process.exit(ok === LBBW_EXPECTED.length ? 0 : 2); }
 if (isMain) {
   if (!MODEL) {
