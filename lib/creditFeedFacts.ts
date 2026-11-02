@@ -32,6 +32,9 @@ export function enrichFromFeed(f: ResearchFacts, bond: FeedBond | null): Researc
   const out: ResearchFacts = { ...f, agencyRatings: [...f.agencyRatings], evidence: [...f.evidence] };
   const seniority = f.seniority === "unknown" ? seniorityOf(bond.seniority) : f.seniority;
   out.seniority = seniority;
+  // The data copy is only a hint: if it disagrees with what the research found, that is a recorded conflict (it blocks publication until resolved).
+  const copySen = seniorityOf(bond.seniority);
+  if (f.seniority !== "unknown" && copySen !== "unknown" && copySen !== f.seniority) out.conflicts = [...f.conflicts, `Seniority: the site's data copy says ${copySen}, the research found ${f.seniority}.`];
   out.issuerType = issuerTypeOf(bond.issuer ?? bond.name, f.issuerType);
   const have = f.agencyRatings.some((a) => notchOf(a.rating) !== null);
   let used = false;

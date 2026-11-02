@@ -51,6 +51,8 @@ export type ResearchFacts = {
   /** Period end (YYYY-MM-DD) of each reported metric; a metric without one counts as stale. */
   metricPeriods?: Partial<Record<keyof Metrics, string>>;
   bond?: BondFacts;
+  /** Every extracted figure with its citation (evidence record). Figures whose quote does not contain the number are rejected on arrival. */
+  figures?: { parameter: string; value: number; unit: string; quote: string; url: string; period: string | null; reportingDate: string | null }[];
   /** The owner's 14 issuer factors (corporates). Only "accounts" and "typed" values count; see lib/livioIssuerModel.ts. */
   factors?: FactorMap;
   /** Capital structure tier and structural flags of the bond, for the owner's BR adjustments. */

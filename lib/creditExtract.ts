@@ -10,18 +10,26 @@ type Rule = { parameter: string; unit: string; re: RegExp; scale?: number };
 const N = "(\\d{1,3}(?:[.,]\\d+)?)";
 export const BANK_RULES: Rule[] = [
   { parameter: "cet1Pct", unit: "%", re: new RegExp(`(?:CET\\s?1|common equity tier 1)[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
-  { parameter: "nplPct", unit: "%", re: new RegExp(`(?:non-?performing (?:exposures?|loans?)|\\bNPE\\b|\\bNPL\\b)[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
+  // NPE (exposures) and NPL (loans) are different published metrics: one is never relabelled as the other.
+  { parameter: "npePct", unit: "%", re: new RegExp(`(?:non-?performing exposures?|\\bNPE\\b)[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "nplPct", unit: "%", re: new RegExp(`(?:non-?performing loans?|\\bNPL\\b)[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
   { parameter: "roePct", unit: "%", re: new RegExp(`(?:return on equity|\\bRoE\\b)[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
   { parameter: "costIncomePct", unit: "%", re: new RegExp(`cost[/ -]?(?:to[- ])?income ratio[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
   { parameter: "totalCapitalPct", unit: "%", re: new RegExp(`total capital ratio[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
   { parameter: "pretaxProfitEurM", unit: "EUR m", re: new RegExp(`(?:pre-?tax (?:profit|result)|profit before tax)[^.;\\n]{0,60}?(?:EUR|€)\\s?${N}\\s?(?:m\\b|million)`, "i") },
 ];
 
-/** The sentence around a match, as written in the document. */
+/** The sentence around a match, as written in the document. Sentences end at ". " before a capital letter, or a line break (decimal points do not end one). */
 function sentenceAround(text: string, start: number, end: number): { quote: string; offset: number } {
-  let a = start; while (a > 0 && !/[.\n]/.test(text[a - 1])) a--;
-  let b = end; while (b < text.length && !/[.\n]/.test(text[b])) b++;
-  return { quote: text.slice(a, Math.min(b + 1, text.length)).replace(/\s+/g, " ").trim(), offset: a };
+  const bounds = [0];
+  for (const m of text.matchAll(/(?<=[.!?])\s+(?=[A-Z€(])|\n+/g)) bounds.push(m.index! + m[0].length);
+  bounds.push(text.length);
+  let i = 0;
+  while (i + 1 < bounds.length - 1 && bounds[i + 1] <= start) i++;
+  let j = i;
+  while (j + 1 < bounds.length - 1 && bounds[j + 1] < end) j++;
+  const a = bounds[i], z = bounds[j + 1];
+  return { quote: text.slice(a, z).replace(/\s+/g, " ").trim(), offset: a };
 }
 
 export function extractBankFigures(text: string): { found: Extracted[]; missing: string[] } {
