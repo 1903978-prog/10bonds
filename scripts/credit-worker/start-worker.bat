@@ -57,6 +57,6 @@ echo Checking this computer: website database, Ollama and models, PDF reader, LB
 node worker.mjs --check
 echo Starting worker with model %OLLAMA_MODEL% ...
 node worker.mjs
-echo Worker stopped. Restarting in 20 seconds (close this window to stop).
+echo Worker stopped or updating. Restarting in 20 seconds (close this window to stop).
 timeout /t 20 /nobreak >nul
 goto loop
