@@ -2,7 +2,6 @@
 // Part 1 = server/lib/livioBondRating.ts (sha256 fbaa705623dee9ed8504793a855875c5c6a50ef0032fbe6a32ca3ddfd40cab5d), the whole file, unchanged.
 // Part 2 = excerpts of server/lib/livioRating.ts (sha256 1304ead0264d17bfa07c6786db726b7c7e19a9cf26d14d2d784664e67ecc4e85): the sovereign table, the rounding formula, factorFromAccounts.
 // It exists ONLY so the tests can run identical data through the original and through lib/bondsEngine.ts. Production code must never import it.
-/* eslint-disable */
 // ===== PART 1: livioBondRating.ts (verbatim) =====
 /**
  * Livio Bond Rating (LBR) — corporate bond solvency & risk framework,

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it } from "vitest";
 
 // The worker script is plain JavaScript run on the owner's computer; its pure helpers are tested here.
@@ -80,7 +81,7 @@ describe("PDF reports and the issuer figure cache", () => {
 
 describe("shared memory, liquidity ratios and final-terms seniority (worker)", () => {
   it("reads LCR and NSFR with their period and ignores numbers outside a sane band", async () => {
-    const { extractBankFigures } = (await worker()) as any;
+    const { extractBankFigures } = (await worker()) as unknown as Record<string, (...a: never[]) => unknown> & Record<string, any>;
     const t = "The liquidity coverage ratio (LCR) stood at 152.4% and the net stable funding ratio (NSFR) at 118.7% on 30 June 2026. LCR of 5% in a sample table.";
     const f = Object.fromEntries(extractBankFigures(t).found.map((x: { parameter: string; value: number }) => [x.parameter, x.value]));
     expect(f.lcrPct).toBe(152.4);
@@ -88,7 +89,7 @@ describe("shared memory, liquidity ratios and final-terms seniority (worker)", (
     expect(extractBankFigures("LCR of 5%").found.some((x: { parameter: string }) => x.parameter === "lcrPct")).toBe(false);
   });
   it("final terms: seniority only from a document that names this ISIN, in labels the website reads correctly", async () => {
-    const { finalTermsSeniority } = (await worker()) as any;
+    const { finalTermsSeniority } = (await worker()) as unknown as Record<string, (...a: never[]) => unknown> & Record<string, any>;
     const { seniorityOf } = await import("./creditFeedFacts");
     const isin = "DE000LB2CW16";
     expect(finalTermsSeniority("Notes ISIN DE000LB2CW16 ... Senior Preferred Notes", isin)).toBe("Senior Preferred");
@@ -101,7 +102,7 @@ describe("shared memory, liquidity ratios and final-terms seniority (worker)", (
     expect(seniorityOf(finalTermsSeniority("DE000LB2CW16 Senior Non-Preferred", isin))).toBe("senior_non_preferred");
   });
   it("shared memory: figures and verified sites are pushed to and pulled from the website, merged without duplicates", async () => {
-    const { kbPush, kbPull } = (await worker()) as any;
+    const { kbPush, kbPull } = (await worker()) as unknown as Record<string, (...a: never[]) => unknown> & Record<string, any>;
     const store: Record<string, unknown> = {};
     const call = async (b: { op: string; keys?: string[]; entries?: Record<string, unknown> }) => b.op === "put" ? (Object.assign(store, b.entries), { saved: Object.keys(b.entries!).length }) : { values: Object.fromEntries((b.keys ?? []).filter((k) => k in store).map((k) => [k, store[k]])) };
     const a = { domains: { LEI1: { site: "https://x.example/", verifiedAt: "2026-11-02" } }, dead: {}, financials: { LEI1: { issuer: "X", records: [{ parameter: "cet1Pct", value: 16.1, unit: "%", reportingDate: "2026-06-30", url: "https://x.example/r.pdf", retrievedAt: "2026-11-02T00:00:00Z" }] } } };
@@ -116,7 +117,7 @@ describe("shared memory, liquidity ratios and final-terms seniority (worker)", (
     expect(await kbPull("LEI1", b, async () => null)).toBe(false);                                   // website down: the local copy stays usable
   });
   it("BGE-M3 retrieval picks the passage closest to the question, and is off when the model is not installed", async () => {
-    const { semanticPick } = (await worker()) as any;
+    const { semanticPick } = (await worker()) as unknown as Record<string, (...a: never[]) => unknown> & Record<string, any>;
     expect(await semanticPick([{ url: "u", method: "html", text: "x".repeat(5000) }], 1400, null, false)).toBeNull();
     const vec = (t: string) => (/CET1|capital|ratio|rank|guarantee|rating|EBITDA|refinanc|proceedings/i.test(t) ? [1, 0] : [0, 1]);
     const call = async (ts: string[]) => ts.map(vec);
