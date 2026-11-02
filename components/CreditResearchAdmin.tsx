@@ -4,9 +4,9 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 
 type Meth = { engine: string; engineVersion: string; methodologyVersion: string; skillHash: string; skillSource: string; pcSkill: string; lastVerified: string; calculationConsistency: string; evidenceGate: string; needsRecalculation: number; cases: { name: string; pass: boolean }[] };
 type Ov = {
-  methodology?: Meth; paused: boolean; avgMs: number | null;
+  progress?: { rerun?: { total: number; done: number }; total: number; done: number; failed: number; remaining: number; perHour: number; etaHours: number | null }; methodology?: Meth; paused: boolean; avgMs: number | null;
   jobs: Record<string, string>; analyses: Record<string, string>;
-  workers: { worker_id: string; model: string | null; current_isin: string | null; stage: string | null; host: string | null; last_seen: string; online: boolean }[];
+  workers: { version?: string | null; diag?: string | null; worker_id: string; model: string | null; current_isin: string | null; stage: string | null; host: string | null; last_seen: string; online: boolean }[];
   references?: { isin: string; issuer: string; lei: string | null; status: string; source_label: string; data: { inputs: { parameter: string; value: string; unit: string; period: string }[]; example: { ir: { point: number; min: number; max: number }; br: { point: number; min: number; max: number }; note: string }; caveats: string[]; seniority: { value: string; basis: string } } }[];
   recent: Row[];
 };
@@ -75,6 +75,11 @@ export default function CreditResearchAdmin() {
         </section>); })()}
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
+          ["All bonds: done / total", d.progress ? `${d.progress.done} / ${d.progress.total}${d.progress.failed ? ` (${d.progress.failed} failed)` : ""}` : "—"],
+          ["Re-run of earlier bonds", d.progress?.rerun ? `${d.progress.rerun.done} / ${d.progress.rerun.total}` : "—"],
+          ["Worker version / network", w ? `${w.version ?? "old (not reported)"} · ${w.diag ?? "no check yet"}` : "—"],
+          ["Speed", d.progress ? `${d.progress.perHour} bonds per hour` : "—"],
+          ["Estimated finish", d.progress ? (d.progress.remaining === 0 ? "all done" : d.progress.etaHours === null ? "starts when the worker runs" : `about ${d.progress.etaHours < 48 ? `${d.progress.etaHours} hours` : `${Math.round(d.progress.etaHours / 24)} days`}`) : "—"],
           ["Worker", w ? (w.online ? "online" : "offline") : "never connected"],
           ["Model", w?.model || "—"],
           ["Now analysing", w?.current_isin ?? "idle"],

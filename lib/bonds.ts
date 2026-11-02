@@ -474,3 +474,11 @@ export async function loadBondIdentities(): Promise<{ isin: string; name: string
   const rows = await client`select isin, name, issuer, currency, maturity from public_bonds`;
   return rows.map((r) => ({ isin: String(r.isin).trim().toUpperCase(), name: r.name ?? null, issuer: r.issuer ?? null, currency: r.currency ? String(r.currency).trim().toUpperCase() : null, maturity: isoDay(r.maturity) }));
 }
+
+/** Every live ISIN of the bond copy with its issuer, for the research queue (one cheap read; null when the copy is not connected). */
+export async function allBondIsinsForResearch(): Promise<{ isin: string; issuer: string | null }[] | null> {
+  const client = db();
+  if (!client) return null;
+  const rows = await client`select isin, issuer from public_bonds where isin is not null and (maturity is null or maturity > current_date)`;
+  return rows.map((r) => ({ isin: String(r.isin), issuer: r.issuer ? String(r.issuer) : null }));
+}

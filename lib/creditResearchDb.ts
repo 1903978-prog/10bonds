@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
+import { allBondIsinsForResearch } from "./bonds";
 import { isIsin } from "./creditResearchSchema";
 import { LBBW_CASE } from "./creditReferenceCases";
 import { nextMissing, parameterReport } from "./creditParameters";
@@ -16,6 +17,8 @@ import { BENCHMARK, runSelfTest } from "./bondsBenchmark";
 // (effective_grade, exclusion) are never touched here, so the portfolio algorithm is unaffected.
 
 export const FRESH_DAYS = 30;
+/** Raise this number to send every finished bond through the worker again (owner, 2/11/2026: the first run found too few parameters). */
+export const RERUN_EPOCH = 1;
 export const LEASE_MINUTES = 15;
 export const MAX_ATTEMPTS = 5;
 const AGING_HOURS_PER_PRIORITY = 6; // a P3 job outranks a brand-new P0 job after 18 hours: nothing starves
@@ -46,6 +49,8 @@ async function sql(): Promise<Sql> {
       )`;
     await s`create index if not exists credit_research_jobs_pick on app.credit_research_jobs (status, next_attempt_at)`;
     await s`create table if not exists app.credit_research_workers (worker_id text primary key, model text, current_isin text, stage text, host text, last_seen timestamptz not null default now())`;
+    await s`alter table app.credit_research_workers add column if not exists version text, add column if not exists diag text`;
+    await s`alter table app.credit_research_jobs add column if not exists rerun_epoch smallint not null default 0`;
     await s`create table if not exists app.credit_research_tokens (token_hash text primary key, label text, created_at timestamptz not null default now(), revoked_at timestamptz, last_used_at timestamptz)`;
     await s`create table if not exists app.credit_worker_kb (key text primary key, value jsonb not null, updated_at timestamp with time zone not null default now())`;
     await s`create table if not exists app.credit_research_settings (key text primary key, value text not null)`;
@@ -161,6 +166,55 @@ export async function enqueueIsins(list: string[], account: boolean, forcePriori
   return rows.length;
 }
 
+
+// ---- 1b. Automatic queue for the whole bond database (owner, 2/11/2026: no button, no manual enqueue) ----
+
+/**
+ * Puts every live bond that has no current assessment into the queue, in this order: the first bond of each issuer comes before the
+ * other bonds of that issuer (the worker keeps the issuer's figures, so the rest are quick), issuers with the most bonds first.
+ * Jobs that already exist are never touched. Called by the worker's job request when the queue is empty, at most once an hour.
+ */
+let lastSeedAt = 0;
+let seeding: Promise<number> | null = null;
+export function seedAllBondJobs(force = false): Promise<number> {
+  if (seeding) return seeding;
+  if (!force && Date.now() - lastSeedAt < 60 * 60_000) return Promise.resolve(0);
+  seeding = (async () => {
+    const universe = await allBondIsinsForResearch();
+    if (!universe) return 0;
+    const s = await sql();
+    // One-time re-run (epoch 1): every bond finished by the earlier worker versions goes back into the queue, most exposed first.
+    await s`update app.credit_research_jobs set status = 'queued', attempts = 0, next_attempt_at = now(), priority = least(priority, 1), rerun_epoch = ${RERUN_EPOCH}::smallint, last_error = null, updated_at = now()
+      where status = 'done' and rerun_epoch < ${RERUN_EPOCH}::smallint`;
+    const perIssuer = new Map<string, string[]>();
+    for (const b of universe) {
+      if (!isIsin(b.isin)) continue;
+      const k = (b.issuer ?? b.isin).toLowerCase().trim();
+      (perIssuer.get(k) ?? perIssuer.set(k, []).get(k)!).push(b.isin);
+    }
+    const groups = [...perIssuer.values()].sort((a, b) => b.length - a.length);
+    const first: string[] = [], rest: string[] = [];
+    for (const g of groups) { first.push(g[0]); rest.push(...g.slice(1)); }
+    let added = 0;
+    for (const [list, priority] of [[first, 1], [rest, 2]] as [string[], number][]) {
+      for (let i = 0; i < list.length; i += 1500) {
+        const chunk = list.slice(i, i + 1500);
+        const r = await s`
+          insert into app.credit_research_jobs (isin, priority, created_at)
+          select v.isin, ${priority}::smallint, now() + (v.n * interval '1 millisecond')
+          from unnest(${chunk}::text[]) with ordinality as v(isin, n)
+          left join app.bond_credit_analysis a on a.isin = v.isin
+          where not coalesce(a.rating_assessment_date >= current_date - ${FRESH_DAYS}::int and (a.issuer_rating_min is not null or a.issuer_rating is not null or a.bond_rating_min is not null or a.bond_rating is not null), false)
+          on conflict (isin) do nothing returning 1`;
+        added += r.length;
+      }
+    }
+    lastSeedAt = Date.now();
+    return added;
+  })().finally(() => { seeding = null; });
+  return seeding;
+}
+
 // ---- 2. Worker side: tokens, claim, heartbeat, complete, fail ----
 
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
@@ -217,12 +271,14 @@ export async function setPaused(p: boolean): Promise<void> {
 
 const clean = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
 
-export async function touchWorker(workerId: string, info: { model?: unknown; host?: unknown; isin?: string | null; stage?: unknown }) {
+export async function touchWorker(workerId: string, info: { model?: unknown; host?: unknown; isin?: string | null; stage?: unknown; version?: unknown; diag?: unknown }) {
   const s = await sql();
+  const version = clean(info.version, 30) || null, diag = clean(info.diag, 600) || null;
   await s`
-    insert into app.credit_research_workers (worker_id, model, host, current_isin, stage, last_seen)
-    values (${clean(workerId, 60)}, ${clean(info.model, 80)}, ${clean(info.host, 80)}, ${info.isin ?? null}, ${clean(info.stage, 40) || null}, now())
-    on conflict (worker_id) do update set model = excluded.model, host = excluded.host, current_isin = excluded.current_isin, stage = excluded.stage, last_seen = now()`;
+    insert into app.credit_research_workers (worker_id, model, host, current_isin, stage, last_seen, version, diag)
+    values (${clean(workerId, 60)}, ${clean(info.model, 80)}, ${clean(info.host, 80)}, ${info.isin ?? null}, ${clean(info.stage, 40) || null}, now(), ${version}, ${diag})
+    on conflict (worker_id) do update set model = excluded.model, host = excluded.host, current_isin = excluded.current_isin, stage = excluded.stage, last_seen = now(),
+      version = coalesce(excluded.version, app.credit_research_workers.version), diag = coalesce(excluded.diag, app.credit_research_workers.diag)`;
 }
 
 export type Claimed = { isin: string; priority: number; attempts: number; leaseMinutes: number };
@@ -347,7 +403,7 @@ export async function overview() {
     select count(*) total, count(*) filter (where issuer_rating_min is not null or issuer_rating is not null) with_ir, count(*) filter (where bond_rating_min is not null or bond_rating is not null) with_br,
       count(*) filter (where rating_verification_status = 'validated') validated, count(*) filter (where rating_verification_status = 'review_required') review
     from app.bond_credit_analysis`;
-  const workers = await s`select worker_id, model, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
+  const workers = await s`select worker_id, model, version, diag, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
   const jobs = await s`
     select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status,
       a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.detail #> '{research,scored}' as scored, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.last_attempt, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, a.detail #> '{research,trace}' as trace, a.version as row_version, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
@@ -363,7 +419,8 @@ export async function overview() {
     const next = nextMissing(f, parameters);
     return { ...r, parameters, scored, facts: f, view: { issuer: f.issuer?.legalName ?? null, lei: f.issuer?.lei ?? null, primary: q.primary, reliable: q.reliable, sources: f.evidence.length, next, message: blockedMessage(r.publication_status as string | null, parameters, r.gate as { ir?: { reasons?: string[]; missingCritical?: string[] } } | null) } };
   });
-  return { methodology: await methodology(), jobs: c, analyses: a, workers, recent, references: await referenceCases(), avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
+  const progress = await progressOf(s);
+  return { progress, methodology: await methodology(), jobs: c, analyses: a, workers, recent, references: await referenceCases(), avgMs: avg?.ms ? Number(avg.ms) : null, paused: await isPaused() };
 }
 
 /** Labelled reference cases (internal teaching data, never public). */
@@ -430,4 +487,17 @@ export async function methodology() {
     lastVerified: test.ranAt, calculationConsistency: test.pass ? "PASS" : "FAIL", cases: test.cases.map((c) => ({ name: c.name, pass: c.pass })),
     evidenceGate: gatePass ? "PASS" : "FAIL", needsRecalculation: recalc,
   };
+}
+
+/** All-bonds progress: how many jobs exist, how many are finished, the speed over the last hour and six hours, and the estimated finish. */
+async function progressOf(s: Sql) {
+  const [p] = await s<Record<string, string>[]>`
+    select count(*) total, count(*) filter (where status = 'done') done, count(*) filter (where status = 'failed') failed,
+      count(*) filter (where status = 'done' and completed_at > now() - interval '1 hour') h1, count(*) filter (where status = 'done' and completed_at > now() - interval '6 hours') h6
+    from app.credit_research_jobs`;
+  const total = Number(p.total), done = Number(p.done), failed = Number(p.failed), h1 = Number(p.h1), h6 = Number(p.h6);
+  const perHour = h1 > 0 ? h1 : h6 / 6;
+  const remaining = Math.max(0, total - done - failed);
+  const [rr] = await s<Record<string, string>[]>`select count(*) filter (where rerun_epoch = ${RERUN_EPOCH}::smallint) queued, count(*) filter (where rerun_epoch = ${RERUN_EPOCH}::smallint and status = 'done') done from app.credit_research_jobs`;
+  return { rerun: { total: Number(rr.queued), done: Number(rr.done) }, total, done, failed, remaining, perHour: Math.round(perHour * 10) / 10, etaHours: perHour > 0 ? Math.round((remaining / perHour) * 10) / 10 : null };
 }

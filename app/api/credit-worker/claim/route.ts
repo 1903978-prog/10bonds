@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { claimJob, isPaused, referenceCases, touchWorker } from "@/lib/creditResearchDb";
+import { claimJob, seedAllBondJobs, isPaused, referenceCases, touchWorker } from "@/lib/creditResearchDb";
 import { workerGate } from "@/lib/creditWorkerAuth";
 import { loadBondsByIsin } from "@/lib/bonds";
 
@@ -10,9 +10,10 @@ export async function POST(req: Request) {
   const g = await workerGate(req);
   if (g instanceof NextResponse) return g;
   const { workerId, body } = g;
-  await touchWorker(workerId, { model: body.model, host: body.host, isin: null, stage: "idle" });
+  await touchWorker(workerId, { model: body.model, host: body.host, isin: null, stage: "idle", version: body.version, diag: body.diag });
   if (await isPaused()) return NextResponse.json({ paused: true, job: null });
-  const job = await claimJob(workerId);
+  let job = await claimJob(workerId);
+  if (!job) { await seedAllBondJobs().catch((e) => console.error("[credit-research] seed", (e as Error).message)); job = await claimJob(workerId); }
   if (!job) return NextResponse.json({ paused: false, job: null });
   await touchWorker(workerId, { model: body.model, host: body.host, isin: job.isin, stage: "claimed" });
   // What the site already knows about the bond: the worker researches the rest.

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/currentUser";
-import { createWorkerToken, enqueueIsins, overview, retryFailed, revokeWorkerTokens, setPaused, validateRating } from "@/lib/creditResearchDb";
+import { createWorkerToken, seedAllBondJobs, enqueueIsins, overview, retryFailed, revokeWorkerTokens, setPaused, validateRating } from "@/lib/creditResearchDb";
 import { isIsin } from "@/lib/creditResearchSchema";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ async function admin() {
 
 export async function GET() {
   if (!(await admin())) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  void seedAllBondJobs().catch(() => undefined);
   return NextResponse.json(await overview(), { headers: { "Cache-Control": "no-store" } });
 }
 
