@@ -51,8 +51,10 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     const again = await db.completeJob("w1", facts(j1!.isin), { model: "m", ms: 1000, tokensIn: 10, tokensOut: 5 });
     expect(again.ok && again.duplicate).toBe(true);               // a retry of the same result writes nothing twice
     const pub = await db.publicRatings([j1!.isin, j2!.isin]);
-    expect(pub.ratings[j1!.isin].ir).toMatch(/^\d+(–\d+)?$/);
-    expect(pub.ratings[j1!.isin].br).toBeTruthy();
+    // the job is done and the numbers are stored, but they do not pass the publication gate, so the public function returns nothing
+    expect(pub.ratings[j1!.isin]).toBeUndefined();
+    const [stored] = await s<{ issuer_rating_min: string | null }[]>`select issuer_rating_min from app.bond_credit_analysis where isin = ${j1!.isin}`;
+    expect(stored.issuer_rating_min).not.toBeNull();
     expect(pub.pending).toEqual([j2!.isin]);
 
     // an expired lease (worker died) hands the job out again
@@ -103,6 +105,57 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     expect(row.same_as).toContain(Y);
     expect(row.parameters.max).toBeGreaterThan(5);
     await s`delete from app.bond_credit_analysis where isin in (${X}, ${Y})`;
+  }, 60_000);
+
+  it("the database and the public API never show an unpublished rating; a validated one survives a failed refresh", async () => {
+    process.env.ACCOUNTS_DATABASE_URL = url;
+    const db = await import("./creditResearchDb");
+    const { accountsSql } = await import("./accounts");
+    const s = await accountsSql();
+    const P = "XS0000000010";
+    await s`delete from app.bond_credit_analysis where isin = ${P}`;
+    await s`delete from app.credit_research_jobs where isin = ${P}`;
+    // 15. even a row written with the publish flags on is forced off by the database, and the public function returns nothing
+    await s`insert into app.bond_credit_analysis (isin, issuer_rating_min, issuer_rating_max, bond_rating_min, bond_rating_max, rating_assessment_date, rating_verification_status, publish_ir, publish_br) values (${P}, 70, 80, 70, 80, current_date, 'provisional', true, true)`;
+    const [flags] = await s<{ publish_ir: boolean; publish_br: boolean }[]>`select publish_ir, publish_br from app.bond_credit_analysis where isin = ${P}`;
+    expect(flags).toEqual({ publish_ir: false, publish_br: false });
+    expect((await db.publicRatings([P])).ratings[P]).toBeUndefined();
+    // a worker result that fails the gate is stored (admin can inspect) but stays unpublished, whatever the job status says
+    await db.enqueueIsins([P], true, 0);
+    const j = await db.claimJob("wp");
+    expect(j?.isin).toBe(P);
+    const r = await db.completeJob("wp", facts(P), { model: "m", ms: 1, tokensIn: 1, tokensOut: 1 });
+    expect(r.ok).toBe(true);
+    const [jb] = await s<{ status: string }[]>`select status from app.credit_research_jobs where isin = ${P}`;
+    expect(jb.status).toBe("done");
+    const [row] = await s<{ publish_ir: boolean; publish_br: boolean; publication_status: string; gate: { ir: { allowed: boolean; reasons: string[] } } }[]>`select publish_ir, publish_br, publication_status, gate from app.bond_credit_analysis where isin = ${P}`;
+    expect(row.publish_ir).toBe(false);
+    expect(row.gate.ir.allowed).toBe(false);
+    expect(row.gate.ir.reasons.length).toBeGreaterThan(0);
+    expect((await db.publicRatings([P])).ratings[P]).toBeUndefined();
+    // the public HTTP routes say the same
+    const { GET: irBr } = await import("../app/api/ir-br/route");
+    const { GET: credit } = await import("../app/api/credit-ratings/route");
+    const hidden = await (await irBr(new Request(`http://x/api/ir-br?isins=${P}`))).json();
+    expect(hidden.ratings[P]).toBeUndefined();
+    const hidden2 = await (await credit(new Request(`http://x/api/credit-ratings?isins=${P}`))).json();
+    expect(hidden2.ratings[P]).toBeUndefined();
+    // a person validates it: now it is public
+    expect(await db.validateRating(P, "test")).toBe(true);
+    const shown = await (await irBr(new Request(`http://x/api/ir-br?isins=${P}`))).json();
+    expect(shown.ratings[P].ir).toBeTruthy();
+    expect((await db.publicRatings([P])).ratings[P]?.ir).toBeTruthy();
+    // 16. a later (failing) refresh does not touch the validated numbers; the attempt is recorded
+    const before = await s`select issuer_rating_min, issuer_rating_max from app.bond_credit_analysis where isin = ${P}`;
+    await db.enqueueIsins([P], true, 0);
+    const j2 = await db.claimJob("wp");
+    expect(j2?.isin).toBe(P);
+    await db.completeJob("wp", { ...facts(P), agencyRatings: [], seniority: "unknown" }, { model: "m", ms: 1, tokensIn: 1, tokensOut: 1 });
+    const after = await s<{ issuer_rating_min: string; issuer_rating_max: string; rating_verification_status: string; last_attempt: { blocked: boolean } }[]>`select issuer_rating_min, issuer_rating_max, rating_verification_status, last_attempt from app.bond_credit_analysis where isin = ${P}`;
+    expect([{ issuer_rating_min: after[0].issuer_rating_min, issuer_rating_max: after[0].issuer_rating_max }]).toEqual(before.map((b) => ({ issuer_rating_min: b.issuer_rating_min, issuer_rating_max: b.issuer_rating_max })));
+    expect(after[0].rating_verification_status).toBe("validated");
+    expect(after[0].last_attempt.blocked).toBe(true);
+    await s`delete from app.bond_credit_analysis where isin = ${P}`;
     await s.end();
   }, 60_000);
 });

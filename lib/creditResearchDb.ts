@@ -3,6 +3,7 @@ import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
 import { isIsin } from "./creditResearchSchema";
 import { parameterReport } from "./creditParameters";
+import { evaluate, GATE_VERSION, type GateOutcome } from "./creditGate";
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
 
 // Credit research queue (owner, 1/11/2026). One durable job per ISIN. The web process only writes small queue rows; all research
@@ -46,9 +47,64 @@ async function sql(): Promise<Sql> {
     await s`create table if not exists app.credit_research_runs (id bigserial primary key, isin text not null, worker_id text, at timestamptz not null default now(), ok boolean not null, model text, ms integer, tokens_in integer, tokens_out integer, sources integer, error text)`;
     await s`create table if not exists app.bond_credit_analysis_history (id bigserial primary key, isin text not null, archived_at timestamptz not null default now(), row jsonb not null)`;
     await s`create index if not exists bond_credit_analysis_history_isin on app.bond_credit_analysis_history (isin, archived_at desc)`;
+    await ensurePublicationGate(s);
   })().catch((e) => { ready = null; throw e; });
   await ready;
   return s;
+}
+
+// ---- Publication gate storage (owner, 2/11/2026): a rating is public only if publish_ir / publish_br are true, and the database itself
+// refuses to keep them true unless the stored gate result allows it (or a person validated the rating). ----
+
+async function ensurePublicationGate(s: Sql) {
+  await s`alter table app.bond_credit_analysis
+    add column if not exists publish_ir boolean not null default false,
+    add column if not exists publish_br boolean not null default false,
+    add column if not exists publication_status text not null default 'insufficient_evidence',
+    add column if not exists gate jsonb,
+    add column if not exists last_attempt jsonb,
+    add column if not exists human_validated_at timestamptz,
+    add column if not exists human_validated_by text`;
+  await s`
+    create or replace function app.credit_publish_guard() returns trigger language plpgsql as $$
+    begin
+      if new.human_validated_at is null then
+        if new.publish_ir and coalesce((new.gate #>> '{ir,allowed}')::boolean, false) is not true then new.publish_ir := false; end if;
+        if new.publish_br and (not new.publish_ir or coalesce((new.gate #>> '{br,allowed}')::boolean, false) is not true) then new.publish_br := false; end if;
+      end if;
+      if new.issuer_rating_min is null and new.issuer_rating is null then new.publish_ir := false; end if;
+      if new.bond_rating_min is null and new.bond_rating is null then new.publish_br := false; end if;
+      return new;
+    end $$`;
+  await s`drop trigger if exists credit_publish_guard on app.bond_credit_analysis`;
+  await s`create trigger credit_publish_guard before insert or update on app.bond_credit_analysis for each row execute function app.credit_publish_guard()`;
+  await reevaluateAll(s);
+}
+
+const gateJson = (g: GateOutcome) => ({ ir: g.ir, br: g.br, state: g.state, evaluatedAt: new Date().toISOString() });
+
+/** Re-checks every stored assessment under the current gate (runs at start-up): a rating that does not pass is hidden at once. */
+async function reevaluateAll(s: Sql) {
+  const rows = await s<{ isin: string; facts: ResearchFacts | null; validated: boolean }[]>`
+    select isin, detail #> '{research,facts}' as facts, human_validated_at is not null as validated from app.bond_credit_analysis where human_validated_at is null or gate is null`;
+  for (const r of rows) {
+    if (r.validated) continue;
+    if (!r.facts) {
+      await s`update app.bond_credit_analysis set publish_ir = false, publish_br = false, publication_status = 'insufficient_evidence',
+        gate = ${s.json({ ir: { kind: "IR", allowed: false, reasons: ["No research facts are stored for this rating (it was not produced by the evidence pipeline)."], gateVersion: GATE_VERSION }, br: { kind: "BR", allowed: false, reasons: ["No research facts are stored for this rating."], gateVersion: GATE_VERSION }, state: "insufficient_evidence", evaluatedAt: new Date().toISOString() } as never)} where isin = ${r.isin}`;
+      continue;
+    }
+    const g = evaluate(r.facts);
+    await s`update app.bond_credit_analysis set gate = ${s.json(gateJson(g) as never)}, publication_status = ${g.state}, publish_ir = ${g.publishIr}, publish_br = ${g.publishBr} where isin = ${r.isin}`;
+  }
+}
+
+/** A person validates a rating: the only way the status becomes VALIDATED. */
+export async function validateRating(isin: string, by: string): Promise<boolean> {
+  const s = await sql();
+  const r = await s`update app.bond_credit_analysis set human_validated_at = now(), human_validated_by = ${by}, rating_verification_status = 'validated', publication_status = 'validated',
+    publish_ir = (issuer_rating_min is not null or issuer_rating is not null), publish_br = (bond_rating_min is not null or bond_rating is not null) where isin = ${isin} returning 1`;
+  return r.length > 0;
 }
 
 // ---- 1. Enqueue the bonds of a search ----
@@ -196,18 +252,29 @@ export async function completeJob(workerId: string, facts: ResearchFacts, usage:
   const resultHash = hash(JSON.stringify({ facts, v: SCORING_VERSION }));
   if (job.status === "done" && job.result_hash === resultHash) return { ok: true, duplicate: true, ir: [scored.irMin, scored.irMax], br: [scored.brMin, scored.brMax], status: scored.status };
   if (job.status !== "processing" || job.claimed_by !== workerId) return { ok: false, error: "job is not claimed by this worker", code: 409 };
+  const gate = evaluate(facts, scored);
   const research = { facts, scored, parameters, sameAs, usage, publishedAt: new Date().toISOString() };
   await s.begin(async (tx) => {
-    await tx`insert into app.bond_credit_analysis_history (isin, row) select isin, to_jsonb(t) from app.bond_credit_analysis t where isin = ${facts.isin}`;
-    await tx`
-      insert into app.bond_credit_analysis as a (isin, issuer_rating_min, issuer_rating_max, bond_rating_min, bond_rating_max, rating_assessment_date, rating_verification_status, detail, version)
-      values (${facts.isin}, ${scored.irMin}, ${scored.irMax}, ${scored.brMin}, ${scored.brMax}, current_date, ${scored.status}, ${tx.json({ research } as never)}, ${SCORING_VERSION})
-      on conflict (isin) do update set issuer_rating_min = excluded.issuer_rating_min, issuer_rating_max = excluded.issuer_rating_max, issuer_rating = null,
-        bond_rating_min = excluded.bond_rating_min, bond_rating_max = excluded.bond_rating_max, bond_rating = null,
-        rating_assessment_date = current_date, rating_verification_status = excluded.rating_verification_status,
-        detail = coalesce(a.detail, '{}'::jsonb) || jsonb_build_object('research', excluded.detail -> 'research'), version = excluded.version, updated_at = now()`;
+    const [prev] = await tx<{ publish_ir: boolean; publish_br: boolean; human_validated_at: Date | null }[]>`select publish_ir, publish_br, human_validated_at from app.bond_credit_analysis where isin = ${facts.isin} for update`;
+    // A validated or already-published rating is never replaced by a calculation that does not pass the gate (or by anything, if a person validated it):
+    // the new attempt is only recorded next to it.
+    const keepOld = !!prev && (!!prev.human_validated_at || ((prev.publish_ir || prev.publish_br) && !gate.publishIr));
+    const attempt = { at: new Date().toISOString(), blocked: keepOld, state: gate.state, ir: [scored.irMin, scored.irMax], br: [scored.brMin, scored.brMax], reasons: gate.ir.reasons };
+    if (keepOld) {
+      await tx`update app.bond_credit_analysis set last_attempt = ${tx.json(attempt as never)}, updated_at = now() where isin = ${facts.isin}`;
+    } else {
+      await tx`insert into app.bond_credit_analysis_history (isin, row) select isin, to_jsonb(t) from app.bond_credit_analysis t where isin = ${facts.isin}`;
+      await tx`
+        insert into app.bond_credit_analysis as a (isin, issuer_rating_min, issuer_rating_max, bond_rating_min, bond_rating_max, rating_assessment_date, rating_verification_status, detail, version, gate, publication_status, publish_ir, publish_br, last_attempt)
+        values (${facts.isin}, ${scored.irMin}, ${scored.irMax}, ${scored.brMin}, ${scored.brMax}, current_date, ${scored.status}, ${tx.json({ research } as never)}, ${SCORING_VERSION}, ${tx.json(gateJson(gate) as never)}, ${gate.state}, ${gate.publishIr}, ${gate.publishBr}, ${tx.json(attempt as never)})
+        on conflict (isin) do update set issuer_rating_min = excluded.issuer_rating_min, issuer_rating_max = excluded.issuer_rating_max, issuer_rating = null,
+          bond_rating_min = excluded.bond_rating_min, bond_rating_max = excluded.bond_rating_max, bond_rating = null,
+          rating_assessment_date = current_date, rating_verification_status = excluded.rating_verification_status,
+          detail = coalesce(a.detail, '{}'::jsonb) || jsonb_build_object('research', excluded.detail -> 'research'), version = excluded.version, updated_at = now(),
+          gate = excluded.gate, publication_status = excluded.publication_status, publish_ir = excluded.publish_ir, publish_br = excluded.publish_br, last_attempt = excluded.last_attempt`;
+    }
     if (sameAs.length) await tx`update app.bond_credit_analysis set rating_verification_status = 'review_required' where isin in ${tx(sameAs)} and rating_verification_status = 'provisional'`;
-    await tx`update app.credit_research_jobs set status = 'done', stage = 'published', result_hash = ${resultHash}, last_error = null, claimed_by = null, lease_until = null, completed_at = now(), updated_at = now() where isin = ${facts.isin}`;
+    await tx`update app.credit_research_jobs set status = 'done', stage = 'finished', result_hash = ${resultHash}, last_error = null, claimed_by = null, lease_until = null, completed_at = now(), updated_at = now() where isin = ${facts.isin}`;
     await tx`insert into app.credit_research_runs (isin, worker_id, ok, model, ms, tokens_in, tokens_out, sources) values (${facts.isin}, ${workerId}, true, ${usage.model}, ${usage.ms}, ${usage.tokensIn}, ${usage.tokensOut}, ${facts.evidence.length})`;
   });
   return { ok: true, duplicate: false, ir: [scored.irMin, scored.irMax], br: [scored.brMin, scored.brMax], status: scored.status };
@@ -230,7 +297,7 @@ export async function overview() {
   const workers = await s`select worker_id, model, current_isin, stage, host, last_seen, last_seen > now() - interval '3 minutes' as online from app.credit_research_workers order by last_seen desc limit 10`;
   const jobs = await s`
     select j.isin, j.priority, j.status, j.stage, j.exposure_count, j.attempts, j.last_error, j.updated_at, a.issuer_rating_min, a.issuer_rating_max, a.bond_rating_min, a.bond_rating_max, a.rating_verification_status,
-      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
+      a.detail #>> '{research,scored,coverage}' as coverage, a.detail #> '{research,facts}' as facts, a.publication_status, a.publish_ir, a.publish_br, a.gate, a.detail #> '{research,sameAs}' as same_as, a.detail #> '{research,scored,steps}' as steps, jsonb_array_length(coalesce(a.detail #> '{research,facts,evidence}', '[]'::jsonb)) as sources,
       (select string_agg(x, '; ') from jsonb_array_elements_text(coalesce(a.detail #> '{research,scored,missing}', '[]'::jsonb)) x) as missing
     from app.credit_research_jobs j left join app.bond_credit_analysis a on a.isin = j.isin order by j.updated_at desc limit 40`;
   const [avg] = await s<{ ms: string | null }[]>`select avg(ms)::int as ms from app.credit_research_runs where ok and at > now() - interval '7 days'`;
@@ -252,19 +319,20 @@ export async function pendingIsins(limit = 100): Promise<string[]> {
   return r.map((x) => x.isin);
 }
 
-/** Compact IR / BR texts for a few ISINs plus which of them are still waiting for research (the lists poll this). */
+/** Compact IR / BR texts for a few ISINs plus which of them are still waiting for research (the lists poll this).
+ *  PUBLIC: only ratings whose publication flag is set by the gate (or by a person) are returned; IR and BR are separate flags. */
 export async function publicRatings(isins: string[]) {
   const list = [...new Set(isins.filter(isIsin))].slice(0, 50);
   if (!list.length) return { ratings: {}, pending: [] as string[] };
   const s = await sql();
-  const rows = await s<Record<string, unknown>[]>`select isin, issuer_rating_min, issuer_rating_max, issuer_rating, bond_rating_min, bond_rating_max, bond_rating, rating_assessment_date, rating_verification_status from app.bond_credit_analysis where isin in ${s(list)}`;
+  const rows = await s<Record<string, unknown>[]>`select isin, issuer_rating_min, issuer_rating_max, issuer_rating, bond_rating_min, bond_rating_max, bond_rating, rating_assessment_date, publication_status, publish_ir, publish_br from app.bond_credit_analysis where isin in ${s(list)} and (publish_ir or publish_br)`;
   const pend = await s<{ isin: string }[]>`select isin from app.credit_research_jobs where isin in ${s(list)} and status in ('queued', 'processing')`;
   const { irText, brText } = await import("./creditRow");
   const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
   const ratings: Record<string, { ir: string | null; br: string | null; status: string | null; at: string | null }> = {};
   for (const r of rows) {
     const sc = { issuerRatingMin: num(r.issuer_rating_min), issuerRatingMax: num(r.issuer_rating_max), issuerRating: num(r.issuer_rating), bondRatingMin: num(r.bond_rating_min), bondRatingMax: num(r.bond_rating_max), bondRating: num(r.bond_rating) };
-    ratings[String(r.isin)] = { ir: irText(sc), br: brText(sc), status: (r.rating_verification_status as string) ?? null, at: r.rating_assessment_date ? new Date(String(r.rating_assessment_date)).toISOString().slice(0, 10) : null };
+    ratings[String(r.isin)] = { ir: r.publish_ir ? irText(sc) : null, br: r.publish_br ? brText(sc) : null, status: (r.publication_status as string) ?? null, at: r.rating_assessment_date ? new Date(String(r.rating_assessment_date)).toISOString().slice(0, 10) : null };
   }
   return { ratings, pending: pend.map((p) => p.isin) };
 }

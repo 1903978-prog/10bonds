@@ -1,24 +1,21 @@
 import { NextResponse } from "next/server";
-import { loadGptRatings } from "@/lib/gptRatingsDb";
+import { publicRatings } from "@/lib/creditResearchDb";
 
 export const dynamic = "force-dynamic";
 
 const ISIN = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/;
-let cache: { at: number; map: Awaited<ReturnType<typeof loadGptRatings>> } | null = null;
 
-/** Public: only the stored IR and BR text for the ISINs asked for (never the basis, model or answer). Read from the same table the admin fills; cached for a minute. */
+/** Public: IR and BR text only for ratings whose server-side publication gate passed (or a person validated). Never the basis, model or answer.
+ *  Pasted or unverified values are never returned here (owner, 2/11/2026). */
 export async function GET(req: Request) {
   const isins = (new URL(req.url).searchParams.get("isins") ?? "").split(",").map((s) => s.trim()).filter((s) => ISIN.test(s)).slice(0, 60);
   if (!isins.length) return NextResponse.json({ ratings: {} });
   try {
-    if (!cache || Date.now() - cache.at > 60_000) cache = { at: Date.now(), map: await loadGptRatings() };
+    const { ratings } = await publicRatings(isins);
+    const out: Record<string, { ir: string | null; br: string | null }> = {};
+    for (const [i, r] of Object.entries(ratings)) if (r.ir || r.br) out[i] = { ir: r.ir, br: r.br };
+    return NextResponse.json({ ratings: out }, { headers: { "Cache-Control": "public, max-age=30" } });
   } catch {
     return NextResponse.json({ ratings: {} });
   }
-  const ratings: Record<string, { ir: string | null; br: string | null }> = {};
-  for (const i of isins) {
-    const g = cache.map[i];
-    if (g && (g.issuerRating || g.rating)) ratings[i] = { ir: g.issuerRating?.trim() || null, br: g.rating?.trim() || null };
-  }
-  return NextResponse.json({ ratings }, { headers: { "Cache-Control": "public, max-age=30" } });
 }

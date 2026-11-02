@@ -8,7 +8,7 @@ import { notchOf, spGradeOf } from "./ratings";
 export const SCORING_VERSION = "ir-br-v0.1-2026-11-01";
 
 export type Seniority = "senior_preferred" | "senior_unsecured" | "secured" | "senior_non_preferred" | "tier2" | "at1" | "unknown";
-export type IssuerType = "corporate" | "bank" | "sovereign" | "other";
+export type IssuerType = "corporate" | "bank" | "insurer" | "financial_holding" | "sovereign" | "supranational" | "structured" | "other";
 export type RiskColor = "RED" | "AMBER" | "GREEN" | "GREY";
 export const RISK_KEYS = ["news_mgmt_legal", "politics_regulation", "market_competition_tech", "rates_refinancing_liquidity", "macro_fx_energy", "health_climate_cyber"] as const;
 export type RiskKey = (typeof RISK_KEYS)[number];
@@ -17,6 +17,21 @@ export type Evidence = { url: string; title: string; publisher: string; publishe
 export type AgencyInput = { agency: string; rating: string; scope: "issuer" | "instrument"; date: string | null };
 export type Metrics = Partial<Record<"netDebtToEbitda" | "interestCover" | "cet1Pct" | "nplPct" | "debtToGdpPct", number | null>>;
 export type RiskInput = { key: RiskKey; color: RiskColor; explanation: string; evidence: string[]; verifiedOn: string | null };
+
+/** Who the issuer is and how sure we are (publication gate, 2/11/2026). Absent = not verified. */
+export type IssuerIdentity = { canonicalId: string | null; legalName: string | null; lei: string | null; identityVerified: boolean; typeVerified: boolean };
+/** What is known about the bond itself. Absent or null = not verified, which blocks BR publication. */
+export type BondFacts = {
+  legalIssuerMatchesIsin: boolean;
+  seniorityVerified: boolean;
+  guaranteeStatus: "guaranteed" | "none_confirmed" | "unknown";
+  bondType: string | null;
+  resolutionTreatment: string | null;
+  callable: boolean | null;
+  embeddedRisksAssessed: boolean;
+  /** Evidence URLs behind these bond facts. */
+  evidence: string[];
+};
 
 export type ResearchFacts = {
   isin: string;
@@ -30,6 +45,10 @@ export type ResearchFacts = {
   evidence: Evidence[];
   /** Gaps the research itself reports (e.g. extraction failed); any note makes the assessment "review required". */
   notes?: string[];
+  issuer?: IssuerIdentity;
+  /** Period end (YYYY-MM-DD) of each reported metric; a metric without one counts as stale. */
+  metricPeriods?: Partial<Record<keyof Metrics, string>>;
+  bond?: BondFacts;
 };
 
 export type Scored = {
@@ -41,6 +60,10 @@ export type Scored = {
   missing: string[];
   riskAdjustments: { key: RiskKey; color: RiskColor; delta: number }[];
   version: string;
+  /** True only when IR is built from the issuer's own financial and risk factors; false while the agency grade is the starting point. */
+  independent: boolean;
+  /** True when BR came from a bond-level agency grade with a generic seniority adjustment. */
+  usesInstrumentGrade: boolean;
 };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
@@ -77,6 +100,7 @@ export function scoreResearch(f: ResearchFacts): Scored {
   const notch = notches.length ? Math.min(...notches) === Math.max(...notches) ? notches[0] : Math.round(notches.reduce((s, n) => s + n, 0) / notches.length) : null;
   let centre: number;
   let half: number;
+  let usesInstrumentGrade = false;
   if (notch !== null) {
     centre = anchorScore(notch);
     half = 3;
@@ -88,6 +112,7 @@ export function scoreResearch(f: ResearchFacts): Scored {
       const n = Math.round(inst.reduce((s, x) => s + x, 0) / inst.length);
       centre = anchorScore(n) - STRUCTURE[f.seniority];
       half = 5;
+      usesInstrumentGrade = true;
       missing.push("issuer agency rating (derived from the bond's grade)");
       steps.push({ label: `Bond-level grade ${spGradeOf(n)} less structure ${f.seniority}`, delta: centre });
     } else {
@@ -134,5 +159,5 @@ export function scoreResearch(f: ResearchFacts): Scored {
   const slots = [notch !== null, ms.used > 0, f.seniority !== "unknown", primary >= 2, grey <= 2];
   const coverage = Math.round(((slots.filter(Boolean).length + (6 - grey) / 6) / (slots.length + 1)) * 100) / 100;
   const status: Scored["status"] = coverage < 0.5 || f.seniority === "unknown" || f.conflicts.length || (f.notes ?? []).length ? "review_required" : "provisional";
-  return { irMin, irMax, brMin, brMax, status, coverage, anchorGrade: notch !== null ? spGradeOf(notch) : null, steps, missing, riskAdjustments, version: SCORING_VERSION };
+  return { irMin, irMax, brMin, brMax, status, coverage, anchorGrade: notch !== null ? spGradeOf(notch) : null, steps, missing, riskAdjustments, version: SCORING_VERSION, independent: false, usesInstrumentGrade };
 }
