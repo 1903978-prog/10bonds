@@ -27,3 +27,7 @@ Start at boot:
 
 When the computer sleeps the worker stops claiming; the website shows it offline after 3 minutes and an unfinished job is handed out again after its 15-minute lease runs out.
 Pause/resume, retry and "Analyse now" are on Admin > Credit Research.
+
+## Autostart at Windows sign-in
+
+Double-click `install-autostart.bat` once (it puts a minimized shortcut to `start-worker.bat` in the Startup folder and starts the worker). Double-click `uninstall-autostart.bat` to undo it.
