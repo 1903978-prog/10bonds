@@ -34,11 +34,11 @@ describe("five-bond benchmark: the engine equals the owner's original code on id
     expect(origSovereignRating("Chile")).toBe(74);
     expect(r.issuer.irMin).toBe(74); expect(r.bond.brMin).toBe(74);
   });
-  it("LBBW, Groupama, SMFG: no approved numerical method, so no number (never invented)", () => {
+  it("LBBW, Groupama, SMFG: approved method (3/11/2026), but with no inputs the range is the full 0..100 (never invented)", () => {
     for (const n of ["LBBW", "Groupama", "SMFG"]) {
       const r = calculate(get(n).facts);
-      expect(r.issuer.approved).toBe(false); expect(r.issuer.irMin).toBeNull(); expect(r.bond.brMin).toBeNull();
-      expect(r.issuer.reason).toMatch(/Unverified - insufficient data/);
+      expect(r.issuer.approved).toBe(true); expect(r.issuer.irMin).toBe(0); expect(r.issuer.irMax).toBe(100);
+      expect(r.issuer.unknown.length).toBeGreaterThan(10);
     }
   });
   it("missing mandatory inputs keep bounds wide: a corporate with no figures gets 0..100, not a guess", () => {

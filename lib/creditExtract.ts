@@ -16,6 +16,8 @@ export const BANK_RULES: Rule[] = [
   { parameter: "roePct", unit: "%", re: new RegExp(`(?:return on equity|\\bRoE\\b)[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
   { parameter: "costIncomePct", unit: "%", re: new RegExp(`cost[/ -]?(?:to[- ])?income ratio[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
   { parameter: "totalCapitalPct", unit: "%", re: new RegExp(`total capital ratio[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "solvencyIIPct", unit: "%", re: new RegExp(`Solvency II(?: coverage| capital)?(?: ratio)?[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
+  { parameter: "combinedRatioPct", unit: "%", re: new RegExp(`combined ratio[^.;\\n]{0,60}?${N}\\s?(?:%|per ?cent)`, "i") },
   { parameter: "pretaxProfitEurM", unit: "EUR m", re: new RegExp(`(?:pre-?tax (?:profit|result)|profit before tax)[^.;\\n]{0,60}?(?:EUR|€)\\s?${N}\\s?(?:m\\b|million)`, "i") },
 ];
 

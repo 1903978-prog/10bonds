@@ -69,8 +69,11 @@ describe("LBBW DE000LB2CW16 regression", () => {
     expect(g.ir.reasons.join(" ")).toMatch(/primary source/);
     expect(g.br.reasons.join(" ")).toMatch(/seniority not verified/i);
     expect(g.br.reasons.join(" ")).toMatch(/Guarantee status/);
-    // the bond-level agency grades alone never feed the issuer anchor
-    expect(scoreResearch(f).steps[0].label).toMatch(/Bond-level grade/);
+    // the bond-level agency grades are never an input: the approved bank method starts from the issuer's own factors, all unknown here (range 0..100 on their weight)
+    const sc = scoreResearch(f);
+    expect(sc.independent).toBe(true);
+    expect(sc.steps.some((x) => /Bond-level grade|Agency anchor/.test(x.label))).toBe(false);
+    expect(sc.irMax - sc.irMin).toBeGreaterThan(15);
   });
   it("the reference case is labelled internal, not validated, and states what is unverified", () => {
     expect(LBBW_CASE.status).toBe("internal_provisional");

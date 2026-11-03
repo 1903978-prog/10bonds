@@ -46,10 +46,11 @@ describe("publication gate", () => {
     expect(r.allowed).toBe(false);
     expect(r.missingCritical).toContain("cet1Pct");
   });
-  it("4a. a bank with every input is STILL blocked: the owner has approved no numerical bank method", () => {
+  it("4a. a bank with only uncited metrics is blocked: the approved bank method needs every mandatory figure cited", () => {
     const r = ir(good());
     expect(r.allowed).toBe(false);
-    expect(r.reasons.join(" ")).toMatch(/Unverified - insufficient data/);
+    expect(r.reasons.join(" ")).toMatch(/Missing mandatory financial inputs/);
+    expect(r.missingCritical).toEqual(expect.arrayContaining(["cet1Pct", "lcrPct", "nsfrPct"]));
   });
   it("4. everything present and passing: eligible", () => {
     const r = ir(goodSov());
@@ -83,8 +84,9 @@ describe("publication gate", () => {
     expect(canPublishBR(f, canPublishIR(f, s, NOW), none, NOW).allowed).toBe(false);
   });
   it("11. stale or undated financials are blocked", () => {
-    expect(ir(good({ metricPeriods: { cet1Pct: "2024-06-30", nplPct: "2026-06-30" } })).reasons.join(" ")).toMatch(/too old/);
-    expect(ir(good({ metricPeriods: {} })).reasons.join(" ")).toMatch(/no reporting period/);
+    const figs = (cet1Date: string | null) => ["cet1Pct", "totalCapitalPct", "npePct", "roePct", "costIncomePct", "pretaxProfitEurM", "lcrPct", "nsfrPct"].map((parameter) => ({ parameter, value: 10, unit: "%", quote: `${parameter} 10`, url: "https://www.lbbw.de/h1.pdf", period: null as string | null, reportingDate: parameter === "cet1Pct" ? cet1Date : "2026-06-30" }));
+    expect(ir(good({ figures: figs("2024-06-30") })).reasons.join(" ")).toMatch(/too old/);
+    expect(ir(good({ figures: figs(null) })).reasons.join(" ")).toMatch(/no reporting period/);
   });
   it("12. conflicting source values: review required, not publishable", () => {
     const f = good({ conflicts: ["CET1 16.1% vs 15.2%"] });
@@ -99,9 +101,9 @@ describe("publication gate", () => {
     expect(r.missingCritical.some((m) => m.startsWith("risk:"))).toBe(true);
   });
   it("14. unsupported issuer types and the v0.1 scorer cannot publish (no default metrics, no invented method)", () => {
-    expect(ir(good({ issuerType: "insurer" })).reasons.join(" ")).toMatch(/No approved scoring method/);
-    const f = good();
-    const r = canPublishIR(f, scoreResearch(f), NOW); // the real scorer: agency grade is still its starting point
+    expect(ir(good({ issuerType: "structured" })).reasons.join(" ")).toMatch(/No approved scoring method/);
+    const f = good({ issuerType: "structured" });
+    const r = canPublishIR(f, scoreResearch(f), NOW); // the real scorer for a type with no approved method: agency grade is still its starting point
     expect(r.allowed).toBe(false);
     expect(r.reasons.join(" ")).toMatch(/agency grade is still its starting point/);
   });

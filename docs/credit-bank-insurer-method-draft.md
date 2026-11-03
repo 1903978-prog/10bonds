@@ -1,7 +1,6 @@
 # DRAFT — Bank and insurer IR/BR method (3/11/2026)
 
-Status: **proposal only. Not approved by the owner. Not in the code. Nothing is published from it.**
-The gate (`lib/creditGate.ts`) keeps refusing to publish a bank or insurer IR until the owner approves a method and it is added to `lib/livioIssuerModel.ts`.
+Status: **APPROVED by the owner on 3/11/2026 ("approve draft") and implemented in `lib/financialIssuerModel.ts` and the one engine `lib/bondsEngine.ts`.** The publication gate still applies in full: nothing is published unless every mandatory input is cited, current and unguessed. The figure-to-score tables the draft left open are in `SCORE_TABLES` in that file (same weak/middle/strong shape); the cost-of-risk, deposit share, pre-tax-profit trend and distance-to-requirement sub-figures are not scored yet (they would need extraction first).
 Today only the owner's corporate model exists (14 factors, weights, unknown factor keeps bounds 0..100).
 
 ## Design rules (same as the corporate model)

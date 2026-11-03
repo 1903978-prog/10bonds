@@ -1,5 +1,6 @@
 import { notchOf, spGradeOf } from "./ratings";
 import { type CapitalStructureTier, type FactorMap, type StructuralFlags } from "./livioIssuerModel";
+import type { FinFactorMap } from "./financialIssuerModel";
 import { ENGINE_VERSION, RISK_KEYS as ENGINE_RISK_KEYS, calculate } from "./bondsEngine";
 
 // Deterministic IR / BR calculation for the credit research engine (owner, 1/11/2026). The local model (Ollama) only EXTRACTS facts
@@ -57,7 +58,7 @@ export type ResearchFacts = {
   /** Every extracted figure with its citation (evidence record). Figures whose quote does not contain the number are rejected on arrival. */
   figures?: { parameter: string; value: number; unit: string; quote: string; url: string; period: string | null; reportingDate: string | null }[];
   /** The owner's 14 issuer factors (corporates). Only "accounts" and "typed" values count; see lib/livioIssuerModel.ts. */
-  factors?: FactorMap;
+  factors?: FactorMap & FinFactorMap;
   /** Capital structure tier and structural flags of the bond, for the owner's BR adjustments. */
   structural?: { tier: CapitalStructureTier; flags: StructuralFlags };
 };
@@ -104,7 +105,7 @@ function metricSteps(f: ResearchFacts): { steps: { label: string; delta: number 
 
 /** IR and BR from extracted facts. Missing information widens the range and is listed; nothing is filled in with a guess. */
 export function scoreResearch(f: ResearchFacts): Scored {
-  if (f.issuerType === "corporate" || f.issuerType === "sovereign") { const a = scoreApproved(f); if (a) return a; }
+  if (["corporate", "sovereign", "bank", "financial_holding", "insurer"].includes(f.issuerType)) { const a = scoreApproved(f); if (a) return a; }
   const steps: { label: string; delta: number }[] = [];
   const missing: string[] = [];
   // Anchor: the best issuer-scope agency grade, expressed on the S&P scale. Instrument-scope grades are not used for the issuer.

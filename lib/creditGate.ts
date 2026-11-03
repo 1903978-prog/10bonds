@@ -1,6 +1,7 @@
 import { parameterReport } from "./creditParameters";
 import { issuerTypeOf } from "./creditFeedFacts";
-import { evaluatePublicationEligibility } from "./bondsEngine";
+import { evaluatePublicationEligibility, finKindOf } from "./bondsEngine";
+import { MANDATORY_FIGURES } from "./financialIssuerModel";
 import { RISK_KEYS, scoreResearch, SCORING_VERSION, type Evidence, type IssuerType, type Metrics, type ResearchFacts, type Scored } from "./creditScoring";
 
 // PUBLICATION GATE (owner, 2/11/2026). A job being "done" is not a publication. IR and BR reach the public only when the gate below
@@ -14,7 +15,10 @@ export const MIN_RELIABLE_SOURCES = 3;
 
 /** Issuer types that have an approved scoring method. Everything else is blocked "pending model approval". */
 export const APPROVED_METHODS: Partial<Record<IssuerType, { minParams: number; mandatory: (keyof Metrics)[]; maxMetricAgeMonths: number }>> = {
-  bank: { minParams: 10, mandatory: ["cet1Pct", "nplPct"], maxMetricAgeMonths: 18 }, // parameters are collected; the ENGINE still refuses to publish a bank IR (no approved numerical method)
+  // Banks, bank holdings and insurers: approved 3/11/2026 (lib/financialIssuerModel.ts). Their mandatory inputs are CITED FIGURES (MANDATORY_FIGURES), not the metrics list.
+  bank: { minParams: 10, mandatory: ["cet1Pct", "nplPct"], maxMetricAgeMonths: 18 },
+  financial_holding: { minParams: 10, mandatory: ["cet1Pct", "nplPct"], maxMetricAgeMonths: 18 },
+  insurer: { minParams: 10, mandatory: [], maxMetricAgeMonths: 18 },
   corporate: { minParams: 10, mandatory: ["netDebtToEbitda", "interestCover"], maxMetricAgeMonths: 18 },
   sovereign: { minParams: 9, mandatory: ["debtToGdpPct"], maxMetricAgeMonths: 24 },
 };
@@ -53,7 +57,7 @@ export function sourceQuality(f: ResearchFacts, now: Date = new Date()): SourceQ
   const all = new Set(ev.map((e) => sourceKey(e.url)));
   const m = APPROVED_METHODS[f.issuerType];
   const staleMetrics: string[] = [];
-  if (m && !(f.issuerType === "corporate" && f.factors)) {
+  if (m && !(f.issuerType === "corporate" && f.factors) && !finKindOf(f.issuerType)) {
     for (const k of m.mandatory) {
       const p = f.metricPeriods?.[k];
       const t = p ? Date.parse(p) : NaN;
@@ -103,6 +107,16 @@ export function canPublishIR(f: ResearchFacts, scored: Scored = scoreResearch(f)
         else if ((now.getTime() - t) / (30.44 * 86_400_000) > method.maxMetricAgeMonths) q.staleMetrics.push(`${k} (period ${v.period}, older than ${method.maxMetricAgeMonths} months)`);
       }
       // judgment factors must be typed by a person or sourced; estimated sector defaults are unknown and widen the range (checked by the width rule)
+    } else if (finKindOf(f.issuerType)) {
+      // bank / insurer: every mandatory figure must be cited (with a quote and source, enforced on arrival) and dated within the allowed age
+      const kind = finKindOf(f.issuerType)!;
+      for (const group of MANDATORY_FIGURES[kind]) {
+        const fig = (f.figures ?? []).find((x) => group.includes(x.parameter));
+        if (!fig) { missingCritical.push(group.join("/")); continue; }
+        const when = fig.reportingDate ?? fig.period; const t = when ? Date.parse(when) : NaN;
+        if (!Number.isFinite(t)) q.staleMetrics.push(`${fig.parameter} (no reporting period recorded)`);
+        else if ((now.getTime() - t) / (30.44 * 86_400_000) > method.maxMetricAgeMonths) q.staleMetrics.push(`${fig.parameter} (period ${when}, older than ${method.maxMetricAgeMonths} months)`);
+      }
     } else for (const k of method.mandatory) if (typeof f.metrics[k] !== "number") { missingCritical.push(k); }
     if (missingCritical.length) reasons.push(`Missing mandatory financial inputs: ${missingCritical.join(", ")}.`);
     if (q.staleMetrics.length) reasons.push(`Financial information too old or undated: ${q.staleMetrics.join("; ")}.`);

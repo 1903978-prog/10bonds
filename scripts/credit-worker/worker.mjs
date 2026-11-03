@@ -140,6 +140,8 @@ const L_CIR = "cost[/ -]?(?:to[- ])?income ratio";
 const L_TCR = "total capital ratio";
 const L_LCR = "(?:liquidity coverage ratio|\\bLCR\\b)";
 const L_NSFR = "(?:net stable funding ratio|\\bNSFR\\b)";
+const L_SII = "Solvency II(?: coverage| capital)?(?: ratio)?";
+const L_COR = "combined ratio";
 export const BANK_RULES = [
   { parameter: "cet1Pct", unit: "%", pats: Object.values(lbl(L_CET1)) },
   { parameter: "npePct", unit: "%", pats: Object.values(lbl(L_NPE)) },
@@ -150,6 +152,9 @@ export const BANK_RULES = [
   // Liquidity: both ratios are regulatory minimums of 100%; a printed figure outside a sane band is a page artefact, not a ratio.
   { parameter: "lcrPct", unit: "%", range: [60, 600], pats: Object.values(lbl(L_LCR)) },
   { parameter: "nsfrPct", unit: "%", range: [60, 400], pats: Object.values(lbl(L_NSFR)) },
+  // Insurers (owner-approved insurer method, 3/11/2026).
+  { parameter: "solvencyIIPct", unit: "%", range: [80, 600], pats: Object.values(lbl(L_SII)) },
+  { parameter: "combinedRatioPct", unit: "%", range: [70, 150], pats: Object.values(lbl(L_COR)) },
   { parameter: "pretaxProfitEurM", unit: "EUR m", skipSentence: SEGMENT_CUE, pats: [
     new RegExp(`(?:EUR|€)\\s?${AMT}\\s?(?:m\\b|million)\\s+(?:\\w+\\s+)?before tax`, "gi"),                         // "EUR 708 million before tax"
     new RegExp(`consolidated (?:profit|result)(?:/loss)? before tax[^\\d]{0,30}?${AMT}\\s+${AMT}(?![\\d.,])`, "gi"), // group table row, current period first
@@ -242,6 +247,8 @@ export const TARGETS = [
   { parameter: "totalCapitalPct", words: /capital|pillar|results/i },
   { parameter: "lcrPct", words: /liquidity|funding|pillar|capital|results|report/i },
   { parameter: "nsfrPct", words: /liquidity|funding|pillar|capital|results|report/i },
+  { parameter: "solvencyIIPct", words: /solvency|sfcr|capital|results|financial|report/i },
+  { parameter: "combinedRatioPct", words: /results|financial|underwriting|report/i },
   { parameter: "roePct", words: /results|financial|profit|report/i },
   { parameter: "costIncomePct", words: /results|financial|report/i },
   { parameter: "pretaxProfitEurM", words: /results|financial|profit|report/i },
@@ -467,7 +474,7 @@ function ollamaChat(body, timeoutMs) {
 const COLORS = ["RED", "AMBER", "GREEN", "GREY"];
 const RISKS = ["news_mgmt_legal", "politics_regulation", "market_competition_tech", "rates_refinancing_liquidity", "macro_fx_energy", "health_climate_cyber"];
 const SCHEMA = { type: "object", required: ["issuerType", "seniority", "agencyRatings", "metrics", "risks"], properties: {
-  issuerType: { enum: ["corporate", "bank", "sovereign", "other"] },
+  issuerType: { enum: ["corporate", "bank", "financial_holding", "insurer", "sovereign", "other"] },
   seniority: { enum: ["senior_preferred", "senior_unsecured", "secured", "senior_non_preferred", "tier2", "at1", "unknown"] },
   guaranteed: { type: ["boolean", "null"] },
   agencyRatings: { type: "array", items: { type: "object", required: ["agency", "rating", "scope"], properties: { agency: { type: "string" }, rating: { type: "string" }, scope: { enum: ["issuer", "instrument"] }, date: { type: ["string", "null"] } } } },

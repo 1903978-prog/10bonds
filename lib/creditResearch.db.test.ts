@@ -79,7 +79,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     const ov = await db.overview();
     const orow = ov.recent.find((r) => r.isin === j1!.isin) as unknown as { sources: number | null; coverage: string | null } | undefined;
     expect(orow?.sources).toBe(2);
-    expect(Number(orow?.coverage)).toBeGreaterThan(0);
+    expect(Number(orow?.coverage)).toBe(0); // approved bank method: coverage = factors known from CITED figures; this fixture has metrics only, so nothing counts
   }, 60_000);
 
   it("flags two different bonds that end up with identical IR/BR ranges", async () => {
