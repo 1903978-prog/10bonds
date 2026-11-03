@@ -4,6 +4,7 @@ import {
   CAPITAL_STRUCTURE_RANGES, ISSUER_LR_WEIGHTS, MACRO_FACTOR_WEIGHTS, SFA_POINTS, bondLrBounds, factorFromAccounts, issuerLrBounds,
   type CapitalStructureTier, type FactorMap, type StructuralFlags,
 } from "./livioIssuerModel";
+import { financialBounds, financialTerms, tierOf, type FinFactorMap, type FinKind } from "./financialIssuerModel";
 
 // THE ONE IR / BR METHODOLOGY (owner, 2/11/2026). Every number that becomes an Issuer Rating (IR) or Bond Rating (BR) is calculated here and nowhere else:
 // the Lenovo worker, the backend, the admin page and the tests all call these functions. The local model (Ollama) only finds and extracts facts.
@@ -14,7 +15,9 @@ import {
 // approved models, ported from the LM op model (server/lib/livioBondRating.ts, server/lib/livioRating.ts) and copied as they are:
 //   corporate  IR = weighted sum of 8 core + 6 macro factors (lib/livioIssuerModel.ts); BR = IR + capital-structure adjustment + structural-feature points
 //   sovereign  IR = round(0.70 x solvency + 0.30 x repayment protection) from the owner's 28-country table (below)
-//   banks, insurers, other issuers: NO approved numerical method exists  ->  IR and BR are "Unverified - insufficient data", never a substitute number.
+//   bank / bank holding   IR = 7-factor weighted sum (lib/financialIssuerModel.ts), owner-approved 3/11/2026 (docs/credit-bank-insurer-method-draft.md)
+//   insurer               IR = 7-factor weighted sum, same file and approval; BR = IR + the same capital-structure adjustments
+//   other issuers: NO approved numerical method exists  ->  IR and BR are "Unverified - insufficient data", never a substitute number.
 // Risk categories: the skill asks for a numerical adjustment "when possible"; the owner has approved no numbers, so every category adjusts by 0
 // and the colour is recorded (and gates publication). Nothing in this file is a weight or adjustment invented by the 10bonds code.
 
@@ -42,7 +45,8 @@ export const SKILL_HASH = hashSkill(BONDS_SKILL);
 export type FactsLike = {
   isin: string; issuerType: string;
   issuer?: { canonicalId: string | null; legalName: string | null; lei: string | null } | null;
-  factors?: FactorMap;
+  factors?: FactorMap & FinFactorMap;
+  seniority?: string;
   structural?: { tier: CapitalStructureTier; flags: StructuralFlags };
   figures?: { parameter: string; value: number; unit: string; quote: string; url: string; period: string | null; reportingDate: string | null }[];
   risks: { key: string; color: string; explanation?: string; evidence: string[] }[];
@@ -50,7 +54,7 @@ export type FactsLike = {
 
 export type Term = { key: string; weight: number; min: number; max: number; origin: string };
 export type IssuerCalc = {
-  method: "livio-corporate-14-factor" | "livio-sovereign-table" | "none";
+  method: "livio-corporate-14-factor" | "livio-sovereign-table" | "livio-bank-7-factor" | "livio-insurer-7-factor" | "none";
   approved: boolean;
   irMin: number | null; irMax: number | null;
   terms: Term[]; unknown: string[];
@@ -86,6 +90,8 @@ export function factorsFromFigures(figures: FactsLike["figures"]): FactorMap {
   return out;
 }
 
+export const finKindOf = (t: string): FinKind | null => (t === "bank" || t === "financial_holding" ? "bank" : t === "insurer" ? "insurer" : null);
+
 /** calculateIssuerRating(verifiedFacts): the only place an IR is calculated. */
 export function calculateIssuerRating(f: FactsLike): IssuerCalc {
   if (f.issuerType === "corporate") {
@@ -102,6 +108,12 @@ export function calculateIssuerRating(f: FactsLike): IssuerCalc {
     }
     return { method: "none", approved: false, irMin: null, irMax: null, terms: [], unknown: [], reason: "IR: Unverified - the sovereign is not in the approved 28-country table." };
   }
+  const kind = finKindOf(f.issuerType);
+  if (kind) {
+    const terms = financialTerms(kind, (f.figures ?? []).map((x) => ({ parameter: x.parameter, value: x.value, period: x.period, url: x.url })), f.factors ?? {});
+    const b = financialBounds(terms);
+    return { method: kind === "bank" ? "livio-bank-7-factor" : "livio-insurer-7-factor", approved: true, irMin: b.min, irMax: b.max, terms, unknown: b.unknown, reason: null };
+  }
   return { method: "none", approved: false, irMin: null, irMax: null, terms: [], unknown: [], reason: `IR: Unverified - insufficient data: no approved numerical IR method exists for issuer type "${f.issuerType}" (the $bonds skill says not to invent substitutes).` };
 }
 
@@ -110,7 +122,9 @@ export type BondCalc = { approved: boolean; brMin: number | null; brMax: number 
 export function calculateBondRating(ir: IssuerCalc, f: FactsLike): BondCalc {
   if (!ir.approved || ir.irMin === null || ir.irMax === null) return { approved: false, brMin: null, brMax: null, tier: null, csa: null, sfa: 0, flags: [], reason: "BR: Unverified - the issuer rating is not calculable." };
   // A sovereign's own senior bond is the "senior unsecured, operating entity" tier (adjustment 0); anything else needs a stated tier.
-  const structural = f.structural ?? (f.issuerType === "sovereign" ? { tier: "senior-unsecured-opco" as CapitalStructureTier, flags: {} } : undefined);
+  const kind = finKindOf(f.issuerType);
+  const finTier = kind ? tierOf(kind, f.issuerType === "financial_holding", f.seniority) : null;
+  const structural = f.structural ?? (f.issuerType === "sovereign" ? { tier: "senior-unsecured-opco" as CapitalStructureTier, flags: {} } : finTier ? { tier: finTier, flags: {} } : undefined);
   if (!structural) return { approved: false, brMin: null, brMax: null, tier: null, csa: null, sfa: 0, flags: [], reason: "BR: Unverified - the bond's capital-structure tier is not established." };
   const b = bondLrBounds({ min: ir.irMin, max: ir.irMax }, structural.tier, structural.flags);
   return { approved: true, brMin: b.min, brMax: b.max, tier: structural.tier, csa: b.csa, sfa: b.sfa, flags: Object.keys(structural.flags).filter((k) => (structural.flags as Record<string, boolean>)[k]), reason: null };

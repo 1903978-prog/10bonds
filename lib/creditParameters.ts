@@ -23,8 +23,10 @@ export const PARAMETERS: ParamDef[] = [
   { key: "guarantee", label: "Guarantee known", group: "Bond", help: "Whether a guarantee exists (yes or no both count as found)." },
   { key: "net_debt_ebitda", label: "Net debt / EBITDA", group: "Financials", help: "Debt load of a company.", appliesTo: ["corporate", "other"] },
   { key: "interest_cover", label: "Interest cover", group: "Financials", help: "How easily a company pays its interest.", appliesTo: ["corporate", "other"] },
-  { key: "cet1", label: "CET1 ratio", group: "Financials", help: "Capital strength of a bank.", appliesTo: ["bank"] },
-  { key: "npl", label: "Bad-loan (NPL) ratio", group: "Financials", help: "Share of bad loans of a bank.", appliesTo: ["bank"] },
+  { key: "cet1", label: "CET1 ratio", group: "Financials", help: "Capital strength of a bank.", appliesTo: ["bank", "financial_holding"] },
+  { key: "npl", label: "Bad-loan ratio (NPE or NPL)", group: "Financials", help: "Share of bad loans or exposures of a bank, as the bank labels it.", appliesTo: ["bank", "financial_holding"] },
+  { key: "solvency2", label: "Solvency II ratio", group: "Financials", help: "Capital strength of an insurer.", appliesTo: ["insurer"] },
+  { key: "combined_ratio", label: "Combined ratio", group: "Financials", help: "Underwriting profitability of an insurer.", appliesTo: ["insurer"] },
   { key: "debt_gdp", label: "Public debt / GDP", group: "Financials", help: "Debt burden of a country.", appliesTo: ["sovereign"] },
   ...RISK_KEYS.map((k) => ({ key: `risk_${k}`, label: RISK_LABELS[k], group: "Risk categories" as const, help: "Rated red / amber / green from named sources. Grey means not researched." })),
   { key: "primary_sources", label: "Two or more primary sources", group: "Sources", help: "Documents from the issuer or an official body (not only the site's own data copy)." },
@@ -59,7 +61,9 @@ export function parameterReport(f: ResearchFacts): ParamReport {
       case "net_debt_ebitda": found = num(f.metrics.netDebtToEbitda); detail = found ? `${f.metrics.netDebtToEbitda}x` : null; break;
       case "interest_cover": found = num(f.metrics.interestCover); detail = found ? `${f.metrics.interestCover}x` : null; break;
       case "cet1": found = num(f.metrics.cet1Pct); detail = found ? `${f.metrics.cet1Pct}%` : null; break;
-      case "npl": found = num(f.metrics.nplPct); detail = found ? `${f.metrics.nplPct}%` : null; break;
+      case "npl": { const fg = f.figures?.find((x) => x.parameter === "npePct" || x.parameter === "nplPct"); found = num(f.metrics.nplPct) || !!fg; detail = found ? (num(f.metrics.nplPct) ? `${f.metrics.nplPct}%` : `${fg!.value}% (${fg!.parameter === "npePct" ? "NPE" : "NPL"})`) : null; break; }
+      case "solvency2": { const fg = f.figures?.find((x) => x.parameter === "solvencyIIPct"); found = !!fg; detail = fg ? `${fg.value}%` : null; break; }
+      case "combined_ratio": { const fg = f.figures?.find((x) => x.parameter === "combinedRatioPct"); found = !!fg; detail = fg ? `${fg.value}%` : null; break; }
       case "debt_gdp": found = num(f.metrics.debtToGdpPct); detail = found ? `${f.metrics.debtToGdpPct}%` : null; source = found ? "World Bank / documents" : null; break;
       case "primary_sources": {
         const n = new Set(f.evidence.filter((e) => e.primary).map((e) => e.url)).size;

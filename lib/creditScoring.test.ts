@@ -4,7 +4,7 @@ import { parseResult } from "./creditResearchSchema";
 
 const ev = (url: string, primary = true) => ({ url, title: "t", publisher: "p", publishedAt: "2026-06-30", period: "H1 2026", retrievedAt: "2026-11-01T00:00:00Z", location: "p.4", method: "ollama-json", verification: "verified" as const, primary });
 const base = (o: Partial<ResearchFacts> = {}): ResearchFacts => ({
-  isin: "DE000AAR0504", issuerType: "bank", seniority: "senior_preferred", guaranteed: null,
+  isin: "DE000AAR0504", issuerType: "structured", seniority: "senior_preferred", guaranteed: null, // legacy v0.1 scorer: only issuer types with no approved method still use it
   agencyRatings: [{ agency: "Fitch", rating: "A-", scope: "issuer", date: "2026-05-01" }],
   metrics: { cet1Pct: 16, nplPct: 1.5 },
   risks: RISK_KEYS.map((key) => ({ key, color: "GREEN" as const, explanation: "checked", evidence: ["https://a.example/x"], verifiedOn: "2026-11-01" })),
