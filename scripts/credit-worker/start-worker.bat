@@ -36,14 +36,9 @@ if errorlevel 1 (
   start "" /min ollama serve
   timeout /t 10 /nobreak >nul
 )
-rem --- model: keep saved one, else qwen3:8b if installed, else the first installed ---
-if not defined OLLAMA_MODEL (
-  ollama list | findstr /b /i "qwen3:8b" >nul && set "OLLAMA_MODEL=qwen3:8b"
-)
-if not defined OLLAMA_MODEL (
-  for /f "skip=1 tokens=1" %%M in ('ollama list') do if not defined OLLAMA_MODEL set "OLLAMA_MODEL=%%M"
-)
-if not defined OLLAMA_MODEL (echo No Ollama model installed. Run: ollama pull qwen3:8b & pause & exit /b 1)
+rem --- model: ONLY qwen3:8b (Livio, 04 Nov 2026); a saved or other model is ignored ---
+set "OLLAMA_MODEL=qwen3:8b"
+ollama list | findstr /b /i "qwen3:8b" >nul || (echo qwen3:8b is not installed. Run: ollama pull qwen3:8b & pause & exit /b 1)
 > config.txt echo TOKEN=%WORKER_TOKEN%
 >> config.txt echo MODEL=%OLLAMA_MODEL%
 

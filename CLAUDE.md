@@ -1,3 +1,7 @@
+# LENOVO MODEL RULE (Livio, 04 Nov 2026, standing)
+
+On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, `bge-m3` or any other model. Every Lenovo request sets `keep_alive`. Displayed dates are written like `03 Nov 2026`.
+
 # RULE ZERO — NEVER ASK LIVIO TO DO THINGS (Livio, 2/11/2026, "the worst thing you can do"): before any request to him, exhaust every way Claude, a thread, a tool or a script can do it; build one-click scripts for anything on his computer; add repos/settings yourself; never repeat steps he already received. Only a physical, legal or over-ceiling-money act may be asked, with one link and one reply word. Full text: /mnt/project-files/working-rules/never-ask-livio-2026-11-02.md
 
 # LIVIO'S TIME — v4 ADDITIONS (2/11/2026; full text: /mnt/project-files/working-rules/protect-livio-time-v4-2026-11-02.md)

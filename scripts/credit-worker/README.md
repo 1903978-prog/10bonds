@@ -10,7 +10,7 @@ Settings (environment variables):
 | Name | Meaning |
 |---|---|
 | `WORKER_TOKEN` | token from Admin > Credit Research > Create token |
-| `OLLAMA_MODEL` | a model name from `ollama list` |
+| `OLLAMA_MODEL` | ignored: the worker always uses `qwen3:8b` (Livio, 04 Nov 2026) |
 | `BONDS_URL` | default `https://10bonds.com` |
 | `OLLAMA_URL` | default `http://127.0.0.1:11434` (refuses non-local addresses) |
 | `NUM_CTX`, `NUM_PREDICT`, `MAX_DOCS`, `IDLE_SECONDS` | optional limits |
