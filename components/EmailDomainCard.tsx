@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DomainState } from "@/lib/emailDomain";
+import { formatDateTime } from "@/lib/formatDate";
 
 /** Admin: whether confirmation e-mails are on, and the DNS records still to add at Namecheap. */
 export default function EmailDomainCard() {
@@ -59,7 +60,7 @@ export default function EmailDomainCard() {
           <tbody>
             {log.map((r, i) => (
               <tr key={i} className="border-t border-line/60 align-top">
-                <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.at).toLocaleString()}</td>
+                <td className="py-1 pr-3 whitespace-nowrap">{formatDateTime(new Date(r.at))}</td>
                 <td className="py-1 pr-3">{r.kind}</td>
                 <td className="py-1 pr-3">{r.to}</td>
                 <td className={`py-1 pr-3 ${r.outcome.startsWith("accepted") ? "" : "text-red-600"}`}>{r.outcome}</td>

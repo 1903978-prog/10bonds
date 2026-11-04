@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 type Row = { [bond: `bond_${number}`]: string | null; row_no: number; horizon: string; position: number; avg_ytm: string | null; avg_duration: string | null; avg_risk: string | null; filled: boolean; status: string | null; error: string | null; shared_with: number | null; mapped_from: number | null; band_min?: string | null; band_max?: string | null; class_lo?: number | null; class_hi?: number | null; ladder_step?: number | null; avg_gross_spread_bp?: string | null; avg_delta_loss_bp?: string | null; avg_net_spread_bp?: string | null; avg_bond_bes?: string | null; bes_scored?: number | null; portfolio_bes?: string | null; portfolio_bes_status?: string | null; portfolio_bes_reason?: string | null };
 type Snap = { id: number; batch_id: string; status: string; data_as_of: string | null; calculated_at: string; published_at: string | null; runtime_ms: number | null; filled_count: number; distinct_portfolios: number; error: string | null; methodology: string; empty_policy: string };
@@ -11,7 +12,7 @@ type Detail = { row: Row; bonds: { ord: number; isin: string; issuer: string | n
 const GROUPS = [["SHORT", "SHORT — 2 years: rows 1–30"], ["MEDIUM", "MEDIUM — 4 years: rows 31–60"], ["LONG", "LONG — 10 years: rows 61–90"]] as const;
 const KEYS = [["EUR:100k", "EUR · All"], ["EUR:1k", "EUR · 1k–10k"], ["USD:100k", "USD · All"], ["USD:1k", "USD · 1k–10k"]] as const;
 const bes = (v: string | null | undefined, empty: string) => (v != null ? Number(v).toFixed(1) : empty);
-const when = (x: string | null) => (x ? new Date(x).toLocaleString("en-GB", { timeZone: "Europe/Rome" }) : "–");
+const when = (x: string | null) => (x ? formatDateTime(new Date(x), "Europe/Rome") : "–");
 
 export default function SliderSnapshotAdmin() {
   const [d, setD] = useState<Data | null>(null);

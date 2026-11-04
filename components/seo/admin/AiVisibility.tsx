@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { BingStats } from "@/lib/seo/bing";
 import type { AiFunnel, CitationTest, Dimension } from "@/lib/seo/geo";
 import { api, Badge, card, ErrorNote, num } from "./ui";
+import { formatDateTime } from "@/lib/formatDate";
 
 type Data = {
   score: number; dimensions: Dimension[]; funnel: AiFunnel | null; questions: { market: string; q: string }[]; citations: CitationTest | null;
@@ -64,7 +65,7 @@ export default function AiVisibility() {
           <p className="mt-3"><Badge tone="gray">Not connected</Badge> <span className="text-sm text-mute">Add at least one key as a GitHub secret at <a className="text-accent" href="https://github.com/1903978-prog/10bonds/settings/secrets/actions/new" target="_blank" rel="noopener noreferrer">https://github.com/1903978-prog/10bonds/settings/secrets/actions/new</a>: PERPLEXITY_API_KEY, OPENAI_API_KEY or ANTHROPIC_API_KEY. Until then nothing is shown, rather than estimated numbers.</span></p>
         ) : (
           <>
-            <p className="mt-2 text-xs text-mute">Last test {new Date(data.citations.at).toLocaleString("en-GB")}</p>
+            <p className="mt-2 text-xs text-mute">Last test {formatDateTime(new Date(data.citations.at))}</p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {data.citations.assistants.map((a) => <Kpi key={a.id} label={`${a.name}: cites us`} value={`${a.cited} of ${a.answered}`} />)}
             </div>

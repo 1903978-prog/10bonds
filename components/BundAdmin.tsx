@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 type Pt = { years: number; yield: number; changeBp: number | null };
 type Curve = { asOf: string; previousAsOf: string | null; fetchedAt: string; points: Pt[]; seriesIds: string[] } | null;
 type Dash = { zar: Curve; zst: Curve; status: "current" | "stale" | "incomplete" | "failed"; lastSuccess: string | null; nextRefresh: string; imports: { id: number; started_at: string; trigger: string; ok: boolean; message: string }[]; history: { curve_type: string; n: number; first: string; last: string }[] };
-const when = (x: string | null) => (x ? new Date(x).toLocaleString("en-GB", { timeZone: "Europe/Berlin" }) + " (Berlin)" : "–");
+const when = (x: string | null) => (x ? formatDateTime(new Date(x), "Europe/Berlin") + " (Berlin)" : "–");
 const bp = (v: number | null) => (v === null ? "–" : `${v > 0 ? "+" : ""}${v} bp`);
 const COLOR = { current: "text-green-700", stale: "text-amber-700", incomplete: "text-amber-700", failed: "text-red-700" } as const;
 

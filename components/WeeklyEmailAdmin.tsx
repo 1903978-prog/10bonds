@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 type Status = { on: boolean; testedAt: string | null; subscribers: number; last: { week: string; sent: number; failed: number } | null; week: string };
 
@@ -24,7 +25,7 @@ export default function WeeklyEmailAdmin({ initial, lang }: { initial: Status; l
         <strong className={s.on ? "text-green-700" : "text-red-700"} data-testid="weekly-on">{s.on ? "ON" : "OFF"}</strong>
         {s.last ? ` · Last week sent (${s.last.week}): ${s.last.sent} sent, ${s.last.failed} failed` : " · Never sent yet"}
       </p>
-      <p className="mt-1 text-mute">{s.testedAt ? `Last test sent ${new Date(s.testedAt).toLocaleString("en-GB")}.` : "Send yourself a test first; sending can be switched on only after that."}</p>
+      <p className="mt-1 text-mute">{s.testedAt ? `Last test sent ${formatDateTime(new Date(s.testedAt))}.` : "Send yourself a test first; sending can be switched on only after that."}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" disabled={busy} onClick={() => act("test")} className="rounded-full bg-ink px-5 py-2 text-white disabled:opacity-50" data-testid="weekly-test">Send test to me</button>
         <button type="button" disabled={busy || (!s.on && !s.testedAt)} onClick={() => act(s.on ? "off" : "on")} className="rounded-full bg-black/5 px-5 py-2 disabled:opacity-50" data-testid="weekly-toggle">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 type Meth = { engine: string; engineVersion: string; methodologyVersion: string; skillHash: string; skillSource: string; pcSkill: string; lastVerified: string; calculationConsistency: string; evidenceGate: string; needsRecalculation: number; cases: { name: string; pass: boolean }[] };
 type Ov = {
@@ -67,7 +68,7 @@ export default function CreditResearchAdmin() {
             <div>Rating engine: <b>{m.engine}</b></div><div>Engine version: {m.engineVersion}</div>
             <div>Methodology version: {m.methodologyVersion}</div><div className="break-all">Source skill hash: {m.skillHash}</div>
             <div>Skill source: {m.skillSource}</div><div>Skill file on the PC: {m.pcSkill}</div>
-            <div>Last verified: {new Date(m.lastVerified).toLocaleString("en-GB", { timeZone: "Europe/Rome" })}</div>
+            <div>Last verified: {formatDateTime(new Date(m.lastVerified), "Europe/Rome")}</div>
             <div>Calculation consistency: <b className={bad(m.calculationConsistency)} data-testid="consistency">{m.calculationConsistency}</b></div>
             <div>Evidence publication gate: <b className={bad(m.evidenceGate)} data-testid="evidence-gate">{m.evidenceGate}</b></div>
             <div>Published ratings made with another method (to recalculate): {m.needsRecalculation}</div>
@@ -147,7 +148,7 @@ export default function CreditResearchAdmin() {
                       <td data-testid="params-cell" title="Verified parameters out of the maximum. A count, not a statistical confidence.">{p ? `${p.found} of ${p.max}` : "—"}</td>
                       <td title="Independent primary / reliable sources">{v ? `${v.primary} / ${v.reliable}` : "—"}</td>
                       <td data-testid="pub-cell" title={LEGEND[6][1]}>{PUB_LABEL[r.publication_status ?? ""] ?? "—"}{r.publish_ir ? " · IR public" : ""}{r.publish_br ? " · BR public" : ""}</td>
-                      <td>{new Date(r.updated_at).toLocaleString()}</td>
+                      <td>{formatDateTime(new Date(r.updated_at))}</td>
                     </tr>
                     {open && <tr className="bg-soft" data-testid="job-detail"><td colSpan={9} className="p-2"><Detail r={r} onValidate={(i) => void act("validate", { isin: i })} /></td></tr>}
                   </Fragment>

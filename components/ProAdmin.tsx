@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { ProRow } from "@/lib/pro";
 import { registerFor } from "@/lib/proRegisters";
+import { formatDate } from "@/lib/formatDate";
 
-const d = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const d = (iso: string) => formatDate(new Date(iso));
 const tone = { pending: "bg-amber-100 text-amber-900", approved: "bg-green-100 text-green-800", rejected: "bg-red-100 text-red-800", none: "" };
 
 export default function ProAdmin() {

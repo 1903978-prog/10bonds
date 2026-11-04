@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 type R = Record<string, unknown>;
 type Cand = { isin: string; cls: number; dur: number; ns: number; grossBp: number; lossBp: number; ytm: number; bes: number | null; sector: string };
@@ -8,7 +9,7 @@ type Prev = { source: string; reproducible: boolean; note: string | null; netSpr
 type Check = { rule: string; ok: boolean; detail: string };
 type Data = { run: (R & { stats: Record<string, number | string | string[] | null> }) | null; runs: R[]; positions: R[] };
 const f = (v: unknown, d = 1) => (v === null || v === undefined || v === "" ? "–" : Number.isFinite(Number(v)) ? Number(v).toFixed(d) : String(v));
-const when = (x: unknown) => (x ? new Date(String(x)).toLocaleString("en-GB", { timeZone: "Europe/Rome" }) : "–");
+const when = (x: unknown) => (x ? formatDateTime(new Date(String(x)), "Europe/Rome") : "–");
 const band = (p: R) => (p.band_lo === null || p.band_lo === undefined ? "–" : Number(p.band_lo) === Number(p.band_hi) ? (Number(p.band_lo) / 10).toFixed(1) : `${(Number(p.band_lo) / 10).toFixed(1)}–${(Number(p.band_hi) / 10).toFixed(1)}`);
 const j = <T,>(v: unknown): T | null => (v == null ? null : typeof v === "string" ? (JSON.parse(v) as T) : (v as T));
 

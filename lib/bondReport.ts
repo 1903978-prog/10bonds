@@ -3,6 +3,7 @@ import { bondRisk } from "./ratings";
 import { couponTypeLabel, seniorityLabel } from "./bondFacts";
 import { fmtMin } from "./fmtMin";
 import type { FocusCompany } from "./companiesInFocus";
+import { formatDate } from "@/lib/formatDate";
 
 /**
  * The Bond Intelligence Report model. It only re-arranges what the nightly bond copy (PublicBond) and the curated
@@ -71,7 +72,7 @@ export function ageDays(iso: string | null | undefined, now = Date.now()): numbe
 }
 
 const day = (iso: string | null | undefined) =>
-  iso ? new Date(iso.length === 10 ? iso + "T00:00:00Z" : iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : null;
+  iso ? formatDate(new Date(iso.length === 10 ? iso + "T00:00:00Z" : iso)) : null;
 
 /** "−2/10" or "-2/10" or "+3/10" -> number; anything else -> null. */
 export function parseOutlook(s: string | null | undefined): number | null {

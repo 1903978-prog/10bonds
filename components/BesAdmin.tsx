@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 type R = Record<string, string | number | null | string[]>;
 type Bench = Record<string, { source: string; asOf: string | null; benchmarkNotch: number; pointsInCurve: number; shortest: number; longest: number; bondsUsing: number; grid: { years: number; yield: number | null; extended: boolean; nearbyBonds: number; status?: string; copyBund?: number | null }[]; version?: string | null }>;
@@ -8,7 +9,7 @@ type Dash = { run: (R & { stats: Record<string, number | null> & { benchmarks?: 
 type List = { rows: R[]; total: number; page: number };
 const f = (v: unknown, d = 1) => (v === null || v === undefined || v === "" ? "–" : Number.isFinite(Number(v)) ? Number(v).toFixed(d) : String(v));
 const pct = (v: unknown, d = 2) => (v === null || v === undefined ? "–" : `${(Number(v) * 100).toFixed(d)}%`);
-const when = (x: unknown) => (x ? new Date(String(x)).toLocaleString("en-GB", { timeZone: "Europe/Rome" }) : "–");
+const when = (x: unknown) => (x ? formatDateTime(new Date(String(x)), "Europe/Rome") : "–");
 const BUCKET = ["< 2y", "2–4y", "4–7y", "7–10y", "10–16y", "16y+"];
 
 export default function BesAdmin() {
