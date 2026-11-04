@@ -10,7 +10,7 @@ export const btn = "rounded-full bg-accent px-4 py-2 text-sm font-medium text-wh
 export const btnLight = "rounded-full bg-canvas px-4 py-2 text-sm font-medium hover:bg-line disabled:opacity-60";
 
 export const day = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 export const when = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 export const num = (n: number | null | undefined, d = 0) => (n === null || n === undefined ? "—" : n.toLocaleString("en-GB", { maximumFractionDigits: d, minimumFractionDigits: d }));

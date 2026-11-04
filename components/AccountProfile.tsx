@@ -22,7 +22,7 @@ type Props = {
   lang: NewsletterLang;
 };
 
-const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 const card = "rounded-lg border border-line bg-white p-6 sm:p-8";
 const RANK: Record<string, number> = { free: 0, plus: 1, premium: 2, pro: 3 };
 

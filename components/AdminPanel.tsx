@@ -11,7 +11,7 @@ import { ADMIN_PAGES } from "@/lib/adminPages";
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
 type Stats = { users: number; verified: number; onTrial: number; newThisWeek: number; events30d: { kind: string; n: number }[]; topPages30d: { path: string; n: number }[] };
 
-const d = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const d = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 const card = "rounded-lg border border-line bg-white p-6";
 
 export default function AdminPanel() {

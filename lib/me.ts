@@ -27,4 +27,4 @@ export function trialDaysLeft(me: Me, now = Date.now()): number | null {
   return ms > 0 ? Math.ceil(ms / 86400_000) : null;
 }
 
-export const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+export const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });

@@ -31,3 +31,7 @@
 - A failing check is diagnosed from its logs and fixed at the cause (or removed if redundant). Never re-run a failed workflow just to see if it passes.
 - Failure emails: only a nightly live-check failure on the production site may email Livio (one summary, sent by the app). Branch and PR check failures never email him.
 - Draft PRs do not run CI (it starts when the PR is marked ready). `nightly-live-check.yml` is the one production check that e-mails: it posts to `/api/admin/live-check-alert` (HMAC with ACCOUNTS_DATABASE_URL, no new secret), which e-mails the first ADMIN_EMAILS address once.
+
+## DATE FORMAT RULE (Livio, 04 Nov 2026) — permanent
+
+Always write dates as "03 Nov 2026" (DD Mon YYYY, English month abbreviation, two-digit day) everywhere: every page, PDF, export, email, slide and "Generated" stamp. In TS/JS use `toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })`; in Python `strftime("%d %b %Y")`. Machine formats (ISO in APIs, database, file names) stay as they are. New code must follow this; do not add other human-visible date formats.
