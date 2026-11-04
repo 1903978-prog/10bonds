@@ -59,7 +59,7 @@ export default function EmailDomainCard() {
           <tbody>
             {log.map((r, i) => (
               <tr key={i} className="border-t border-line/60 align-top">
-                <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.at).toLocaleString()}</td>
+                <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
                 <td className="py-1 pr-3">{r.kind}</td>
                 <td className="py-1 pr-3">{r.to}</td>
                 <td className={`py-1 pr-3 ${r.outcome.startsWith("accepted") ? "" : "text-red-600"}`}>{r.outcome}</td>

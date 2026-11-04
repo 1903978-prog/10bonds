@@ -147,7 +147,7 @@ export default function CreditResearchAdmin() {
                       <td data-testid="params-cell" title="Verified parameters out of the maximum. A count, not a statistical confidence.">{p ? `${p.found} of ${p.max}` : "—"}</td>
                       <td title="Independent primary / reliable sources">{v ? `${v.primary} / ${v.reliable}` : "—"}</td>
                       <td data-testid="pub-cell" title={LEGEND[6][1]}>{PUB_LABEL[r.publication_status ?? ""] ?? "—"}{r.publish_ir ? " · IR public" : ""}{r.publish_br ? " · BR public" : ""}</td>
-                      <td>{new Date(r.updated_at).toLocaleString()}</td>
+                      <td>{new Date(r.updated_at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
                     </tr>
                     {open && <tr className="bg-soft" data-testid="job-detail"><td colSpan={9} className="p-2"><Detail r={r} onValidate={(i) => void act("validate", { isin: i })} /></td></tr>}
                   </Fragment>
