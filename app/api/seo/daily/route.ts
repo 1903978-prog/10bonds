@@ -12,9 +12,10 @@ export async function POST(req: Request) {
   if (!key || !given) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const want = createHmac("sha256", key).update("seo-daily").digest("hex");
   if (given.length !== want.length || !timingSafeEqual(Buffer.from(given), Buffer.from(want))) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const fetched = await takeSnapshot(true).catch((e) => {
+  const report = await takeSnapshot(true).catch((e) => {
     console.error("SEO daily snapshot failed:", (e as Error).message);
-    return false;
+    return { fetched: false, error: (e as Error).message.slice(0, 200) };
   });
-  return NextResponse.json({ ok: fetched });
+  // The report holds states, counts and dates only. The workflow prints it and fails when nothing was saved.
+  return NextResponse.json({ ok: report.fetched, report }, { status: report.fetched ? 200 : 500 });
 }

@@ -36,19 +36,33 @@ const fromEngine = (day: string, source: "google" | "bing", e: Engine): DailyRow
   indexed: e.data?.indexed ?? null, tracked: null, top10: null,
 });
 
-/** Takes today's snapshot unless a complete one exists already (or `force`). Returns whether anything was fetched. */
-export async function takeSnapshot(force = false): Promise<boolean> {
+export type SnapshotReport = {
+  fetched: boolean; day: string;
+  google: { state: string; message: string; impressions: number | null };
+  bing: { state: string; message: string; impressions: number | null };
+  keywordSyncErrors: string[]; dailyTable: { days: number | null; error: string | null };
+  latestSaved: { source: string; day: string }[];
+};
+
+/** Takes today's snapshot unless a complete one exists already (or `force`). Reports what each step did, never a secret. */
+export async function takeSnapshot(force = false): Promise<SnapshotReport> {
   const day = today();
   const s = await seoSql();
+  const report: SnapshotReport = {
+    fetched: false, day, google: { state: "skipped", message: "", impressions: null }, bing: { state: "skipped", message: "", impressions: null },
+    keywordSyncErrors: [], dailyTable: { days: null, error: null }, latestSaved: [],
+  };
   if (!force) {
     const have = await s`select clicks, tracked from app.seo_daily_stats where day = ${day}`;
-    if (have.length >= 3 && have.every((r) => r.clicks !== null || r.tracked !== null)) return false;
+    if (have.length >= 3 && have.every((r) => r.clicks !== null || r.tracked !== null)) return report;
   }
   // Every market's keyword positions are refreshed here too, so the rankings table fills even when nobody opens it.
   const site = await gscProperty().catch(() => null);
-  if (site) for (const m of SEO_MARKETS) await syncKeywords(m, site).catch((e) => console.error(`Keyword sync ${m} failed:`, (e as Error).message));
-  await refreshDailyTable().catch((e) => console.error("Daily table refresh failed:", (e as Error).message));
+  if (site) for (const m of SEO_MARKETS) await syncKeywords(m, site).catch((e) => { report.keywordSyncErrors.push(`${m}: ${(e as Error).message.slice(0, 160)}`); console.error(`Keyword sync ${m} failed:`, (e as Error).message); });
+  await refreshDailyTable().then((n) => { report.dailyTable.days = n; }).catch((e) => { report.dailyTable.error = (e as Error).message.slice(0, 160); console.error("Daily table refresh failed:", (e as Error).message); });
   const [g, b, kws] = await Promise.all([google(), bing(), listKeywords().catch(() => [])]);
+  report.google = { state: g.state, message: g.message.slice(0, 200), impressions: g.data?.impressions ?? null };
+  report.bing = { state: b.state, message: b.message.slice(0, 200), impressions: b.data?.impressions ?? null };
   await save(fromEngine(day, "google", g));
   await save(fromEngine(day, "bing", b));
   const ranked = kws.filter((k) => k.position !== null);
@@ -58,7 +72,10 @@ export async function takeSnapshot(force = false): Promise<boolean> {
     tracked: kws.length ? ranked.length : null,
     top10: kws.length ? ranked.filter((k) => (k.position ?? 99) <= 10).length : null,
   });
-  return true;
+  const latest = await s`select source, max(day)::text as day from app.seo_daily_stats where clicks is not null or tracked is not null group by source`;
+  report.latestSaved = latest.map((r) => ({ source: r.source as string, day: r.day as string }));
+  report.fetched = true;
+  return report;
 }
 
 /** The saved history, oldest first. */
