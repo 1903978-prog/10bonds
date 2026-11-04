@@ -9,6 +9,11 @@ async function worker() {
 }
 
 describe("credit worker helpers", () => {
+  it("uses only qwen3:8b and never an embedding model", async () => {
+    const w: any = await worker();
+    expect(w.ONLY_MODEL).toBe("qwen3:8b");
+    expect(await w.embedAvailable()).toBe(false);
+  });
   it("cleans a model reply into JSON", async () => {
     const w = await worker();
     expect(w.parseJsonReply('<think>x</think>```json\n{"a":1}\n```' as never)).toEqual({ a: 1 });
