@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 type Group = { reason: string; count: number };
 type Row = { currency: "EUR" | "USD"; total: number; last24h: number; within1: number; within3: number; within5: number; noDate: number; newestQuote: string | null; lastPush: string | null; pushIsReal: boolean; notRefreshed: Group[] };
 type Data = { rows: Row[]; banner: { red: boolean; reasons: string[] }; columns: { attempt: boolean; status: boolean; reason: boolean }; staleRuleDays: number } | null;
 type Bond = { isin: string; name: string | null; issuer: string | null; priceDate: string | null; ageTradingDays: number | null; status: string | null };
 
-const stamp = (s: string | null, tz: string) => (s ? new Date(s).toLocaleString("en-GB", { timeZone: tz, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "–");
+const stamp = (s: string | null, tz: string) => (s ? formatDateTime(new Date(s), tz) : "–");
 const pct = (n: number, t: number) => (t ? `${Math.round((n / t) * 1000) / 10}%` : "–");
 const num = (n: number) => n.toLocaleString("en");
 

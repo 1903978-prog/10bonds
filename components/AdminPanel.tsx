@@ -7,11 +7,12 @@ import PriceFreshnessCard from "./PriceFreshnessCard";
 import EmailDomainCard from "./EmailDomainCard";
 import AdminUsers from "./AdminUsers";
 import { ADMIN_PAGES } from "@/lib/adminPages";
+import { formatDate } from "@/lib/formatDate";
 
 type Code = { code: string; days: number; note: string | null; createdAt: string; redeemedBy: string | null; redeemedAt: string | null };
 type Stats = { users: number; verified: number; onTrial: number; newThisWeek: number; events30d: { kind: string; n: number }[]; topPages30d: { path: string; n: number }[] };
 
-const d = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+const d = (iso: string) => formatDate(new Date(iso));
 const card = "rounded-lg border border-line bg-white p-6";
 
 export default function AdminPanel() {

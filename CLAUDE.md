@@ -34,4 +34,6 @@
 
 ## DATE FORMAT RULE (Livio, 04 Nov 2026) — permanent
 
-Always write dates as "03 Nov 2026" (DD Mon YYYY, English month abbreviation, two-digit day) everywhere: every page, PDF, export, email, slide and "Generated" stamp. In TS/JS use `toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })`; in Python `strftime("%d %b %Y")`. Machine formats (ISO in APIs, database, file names) stay as they are. New code must follow this; do not add other human-visible date formats.
+Always write dates as "03 Nov 2026" (DD Mon YYYY, English month abbreviation, two-digit day) everywhere: every page, PDF, export, email, slide and "Generated" stamp. In TS/JS use `formatDate` / `formatDateTime` from `lib/formatDate.ts` (`@/lib/formatDate`), never `toLocaleDateString()` on a date; in Python `strftime("%d %b %Y")`. Machine formats (ISO in APIs, database, file names) stay as they are. New code must follow this; do not add other human-visible date formats.
+
+Open question for Livio: dates on the IT/FR/DE pages still follow each language (localized month names); not converted yet.

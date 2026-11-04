@@ -9,6 +9,7 @@ import { LOCALES } from "./locales";
 import { recommendations, round2 } from "./rubric";
 import { actionStatuses, getSeoSetting, latestAssessments, setSeoSetting } from "./store";
 import { snapshotOf, type CrawlSnapshot } from "./technical";
+import { formatDateTime } from "@/lib/formatDate";
 
 // The top of the SEO & GEO page: both scores, their history (one point per refresh), the connected data sources
 // and the next steps across SEO and GEO, biggest gain for least work first.
@@ -47,7 +48,7 @@ export async function readCrawl(): Promise<CrawlSnapshot | null> {
   }
 }
 
-const day = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+const day = (iso: string) => formatDateTime(new Date(iso), "Europe/Rome");
 
 async function sources(crawl: CrawlSnapshot | null, citationsAt: string | null): Promise<Source[]> {
   const sa = serviceAccount();

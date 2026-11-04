@@ -22,6 +22,7 @@ import { ANALYST_NAME, listGuides } from "@/lib/seo/store";
 import { enBondsPath, enComparisons, enText } from "@/lib/seo/comparisonsEn";
 import { comparisonPages, shown } from "@/lib/seo/site";
 import { OG_IMAGES } from "@/lib/ogImage";
+import { formatDate } from "@/lib/formatDate";
 
 // English Knowledge Center pages: the guides and the yield calculator.
 
@@ -153,14 +154,14 @@ export default async function EnglishKnowledgePage({ params }: Props) {
       {crumbs(g.title, enPath(g.slug))}
       <div className="rounded-lg border border-line bg-white p-6 sm:p-10">
         <h1 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[36px]">{g.title}</h1>
-        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{(g.updated ?? g.published) && <> · Reviewed on <time dateTime={(g.updated ?? g.published)!}>{new Date((g.updated ?? g.published)!).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</time> by {ANALYST_NAME}</>}{g.published && <> · <time dateTime={g.published}>{new Date(g.published).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</time></>}{g.updated && g.updated !== g.published && <> · Updated <time dateTime={g.updated}>{new Date(g.updated).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</time></>}</p>
+        <p className="mt-4 text-sm text-mute">By the 10BONDS editorial team{(g.updated ?? g.published) && <> · Reviewed on <time dateTime={(g.updated ?? g.published)!}>{formatDate(new Date((g.updated ?? g.published)!))}</time> by {ANALYST_NAME}</>}{g.published && <> · <time dateTime={g.published}>{formatDate(new Date(g.published))}</time></>}{g.updated && g.updated !== g.published && <> · Updated <time dateTime={g.updated}>{formatDate(new Date(g.updated))}</time></>}</p>
         <div className={`mt-6 ${prose}`} dangerouslySetInnerHTML={{ __html: body }} />
       </div>
       {g.revisions && g.revisions.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Revision log</h2>
           <ul className="mt-3 text-[15px] text-mute">
-            {g.revisions.map((r) => <li key={r.date + r.note}><time dateTime={r.date}>{new Date(r.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</time>: {r.note}</li>)}
+            {g.revisions.map((r) => <li key={r.date + r.note}><time dateTime={r.date}>{formatDate(new Date(r.date))}</time>: {r.note}</li>)}
           </ul>
         </section>
       )}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { formatDate, formatDateTime } from "@/lib/formatDate";
 
 type Row = {
   id: number; email: string; username: string | null; plan: string; premiumUntil: string | null; promoCode: string | null;
@@ -9,8 +10,8 @@ type Row = {
 type Key = "email" | "username" | "plan" | "promoCode" | "createdAt" | "emailConfirmed" | "lastSeenAt" | "secondsOnSite" | "searches" | "cameFrom" | "country";
 
 const card = "rounded-lg border border-line bg-white p-6";
-const day = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
-const when = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+const day = (s: string | null) => (s ? formatDate(new Date(s)) : "—");
+const when = (s: string | null) => (s ? formatDateTime(new Date(s)) : "—");
 const plan = (r: Row) => (r.premiumUntil && r.plan !== "premium" && r.plan !== "pro" ? `premium (code, until ${day(r.premiumUntil)})` : r.plan);
 
 export function duration(secs: number | null): string {

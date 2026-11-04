@@ -2,12 +2,13 @@
 import { useEffect, useState } from "react";
 import { LINDE_PRICE_NOTE, SCENARIO_CAVEAT, SCENARIO_SOURCE } from "@/lib/scenarioText";
 import { reloadGptRatings } from "@/lib/gptStore";
+import { formatDateTime } from "@/lib/formatDate";
 
 type Stats = { total: number; withYtm: number; withRating: number; ytmLast24h: number; newestYtm: string | null; shownOnSite: number; freshness: { basis: string; total: number; last24h: number; last48h: number; olderThan7d: number; noDate: number; newest: string | null; oldest: string | null } } | { error: string } | null;
 type Req = { id: number; requestedAt: string; status: string; pickedUpAt: string | null; finishedAt: string | null; note: string | null };
 
 const card = "rounded-lg border border-line bg-white p-5";
-const when = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
+const when = (s: string | null) => (s ? formatDateTime(new Date(s)) : "—");
 const STATUS: Record<string, string> = { pending: "Waiting for the main app", running: "Refreshing now", done: "Done", failed: "Failed" };
 
 type Row = { key: string; label: string; isin: string | null; ir: string; br: string; riskPay: string; detail: { coupon: string; maturity: string; agency: string; ytm: string; dur: string; spread: string; el: string; net: string; at1: string; t2: string; snp: string; cln: string; reco: string } | null };

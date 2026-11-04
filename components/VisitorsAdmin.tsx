@@ -4,8 +4,9 @@ import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import type { VisitorPage, VisitorRow } from "@/lib/accounts";
 import { FUNNEL_LABEL } from "@/lib/trackRules";
+import { formatDateTime } from "@/lib/formatDate";
 
-const when = (s: string) => new Date(s).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const when = (s: string) => formatDateTime(new Date(s));
 const dur = (s: number) => (s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`);
 
 export default function VisitorsAdmin() {

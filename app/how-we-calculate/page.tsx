@@ -5,6 +5,7 @@ import { priceFreshnessReport } from "@/lib/bonds";
 import { PORTFOLIO_SPEC } from "@/lib/portfolioSpec";
 import { LOSS_GIVEN_DEFAULT } from "@/lib/expectedLoss";
 import { RISK_WARNING } from "@/lib/riskWarning";
+import { formatDateTime } from "@/lib/formatDate";
 
 const DESC = "How 10BONDS calculates its lists of 10 bonds: the method step by step, where the data comes from and when each part is updated.";
 
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 export default async function HowWeCalculate() {
   const report = await priceFreshnessReport().catch(() => null);
   const times = (report?.rows ?? []).map((r) => r.lastPush).filter((x): x is string => !!x).sort();
-  const last = times.length ? new Date(times[times.length - 1]).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" }) + " (Rome time)" : "not available right now";
+  const last = times.length ? formatDateTime(new Date(times[times.length - 1]), "Europe/Rome") + " (Rome time)" : "not available right now";
   const h = "mt-6 font-semibold";
   return (
     <article className="mx-auto max-w-3xl rounded-lg border border-line bg-white p-7 text-[15px] leading-relaxed sm:p-10" data-testid="how-we-calculate">
