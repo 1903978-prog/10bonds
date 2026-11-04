@@ -17,9 +17,11 @@ const run = promisify(execFile);
 const SITE = (process.env.BONDS_URL ?? "https://10bonds.com").replace(/\/$/, "");
 const TOKEN = process.env.WORKER_TOKEN ?? "";
 const OLLAMA = (process.env.OLLAMA_URL ?? "http://127.0.0.1:11434").replace(/\/$/, "");
-const MODEL = process.env.OLLAMA_MODEL ?? "";
+// Standing rule (Livio, 04 Nov 2026): the Lenovo uses ONLY qwen3:8b. No other model is ever requested, loaded or warmed up (OLLAMA_MODEL is ignored).
+export const ONLY_MODEL = "qwen3:8b";
+const MODEL = ONLY_MODEL;
 const ID = process.env.WORKER_ID ?? `worker-${hostname().replace(/[^A-Za-z0-9._-]/g, "")}`.slice(0, 60);
-export const WORKER_VERSION = "2026-11-02.5";
+export const WORKER_VERSION = "2026-11-04.1";
 let NET_DIAG = null;
 const IDLE_MS = Number(process.env.IDLE_SECONDS ?? 60) * 1000;
 const MAX_DOCS = Number(process.env.MAX_DOCS ?? 6);
@@ -489,6 +491,7 @@ const EMBED_FILE = join(DATA_DIR, "embeddings.json");
 let embedState = null; let EMB = null;
 export const embedStats = { used: false, chunks: 0, fromCache: 0 };
 export async function embedAvailable() {
+  return false; // embeddings would load a second model: keyword retrieval only (standing rule: qwen3:8b only)
   if (embedState !== null) return embedState;
   try { const t = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(5000) }).then((r) => r.json()); embedState = (t.models ?? []).some((m) => m.name.split(":")[0] === EMBED_MODEL); } catch { embedState = false; }
   return embedState;
@@ -843,7 +846,7 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv
 if (isMain && process.argv.includes("--check")) { const bad = await lenovoCheck(); process.exit(bad ? 2 : 0); }
 if (isMain && process.argv.includes("--selftest")) { const ok = await selftest(); process.exit(ok === LBBW_EXPECTED.length ? 0 : 2); }
 if (isMain) {
-  if (!MODEL) {
+  if (false) {
     const t = await fetch(`${OLLAMA}/api/tags`).then((r) => r.json()).catch(() => null);
     console.error(t ? `Set OLLAMA_MODEL to one of: ${t.models.map((m) => m.name).join(", ")}` : `Ollama is not answering at ${OLLAMA}`);
     process.exit(1);

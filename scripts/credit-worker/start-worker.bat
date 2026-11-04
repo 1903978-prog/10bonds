@@ -21,7 +21,6 @@ set "WORKER_TOKEN="
 set "OLLAMA_MODEL="
 if exist config.txt for /f "usebackq tokens=1,* delims==" %%A in ("config.txt") do (
   if /i "%%A"=="TOKEN" set "WORKER_TOKEN=%%B"
-  if /i "%%A"=="MODEL" set "OLLAMA_MODEL=%%B"
 )
 if not defined WORKER_TOKEN (
   echo First start only: paste the worker token from 10bonds.com Admin ^> Credit Research ^> Create token, then press Enter.
@@ -36,16 +35,10 @@ if errorlevel 1 (
   start "" /min ollama serve
   timeout /t 10 /nobreak >nul
 )
-rem --- model: keep saved one, else qwen3:8b if installed, else the first installed ---
-if not defined OLLAMA_MODEL (
-  ollama list | findstr /b /i "qwen3:8b" >nul && set "OLLAMA_MODEL=qwen3:8b"
-)
-if not defined OLLAMA_MODEL (
-  for /f "skip=1 tokens=1" %%M in ('ollama list') do if not defined OLLAMA_MODEL set "OLLAMA_MODEL=%%M"
-)
-if not defined OLLAMA_MODEL (echo No Ollama model installed. Run: ollama pull qwen3:8b & pause & exit /b 1)
+rem --- model: ONLY qwen3:8b (standing rule, 04 Nov 2026); nothing else is ever used ---
+set "OLLAMA_MODEL=qwen3:8b"
+ollama list | findstr /b /i "qwen3:8b" >nul || (echo qwen3:8b is not installed. Run: ollama pull qwen3:8b & pause & exit /b 1)
 > config.txt echo TOKEN=%WORKER_TOKEN%
->> config.txt echo MODEL=%OLLAMA_MODEL%
 
 rem --- self-update (keeps the old copy if the download fails or looks wrong) ---
 powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing '%RAW%/worker.mjs' -OutFile worker.new -TimeoutSec 60; if ((Get-Item worker.new).Length -gt 10000) { Move-Item -Force worker.new worker.mjs } } catch { Write-Host 'Update skipped:' $_.Exception.Message }"
