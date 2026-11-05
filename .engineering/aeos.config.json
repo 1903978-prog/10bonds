@@ -1,0 +1,32 @@
+{
+  "aeos_version": "1.0.0",
+  "execution_window_hours": 5,
+  "application": "10bonds",
+  "repository": "1903978-prog/10bonds",
+  "production_environment": "Fly.io (fly.toml); Next.js app",
+  "development_environment": "local / cloud session; claude/* branches",
+  "authorized_branches": [
+    "claude/*"
+  ],
+  "release_restrictions": [
+    "HOLD (CLAUDE.md): no workflow runs on push to claude/** or session branches",
+    "HOLD: draft PRs do not run CI; CI starts when marked ready",
+    "HOLD: only nightly-live-check may e-mail Livio",
+    "RULE ZERO: never ask Livio to do what a tool can do",
+    "Lenovo: only qwen3:8b with keep_alive; dates like 03 Nov 2026",
+    "Production deploy: separate written approval"
+  ],
+  "data_sensitivity": "Public market and bond data; accounts database exists (ACCOUNTS_DATABASE_URL): treat user data as sensitive",
+  "required_tests": [
+    "npm test (vitest)",
+    "lint per CLAUDE.md"
+  ],
+  "deployment_process": "deploy.yml / Fly per CLAUDE.md; not performed under AEOS without written approval",
+  "rollback_process": "rollback.yml exists; contents UNVERIFIED",
+  "critical_workflows": [
+    "bond ranking and frontier",
+    "nightly live checks",
+    "weekly e-mail"
+  ],
+  "existing_instruction_conflicts": []
+}
