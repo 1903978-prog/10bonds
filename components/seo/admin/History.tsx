@@ -133,8 +133,21 @@ export default function History() {
     if (rows) return;
     api<{ rows: DailyRow[]; days: DayRow[]; pages: PageRow[] }>("/api/admin/seo/history").then((r) => { setRows(r.rows); setDays2(r.days ?? []); setPages(r.pages ?? []); }).catch((e) => setError((e as Error).message));
   }, [rows]);
-  const days = rows ? [...new Set(rows.map((r) => r.day))].sort() : [];
+  // Google and Bing figures come from the true one-day rows (app.seo_daily). The older snapshot rows hold a rolling 28-day total
+  // as of each day, which reads as a flat line and is not "clicks that day", so they are not used for these figures.
+  const dayMap = new Map(days2.map((d) => [d.day, d]));
+  const days = rows ? [...new Set([...rows.map((r) => r.day), ...days2.map((d) => d.day)])].sort() : [];
+  const DAILY_KEYS: Record<string, Partial<Record<keyof DailyRow, keyof DayRow>>> = {
+    google: { clicks: "gClicks", impressions: "gImpressions", ctr: "gCtr", position: "gPosition", indexed: "gPages" },
+    bing: { clicks: "bClicks", impressions: "bImpressions", indexed: "bPages" },
+  };
   const val = (s: Stat, day: string) => {
+    const map = DAILY_KEYS[s.source];
+    if (map) {
+      const k = map[s.key];
+      const v = k ? dayMap.get(day)?.[k] : null;
+      return typeof v === "number" ? v : null;
+    }
     const r = rows?.find((x) => x.day === day && x.source === s.source);
     return r ? ((r[s.key] as number | null) ?? null) : null;
   };
@@ -145,7 +158,7 @@ export default function History() {
       {open && !rows && !error && <p className="mt-2 text-xs text-mute">Loading…</p>}
       {open && rows && (
         <div className="mt-3 space-y-3">
-          <p className="text-xs text-mute">One figure per day. Google and Bing show the last 28 days as of that day; a dash means the source gave nothing that day. Visitors and minutes count only people who allowed usage statistics, and leave out your own visits. {days.length ? `${days.length} day${days.length > 1 ? "s" : ""} saved so far.` : "The first day is saved now."}</p>
+          <p className="text-xs text-mute">One figure per day. Google and Bing show the real figure for that single day; a dash means the source gave nothing that day. Visitors and minutes count only people who allowed usage statistics, and leave out your own visits. {days.length ? `${days.length} day${days.length > 1 ? "s" : ""} saved so far.` : "The first day is saved now."}</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-8">
             {STATS.map((s) => {
               const vals = days.map((d) => val(s, d));
