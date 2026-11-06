@@ -129,6 +129,11 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       dimensions jsonb not null
     )`;
   await s`create index if not exists seo_assessments_at_idx on app.seo_assessments (market, at)`;
+  // Every foreign key has an index on its columns (secval's database check, 06 Nov 2026).
+  await s`create index if not exists seo_guides_author_idx on app.seo_guides (author_id)`;
+  await s`create index if not exists seo_guides_reviewer_idx on app.seo_guides (reviewer_id)`;
+  await s`create index if not exists seo_guide_log_guide_idx on app.seo_guide_log (guide_id)`;
+  await s`create index if not exists seo_shares_guide_idx on app.seo_shares (guide_id)`;
   // The US and UK got their own score (20 Oct 2026); widening the check keeps every row.
   await s`alter table app.seo_assessments drop constraint if exists seo_assessments_market_check`;
   await s`alter table app.seo_assessments add constraint seo_assessments_market_check check (market in ('it','fr','de','us','uk'))`;
@@ -349,6 +354,9 @@ async function setup(s: Awaited<ReturnType<typeof accountsSql>>) {
       await s`insert into app.seo_guide_log (guide_id, by_email, status, note) values (${old.id}, ${"system"}, ${"published"}, ${note})`;
     }
   }
+  // The backups table exists only where a one-time rewrite ran; index its link to the guide there (secval, 06 Nov 2026).
+  const [backups] = await s`select to_regclass('app.seo_guide_backups') as t`;
+  if (backups?.t) await s`create index if not exists seo_guide_backups_guide_idx on app.seo_guide_backups (guide_id)`;
   // Short German and French guides get extra sections and a few titles/descriptions are fixed (27 Oct 2026), once. The
   // text it replaces is kept in app.seo_guide_backups.
   const [depth] = await s`insert into app.settings (key, value) values ('seo_depth_2026_10_27', ${new Date().toISOString()}) on conflict (key) do nothing returning key`;

@@ -179,6 +179,9 @@ async function setup(sql: ReturnType<typeof postgres>) {
       at timestamptz not null default now()
     )`;
   await sql`create index if not exists search_usage_user_idx on app.search_usage (user_id, kind, at)`;
+  // Every foreign key has an index on its columns, so deleting a user or looking up their codes never scans a whole table.
+  await sql`create index if not exists trial_codes_created_by_idx on app.trial_codes (created_by)`;
+  await sql`create index if not exists trial_codes_redeemed_by_idx on app.trial_codes (redeemed_by)`;
   await sql`delete from app.search_usage where at < now() - interval '30 days'`;
   // "Refresh prices" requests from the admin page. The main app (which owns the bond prices) reads this table,
   // runs its own refresh and copy, then marks the row done. The public site never calls the main app.
@@ -864,6 +867,8 @@ export async function discountTable() {
       created_at timestamptz not null default now(),
       used_at timestamptz
     )`;
+    await sql`create index if not exists discount_codes_user_id_idx on app.discount_codes (user_id)`;
+    await sql`create index if not exists discount_codes_created_by_idx on app.discount_codes (created_by)`;
   })().catch((e) => {
     discountReady = null;
     throw e;
