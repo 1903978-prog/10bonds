@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 const PLAN_KEYS = ["free", "plus", "premium", "pro"] as const;
 
-export default async function Pricing({ searchParams }: { searchParams: Promise<{ paid?: string; cancelled?: string; billing?: string }> }) {
+export default async function Pricing({ searchParams }: { searchParams: Promise<{ paid?: string; cancelled?: string; billing?: string; buy?: string }> }) {
   const user = await currentUser();
   const sp = await searchParams;
   const payOn = stripeConfigured();
@@ -78,7 +78,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
         {PLANS.map((p) => (
           <div
             key={p.name}
-            className={`flex flex-col rounded-lg border border-line bg-white p-5 ${p.highlight ? "ring-2 ring-accent" : ""}`}
+            className={`flex flex-col rounded-lg border border-line bg-white p-5 ${p.highlight || sp.buy === p.key ? "ring-2 ring-accent" : ""}`}
           >
             <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               {p.name}
@@ -122,7 +122,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
                 {user ? t.proRequest : t.subscribe}
               </Link>
             ) : !user ? (
-              <Link href="/signup" className={`mt-4 rounded-full px-4 py-2 text-center text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-ink text-white"} hover:opacity-90`}>
+              <Link href={`/signup?next=${encodeURIComponent(`/pricing?buy=${p.key}`)}`} data-testid={`subscribe-${p.key}`} className={`mt-4 rounded-full px-4 py-2 text-center text-sm font-medium ${p.highlight ? "bg-accent text-white" : "bg-ink text-white"} hover:opacity-90`}>
                 {t.subscribe}
               </Link>
             ) : sub ? (
@@ -131,7 +131,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
                 <Link href="/account" className="mt-4 rounded-full bg-canvas px-4 py-2 text-center text-sm font-medium text-ink">{t.changeOnProfile}</Link>
               </>
             ) : (
-              <PlanButton plan={p.key as PaidPlan} interval={interval} highlight={p.highlight} label={p.cta} />
+              <PlanButton plan={p.key as PaidPlan} interval={interval} highlight={p.highlight} label={p.cta} chosen={sp.buy === p.key} />
             )}
           </div>
         ))}

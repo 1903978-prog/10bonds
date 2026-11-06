@@ -54,6 +54,14 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
     return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/";
   };
 
+  // Keep the chosen plan when switching between sign-up and sign-in (set after load, so server and browser HTML match).
+  const [nq, setNq] = useState("");
+  useEffect(() => {
+    const n = new URLSearchParams(window.location.search).get("next");
+    if (n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\")) setNq(`?next=${encodeURIComponent(n)}`);
+  }, []);
+  const nextQ = () => nq;
+
   async function submitCode(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -243,9 +251,9 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
       </form>
       <p className="mt-5 text-center text-sm text-mute">
         {signup ? (
-          <>Already have an account? <Link href="/login" className="text-accent">Sign in</Link></>
+          <>Already have an account? <Link href={`/login${nextQ()}`} className="text-accent">Sign in</Link></>
         ) : (
-          <>New here? <Link href="/signup" className="text-accent">Create a free account</Link></>
+          <>New here? <Link href={`/signup${nextQ()}`} className="text-accent">Create a free account</Link></>
         )}
       </p>
       {signup && (
