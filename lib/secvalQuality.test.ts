@@ -19,20 +19,27 @@ describe("secval data quality check", () => {
   it("checks the stored ranking against the copy it was built from", () => {
     const recs = rankingRecords([{ duration: "5", level: 3, bond: JSON.stringify(bond) }], "2026-11-05T06:00:00Z");
     expect(recs[0]).toMatchObject({ duration: 5, level: 3, rank: 1, isin: "XS0000000015", loss_adjusted_yield: 3.3, as_of: "2026-11-05T06:00:00.000Z" });
-    expect(rankingTruth(recs, [bond])).toEqual({ "5|3|XS0000000015": { gross_ytm: 3.5, modified_duration: 4.2 } });
+    // Compared with the copy as read from the database again, not with the list the ranking came from.
+    expect(rankingTruth(recs, [{ isin: "XS0000000015", gross_ytm: 3.6, modified_duration: 4.2 }])).toEqual({ "5|3|XS0000000015": { gross_ytm: 3.6, modified_duration: 4.2 } });
   });
 
   it("does nothing without the token, sends both datasets with it", async () => {
     const deps = { rawCopy: async () => raw, storedRanking: async () => [{ duration: 5, level: 3, bond }] };
     const send = vi.fn(async (b: unknown) => (b as { dataset: string }).dataset);
-    expect(await reportNewCopy({ bonds: [bond], asOf: null }, "sig", "2026-11-05T09:00:00Z", { ...deps, send, env: {} as Record<string, string | undefined> })).toEqual([]);
+    expect(await reportNewCopy({ asOf: null }, "sig", "2026-11-05T09:00:00Z", { ...deps, send, env: {} as Record<string, string | undefined> })).toEqual([]);
     expect(send).not.toHaveBeenCalled();
-    const out = await reportNewCopy({ bonds: [bond], asOf: "2026-11-05T06:00:00Z" }, "sig", "2026-11-05T09:00:00Z", { ...deps, send, env: { SECVAL_QUALITY_TOKEN: "k" } as Record<string, string | undefined> });
+    const out = await reportNewCopy({ asOf: "2026-11-05T06:00:00Z" }, "sig", "2026-11-05T09:00:00Z", { ...deps, send, env: { SECVAL_QUALITY_TOKEN: "k" } as Record<string, string | undefined> });
     expect(out).toEqual(["10bonds.public_bonds", "10bonds.best_bonds"]);
     const best = send.mock.calls[1]![0] as { references: { public_bonds: string[] }; kind: string; app: string };
     expect(best.app).toBe("10bonds");
     expect(best.kind).toBe("recompute");
-    expect(best.references.public_bonds).toEqual(["XS0000000015", "XS0000000023"]);
+    // ISINs as stored and as the site matches them (trimmed, capitals).
+    expect(best.references.public_bonds).toEqual(["XS0000000015", " xs0000000023", "XS0000000023"]);
+    // No yield date: the ranking is not sent at all.
+    send.mockClear();
+    const noDate = await reportNewCopy({ asOf: null }, "sig", "2026-11-05T09:00:00Z", { ...deps, send, env: { SECVAL_QUALITY_TOKEN: "k" } as Record<string, string | undefined> });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(noDate[1]).toMatch(/not sent/);
   });
 
   it("never throws when secval is down", async () => {

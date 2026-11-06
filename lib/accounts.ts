@@ -236,6 +236,32 @@ async function setup(sql: ReturnType<typeof postgres>) {
   }
   // Never-confirmed, never-paid accounts older than 30 days: removed only when PRIVACY_PURGE_UNCONFIRMED=on (off by default).
   await purgeUnconfirmed(sql, ADMIN_EMAILS);
+  await indexLazyForeignKeys(sql);
+}
+
+/**
+ * Tables other modules create on first use (slider snapshots, guides, discount codes) get the index on each foreign
+ * key here at start-up too, when they already exist, so a release indexes them at once instead of on first use.
+ * The same statements stay in those modules for a new, empty database.
+ */
+export const LAZY_FK_INDEXES: [table: string, index: string, column: string][] = [
+  ["discount_codes", "discount_codes_user_id_idx", "user_id"],
+  ["discount_codes", "discount_codes_created_by_idx", "created_by"],
+  ["efficient_portfolio_jobs", "efficient_portfolio_jobs_snapshot_idx", "snapshot_id"],
+  ["efficient_portfolio_holdings", "efficient_portfolio_holdings_bond_code_idx", "bond_code"],
+  ...Array.from({ length: 10 }, (_, i): [string, string, string] => ["efficient_portfolio_positions", `efficient_portfolio_positions_bond_${i + 1}_idx`, `bond_${i + 1}`]),
+  ["seo_guides", "seo_guides_author_idx", "author_id"],
+  ["seo_guides", "seo_guides_reviewer_idx", "reviewer_id"],
+  ["seo_guide_log", "seo_guide_log_guide_idx", "guide_id"],
+  ["seo_shares", "seo_shares_guide_idx", "guide_id"],
+  ["seo_guide_backups", "seo_guide_backups_guide_idx", "guide_id"],
+];
+
+async function indexLazyForeignKeys(sql: ReturnType<typeof postgres>) {
+  for (const [table, index, column] of LAZY_FK_INDEXES) {
+    const [r] = await sql`select to_regclass(${"app." + table}) as t`;
+    if (r?.t) await sql.unsafe(`create index if not exists ${index} on app.${table} (${column})`);
+  }
 }
 
 type Plan = Exclude<Tier, "visitor">;

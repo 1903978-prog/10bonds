@@ -82,13 +82,15 @@ export async function buildReport(d: DbHealthDeps, now = new Date()): Promise<Db
   };
 }
 
-let cached: { at: number; report: DbHealthReport } | null = null;
+let cached: { at: number; report: Promise<DbHealthReport> } | null = null;
 
-/** The report, worked out at most once a minute. */
-export async function cachedReport(d: DbHealthDeps, now = Date.now()): Promise<DbHealthReport> {
+/** The report, worked out at most once a minute; callers arriving while it is being worked out share that one run. */
+export function cachedReport(d: DbHealthDeps, now = Date.now()): Promise<DbHealthReport> {
   if (cached && now - cached.at < 60_000) return cached.report;
-  const report = await buildReport(d, new Date(now));
-  cached = { at: now, report };
+  const report = buildReport(d, new Date(now));
+  const entry = { at: now, report };
+  cached = entry;
+  report.catch(() => { if (cached === entry) cached = null; });
   return report;
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { accountsConfigured, accountsSql, getSetting } from "@/lib/accounts";
-import { bondDataHealth, rawBondsForQuality } from "@/lib/bonds";
+import { bondDataHealth, loadBonds, rawBondsForQuality } from "@/lib/bonds";
+import { signatureOf } from "@/lib/bestTable";
 import { cachedReport, tokenOk, type DbHealthDeps } from "@/lib/secvalDbHealth";
 
 export const dynamic = "force-dynamic";
@@ -40,10 +41,13 @@ export async function GET(req: Request) {
     },
     setting: getSetting,
     orphanRankings: async () => {
+      // The ranking is rebuilt on the first visit after a new copy; until then its old bonds are not broken links.
+      const sql = await accountsSql();
+      const [stored] = await sql`select value from app.settings where key = 'best_bonds_signature'`;
+      if (stored?.value !== signatureOf(await loadBonds())) return null;
       const raw = await rawBondsForQuality();
       if (!raw) return null;
       const copy = new Set(raw.map((r) => String(r.isin ?? "").trim().toUpperCase()));
-      const sql = await accountsSql();
       const ranked = await sql`select distinct isin from app.best_bonds`;
       return ranked.filter((r) => !copy.has(String(r.isin).trim().toUpperCase())).length;
     },

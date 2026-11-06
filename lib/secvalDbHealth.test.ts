@@ -49,6 +49,10 @@ describe("secval database report", () => {
     expect(calls).toBe(1);
     await cachedReport(d, 61_000);
     expect(calls).toBe(2);
+    // Two callers at once share one run.
+    resetDbHealthCache();
+    await Promise.all([cachedReport(d, 0), cachedReport(d, 0)]);
+    expect(calls).toBe(3);
   });
 
   it("accepts only the exact token", () => {

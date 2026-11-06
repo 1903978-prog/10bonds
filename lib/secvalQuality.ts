@@ -67,13 +67,16 @@ export function rankingRecords(stored: { duration: unknown; level: unknown; bond
 
 const rankKey = (r: Row) => `${r.duration}|${r.level}|${r.isin}`;
 
-/** The yield and duration the copy holds for each ranked bond: what the stored ranking must match. */
-export function rankingTruth(records: Row[], copy: { isin: string; grossYtm: number | null; modifiedDuration: number | null }[]): Record<string, Row> {
-  const byIsin = new Map(copy.map((b) => [b.isin, b]));
+/**
+ * The yield and duration the bond copy holds NOW (read from the database again, not the in-memory list the ranking
+ * was built from) for each ranked bond: what the stored ranking must match. A stale or damaged ranking shows here.
+ */
+export function rankingTruth(records: Row[], copy: Row[]): Record<string, Row> {
+  const byIsin = new Map(copy.map((b) => [String(b.isin), b]));
   const out: Record<string, Row> = {};
   for (const r of records) {
     const b = byIsin.get(String(r.isin));
-    if (b) out[rankKey(r)] = { gross_ytm: b.grossYtm, modified_duration: b.modifiedDuration };
+    if (b) out[rankKey(r)] = { gross_ytm: b.gross_ytm, modified_duration: b.modified_duration };
   }
   return out;
 }
@@ -150,7 +153,7 @@ export async function sendToSecval(body: unknown, env: Env = process.env, fetche
  * `copy` is the bond list the ranking was built from.
  */
 export async function reportNewCopy(
-  copy: { bonds: { isin: string; grossYtm: number | null; modifiedDuration: number | null }[]; asOf: string | null },
+  copy: { asOf: string | null },
   signature: string,
   startedAt: string,
   deps: {
@@ -171,10 +174,15 @@ export async function reportNewCopy(
     const c = { startedAt, finishedAt, signature };
     const copyRecs = copyRecords(raw, finishedAt);
     out.push(await send(copySubmission(copyRecs, c)));
-    const ranking = rankingRecords(await deps.storedRanking(), copy.asOf);
-    // The site matches ISINs trimmed and in capitals (as lib/bonds.ts does), so links are checked the same way.
-    const isins = [...new Set(copyRecs.map((r) => String(r.isin ?? "").trim().toUpperCase()).filter(Boolean))];
-    out.push(await send(rankingSubmission(ranking, isins, rankingTruth(ranking, copy.bonds), c)));
+    // Without a yield date the ranking has no freshness to check: not sent rather than scored on a gap.
+    if (!copy.asOf) {
+      out.push("10bonds.best_bonds: not sent (the copy has no yield date)");
+    } else {
+      const ranking = rankingRecords(await deps.storedRanking(), copy.asOf);
+      // The ranking keeps the ISIN as stored; the site also matches it trimmed and in capitals. Both forms count as present.
+      const isins = [...new Set(copyRecs.flatMap((r) => { const s = String(r.isin ?? ""); return [s, s.trim().toUpperCase()]; }).filter(Boolean))];
+      out.push(await send(rankingSubmission(ranking, isins, rankingTruth(ranking, copyRecs), c)));
+    }
   } catch (e) {
     out.push(`not sent: ${(e as Error).message}`);
   }
