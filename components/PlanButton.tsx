@@ -1,14 +1,19 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { track, flushNow } from "@/lib/track";
 import type { Interval, PaidPlan } from "@/lib/plans";
 
-type Props = { plan: PaidPlan; interval?: Interval; highlight: boolean; label: string };
+type Props = { plan: PaidPlan; interval?: Interval; highlight: boolean; label: string; chosen?: boolean };
 
 /** Starts Stripe checkout for a paid plan, after the EU "start now" request. */
-export function PlanButton({ plan, interval = "month", highlight, label }: Props) {
+export function PlanButton({ plan, interval = "month", highlight, label, chosen = false }: Props) {
+  const box = useRef<HTMLDivElement>(null);
+  // Arrived from sign-up with this plan chosen: bring it into view, ready to tick and pay.
+  useEffect(() => {
+    if (chosen) box.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [chosen]);
   const [startNow, setStartNow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +38,7 @@ export function PlanButton({ plan, interval = "month", highlight, label }: Props
     setBusy(false);
   }
   return (
-    <div className="mt-4">
+    <div className="mt-4" ref={box}>
       <label className="flex gap-1.5 text-left text-[11px] leading-snug text-mute">
         <input type="checkbox" className="mt-0.5" checked={startNow} onChange={(e) => setStartNow(e.target.checked)} data-testid={`start-now-${plan}`} />
         {plan === "pro" ? (
