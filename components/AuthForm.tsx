@@ -54,11 +54,13 @@ export default function AuthForm({ mode }: { mode: "signup" | "login" }) {
     return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/";
   };
 
-  // Keep the chosen plan when switching between sign-up and sign-in.
-  const nextQ = () => {
-    const n = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("next");
-    return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? `?next=${encodeURIComponent(n)}` : "";
-  };
+  // Keep the chosen plan when switching between sign-up and sign-in (set after load, so server and browser HTML match).
+  const [nq, setNq] = useState("");
+  useEffect(() => {
+    const n = new URLSearchParams(window.location.search).get("next");
+    if (n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\")) setNq(`?next=${encodeURIComponent(n)}`);
+  }, []);
+  const nextQ = () => nq;
 
   async function submitCode(e: React.FormEvent) {
     e.preventDefault();
