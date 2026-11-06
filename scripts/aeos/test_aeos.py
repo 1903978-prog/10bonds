@@ -207,6 +207,14 @@ class TestCollector(Base):
         d = self.collect([{"dir": a}])["apps"][0]
         self.assertEqual(d["backlog"]["open_p0_p1"], 1); self.assertEqual(d["score_parts"]["no_open_p0_p1_or_blockers"], 0)
 
+    def test_unstable_or_unknown_pr_does_not_earn_the_mergeable_points(self):
+        a = self.make_repo("alpha")
+        shutil.copy(os.path.join(HERE, "test_aeos.py"), os.path.join(a, "scripts/aeos/test_aeos.py"))
+        for state in ("unstable", "unknown", "dirty"):
+            pr = {"state": "open", "draft": True, "mergeable_state": state, "html_url": "https://github.com/o/r/pull/1"}
+            d = self.collect([{"dir": a, "pr": pr, "fresh_session": {"passed": 1, "total": 1}}])["apps"][0]
+            self.assertEqual(d["score_parts"]["draft_pr_open_and_mergeable"], 0, state)
+
     def test_unenrolled_directory_scores_zero(self):
         e = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, e, True)
         d = self.collect([{"dir": e}])["apps"][0]
