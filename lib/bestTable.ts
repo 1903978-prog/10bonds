@@ -1,4 +1,5 @@
-import { loadBonds, loadBondsFor, type BondSource } from "./bonds";
+import { loadBonds, loadBondsFor, rawBondsForQuality, type BondSource } from "./bonds";
+import { reportNewCopy } from "./secvalQuality";
 import { filterKey, isDefaultFilter, type BondFilter } from "./bondFilter";
 import { accountsConfigured, accountsSql } from "./accounts";
 import { DURATION_STEPS, LIMITS, snapDuration } from "./limits";
@@ -125,6 +126,7 @@ async function load(src: BondSource, sig: string): Promise<BestTable> {
     const sql = await accountsSql();
     const [stored] = await sql`select value from app.settings where key = 'best_bonds_signature'`;
     if (stored?.value !== sig) {
+      const startedAt = new Date().toISOString();
       const table = await fullTable(src);
       const rows = Object.entries(table.grid).flatMap(([d, levels]) =>
         Object.entries(levels).flatMap(([level, bonds]) => bonds.map((b) => ({ duration: d, level: Number(level), rank: b.rank, isin: b.isin, bond: b }))),
@@ -140,6 +142,11 @@ async function load(src: BondSource, sig: string): Promise<BestTable> {
         }
       });
       void recordYields(src);
+      // Tell secval (the owner's monitoring) about the new copy and the rebuilt ranking. Off without SECVAL_QUALITY_TOKEN.
+      void reportNewCopy(src, sig, startedAt, {
+        rawCopy: rawBondsForQuality,
+        storedRanking: () => sql`select duration, level, bond from app.best_bonds` as unknown as Promise<{ duration: unknown; level: unknown; bond: unknown }[]>,
+      }).catch(() => {});
       return (memo = table);
     }
     const rows = await sql`select duration, level, bond from app.best_bonds order by duration, level, rank`;

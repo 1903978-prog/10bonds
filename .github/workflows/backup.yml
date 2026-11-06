@@ -50,3 +50,15 @@ jobs:
             ${{ env.OUT }}.sha256
           retention-days: 30
           if-no-files-found: error
+      # Only reached when the backup, the restore test and the upload all passed. secval's database check reads these two
+      # times (GET /api/secval/db-health, lib/secvalDbHealth.ts); a missed night shows there as an old backup.
+      - name: Record the good backup and restore test
+        run: |
+          URL="$(node scripts/accounts-url.mjs)"
+          echo "::add-mask::$URL"
+          docker run --rm -i --network host postgres:18 psql "$URL" -v ON_ERROR_STOP=1 -q <<'SQL'
+          insert into app.settings (key, value) values
+            ('backup_last_ok_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+            ('backup_restore_test_ok_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
+          on conflict (key) do update set value = excluded.value, updated_at = now();
+          SQL
