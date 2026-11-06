@@ -3,7 +3,7 @@
   "execution_window_hours": 5,
   "application": "10bonds",
   "repository": "1903978-prog/10bonds",
-  "production_environment": "Fly.io (fly.toml); Next.js app",
+  "production_environment": "Fly.io app '10bonds', region cdg, always on (min_machines_running 1, auto_stop off), 1024 MB, health /api/health and /api/ready (fly.toml). Read from repository files on 06 Nov 2026; NOT live-checked (no production or Render/Fly credentials in this environment).",
   "development_environment": "local / cloud session; claude/* branches",
   "authorized_branches": [
     "claude/*"
@@ -21,12 +21,21 @@
     "npm test (vitest)",
     "lint per CLAUDE.md"
   ],
-  "deployment_process": "deploy.yml / Fly per CLAUDE.md; not performed under AEOS without written approval",
-  "rollback_process": "rollback.yml exists; contents UNVERIFIED",
+  "deployment_process": "CLAUDE.md: the owning session runs 'fly deploy' after merge; deploy.yml is manual fallback (workflow_dispatch) and requires the CI workflow to pass first. Not performed under AEOS without written approval.",
+  "rollback_process": "One click: Actions 'Roll back to the previous release' (rollback.yml, workflow_dispatch) runs scripts/fly-rollback.sh, putting the previous image back on Fly; the deploy workflow runs the same script itself when post-deploy checks fail.",
   "critical_workflows": [
     "bond ranking and frontier",
     "nightly live checks",
     "weekly e-mail"
   ],
-  "existing_instruction_conflicts": []
+  "existing_instruction_conflicts": [],
+  "verified_facts": [
+    "fly.toml: app 10bonds, cdg, health /api/health",
+    "rollback.yml workflow_dispatch runs scripts/fly-rollback.sh",
+    "deploy.yml is workflow_dispatch only"
+  ],
+  "unverified": [
+    "live Fly machine state",
+    "FLY_API_TOKEN secret presence"
+  ]
 }
