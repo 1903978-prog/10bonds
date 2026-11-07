@@ -41,3 +41,9 @@ On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, 
 Always write dates as "03 Nov 2026" (DD Mon YYYY, English month abbreviation, two-digit day) everywhere: every page, PDF, export, email, slide and "Generated" stamp. In TS/JS use `formatDate` / `formatDateTime` from `lib/formatDate.ts` (`@/lib/formatDate`), never `toLocaleDateString()` on a date; in Python `strftime("%d %b %Y")`. Machine formats (ISO in APIs, database, file names) stay as they are. New code must follow this; do not add other human-visible date formats.
 
 Open question for Livio: dates on the IT/FR/DE pages still follow each language (localized month names); not converted yet.
+
+<!-- AEOS:BEGIN -->
+## EENDIGO AEOS (v1.0.0) — 10bonds
+Read and follow `EENDIGO_AEOS.md` (canonical, do not edit here) and `.engineering/aeos.config.json` at the start of every session in this repo; state lives in `.engineering/`. Everything above this block stays in force; where it is stricter, it wins. AEOS adds: one business-decision round, checkpoints, no production action without separate written approval.
+@EENDIGO_AEOS.md
+<!-- AEOS:END -->
