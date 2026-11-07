@@ -111,6 +111,20 @@ describe.skipIf(!url)("database schema", () => {
 });
 
 describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () => {
+  it("every table is linked, or listed as standalone with a reason, or named as holding a link kept in code", async () => {
+    const sql = await buildAll();
+    const { STANDALONE_TABLES } = await import("./dbLinks");
+    const CODE_LINKED = ["credit_research_runs", "credit_research_workers", "credit_research_jobs", "risk_premium_audit", "visitors"];
+    const rows = await sql`
+      select t.relname as name,
+             exists (select 1 from pg_constraint c where c.contype = 'f' and (c.conrelid = t.oid or c.confrelid = t.oid)) as linked
+      from pg_class t where t.relnamespace = 'app'::regnamespace and t.relkind in ('r', 'p')`;
+    const unlinked = rows.filter((r) => !r.linked).map((r) => String(r.name)).sort();
+    const listed = Object.keys(STANDALONE_TABLES);
+    expect(unlinked).toEqual([...listed, ...CODE_LINKED].sort());
+    expect(listed.length).toBeLessThanOrEqual(rows.length / 2);
+  });
+
   it("repairs rows that already break a link the way the rule would, then enforces it", async () => {
     const sql = await buildAll();
     const { ensureLinks } = await import("./dbLinks");

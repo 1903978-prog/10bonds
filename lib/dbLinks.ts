@@ -84,3 +84,40 @@ export async function ensureLinks(sql: Sql, links: Link[] = LINKS): Promise<void
     }
   }
 }
+
+/**
+ * Tables with no link to another table of this database, by design (secval rule AD-01: reported as `standaloneTables`,
+ * only tables with no foreign key count, at most half of all tables). Each reason says why no foreign key fits.
+ * Not listed on purpose (they hold a link kept in code, see LINKS above): credit_research_runs, credit_research_workers,
+ * credit_research_jobs (claimed_by names a worker), risk_premium_audit, visitors (events and consents name visitors).
+ */
+export const STANDALONE_TABLES: Record<string, string> = {
+  settings: "key/value settings of the app",
+  bond_import_settings: "key/value settings of the bond import",
+  broker_settings: "key/value settings of the broker pages",
+  credit_research_settings: "key/value settings of credit research",
+  credit_worker_kb: "key/value knowledge for the research worker",
+  bond_code_counters: "counters that hand out bond codes",
+  efficient_portfolio_migrations: "log of one-time data migrations",
+  shortlist_seeds: "one-time seed markers",
+  credit_research_tokens: "hashed worker access tokens, linked to nothing",
+  refresh_requests: "requests read by lm-op-model (another app), named by the admin's name only",
+  best_bonds: "ranking rebuilt from the bond copy, which lives under another login (no foreign key possible)",
+  frontier_cache: "cache computed from the bond copy",
+  bond_daily_prices: "daily prices of bonds from the copy; bonds leave the copy, history stays",
+  bond_price_weeks: "weekly price ranges of bonds from the copy; history outlives the bond",
+  ytm_history: "daily yields of bonds from the copy; history outlives the bond",
+  daily_counts: "anonymous daily page counts",
+  assessment_evidence: "published evidence per ISIN of the bond copy (other login)",
+  bond_credit_analysis: "credit analysis per ISIN of the bond copy (other login)",
+  bond_credit_analysis_history: "history of credit analyses per ISIN; history outlives the bond",
+  credit_reference_cases: "reference cases per ISIN, some for bonds not in the copy",
+  correction_requests: "public correction form: ISIN and the sender's e-mail, no account needed",
+  outreach: "outreach e-mail drafts to firms, not accounts",
+  shortlists: "admin shortlists holding ISIN lists of the bond copy",
+  seo_actions: "SEO to-do status by key",
+  seo_backlinks: "backlinks found for the public site",
+  seo_daily_stats: "daily search-engine statistics",
+  seo_manual: "manual SEO ratings with the admin's e-mail",
+  seo_opportunities: "SEO keyword opportunities",
+};
