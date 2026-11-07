@@ -215,6 +215,16 @@ class TestCollector(Base):
             d = self.collect([{"dir": a, "pr": pr, "fresh_session": {"passed": 1, "total": 1}}])["apps"][0]
             self.assertEqual(d["score_parts"]["draft_pr_open_and_mergeable"], 0, state)
 
+    def test_a_merged_pr_counts_as_delivered(self):
+        a = self.make_repo("alpha")
+        shutil.copy(os.path.join(HERE, "test_aeos.py"), os.path.join(a, "scripts/aeos/test_aeos.py"))
+        pr = {"state": "merged", "merged": True, "draft": False, "html_url": "https://github.com/o/r/pull/1"}
+        d = self.collect([{"dir": a, "pr": pr, "fresh_session": {"passed": 1, "total": 1}}])["apps"][0]
+        self.assertEqual(d["score_parts"]["draft_pr_open_and_mergeable"], 10)
+        closed = {"state": "closed", "merged": False, "draft": True, "html_url": "https://github.com/o/r/pull/2", "mergeable_state": "clean"}
+        d2 = self.collect([{"dir": a, "pr": closed}])["apps"][0]
+        self.assertEqual(d2["score_parts"]["draft_pr_open_and_mergeable"], 0)  # closed unmerged earns nothing
+
     def test_unenrolled_directory_scores_zero(self):
         e = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, e, True)
         d = self.collect([{"dir": e}])["apps"][0]

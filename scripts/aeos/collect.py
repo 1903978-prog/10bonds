@@ -69,7 +69,9 @@ def collect_app(entry):
     pr = entry.get("pr") or {}
     fs = entry.get("fresh_session") or {}
     fs_ok = bool(fs) and fs.get("total", 0) > 0 and fs.get("passed") == fs.get("total")
-    pr_ok = bool(pr) and pr.get("state") == "open" and pr.get("draft") is True and pr.get("mergeable_state") == "clean"
+    open_draft_clean = pr.get("state") == "open" and pr.get("draft") is True and pr.get("mergeable_state") == "clean"
+    merged = pr.get("state") == "merged" or pr.get("merged") is True  # delivered: counts as done, not as a loss
+    pr_ok = bool(pr) and (open_draft_clean or merged)
     clean = bl["open_p0_p1"] == 0 and not blockers
     parts = {
         "installed": SCORE_BASIS["installed"],
