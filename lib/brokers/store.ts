@@ -2,6 +2,7 @@ import { notOwnerVisitor } from "@/lib/ownerExclusion";
 import { accountsConfigured, accountsSql } from "../accounts";
 import { PROFILES, SEED_TARIFFS } from "./data";
 import { DEFAULT_METHODOLOGY, type BrokerProfile, type Country, type Methodology, type Tariff, type TariffData } from "./types";
+import { ensureLinks } from "../dbLinks";
 
 // Broker data lives in schema "app" of the 10BONDS database. The researched tariffs in data.ts seed the
 // tables once; after that the admin edits them. Every edit is saved as a draft and only reaches the public
@@ -24,7 +25,7 @@ const DEFAULT_COUNTRY: CountrySettings = { published: true, excluded: [], intro:
 let ready: Promise<void> | null = null;
 async function db(): Promise<Sql> {
   const s = await accountsSql();
-  ready ??= setup(s).catch((e) => {
+  ready ??= setup(s).then(() => ensureLinks(s)).catch((e) => {
     ready = null;
     throw e;
   });

@@ -110,6 +110,30 @@ describe.skipIf(!url)("database schema", () => {
   });
 });
 
+describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () => {
+  it("repairs rows that already break a link the way the rule would, then enforces it", async () => {
+    const sql = await buildAll();
+    const { ensureLinks } = await import("./dbLinks");
+    // A production database from before: no rule yet, and rows left behind by deleted accounts.
+    await sql`alter table app.weekly_email_sends drop constraint weekly_email_sends_user_id_fkey`;
+    await sql`alter table app.consents drop constraint consents_user_id_fkey`;
+    const [u] = await sql`insert into app.users (email, password_hash) values (${`links-${Date.now()}@test.local`}, 'x') returning id`;
+    await sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W01', 999999999, 'sent'), ('2026-W01', ${u.id}, 'sent')`;
+    await sql`insert into app.consents (user_id, kind, version, lang, text_shown) values (999999999, 'terms', 'v', 'en', 't')`;
+    await ensureLinks(sql);
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = 999999999`).toHaveLength(0);
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = ${u.id}`).toHaveLength(1);
+    expect(await sql`select 1 from app.consents where user_id = 999999999`).toHaveLength(0);
+    const notValid = await sql`select conname from pg_constraint where connamespace = 'app'::regnamespace and contype = 'f' and not convalidated`;
+    expect(notValid).toEqual([]);
+    // Enforced now: deleting the account takes its sends with it, and a send for no account is refused.
+    const { deleteUser } = await import("./accounts");
+    await deleteUser(Number(u.id));
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = ${u.id}`).toHaveLength(0);
+    await expect(sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W02', 999999999, 'sent')`).rejects.toThrow();
+  });
+});
+
 describe.skipIf(!url)("admin two-factor key on a real database", () => {
   it("is stored encrypted, still works, and an old plain key is sealed on first use", async () => {
     const sql = await buildAll();

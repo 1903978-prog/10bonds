@@ -731,15 +731,18 @@ constraints
   app.bond_credit_analysis_history bond_credit_analysis_history_pkey: PRIMARY KEY (id)
   app.bond_daily_prices bond_daily_prices_pkey: PRIMARY KEY (as_of, isin)
   app.bond_import_batches bond_import_batches_pkey: PRIMARY KEY (id)
+  app.bond_import_rows bond_import_rows_batch_id_fkey: FOREIGN KEY (batch_id) REFERENCES app.bond_import_batches(id) ON DELETE CASCADE
   app.bond_import_rows bond_import_rows_pkey: PRIMARY KEY (batch_id, isin)
   app.bond_import_settings bond_import_settings_pkey: PRIMARY KEY (key)
   app.bond_price_weeks bond_price_weeks_pkey: PRIMARY KEY (isin, week)
   app.broker_profiles broker_profiles_pkey: PRIMARY KEY (id)
   app.broker_settings broker_settings_pkey: PRIMARY KEY (key)
+  app.broker_tariffs broker_tariffs_broker_id_fkey: FOREIGN KEY (broker_id) REFERENCES app.broker_profiles(id)
   app.broker_tariffs broker_tariffs_country_check: CHECK ((country = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
   app.broker_tariffs broker_tariffs_pkey: PRIMARY KEY (id)
   app.broker_tariffs broker_tariffs_status_check: CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'archived'::text])))
   app.consents consents_pkey: PRIMARY KEY (id)
+  app.consents consents_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
   app.credit_reference_cases credit_reference_cases_pkey: PRIMARY KEY (isin)
@@ -800,6 +803,7 @@ constraints
   app.risk_premium_versions risk_premium_versions_version_key: UNIQUE (version)
   app.risk_spread_reviews risk_spread_reviews_decision_check: CHECK ((decision = ANY (ARRAY['approved'::text, 'rejected'::text])))
   app.risk_spread_reviews risk_spread_reviews_pkey: PRIMARY KEY (id)
+  app.risk_spread_reviews risk_spread_reviews_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id) ON DELETE SET NULL
   app.search_usage search_usage_kind_check: CHECK ((kind = ANY (ARRAY['single'::text, 'portfolio'::text])))
   app.search_usage search_usage_pkey: PRIMARY KEY (id)
   app.search_usage search_usage_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
@@ -860,6 +864,7 @@ constraints
   app.visitors visitors_code_no_key: UNIQUE (code_no)
   app.visitors visitors_pkey: PRIMARY KEY (visitor_id)
   app.weekly_email_sends weekly_email_sends_pkey: PRIMARY KEY (week, user_id)
+  app.weekly_email_sends weekly_email_sends_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.ytm_history ytm_history_pkey: PRIMARY KEY (as_of, isin)
 
 indexes
@@ -880,6 +885,7 @@ indexes
   CREATE UNIQUE INDEX bond_price_weeks_pkey ON app.bond_price_weeks USING btree (isin, week)
   CREATE UNIQUE INDEX broker_profiles_pkey ON app.broker_profiles USING btree (id)
   CREATE UNIQUE INDEX broker_settings_pkey ON app.broker_settings USING btree (key)
+  CREATE INDEX broker_tariffs_broker_idx ON app.broker_tariffs USING btree (broker_id)
   CREATE INDEX broker_tariffs_lookup ON app.broker_tariffs USING btree (country, broker_id, status, effective_from DESC)
   CREATE UNIQUE INDEX broker_tariffs_pkey ON app.broker_tariffs USING btree (id)
   CREATE INDEX consents_user_idx ON app.consents USING btree (user_id, kind, version)
@@ -934,6 +940,7 @@ indexes
   CREATE UNIQUE INDEX risk_premium_versions_pkey ON app.risk_premium_versions USING btree (id)
   CREATE UNIQUE INDEX risk_premium_versions_version_key ON app.risk_premium_versions USING btree (version)
   CREATE INDEX risk_spread_reviews_isin ON app.risk_spread_reviews USING btree (isin, at DESC)
+  CREATE INDEX risk_spread_reviews_version_idx ON app.risk_spread_reviews USING btree (version_id)
   CREATE UNIQUE INDEX risk_spread_reviews_pkey ON app.risk_spread_reviews USING btree (id)
   CREATE INDEX search_usage_user_idx ON app.search_usage USING btree (user_id, kind, at)
   CREATE UNIQUE INDEX search_usage_pkey ON app.search_usage USING btree (id)
@@ -973,6 +980,7 @@ indexes
   CREATE UNIQUE INDEX users_username_key ON app.users USING btree (lower(username))
   CREATE UNIQUE INDEX visitors_code_no_key ON app.visitors USING btree (code_no)
   CREATE UNIQUE INDEX visitors_pkey ON app.visitors USING btree (visitor_id)
+  CREATE INDEX weekly_email_sends_user_idx ON app.weekly_email_sends USING btree (user_id)
   CREATE UNIQUE INDEX weekly_email_sends_pkey ON app.weekly_email_sends USING btree (week, user_id)
   CREATE INDEX ytm_history_isin ON app.ytm_history USING btree (isin, as_of)
   CREATE UNIQUE INDEX ytm_history_pkey ON app.ytm_history USING btree (as_of, isin)

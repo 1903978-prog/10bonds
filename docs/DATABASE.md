@@ -30,7 +30,7 @@ start): accounts with no confirmed address, no Stripe customer or subscription, 
 It is **off** unless the Fly secret `PRIVACY_PURGE_UNCONFIRMED=on`; Livio decides, and the privacy page's retention
 section gets the new period, before it is switched on.
 
-Links between records are enforced by the database (foreign keys): deleting an account removes its searches and Pro
+Links kept only in code until 07 Nov 2026 are now foreign keys too (`lib/dbLinks.ts`, which lists each link, why, and the ones left in code on purpose). Links between records are enforced by the database (foreign keys): deleting an account removes its searches and Pro
 request and blanks it in stats and codes. Every table has a primary key; allowed values are checked by the database.
 
 ## Held outside the database
