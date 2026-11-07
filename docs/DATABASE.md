@@ -67,3 +67,14 @@ Same list as the privacy page (`app/privacy/page.tsx`, section 7):
 ## Backups
 
 See `docs/OPERATIONS.md` > Backups: nightly encrypted dump of schema `app` with an automatic restore test.
+
+## Checks by secval (the owner's monitoring tool)
+
+- **After each new bond copy** (`lib/secvalQuality.ts`, called from `lib/bestTable.ts`): the copy (`public.public_bonds`)
+  and the rebuilt ranking (`app.best_bonds`) are sent to secval's data quality check (`POST /api/quality/validate`).
+  Bond facts only, no personal data. Rules: anti-hacker `server/quality/datasets/tenbonds.ts`.
+  Fly secrets: `SECVAL_QUALITY_TOKEN` (off when unset), optional `SECVAL_URL` (default https://secval.onrender.com).
+- **Database report** `GET /api/secval/db-health` (`lib/secvalDbHealth.ts`): counts only (tables, keys, rules,
+  indexes, broken ranking links, last good backup and restore test), polled hourly by secval. 404 unless the Fly secret
+  `SECVAL_DBCHECK_TOKEN` is set. The nightly backup job records its last good backup and restore test in `app.settings`
+  (`backup_last_ok_at`, `backup_restore_test_ok_at`).

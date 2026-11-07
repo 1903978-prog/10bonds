@@ -104,6 +104,12 @@ async function sql() {
       finished_at timestamptz,
       message text,
       log jsonb)`;
+    // Every foreign key has an index on its columns (secval's database check, 06 Nov 2026).
+    await s`create index if not exists efficient_portfolio_jobs_snapshot_idx on app.efficient_portfolio_jobs (snapshot_id)`;
+    await s`create index if not exists efficient_portfolio_holdings_bond_code_idx on app.efficient_portfolio_holdings (bond_code)`;
+    for (let i = 1; i <= 10; i++) {
+      await s.unsafe(`create index if not exists efficient_portfolio_positions_bond_${i}_idx on app.efficient_portfolio_positions (bond_${i})`);
+    }
     await s`insert into app.efficient_portfolio_migrations (id) values (${MIGRATION_ID}) on conflict do nothing`;
   })().catch((e) => { ready = null; throw e; });
   await ready;

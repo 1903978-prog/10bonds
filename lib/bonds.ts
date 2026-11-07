@@ -482,3 +482,11 @@ export async function allBondIsinsForResearch(): Promise<{ isin: string; issuer:
   const rows = await client`select isin, issuer from public_bonds where isin is not null and (maturity is null or maturity > current_date)`;
   return rows.map((r) => ({ isin: String(r.isin), issuer: r.issuer ? String(r.issuer) : null }));
 }
+
+/** Every row of the bond copy, raw (no site filters), with the columns the data quality check reads. Null when the copy is not connected. */
+export async function rawBondsForQuality(): Promise<Record<string, unknown>[] | null> {
+  const client = db();
+  if (!client) return null;
+  const rows = await client`select isin, name, issuer, currency, coupon, maturity, gross_ytm, modified_duration, ytm_as_of from public_bonds`;
+  return rows as unknown as Record<string, unknown>[];
+}

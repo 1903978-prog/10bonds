@@ -91,6 +91,23 @@ describe.skipIf(!url)("database schema", () => {
         and not exists (select 1 from pg_constraint k where k.conrelid = c.oid and k.contype = 'p')`;
     expect(rows.map((r) => r.t)).toEqual([]);
   });
+
+  it("every foreign key has an index, and start-up adds a missing one to a table made on first use", async () => {
+    const sql = await buildAll();
+    const unindexed = () => sql`
+      select c.conname n from pg_constraint c
+      where c.contype = 'f' and c.connamespace = 'app'::regnamespace
+        and not exists (select 1 from pg_index i where i.indrelid = c.conrelid
+                        and (i.indkey::int2[])[0:array_length(c.conkey, 1) - 1] @> c.conkey)`;
+    expect((await unindexed()).map((r) => r.n)).toEqual([]);
+    // A production database whose slider and guide tables were made before these indexes existed.
+    await sql`drop index app.efficient_portfolio_positions_bond_3_idx`;
+    await sql`drop index app.seo_shares_guide_idx`;
+    expect((await unindexed()).length).toBe(2);
+    const { setupAgainForTest } = await import("./accounts");
+    await setupAgainForTest();
+    expect((await unindexed()).map((r) => r.n)).toEqual([]);
+  });
 });
 
 describe.skipIf(!url)("admin two-factor key on a real database", () => {
