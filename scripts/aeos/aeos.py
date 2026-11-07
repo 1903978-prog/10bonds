@@ -52,6 +52,21 @@ def read(root, rel):
     return open(p, encoding="utf-8").read() if os.path.isfile(p) else ""
 
 
+def split_verification(cell):
+    """'VERIFIED (local tests; live UNVERIFIED)' -> ('VERIFIED', 'local tests; live UNVERIFIED').
+    A qualifier is allowed (honest notes are good), but a VERIFIED whose note says something is
+    unverified counts as PARTIAL (see effective_verification)."""
+    m = re.match(r"^([A-Z]+)\s*(?:\((.*)\))?\s*$", cell.strip())
+    return (m.group(1), (m.group(2) or "")) if m else (cell.strip(), "")
+
+
+def effective_verification(cell):
+    v, note = split_verification(cell)
+    if v == "VERIFIED" and re.search(r"unverified|not verified|not tested", note, re.I):
+        return "PARTIAL"
+    return v
+
+
 # ---------------------------------------------------------------- validate
 def problems(root):
     out = []
@@ -104,7 +119,7 @@ def problems(root):
                 continue
             if cells[3] not in STATUSES:
                 out.append(f"BACKLOG {cells[0]}: bad status '{cells[3]}'")
-            if cells[4] not in VERIFS:
+            if split_verification(cells[4])[0] not in VERIFS:
                 out.append(f"BACKLOG {cells[0]}: bad verification '{cells[4]}'")
             if cells[3] == "RELEASED" and cells[5].upper() in ("", "-", "NO"):
                 out.append(f"BACKLOG {cells[0]}: RELEASED without recorded release approval")

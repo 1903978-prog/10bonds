@@ -225,6 +225,28 @@ class TestCollector(Base):
         d2 = self.collect([{"dir": a, "pr": closed}])["apps"][0]
         self.assertEqual(d2["score_parts"]["draft_pr_open_and_mergeable"], 0)  # closed unmerged earns nothing
 
+    def test_honest_qualifier_is_accepted_but_unverified_note_counts_as_partial(self):
+        d = self.make_repo("alpha")
+        shutil.copy(os.path.join(HERE, "test_aeos.py"), os.path.join(d, "scripts/aeos/test_aeos.py"))
+        b = os.path.join(d, ".engineering/BACKLOG.md")
+        open(b, "a").write(
+            "| T-ALPHA-1 | core | a | VERIFIED | VERIFIED (unit tests; live UNVERIFIED) | No | P2 | - | - |\n"
+            "| T-ALPHA-2 | core | b | VERIFIED | VERIFIED (unit and browser tests) | No | P2 | - | - |\n")
+        self.assertEqual(run("validate", root=d).returncode, 0, run("validate", root=d).stdout)
+        bl = json.load(open(self._collect_one(d)))["apps"][0]["backlog"]
+        self.assertEqual(bl["verified"], 1)       # only the row whose note admits nothing unverified
+        self.assertEqual(bl["by_verification"].get("PARTIAL"), 1)
+        # a made-up value is still refused, qualifier or not
+        open(b, "a").write("| T-ALPHA-3 | core | c | VERIFIED | GREAT (it works) | No | P2 | - | - |\n")
+        self.assertIn("bad verification", run("validate", root=d).stdout)
+
+    def _collect_one(self, d):
+        m = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, m, True)
+        mp, op = os.path.join(m, "m.json"), os.path.join(m, "out.json")
+        json.dump({"apps": [{"dir": d}]}, open(mp, "w"))
+        subprocess.run([sys.executable, os.path.join(HERE, "collect.py"), "--manifest", mp, "--out", op], check=True, capture_output=True)
+        return op
+
     def test_unenrolled_directory_scores_zero(self):
         e = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, e, True)
         d = self.collect([{"dir": e}])["apps"][0]

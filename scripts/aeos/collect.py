@@ -11,6 +11,8 @@ the date this ran. Score (documented in `score_basis`) measures AEOS installatio
 quality of the application itself.
 """
 import argparse, json, os, re, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from aeos import effective_verification  # one definition of how a verification cell is read
 from datetime import datetime, timezone
 
 SCORE_BASIS = {
@@ -38,7 +40,8 @@ def backlog(d):
                 continue
             rows += 1
             by_status[c[3]] = by_status.get(c[3], 0) + 1
-            by_verif[c[4]] = by_verif.get(c[4], 0) + 1
+            v = effective_verification(c[4])
+            by_verif[v] = by_verif.get(v, 0) + 1
             if c[6] in ("P0", "P1") and c[3] not in CLOSED:
                 open_p01 += 1
     return {"total": rows, "by_status": by_status, "by_verification": by_verif,
