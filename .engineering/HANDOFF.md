@@ -6,14 +6,14 @@
 Overwritten by `aeos.py checkpoint`:
 
 <!-- CHECKPOINT:BEGIN -->
-- Time: 2026-11-07 01:37 UTC
+- Time: 2026-11-07 04:45 UTC
 - Repo: 1903978-prog/10bonds
 - Branch: claude/aeos-install
-- SHA: d31f76b
-- Task done: Pin AEOS workflow, portable fresh-session runner
+- SHA: f6d28c7
+- Task done: Scheduled continuation 1: PR/base check, validate, tests
 - Next task: Await merge decision; no backlog assigned
 - Changes: none
-- Tests run: test_aeos 22 OK; validate OK
+- Tests run: test_aeos 24 OK, validate OK at 04:45 UTC
 - Result: VERIFIED
 - Blockers: none
 - Approvals held: none: no merge or deploy
