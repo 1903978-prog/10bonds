@@ -3,6 +3,7 @@ import { siteBondsByIsin } from "./bonds";
 import { loadGptRatings, mergeImportedRatings } from "./gptRatingsDb";
 import { importedRank, importedSeniorityText, KNOWN_FIELDS, type ImportRow, type Parsed } from "./bondImportParse";
 import { rankOf } from "./seniority";
+import { ensureLinks } from "./dbLinks";
 
 // Admin only (the owner, 25/10/2026): bonds spreadsheets imported into our own tables (schema app), one batch per file.
 // Every column is kept (raw json); a re-import of the same file is refused; a new file adds a new batch and the newest
@@ -50,6 +51,7 @@ async function sql() {
         key text primary key,
         value text not null
       )`;
+    await ensureLinks(s);
   })().catch((e) => {
     ready = null;
     throw e;

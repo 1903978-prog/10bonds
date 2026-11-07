@@ -3,6 +3,7 @@ import { accountsConfigured, accountsSql, getSetting } from "@/lib/accounts";
 import { bondDataHealth, loadBonds, rawBondsForQuality } from "@/lib/bonds";
 import { signatureOf } from "@/lib/bestTable";
 import { cachedReport, tokenOk, type DbHealthDeps } from "@/lib/secvalDbHealth";
+import { STANDALONE_TABLES } from "@/lib/dbLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,22 @@ export async function GET(req: Request) {
         return sql`
           select c.contype, count(*)::int as n from pg_constraint c join pg_namespace n on n.oid = c.connamespace
           where n.nspname = 'app' and c.contype in ('f', 'u', 'c') group by c.contype`;
+      }
+      if (q === "standalone") {
+        // Only listed tables that exist and really have no foreign key on either side count.
+        return sql`
+          select count(*)::int as n from pg_class t join pg_namespace n on n.oid = t.relnamespace
+          where n.nspname = 'app' and t.relkind in ('r', 'p') and t.relname in ${sql(Object.keys(STANDALONE_TABLES))}
+            and not exists (select 1 from pg_constraint c where c.contype = 'f' and (c.conrelid = t.oid or c.confrelid = t.oid))`;
+      }
+      if (q === "linked") {
+        return sql`
+          select count(distinct rel)::int as n from (
+            select c.conrelid as rel from pg_constraint c join pg_namespace n on n.oid = c.connamespace
+            where c.contype = 'f' and n.nspname = 'app'
+            union
+            select c.confrelid from pg_constraint c join pg_namespace n on n.oid = c.connamespace
+            where c.contype = 'f' and n.nspname = 'app') x`;
       }
       return sql`
         select count(*)::int as n from pg_constraint c join pg_namespace n on n.oid = c.connamespace

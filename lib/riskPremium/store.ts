@@ -6,6 +6,7 @@ import { cleanSd, OUTLIER_SD } from "../outliers";
 import { cleanParams, setRiskParams, type RiskParams } from "./params";
 import { cleanMatrix, setSpreadMatrix, type SpreadMatrix } from "../stepGap";
 import { cleanPolicy, setPolicy, type CoherencePolicy } from "../coherence";
+import { ensureLinks } from "../dbLinks";
 
 // Risk premium model data in schema "app": curve versions, the audit trail of every change, admin decisions on
 // exceptional spreads, and recorded calculation runs (every evaluated bond with the version it used).
@@ -17,7 +18,7 @@ type Sql = Awaited<ReturnType<typeof accountsSql>>;
 let ready: Promise<void> | null = null;
 async function db(): Promise<Sql> {
   const s = await accountsSql();
-  ready ??= setup(s).catch((e) => {
+  ready ??= setup(s).then(() => ensureLinks(s)).catch((e) => {
     ready = null;
     throw e;
   });
