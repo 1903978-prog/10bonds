@@ -29,6 +29,15 @@ export async function GET(req: Request) {
           select c.contype, count(*)::int as n from pg_constraint c join pg_namespace n on n.oid = c.connamespace
           where n.nspname = 'app' and c.contype in ('f', 'u', 'c') group by c.contype`;
       }
+      if (q === "linked") {
+        return sql`
+          select count(distinct rel)::int as n from (
+            select c.conrelid as rel from pg_constraint c join pg_namespace n on n.oid = c.connamespace
+            where c.contype = 'f' and n.nspname = 'app'
+            union
+            select c.confrelid from pg_constraint c join pg_namespace n on n.oid = c.connamespace
+            where c.contype = 'f' and n.nspname = 'app') x`;
+      }
       return sql`
         select count(*)::int as n from pg_constraint c join pg_namespace n on n.oid = c.connamespace
         where c.contype = 'f' and n.nspname = 'app'

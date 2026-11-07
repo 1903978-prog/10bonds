@@ -5,6 +5,7 @@ const deps = (over: Partial<DbHealthDeps> = {}): DbHealthDeps => ({
   query: async (q) =>
     q === "tables" ? [{ tables: 20, tables_without_pk: 0 }]
       : q === "constraints" ? [{ contype: "f", n: 8 }, { contype: "u", n: 5 }, { contype: "c", n: 12 }]
+      : q === "linked" ? [{ n: 15 }]
       : [{ n: 0 }],
   schemaReady: async () => true,
   setting: async (k) => (k === "backup_last_ok_at" ? "2026-11-06T02:20:00Z" : k === "backup_restore_test_ok_at" ? "2026-11-06T02:20:00Z" : null),
@@ -21,7 +22,7 @@ describe("secval database report", () => {
     const r = await buildReport(deps(), NOW);
     expect(r).toEqual({
       version: 1, engine: "postgresql", checkedAt: "2026-11-06T12:00:00.000Z",
-      tables: 20, tablesWithoutPrimaryKey: 0, foreignKeys: 8, foreignKeysWithoutIndex: 0, orphanRows: 0,
+      tables: 20, tablesWithoutPrimaryKey: 0, foreignKeys: 8, foreignKeysWithoutIndex: 0, tablesInLinks: 15, orphanRows: 0,
       uniqueConstraints: 5, checkConstraints: 12, pendingMigrations: 0,
       lastBackupAt: "2026-11-06T02:20:00.000Z", lastRestoreTestAt: "2026-11-06T02:20:00.000Z", integrityOk: true,
     });

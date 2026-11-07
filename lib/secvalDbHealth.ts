@@ -14,6 +14,8 @@ export type DbHealthReport = {
   tablesWithoutPrimaryKey: number;
   foreignKeys: number;
   foreignKeysWithoutIndex: number;
+  /** Tables that take part in at least one foreign key, as child or parent. */
+  tablesInLinks: number;
   orphanRows: number | null;
   uniqueConstraints: number;
   checkConstraints: number;
@@ -44,7 +46,7 @@ const iso = (v: string | null | undefined): string | null => {
 
 export type DbHealthDeps = {
   /** Runs a read-only query on the site's own database (schema app); throws when it is not reachable. */
-  query: (text: "tables" | "constraints" | "fkNoIndex") => Promise<Record<string, unknown>[]>;
+  query: (text: "tables" | "constraints" | "fkNoIndex" | "linked") => Promise<Record<string, unknown>[]>;
   /** The site's own start-up schema setup finished (that setup is how this site applies schema changes). */
   schemaReady: () => Promise<boolean>;
   setting: (key: string) => Promise<string | null>;
@@ -58,6 +60,7 @@ export async function buildReport(d: DbHealthDeps, now = new Date()): Promise<Db
   const [t] = await d.query("tables");
   const cons = await d.query("constraints");
   const [fk] = await d.query("fkNoIndex");
+  const [linked] = await d.query("linked");
   const count = (k: string) => Number(cons.find((r) => r.contype === k)?.n ?? 0);
   const ready = await d.schemaReady().catch(() => false);
   const orphans = await d.orphanRankings().catch(() => null);
@@ -70,6 +73,7 @@ export async function buildReport(d: DbHealthDeps, now = new Date()): Promise<Db
     tablesWithoutPrimaryKey: Number(t?.tables_without_pk ?? 0),
     foreignKeys: count("f"),
     foreignKeysWithoutIndex: Number(fk?.n ?? 0),
+    tablesInLinks: Number(linked?.n ?? 0),
     // Every link inside schema app is a foreign key (enforced, 0 broken). The one link kept in code is best_bonds -> bond copy.
     orphanRows: orphans,
     uniqueConstraints: count("u"),
