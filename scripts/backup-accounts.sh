@@ -4,7 +4,7 @@
 #   2. encrypt the dump (AES-256, key from BACKUP_KEY);
 #   3. decrypt that encrypted file again and restore it into an empty database (RESTORE_URL);
 #   4. compare table by table: every table restored, row counts match the live ones (small drift allowed on
-#      the two tables that grow while the dump runs).
+#      the three tables that grow while the dump runs).
 # Env: SOURCE_URL, RESTORE_URL, BACKUP_KEY, OUT (encrypted file to write). PG_RUN optionally prefixes the Postgres
 # tools (CI runs them from a postgres:18 container so pg_dump is never older than the server).
 set -euo pipefail
@@ -47,7 +47,7 @@ while read -r t live; do
   if [ -z "$got" ]; then echo "MISSING $t"; fail=1; continue; fi
   diff=$(( live > got ? live - got : got - live ))
   case "$t" in
-    events|search_usage) allowed=$(( live / 50 + 20 )) ;; # still being written while the dump runs
+    events|search_usage|daily_counts) allowed=$(( live / 50 + 20 )) ;; # still being written while the dump runs (daily_counts: one row per page view/day; failed the nightly 06-08 Nov 2026 at 7110 live / 7101 restored)
     *) allowed=0 ;;
   esac
   status=ok; [ "$diff" -le "$allowed" ] || { status=DIFF; fail=1; }
