@@ -9,7 +9,7 @@
   - schema `app`: 83 tables, 32 foreign keys (all validated), 27 tables in a foreign key;
   - schema `public`: 1 table (`public_bonds`), no foreign key.
 - **Reconciled:** the repository build of `main` (before #497's links) gives exactly 32 foreign keys and 27 linked tables. The foreign keys match production.
-  - The repository builds 82 `app` tables. Production has 83: the extra one is `bond_prices_daily`, which no code in this repository creates or has ever created. It is category **E** (section 1).
+  - The repository builds 82 `app` tables. Production has 83: the extra one is `bond_prices_daily`, which no code in this repository creates or has ever created. It is empty and unused: class C, with a drop proposed (section 1).
 - **Not measured by this thread:** this workspace has no production login, so orphan counts are **UNVERIFIED**. Run `docs/fk-orphan-check.sql` (read-only) on production before releasing #497.
 - **Schemas in scope:** `app` (login `tenbonds_app`) and `public`. `public.public_bonds` is the daily bond copy, written by lm-op-model and read by 10bonds with a read-only login (`tenbonds_reader`). It is listed here as category D.
 - **Correction:** until 08 Nov 2026 the tracked schema file listed 63 tables. 19 tables made on first use by other features were missing from it. Earlier reports of "63 tables" to Secval undercounted.
@@ -22,14 +22,14 @@
 
 | Metric | Today (code on `main`) | With draft PR #497 released |
 |---|---|---|
-| A. Table classification (production 84 tables) | 83 / 84 = 98.8% (`bond_prices_daily` unresolved) | same |
+| A. Table classification (production 84 tables) | 84 / 84 = 100% | same |
 | B. Required FK enforcement | 32 / 45 = 71% | 45 / 45 = 100% |
 | C. Candidate discovery | 103 / 103 = 100% resolved (see limitation above) | same |
-| D. Independent tables | 42 / 84 = 50% (C: 26, D: 16 incl. public_bonds) | same |
+| D. Independent tables | 43 / 84 = 51% (C: 27 incl. the unused bond_prices_daily, D: 16 incl. public_bonds) | same |
 
 Metric B "today" matches production (32 validated foreign keys, measured by the auditor). The figures after release come from the repository build; they become verified only after release and a new production read.
 
-**One-line summary:** Required FKs: 45 | Validated: 32 (production) | Missing: 13 (all in draft #497) | Coverage: 32/45 = 71% now, 45/45 = 100% after release (not verified) | Independent tables: 42 | Classification: 83/84 = 98.8%
+**One-line summary:** Required FKs: 45 | Validated: 32 (production) | Missing: 13 (all in draft #497) | Coverage: 32/45 = 71% now, 45/45 = 100% after release (not verified) | Independent tables: 43 | Classification: 84/84 = 100%
 
 **E. FK implementation backlog:**
 - Confirmed required FKs already valid: 32 (fresh build of `main`; production UNVERIFIED).
@@ -39,7 +39,7 @@ Metric B "today" matches production (32 validated foreign keys, measured by the 
 - Existing FKs not validated or invalid: 0 in the fresh build; production UNVERIFIED (second query in `docs/fk-orphan-check.sql`).
 - Candidates awaiting investigation: 0.
 - Justified non-FK relationships: 58 (section 4).
-- Orphan-data issues: 13 links with possible orphans in production, counts UNVERIFIED. Only 3 of them change or remove existing data on release (see section 3).
+- Orphan-data issues (production, measured 08 Nov): 3 links. 73,563 dead run ids get cleared and 673 events get their visitor row back. 0 rows deleted at today's counts (section 3).
 
 ## 1. Tables by category
 
@@ -65,9 +65,12 @@ With #497 there are no B or E tables. On `main` today, these tables are B: they 
 - `seo_shares`, `trial_codes`, `user_exclusions`, `users`, `visitors`
 - `weekly_email_sends`
 
-**E, unresolved (1):** `bond_prices_daily`. It is in production (auditor's list, 08 Nov 05:02 UTC) but has never been in this repository's code or history; the code's daily prices live in `bond_daily_prices`. It was probably written by another app or made by hand. To close it, we need its columns, row count and latest write (asked from the auditor). Then classify it, or propose dropping it (a production change, so it needs approval).
+**`bond_prices_daily` (production only), classed C, unused:**
+- Production shape: as_of date, isin text, ytm real, price real; primary key (as_of, isin); 0 rows; owned by `tenbonds_app`; no foreign key.
+- No code in this repository creates, reads or writes it, now or in its history. The code's daily prices live in `bond_daily_prices`.
+- Proposal: drop it at a release. That is a production change, so it needs Livio's approval. It is not in #497.
 
-**C, independent (26):** each holds no reference to another row.
+**C, independent (27):** each holds no reference to another row. The 26 below, plus `bond_prices_daily` above.
 
 | Table | Why no FK |
 |---|---|
@@ -146,7 +149,19 @@ The 07 Nov note in `lib/dbLinks.ts` said a research run "can be saved before its
 
 ## 3. Orphan data and what release does to it
 
-Orphan counts in production: **UNVERIFIED**. Get them with `docs/fk-orphan-check.sql` before release. How each new link handles rows that already break it:
+Orphan counts in production, measured by the Secval audit thread with `docs/fk-orphan-check.sql` (read-only, 08 Nov 2026 05:04 UTC):
+- `efficient_portfolio_holdings.bes_run_id`: 73,560
+- `events.visitor_id`: 673
+- `pe_runs.bes_run_id`: 3
+- the other 10 links: 0
+- existing foreign keys not validated: 0
+
+None of the 13 makes the release fail. Each link's repair runs first, in the same transaction, before the rule is added:
+- **bes_run_id (73,560 + 3).** Cause: bond-efficiency runs are pruned (`lib/bes/store.ts` keeps the last 5 superseded or failed runs), and the holdings and net-spread runs that used an older run kept its id. The column is written but never read; the scores themselves are copied onto the holdings and stay. Release clears the dead ids; no score changes. The link stays because a run id that points at nothing is misleading.
+- **events.visitor_id (673).** Most likely events from before visitor rows were always written first, or from an earlier clean-up. Release re-creates the missing visitor rows, with first and last seen taken from their events, so no event is lost. Side effect: those visitors get new visitor numbers and appear in visitor lists with their old dates. The exact cause needs the events' dates (asked from the audit thread).
+- **weekly_email_sends and consents: 0 today.** Their repair does nothing now. It stays in case orphans appear before release, at no cost.
+
+How each new link handles rows that already break it:
 
 | Link | What release does to existing breaking rows | Data lost |
 |---|---|---|
@@ -184,6 +199,8 @@ Nothing runs until the release is approved. Each link is added the safe way:
 Candidates: 45 required + 58 justified = 103, all resolved.
 
 ## 5. Approvals outstanding
+
+- Optional: drop the empty, unused `bond_prices_daily` (production change).
 
 - **Release of draft PR #497** needs Livio's explicit approval. It changes production data in the 3 cases marked in section 3.
 - Secval rule AD-01 allowed at most half of all tables to be listed as standalone. Of the 84 production tables, 41 are listed in `lib/dbLinks.ts` as standalone (49%), plus `public.public_bonds`. Livio's 08 Nov standard makes independent tables descriptive (metric D), not a penalty. The Secval auditor decides which rule applies.
