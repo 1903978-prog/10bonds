@@ -6,6 +6,8 @@ import { proStatus } from "./pro";
 // their default ticks. Read at most once a minute per server; a save clears it at once on this server.
 
 let ready: Promise<void> | null = null;
+/** Builds this module's tables (used by the schema test). */
+export const planFeaturesTableReady = async (): Promise<void> => { await sql(); };
 async function sql() {
   const s = await accountsSql();
   ready ??= (async () => {

@@ -25,6 +25,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     // A: a fresh stored assessment (never queued); B, C: nothing stored.
     await db.enqueueIsins([A], false, 0); // forces the tables (and bond_credit_analysis) into existence
     await s`delete from app.credit_research_jobs`;
+    await s`delete from app.bond_credit_analysis_history where isin in (${B}, ${C})`;
     await s`delete from app.bond_credit_analysis where isin in (${B}, ${C})`;
     await s`insert into app.bond_credit_analysis (isin, issuer_rating_min, issuer_rating_max, bond_rating_min, bond_rating_max, rating_assessment_date, rating_verification_status) values (${A}, 66, 79, 60, 70, current_date, 'provisional') on conflict (isin) do nothing`;
 
@@ -90,6 +91,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     const s = await accountsSql();
     const X = "XS0000000001", Y = "XS0000000002";
     const sc = scoreResearch(facts(X));
+    await s`delete from app.bond_credit_analysis_history where isin in (${X}, ${Y})`;
     await s`delete from app.bond_credit_analysis where isin in (${X}, ${Y})`;
     await s`delete from app.credit_research_jobs where isin in (${X}, ${Y})`;
     await s`insert into app.bond_credit_analysis (isin, issuer_rating_min, issuer_rating_max, bond_rating_min, bond_rating_max, rating_assessment_date, rating_verification_status) values (${Y}, ${sc.irMin}, ${sc.irMax}, ${sc.brMin}, ${sc.brMax}, current_date, 'provisional')`;
@@ -104,6 +106,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     const row = ov.recent.find((x) => x.isin === X) as unknown as { same_as: string[]; parameters: { found: number; max: number } };
     expect(row.same_as).toContain(Y);
     expect(row.parameters.max).toBeGreaterThan(5);
+    await s`delete from app.bond_credit_analysis_history where isin in (${X}, ${Y})`;
     await s`delete from app.bond_credit_analysis where isin in (${X}, ${Y})`;
   }, 60_000);
 
@@ -113,6 +116,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     const { accountsSql } = await import("./accounts");
     const s = await accountsSql();
     const P = "XS0000000010";
+    await s`delete from app.bond_credit_analysis_history where isin = ${P}`;
     await s`delete from app.bond_credit_analysis where isin = ${P}`;
     await s`delete from app.credit_research_jobs where isin = ${P}`;
     // 15. even a row written with the publish flags on is forced off by the database, and the public function returns nothing
@@ -157,6 +161,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     expect(after[0].last_attempt.blocked).toBe(true);
     // 6. different issuers with identical financial inputs and no separate primary sources are flagged
     const T1 = "XS0000000021", T2 = "XS0000000022";
+    await s`delete from app.bond_credit_analysis_history where isin in (${T1}, ${T2})`;
     await s`delete from app.bond_credit_analysis where isin in (${T1}, ${T2})`;
     await s`delete from app.credit_research_jobs where isin in (${T1}, ${T2})`;
     const ev1 = [{ url: "https://same.example.com/r.pdf", title: "t", publisher: "S", publishedAt: null, period: null, retrievedAt: "2026-11-01T00:00:00Z", location: null, method: "t", verification: "verified" as const, primary: true }];
@@ -169,6 +174,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     }
     const [t2] = await s<{ detail: { research: { twins: string[] } } }[]>`select detail from app.bond_credit_analysis where isin = ${T2}`;
     expect(t2.detail.research.twins).toContain(T1);
+    await s`delete from app.bond_credit_analysis_history where isin in (${T1}, ${T2})`;
     await s`delete from app.bond_credit_analysis where isin in (${T1}, ${T2})`;
     // the labelled LBBW reference case is stored for the admin, and it never reaches the public API
     const refs = await db.referenceCases();
@@ -176,6 +182,7 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     expect(lbbw?.status).toBe("internal_provisional");
     expect(lbbw?.lei).toBe("B81CK4ESI35472RHJ606");
     expect((await db.publicRatings(["DE000LB2CW16"])).ratings["DE000LB2CW16"]).toBeUndefined();
+    await s`delete from app.bond_credit_analysis_history where isin = ${P}`;
     await s`delete from app.bond_credit_analysis where isin = ${P}`;
     await s.end();
   }, 60_000);

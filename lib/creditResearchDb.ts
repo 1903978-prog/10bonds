@@ -10,6 +10,7 @@ import { evaluate, GATE_VERSION, sourceKey, sourceQuality, type GateOutcome } fr
 import { scoreResearch, SCORING_VERSION, type ResearchFacts } from "./creditScoring";
 import { buildTrace, ENGINE_VERSION, hashSkill, evaluatePublicationEligibility, METHODOLOGY_VERSION, SKILL_HASH, type FactsLike } from "./bondsEngine";
 import { BENCHMARK, runSelfTest } from "./bondsBenchmark";
+import { ensureLinks } from "./dbLinks";
 
 // Credit research queue (owner, 1/11/2026). One durable job per ISIN. The web process only writes small queue rows; all research
 // (downloads, Ollama, extraction) runs in the worker on the owner's computer, which talks to /api/credit-worker/* over HTTPS.
@@ -60,6 +61,7 @@ async function sql(): Promise<Sql> {
     await ensurePublicationGate(s);
     await s`create table if not exists app.credit_reference_cases (isin text primary key, issuer text not null, lei text, status text not null default 'internal_provisional', source_label text not null, provided_on date, data jsonb not null, created_at timestamptz not null default now())`;
     await s`insert into app.credit_reference_cases (isin, issuer, lei, status, source_label, provided_on, data) values (${LBBW_CASE.isin}, ${LBBW_CASE.issuer}, ${LBBW_CASE.lei}, ${LBBW_CASE.status}, ${LBBW_CASE.sourceLabel}, ${LBBW_CASE.providedOn}, ${s.json(LBBW_CASE as never)}) on conflict (isin) do nothing`;
+    await ensureLinks(s); // links that need this module's tables (lib/dbLinks.ts)
   })().catch((e) => { ready = null; throw e; });
   await ready;
   return s;
@@ -286,6 +288,8 @@ export type Claimed = { isin: string; priority: number; attempts: number; leaseM
 /** Hands the most urgent job to the worker (aging keeps low priorities moving). A job whose lease ran out (worker died) is handed out again. */
 export async function claimJob(workerId: string): Promise<Claimed | null> {
   const s = await sql();
+  // A claim names a worker row (enforced link). The claim route registers the worker first; this keeps any other caller valid.
+  await s`insert into app.credit_research_workers (worker_id) values (${workerId}) on conflict (worker_id) do nothing`;
   const [j] = await s<{ isin: string; priority: number; attempts: number }[]>`
     with pick as (
       select isin from app.credit_research_jobs

@@ -31,6 +31,18 @@ async function buildAll() {
   const { frontierTableReady } = await import("./frontierStore");
   const { sliderTablesReady } = await import("./sliderSnapshot");
   const { creditResearchTablesReady } = await import("./creditResearchDb");
+  // Tables made on first use by other features (missing from this file before 08 Nov 2026; production has them).
+  const { benchmarkTablesReady } = await import("./bundCurve/store");
+  const { besTablesReady } = await import("./bes/store");
+  const { peTablesReady } = await import("./netSpread/store");
+  const { gptTablesReady } = await import("./gptRatingsDb");
+  const { recentEmailLog } = await import("./emailLog");
+  const { planFeaturesTableReady } = await import("./planFeatures");
+  const { planLimitsTableReady } = await import("./searchLimits");
+  const { buildTablesReady } = await import("./portfolioBuild");
+  const { riskBandTablesReady } = await import("./riskBandsStore");
+  const { seoDailyTableReady } = await import("./seo/dailyTable");
+  const { exclusionsTableReady } = await import("./blacklist");
   const sql = await accountsSql();
   await discountTable();
   await seoSql();
@@ -45,6 +57,17 @@ async function buildAll() {
   await frontierTableReady();
   await sliderTablesReady();
   await creditResearchTablesReady();
+  await benchmarkTablesReady();
+  await besTablesReady();
+  await peTablesReady();
+  await gptTablesReady();
+  await recentEmailLog();
+  await planFeaturesTableReady();
+  await planLimitsTableReady();
+  await buildTablesReady();
+  await riskBandTablesReady();
+  await seoDailyTableReady();
+  await exclusionsTableReady();
   return sql;
 }
 
@@ -83,6 +106,22 @@ describe.skipIf(!url)("database schema", () => {
     expect(first).toBe(readFileSync(FILE, "utf8"));
   }, 60_000);
 
+  it("builds every table the code creates (so this file and the database report count the same tables as production)", async () => {
+    const sql = await buildAll();
+    const { readdirSync, statSync } = await import("node:fs");
+    const walk = (d: string): string[] => readdirSync(d).flatMap((n) => {
+      const f = path.join(d, n);
+      return statSync(f).isDirectory() ? walk(f) : /\.tsx?$/.test(n) && !/\.test\.tsx?$/.test(n) ? [f] : [];
+    });
+    const root = path.join(__dirname, "..");
+    const inCode = new Set<string>();
+    for (const f of [...walk(path.join(root, "lib")), ...walk(path.join(root, "app"))]) {
+      for (const m of readFileSync(f, "utf8").matchAll(/create table if not exists app\.([a-z_0-9]+)/g)) inCode.add(m[1]);
+    }
+    const built = new Set((await sql`select relname from pg_class where relnamespace = 'app'::regnamespace and relkind = 'r'`).map((r) => String(r.relname)));
+    expect([...inCode].filter((t) => !built.has(t)).sort()).toEqual([]);
+  });
+
   it("every table has a primary key", async () => {
     const sql = await buildAll();
     const rows = await sql`
@@ -111,18 +150,16 @@ describe.skipIf(!url)("database schema", () => {
 });
 
 describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () => {
-  it("every table is linked, or listed as standalone with a reason, or named as holding a link kept in code", async () => {
+  it("every table is linked, or listed as standalone with a reason", async () => {
     const sql = await buildAll();
     const { STANDALONE_TABLES } = await import("./dbLinks");
-    const CODE_LINKED = ["credit_research_runs", "credit_research_workers", "credit_research_jobs", "risk_premium_audit", "visitors"];
     const rows = await sql`
       select t.relname as name,
              exists (select 1 from pg_constraint c where c.contype = 'f' and (c.conrelid = t.oid or c.confrelid = t.oid)) as linked
       from pg_class t where t.relnamespace = 'app'::regnamespace and t.relkind in ('r', 'p')`;
     const unlinked = rows.filter((r) => !r.linked).map((r) => String(r.name)).sort();
     const listed = Object.keys(STANDALONE_TABLES);
-    expect(unlinked).toEqual([...listed, ...CODE_LINKED].sort());
-    expect(listed.length).toBeLessThanOrEqual(rows.length / 2);
+    expect(unlinked).toEqual([...listed].sort());
   });
 
   it("repairs rows that already break a link the way the rule would, then enforces it", async () => {
@@ -145,6 +182,37 @@ describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () =>
     await deleteUser(Number(u.id));
     expect(await sql`select 1 from app.weekly_email_sends where user_id = ${u.id}`).toHaveLength(0);
     await expect(sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W02', 999999999, 'sent')`).rejects.toThrow();
+  });
+});
+
+describe.skipIf(!url)("links added 08 Nov 2026 (docs/fk-register.md)", () => {
+  it("restores missing parent rows instead of deleting history, clears names of pruned runs, then enforces every link", async () => {
+    const sql = await buildAll();
+    const { ensureLinks, LINKS } = await import("./dbLinks");
+    const names = ["events_visitor_id_fkey", "credit_research_jobs_claimed_by_fkey", "credit_research_runs_worker_id_fkey", "pe_runs_bes_run_id_fkey",
+      "efficient_portfolio_holdings_bes_run_id_fkey", "risk_calc_runs_version_id_fkey", "risk_calc_results_version_id_fkey", "bond_credit_analysis_history_isin_fkey"];
+    // A production database from before these rules, with rows that break them.
+    for (const n of names) {
+      const l = LINKS.find((x) => x.name === n)!;
+      await sql.unsafe(`alter table app.${l.table} drop constraint ${n}`);
+    }
+    const tag = `fk-${Date.now()}`;
+    await sql`insert into app.events (visitor_id, kind, at) values (${tag}, 'page_view', '2026-01-02T00:00:00Z'), (${tag}, 'click', '2026-01-03T00:00:00Z')`;
+    await sql`insert into app.credit_research_runs (isin, worker_id, ok) values ('XS0000000001', ${tag}, true)`;
+    const [pe] = await sql`insert into app.pe_runs (batch_id, bes_run_id, status, trigger) values ('b', 999999999, 'failed', 'test') returning id`;
+    await ensureLinks(sql);
+    const [v] = await sql`select first_seen, last_seen from app.visitors where visitor_id = ${tag}`;
+    expect([new Date(v.first_seen).toISOString(), new Date(v.last_seen).toISOString()]).toEqual(["2026-01-02T00:00:00.000Z", "2026-01-03T00:00:00.000Z"]);
+    expect(await sql`select 1 from app.events where visitor_id = ${tag}`).toHaveLength(2);
+    expect(await sql`select 1 from app.credit_research_workers where worker_id = ${tag}`).toHaveLength(1);
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBeNull();
+    const present = await sql`select conname, convalidated from pg_constraint where conname in ${sql(names)} and connamespace = 'app'::regnamespace`;
+    expect(present.map((r) => `${r.conname}:${r.convalidated}`).sort()).toEqual(names.map((n) => `${n}:true`).sort());
+    // Enforced now: forgetting a visitor takes its events, and an event for no visitor is refused.
+    const { forgetVisitor } = await import("./accounts");
+    await forgetVisitor(tag);
+    expect(await sql`select 1 from app.events where visitor_id = ${tag}`).toHaveLength(0);
+    await expect(sql`insert into app.events (visitor_id, kind) values (${`${tag}-none`}, 'page_view')`).rejects.toThrow();
   });
 });
 
@@ -190,6 +258,7 @@ describe.skipIf(!url)("clean-up of never-confirmed accounts on a real database",
     const admin = await add("admin", { daysOld: 60 });
     const [{ email: adminEmail }] = await sql`select email from app.users where id = ${admin}`;
     await sql`insert into app.search_usage (user_id, kind) values (${old}, 'single')`;
+    await sql`insert into app.visitors (visitor_id) values ('v') on conflict do nothing`;
     await sql`insert into app.events (visitor_id, user_id, kind) values ('v', ${old}, 'page_view')`;
     const alive = async () => (await sql`select id from app.users where email like ${`%-${tag}@test.local`}`).map((r) => String(r.id)).sort();
 

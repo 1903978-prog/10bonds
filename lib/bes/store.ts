@@ -5,6 +5,7 @@ import { BES_METHOD, BES_REFERENCE_VERSION, benchmarkReport, calculateBes, type 
 import { SP_CORPORATE, SP_CORPORATE_SOURCE, SP_CORPORATE_VERSION, SP_CORPORATE_YEARS } from "./spReference";
 import { SOVEREIGN_RATES, SOVEREIGN_YEARS } from "../sovereign";
 import { DEFAULT_RATES, DEFAULT_YEARS } from "../seo/defaultRates";
+import { ensureLinks } from "../dbLinks";
 
 // Storage of Bond Efficiency runs (migration id: bond_efficiency_001, additive). The website only READS the published run; runs are written by
 // scripts/bes-run.ts on a runner (never in the web process). A run is published in one transaction after all rows are inserted, so readers never
@@ -32,6 +33,7 @@ export function besTablesReady(): Promise<void> {
       data_version text not null, source_agency text not null, report_title text not null, published date, observation_period text, issuer_category text not null,
       currency_obligation text, rating_category text not null, horizon_years integer not null, cumulative_pd numeric(10,6) not null, table_id text,
       source_url text, validation_status text not null, usage_rights text not null, primary key (data_version, issuer_category, rating_category, horizon_years))`;
+    await ensureLinks(s); // links that need this module's tables (lib/dbLinks.ts)
   })().catch((e) => { ready = null; throw e; });
   return ready;
 }

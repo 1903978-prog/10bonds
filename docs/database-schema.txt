@@ -8,6 +8,79 @@ table app.assessment_evidence
   calculation jsonb not null
   published_at timestamp with time zone not null default now()
 
+table app.benchmark_curve
+  benchmark text not null
+  country text not null
+  currency text not null
+  curve_type text not null
+  observation_date date not null
+  maturity_years smallint not null
+  yield_percent numeric not null
+  source text not null
+  series_id text not null
+  fetched_at timestamp with time zone not null default now()
+  status text not null default 'valid'::text
+  basis text not null default 'published'::text
+
+table app.benchmark_imports
+  id bigint not null default nextval(...)
+  benchmark text not null
+  started_at timestamp with time zone not null default now()
+  trigger text not null
+  ok boolean not null
+  message text not null
+  dates jsonb
+  inserted integer not null default 0
+  updated integer not null default 0
+  unchanged integer not null default 0
+
+table app.bes_bonds
+  run_id bigint not null
+  isin text not null
+  bond_code text
+  risk_class smallint
+  rating_equivalent text
+  currency text
+  issuer_type text
+  sector text
+  rank text
+  years_left numeric
+  ytm numeric
+  benchmark_yield numeric
+  benchmark_source text
+  gross_spread_bp numeric
+  cumulative_pd numeric
+  annual_equivalent_pd numeric
+  lgd numeric
+  cumulative_loss numeric
+  annual_expected_loss_bp numeric
+  benchmark_loss_bp numeric
+  liquidity_cost_bp numeric
+  credit_adjusted_spread_bp numeric
+  fully_adjusted_spread_bp numeric
+  sp_cumulative_pd numeric
+  peer_group text
+  efficiency_peer_count integer
+  efficiency_score numeric
+  efficiency_status text not null
+  notes ARRAY
+
+table app.bes_runs
+  id bigint not null default nextval(...)
+  batch_id text not null
+  status text not null
+  trigger text not null
+  requested_by text
+  requested_at timestamp with time zone not null default now()
+  started_at timestamp with time zone
+  finished_at timestamp with time zone
+  runtime_ms integer
+  method text
+  reference_version text
+  price_as_of timestamp with time zone
+  stats jsonb
+  error text
+
 table app.best_bonds
   duration numeric not null
   level integer not null
@@ -105,6 +178,18 @@ table app.bond_price_weeks
   week date not null
   min_ytm real not null
   max_ytm real not null
+
+table app.bond_runs
+  id bigint not null default nextval(...)
+  isin text not null
+  at timestamp with time zone not null default now()
+  provider text not null
+  model text not null
+  skill_version text not null
+  grounded boolean not null default false
+  raw text not null
+  parsed jsonb
+  parsed_ok boolean not null default false
 
 table app.broker_profiles
   id text not null
@@ -344,6 +429,14 @@ table app.efficient_portfolio_snapshots
   error text
   report jsonb
 
+table app.email_log
+  id bigint not null default nextval(...)
+  at timestamp with time zone not null default now()
+  kind text
+  to_masked text
+  outcome text
+  detail text
+
 table app.events
   id bigint not null default nextval(...)
   at timestamp with time zone not null default now()
@@ -357,6 +450,46 @@ table app.frontier_cache
   key text not null
   data jsonb not null
   created_at timestamp with time zone not null default now()
+
+table app.gpt_ratings
+  isin text not null
+  rating text
+  basis text
+  pasted_at timestamp with time zone not null default now()
+  issuer_rating text
+  risk_pay text
+  detail text
+  full_answer text
+  model text
+  prompt_version text
+
+table app.historical_default_probabilities
+  data_version text not null
+  source_agency text not null
+  report_title text not null
+  published date
+  observation_period text
+  issuer_category text not null
+  currency_obligation text
+  rating_category text not null
+  horizon_years integer not null
+  cumulative_pd numeric not null
+  table_id text
+  source_url text
+  validation_status text not null
+  usage_rights text not null
+
+table app.llm_calls
+  id bigint not null default nextval(...)
+  isin text not null
+  provider text not null
+  model text not null
+  ok boolean not null
+  at timestamp with time zone not null default now()
+
+table app.llm_settings
+  key text not null
+  value text not null
 
 table app.outreach
   id bigint not null default nextval(...)
@@ -372,6 +505,104 @@ table app.outreach
   status text not null default 'draft'::text
   created_at timestamp with time zone not null default now()
   sent_at timestamp with time zone
+
+table app.pe_positions
+  run_id bigint not null
+  row_no smallint not null
+  horizon text not null
+  position smallint not null
+  duration_target numeric not null
+  allowed ARRAY not null
+  status text not null
+  data_status text not null
+  isins ARRAY not null default '{}'::text[]
+  bond_codes ARRAY not null default '{}'::text[]
+  ytm numeric
+  duration numeric
+  avg_risk numeric
+  risk_min smallint
+  risk_max smallint
+  gross_spread_bp numeric
+  credit_loss_bp numeric
+  net_spread_bp numeric
+  avg_bond_bes numeric
+  portfolio_bes numeric
+  portfolio_bes_status text not null
+  portfolio_bes_reason text
+  opportunity_pct numeric
+  candidates integer
+  solver_seconds numeric
+  repeat_of smallint
+  checks jsonb
+  bonds jsonb
+  previous jsonb
+  stale boolean not null default false
+  failure text
+  calculated_at timestamp with time zone not null default now()
+  step smallint
+  band_lo smallint
+  band_hi smallint
+  band_target numeric
+  r1 smallint
+  r30 smallint
+
+table app.pe_reference_samples
+  version text not null
+  filter_key text not null
+  horizon text not null
+  position smallint not null
+  batch_id text not null
+  sampled_at timestamp with time zone not null default now()
+  nets ARRAY not null
+
+table app.pe_runs
+  id bigint not null default nextval(...)
+  batch_id text not null
+  bes_run_id bigint
+  status text not null
+  trigger text not null
+  requested_at timestamp with time zone not null default now()
+  started_at timestamp with time zone
+  finished_at timestamp with time zone
+  runtime_ms integer
+  method text
+  matrix_version text
+  reference_version text
+  filter_key text not null default 'EUR:100k'::text
+  price_as_of timestamp with time zone
+  stats jsonb
+  error text
+
+table app.plan_features
+  feature text not null
+  free boolean not null
+  plus boolean not null
+  premium boolean not null
+  pro boolean not null
+  updated_at timestamp with time zone not null default now()
+
+table app.plan_limits
+  key text not null
+  value integer not null
+  updated_at timestamp with time zone not null default now()
+
+table app.portfolio_builds
+  id bigint not null default nextval(...)
+  trigger text not null
+  status text not null
+  started_at timestamp with time zone not null default now()
+  finished_at timestamp with time zone
+  runtime_ms integer
+  peak_rss_mb integer
+  paused_ms integer not null default 0
+  keys_total integer not null default 0
+  keys_built integer not null default 0
+  keys_skipped integer not null default 0
+  keys_failed integer not null default 0
+  price_batch text
+  spec_version text
+  note text
+  detail jsonb
 
 table app.pro_access
   user_id bigint not null
@@ -396,6 +627,11 @@ table app.refresh_requests
   picked_up_at timestamp with time zone
   finished_at timestamp with time zone
   note text
+
+table app.risk_band_config
+  key text not null
+  data jsonb not null
+  updated_at timestamp with time zone not null default now()
 
 table app.risk_calc_results
   run_id bigint not null
@@ -509,6 +745,18 @@ table app.seo_criterion_results
   justification text
   evaluator text not null
   evaluated_at timestamp with time zone not null
+
+table app.seo_daily
+  day date not null
+  g_clicks integer
+  g_impressions integer
+  g_ctr numeric
+  g_position numeric
+  g_pages integer
+  b_clicks integer
+  b_impressions integer
+  b_pages integer
+  updated_at timestamp with time zone not null default now()
 
 table app.seo_daily_stats
   day date not null
@@ -654,6 +902,13 @@ table app.trial_codes
   redeemed_by bigint
   redeemed_at timestamp with time zone
 
+table app.user_exclusions
+  user_id bigint not null
+  kind text not null
+  value text not null
+  label text not null
+  created_at timestamp with time zone not null default now()
+
 table app.users
   id bigint not null default nextval(...)
   email text not null
@@ -717,6 +972,14 @@ table app.ytm_history
 constraints
   app.assessment_evidence assessment_evidence_isin_model_version_as_of_key: UNIQUE (isin, model_version, as_of)
   app.assessment_evidence assessment_evidence_pkey: PRIMARY KEY (id)
+  app.benchmark_curve benchmark_curve_basis_check: CHECK ((basis = ANY (ARRAY['published'::text, 'estimated'::text])))
+  app.benchmark_curve benchmark_curve_maturity_years_check: CHECK (((maturity_years >= 1) AND (maturity_years <= 30)))
+  app.benchmark_curve benchmark_curve_pkey: PRIMARY KEY (benchmark, curve_type, observation_date, maturity_years)
+  app.benchmark_imports benchmark_imports_pkey: PRIMARY KEY (id)
+  app.bes_bonds bes_bonds_pkey: PRIMARY KEY (run_id, isin)
+  app.bes_bonds bes_bonds_run_id_fkey: FOREIGN KEY (run_id) REFERENCES app.bes_runs(id) ON DELETE CASCADE
+  app.bes_runs bes_runs_pkey: PRIMARY KEY (id)
+  app.bes_runs bes_runs_status_check: CHECK ((status = ANY (ARRAY['requested'::text, 'running'::text, 'published'::text, 'failed'::text, 'superseded'::text])))
   app.best_bonds best_bonds_pkey: PRIMARY KEY (duration, level, rank)
   app.bond_code_counters bond_code_counters_currency_check: CHECK ((currency ~ '^[A-Z]{3}$'::text))
   app.bond_code_counters bond_code_counters_last_seq_check: CHECK (((last_seq >= 0) AND (last_seq <= 99999)))
@@ -728,6 +991,7 @@ constraints
   app.bond_codes bond_codes_pkey: PRIMARY KEY (isin)
   app.bond_codes bond_codes_seq_check: CHECK (((seq >= 1) AND (seq <= 99999)))
   app.bond_credit_analysis bond_credit_analysis_pkey: PRIMARY KEY (isin)
+  app.bond_credit_analysis_history bond_credit_analysis_history_isin_fkey: FOREIGN KEY (isin) REFERENCES app.bond_credit_analysis(isin)
   app.bond_credit_analysis_history bond_credit_analysis_history_pkey: PRIMARY KEY (id)
   app.bond_daily_prices bond_daily_prices_pkey: PRIMARY KEY (as_of, isin)
   app.bond_import_batches bond_import_batches_pkey: PRIMARY KEY (id)
@@ -735,6 +999,7 @@ constraints
   app.bond_import_rows bond_import_rows_pkey: PRIMARY KEY (batch_id, isin)
   app.bond_import_settings bond_import_settings_pkey: PRIMARY KEY (key)
   app.bond_price_weeks bond_price_weeks_pkey: PRIMARY KEY (isin, week)
+  app.bond_runs bond_runs_pkey: PRIMARY KEY (id)
   app.broker_profiles broker_profiles_pkey: PRIMARY KEY (id)
   app.broker_settings broker_settings_pkey: PRIMARY KEY (key)
   app.broker_tariffs broker_tariffs_broker_id_fkey: FOREIGN KEY (broker_id) REFERENCES app.broker_profiles(id)
@@ -746,8 +1011,10 @@ constraints
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
   app.credit_reference_cases credit_reference_cases_pkey: PRIMARY KEY (isin)
+  app.credit_research_jobs credit_research_jobs_claimed_by_fkey: FOREIGN KEY (claimed_by) REFERENCES app.credit_research_workers(worker_id) ON DELETE SET NULL
   app.credit_research_jobs credit_research_jobs_pkey: PRIMARY KEY (isin)
   app.credit_research_runs credit_research_runs_pkey: PRIMARY KEY (id)
+  app.credit_research_runs credit_research_runs_worker_id_fkey: FOREIGN KEY (worker_id) REFERENCES app.credit_research_workers(worker_id)
   app.credit_research_settings credit_research_settings_pkey: PRIMARY KEY (key)
   app.credit_research_tokens credit_research_tokens_pkey: PRIMARY KEY (token_hash)
   app.credit_research_workers credit_research_workers_pkey: PRIMARY KEY (worker_id)
@@ -756,6 +1023,7 @@ constraints
   app.discount_codes discount_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.discount_codes discount_codes_pkey: PRIMARY KEY (code)
   app.discount_codes discount_codes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
+  app.efficient_portfolio_holdings efficient_portfolio_holdings_bes_run_id_fkey: FOREIGN KEY (bes_run_id) REFERENCES app.bes_runs(id) ON DELETE SET NULL
   app.efficient_portfolio_holdings efficient_portfolio_holdings_bond_code_fkey: FOREIGN KEY (bond_code) REFERENCES app.bond_codes(bond_code)
   app.efficient_portfolio_holdings efficient_portfolio_holdings_pkey: PRIMARY KEY (snapshot_id, portfolio_id, horizon, ord)
   app.efficient_portfolio_holdings efficient_portfolio_holdings_snapshot_id_fkey: FOREIGN KEY (snapshot_id) REFERENCES app.efficient_portfolio_snapshots(id) ON DELETE CASCADE
@@ -783,19 +1051,41 @@ constraints
   app.efficient_portfolio_positions efficient_portfolio_positions_snapshot_id_horizon_position_key: UNIQUE (snapshot_id, horizon, "position")
   app.efficient_portfolio_snapshots efficient_portfolio_snapshots_pkey: PRIMARY KEY (id)
   app.efficient_portfolio_snapshots efficient_portfolio_snapshots_status_check: CHECK ((status = ANY (ARRAY['published'::text, 'incomplete'::text, 'superseded'::text, 'failed'::text])))
+  app.email_log email_log_pkey: PRIMARY KEY (id)
   app.events events_pkey: PRIMARY KEY (id)
   app.events events_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
+  app.events events_visitor_id_fkey: FOREIGN KEY (visitor_id) REFERENCES app.visitors(visitor_id) ON DELETE CASCADE
   app.frontier_cache frontier_cache_pkey: PRIMARY KEY (key)
+  app.gpt_ratings gpt_ratings_pkey: PRIMARY KEY (isin)
+  app.historical_default_probabilities historical_default_probabilities_pkey: PRIMARY KEY (data_version, issuer_category, rating_category, horizon_years)
+  app.llm_calls llm_calls_pkey: PRIMARY KEY (id)
+  app.llm_settings llm_settings_pkey: PRIMARY KEY (key)
   app.outreach outreach_pkey: PRIMARY KEY (id)
   app.outreach outreach_status_check: CHECK ((status = ANY (ARRAY['draft'::text, 'sent'::text, 'failed'::text, 'optout'::text])))
+  app.pe_positions pe_positions_pkey: PRIMARY KEY (run_id, row_no)
+  app.pe_positions pe_positions_row_no_check: CHECK (((row_no >= 1) AND (row_no <= 90)))
+  app.pe_positions pe_positions_run_id_fkey: FOREIGN KEY (run_id) REFERENCES app.pe_runs(id) ON DELETE CASCADE
+  app.pe_positions pe_positions_run_id_horizon_position_key: UNIQUE (run_id, horizon, "position")
+  app.pe_positions pe_positions_status_check: CHECK ((status = ANY (ARRAY['optimal'::text, 'uncertified'::text, 'infeasible'::text, 'error'::text])))
+  app.pe_reference_samples pe_reference_samples_pkey: PRIMARY KEY (version, filter_key, horizon, "position", batch_id)
+  app.pe_runs pe_runs_bes_run_id_fkey: FOREIGN KEY (bes_run_id) REFERENCES app.bes_runs(id) ON DELETE SET NULL
+  app.pe_runs pe_runs_pkey: PRIMARY KEY (id)
+  app.pe_runs pe_runs_status_check: CHECK ((status = ANY (ARRAY['requested'::text, 'running'::text, 'published'::text, 'failed'::text, 'superseded'::text])))
+  app.plan_features plan_features_pkey: PRIMARY KEY (feature)
+  app.plan_limits plan_limits_pkey: PRIMARY KEY (key)
+  app.portfolio_builds portfolio_builds_pkey: PRIMARY KEY (id)
+  app.portfolio_builds portfolio_builds_status_check: CHECK ((status = ANY (ARRAY['running'::text, 'done'::text, 'partial'::text, 'failed'::text])))
   app.pro_access pro_access_pkey: PRIMARY KEY (user_id)
   app.pro_access pro_access_status_check: CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))
   app.pro_access pro_access_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.refresh_requests refresh_requests_pkey: PRIMARY KEY (id)
   app.refresh_requests refresh_requests_status_check: CHECK ((status = ANY (ARRAY['pending'::text, 'running'::text, 'done'::text, 'failed'::text])))
+  app.risk_band_config risk_band_config_pkey: PRIMARY KEY (key)
   app.risk_calc_results risk_calc_results_pkey: PRIMARY KEY (run_id, isin)
   app.risk_calc_results risk_calc_results_run_id_fkey: FOREIGN KEY (run_id) REFERENCES app.risk_calc_runs(id) ON DELETE CASCADE
+  app.risk_calc_results risk_calc_results_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id)
   app.risk_calc_runs risk_calc_runs_pkey: PRIMARY KEY (id)
+  app.risk_calc_runs risk_calc_runs_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id)
   app.risk_calc_runs risk_calc_runs_version_id_signature_key: UNIQUE (version_id, signature)
   app.risk_premium_audit risk_premium_audit_pkey: PRIMARY KEY (id)
   app.risk_premium_versions risk_premium_versions_pkey: PRIMARY KEY (id)
@@ -821,6 +1111,7 @@ constraints
   app.seo_criterion_results seo_criterion_results_assessment_id_fkey: FOREIGN KEY (assessment_id) REFERENCES app.seo_assessments(id) ON DELETE CASCADE
   app.seo_criterion_results seo_criterion_results_pkey: PRIMARY KEY (assessment_id, dimension, criterion)
   app.seo_criterion_results seo_criterion_results_points_check: CHECK (((points >= 0) AND (points <= 2)))
+  app.seo_daily seo_daily_pkey: PRIMARY KEY (day)
   app.seo_daily_stats seo_daily_stats_pkey: PRIMARY KEY (day, source)
   app.seo_daily_stats seo_daily_stats_source_check: CHECK ((source = ANY (ARRAY['google'::text, 'bing'::text, 'keywords'::text])))
   app.seo_guide_backups seo_guide_backups_guide_id_fkey: FOREIGN KEY (guide_id) REFERENCES app.seo_guides(id) ON DELETE CASCADE
@@ -858,6 +1149,9 @@ constraints
   app.trial_codes trial_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.trial_codes trial_codes_pkey: PRIMARY KEY (code)
   app.trial_codes trial_codes_redeemed_by_fkey: FOREIGN KEY (redeemed_by) REFERENCES app.users(id) ON DELETE SET NULL
+  app.user_exclusions user_exclusions_kind_check: CHECK ((kind = ANY (ARRAY['bond'::text, 'issuer'::text])))
+  app.user_exclusions user_exclusions_pkey: PRIMARY KEY (user_id, kind, value)
+  app.user_exclusions user_exclusions_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
   app.users users_email_key: UNIQUE (email)
   app.users users_pkey: PRIMARY KEY (id)
   app.users users_plan_check: CHECK ((plan = ANY (ARRAY['free'::text, 'plus'::text, 'premium'::text, 'pro'::text])))
@@ -870,6 +1164,13 @@ constraints
 indexes
   CREATE UNIQUE INDEX assessment_evidence_isin_model_version_as_of_key ON app.assessment_evidence USING btree (isin, model_version, as_of)
   CREATE UNIQUE INDEX assessment_evidence_pkey ON app.assessment_evidence USING btree (id)
+  CREATE UNIQUE INDEX benchmark_curve_pkey ON app.benchmark_curve USING btree (benchmark, curve_type, observation_date, maturity_years)
+  CREATE INDEX benchmark_imports_b ON app.benchmark_imports USING btree (benchmark, id DESC)
+  CREATE UNIQUE INDEX benchmark_imports_pkey ON app.benchmark_imports USING btree (id)
+  CREATE INDEX bes_bonds_status ON app.bes_bonds USING btree (run_id, efficiency_status)
+  CREATE UNIQUE INDEX bes_bonds_pkey ON app.bes_bonds USING btree (run_id, isin)
+  CREATE INDEX bes_runs_status ON app.bes_runs USING btree (status, id DESC)
+  CREATE UNIQUE INDEX bes_runs_pkey ON app.bes_runs USING btree (id)
   CREATE UNIQUE INDEX best_bonds_pkey ON app.best_bonds USING btree (duration, level, rank)
   CREATE UNIQUE INDEX bond_code_counters_pkey ON app.bond_code_counters USING btree (currency)
   CREATE UNIQUE INDEX bond_codes_bond_code_key ON app.bond_codes USING btree (bond_code)
@@ -883,6 +1184,8 @@ indexes
   CREATE UNIQUE INDEX bond_import_rows_pkey ON app.bond_import_rows USING btree (batch_id, isin)
   CREATE UNIQUE INDEX bond_import_settings_pkey ON app.bond_import_settings USING btree (key)
   CREATE UNIQUE INDEX bond_price_weeks_pkey ON app.bond_price_weeks USING btree (isin, week)
+  CREATE INDEX bond_runs_isin_at ON app.bond_runs USING btree (isin, at DESC)
+  CREATE UNIQUE INDEX bond_runs_pkey ON app.bond_runs USING btree (id)
   CREATE UNIQUE INDEX broker_profiles_pkey ON app.broker_profiles USING btree (id)
   CREATE UNIQUE INDEX broker_settings_pkey ON app.broker_settings USING btree (key)
   CREATE INDEX broker_tariffs_broker_idx ON app.broker_tariffs USING btree (broker_id)
@@ -892,8 +1195,10 @@ indexes
   CREATE UNIQUE INDEX consents_pkey ON app.consents USING btree (id)
   CREATE UNIQUE INDEX correction_requests_pkey ON app.correction_requests USING btree (id)
   CREATE UNIQUE INDEX credit_reference_cases_pkey ON app.credit_reference_cases USING btree (isin)
+  CREATE INDEX credit_research_jobs_claimed_by_idx ON app.credit_research_jobs USING btree (claimed_by)
   CREATE INDEX credit_research_jobs_pick ON app.credit_research_jobs USING btree (status, next_attempt_at)
   CREATE UNIQUE INDEX credit_research_jobs_pkey ON app.credit_research_jobs USING btree (isin)
+  CREATE INDEX credit_research_runs_worker_idx ON app.credit_research_runs USING btree (worker_id)
   CREATE UNIQUE INDEX credit_research_runs_pkey ON app.credit_research_runs USING btree (id)
   CREATE UNIQUE INDEX credit_research_settings_pkey ON app.credit_research_settings USING btree (key)
   CREATE UNIQUE INDEX credit_research_tokens_pkey ON app.credit_research_tokens USING btree (token_hash)
@@ -903,6 +1208,7 @@ indexes
   CREATE INDEX discount_codes_created_by_idx ON app.discount_codes USING btree (created_by)
   CREATE INDEX discount_codes_user_id_idx ON app.discount_codes USING btree (user_id)
   CREATE UNIQUE INDEX discount_codes_pkey ON app.discount_codes USING btree (code)
+  CREATE INDEX efficient_portfolio_holdings_bes_run_idx ON app.efficient_portfolio_holdings USING btree (bes_run_id)
   CREATE INDEX efficient_portfolio_holdings_bond_code_idx ON app.efficient_portfolio_holdings USING btree (bond_code)
   CREATE UNIQUE INDEX efficient_portfolio_holdings_pkey ON app.efficient_portfolio_holdings USING btree (snapshot_id, portfolio_id, horizon, ord)
   CREATE INDEX efficient_portfolio_jobs_snapshot_idx ON app.efficient_portfolio_jobs USING btree (snapshot_id)
@@ -923,15 +1229,32 @@ indexes
   CREATE UNIQUE INDEX efficient_portfolio_snapshots_once ON app.efficient_portfolio_snapshots USING btree (input_fingerprint) WHERE (status <> 'failed'::text)
   CREATE UNIQUE INDEX efficient_portfolio_snapshots_one_active ON app.efficient_portfolio_snapshots USING btree (filter_key) WHERE (status = 'published'::text)
   CREATE UNIQUE INDEX efficient_portfolio_snapshots_pkey ON app.efficient_portfolio_snapshots USING btree (id)
+  CREATE UNIQUE INDEX email_log_pkey ON app.email_log USING btree (id)
   CREATE INDEX events_at_idx ON app.events USING btree (at)
   CREATE INDEX events_kind_at_idx ON app.events USING btree (kind, at)
   CREATE INDEX events_user_idx ON app.events USING btree (user_id) WHERE (user_id IS NOT NULL)
+  CREATE INDEX events_visitor_idx ON app.events USING btree (visitor_id)
   CREATE UNIQUE INDEX events_pkey ON app.events USING btree (id)
   CREATE UNIQUE INDEX frontier_cache_pkey ON app.frontier_cache USING btree (key)
+  CREATE UNIQUE INDEX gpt_ratings_pkey ON app.gpt_ratings USING btree (isin)
+  CREATE UNIQUE INDEX historical_default_probabilities_pkey ON app.historical_default_probabilities USING btree (data_version, issuer_category, rating_category, horizon_years)
+  CREATE UNIQUE INDEX llm_calls_pkey ON app.llm_calls USING btree (id)
+  CREATE UNIQUE INDEX llm_settings_pkey ON app.llm_settings USING btree (key)
   CREATE UNIQUE INDEX outreach_email_idx ON app.outreach USING btree (lower(email))
   CREATE UNIQUE INDEX outreach_pkey ON app.outreach USING btree (id)
+  CREATE UNIQUE INDEX pe_positions_pkey ON app.pe_positions USING btree (run_id, row_no)
+  CREATE UNIQUE INDEX pe_positions_run_id_horizon_position_key ON app.pe_positions USING btree (run_id, horizon, "position")
+  CREATE UNIQUE INDEX pe_reference_samples_pkey ON app.pe_reference_samples USING btree (version, filter_key, horizon, "position", batch_id)
+  CREATE INDEX pe_runs_bes_run_idx ON app.pe_runs USING btree (bes_run_id)
+  CREATE INDEX pe_runs_status ON app.pe_runs USING btree (status, id DESC)
+  CREATE UNIQUE INDEX pe_runs_pkey ON app.pe_runs USING btree (id)
+  CREATE UNIQUE INDEX plan_features_pkey ON app.plan_features USING btree (feature)
+  CREATE UNIQUE INDEX plan_limits_pkey ON app.plan_limits USING btree (key)
+  CREATE UNIQUE INDEX portfolio_builds_pkey ON app.portfolio_builds USING btree (id)
   CREATE UNIQUE INDEX pro_access_pkey ON app.pro_access USING btree (user_id)
   CREATE UNIQUE INDEX refresh_requests_pkey ON app.refresh_requests USING btree (id)
+  CREATE UNIQUE INDEX risk_band_config_pkey ON app.risk_band_config USING btree (key)
+  CREATE INDEX risk_calc_results_version_idx ON app.risk_calc_results USING btree (version_id)
   CREATE UNIQUE INDEX risk_calc_results_pkey ON app.risk_calc_results USING btree (run_id, isin)
   CREATE UNIQUE INDEX risk_calc_runs_pkey ON app.risk_calc_runs USING btree (id)
   CREATE UNIQUE INDEX risk_calc_runs_version_id_signature_key ON app.risk_calc_runs USING btree (version_id, signature)
@@ -950,6 +1273,7 @@ indexes
   CREATE UNIQUE INDEX seo_backlinks_pkey ON app.seo_backlinks USING btree (id)
   CREATE UNIQUE INDEX seo_backlinks_source_url_target_url_key ON app.seo_backlinks USING btree (source_url, target_url)
   CREATE UNIQUE INDEX seo_criterion_results_pkey ON app.seo_criterion_results USING btree (assessment_id, dimension, criterion)
+  CREATE UNIQUE INDEX seo_daily_pkey ON app.seo_daily USING btree (day)
   CREATE UNIQUE INDEX seo_daily_stats_pkey ON app.seo_daily_stats USING btree (day, source)
   CREATE INDEX seo_guide_backups_guide_idx ON app.seo_guide_backups USING btree (guide_id)
   CREATE UNIQUE INDEX seo_guide_backups_pkey ON app.seo_guide_backups USING btree (id)
@@ -974,6 +1298,7 @@ indexes
   CREATE INDEX trial_codes_created_by_idx ON app.trial_codes USING btree (created_by)
   CREATE INDEX trial_codes_redeemed_by_idx ON app.trial_codes USING btree (redeemed_by)
   CREATE UNIQUE INDEX trial_codes_pkey ON app.trial_codes USING btree (code)
+  CREATE UNIQUE INDEX user_exclusions_pkey ON app.user_exclusions USING btree (user_id, kind, value)
   CREATE INDEX users_stripe_customer_idx ON app.users USING btree (stripe_customer_id) WHERE (stripe_customer_id IS NOT NULL)
   CREATE UNIQUE INDEX users_email_key ON app.users USING btree (email)
   CREATE UNIQUE INDEX users_pkey ON app.users USING btree (id)

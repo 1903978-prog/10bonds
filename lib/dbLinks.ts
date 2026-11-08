@@ -3,15 +3,20 @@ import type postgres from "postgres";
 type Sql = ReturnType<typeof postgres>;
 
 /**
- * Links between tables that were kept only in code, now enforced by the database (secval audit A-DB-04, 07 Nov 2026).
- * Each one was checked against the code that writes and deletes those rows:
+ * Links between tables that were kept only in code, now enforced by the database (secval audit A-DB-04, 07 Nov 2026;
+ * full relationship register: docs/fk-register.md, 08 Nov 2026). Each one was checked against the code that writes and
+ * deletes those rows:
  *  - weekly e-mail sends belong to an account and go when it is deleted (deleteUser did not remove them);
  *  - a consent record stays as proof but no longer points at a deleted account (as trial codes already do);
  *  - imported rows belong to their import batch; tariffs to a broker profile (profiles are never deleted);
- *  - a spread review keeps its text when the risk-premium draft it named is deleted.
- * Left in code on purpose: links to the bond copy (ISINs come and go daily), consents -> visitors (visitors are purged
- * after 13 months while consent proof is kept), risk_premium_audit (append-only, names deleted drafts), credit research
- * runs -> workers (a run can be saved before its worker's first heartbeat).
+ *  - a spread review keeps its text when the risk-premium draft it named is deleted;
+ *  - a risk calculation run and its results name the curve version used (only the active one; versions with runs are never deleted);
+ *  - usage events belong to a visitor (recordEvents writes the visitor first; forgetting a visitor removes its events);
+ *  - a research job's claim and a research run name a worker (the claim call registers the worker first; workers are never deleted);
+ *  - an archived credit analysis belongs to the current analysis of that ISIN (it is copied from it; analyses are never deleted);
+ *  - a net-spread run and the slider holdings name the bond-efficiency run they used; old runs are pruned, so the name is cleared.
+ * Left in code on purpose: links to the bond copy (ISINs come and go daily, other login), consents -> visitors (visitors are
+ * purged after 13 months while consent proof is kept), risk_premium_audit (append-only, names deleted drafts).
  *
  * Added the safe way on a live database: rows that already break a link are first handled exactly as the new rule would
  * have handled them (`cleanup`), the constraint is added NOT VALID (instant, checks new rows only), then validated
@@ -54,6 +59,45 @@ export const LINKS: Link[] = [
     onDelete: "set null", index: "risk_spread_reviews_version_idx",
     cleanup: "update app.risk_spread_reviews r set version_id = null where r.version_id is not null and not exists (select 1 from app.risk_premium_versions v where v.id = r.version_id)",
   },
+  {
+    name: "risk_calc_runs_version_id_fkey", table: "risk_calc_runs", column: "version_id", parent: "risk_premium_versions", parentColumn: "id",
+    onDelete: "no action",
+  },
+  {
+    name: "risk_calc_results_version_id_fkey", table: "risk_calc_results", column: "version_id", parent: "risk_premium_versions", parentColumn: "id",
+    onDelete: "no action", index: "risk_calc_results_version_idx",
+  },
+  {
+    // Old events whose visitor row is missing get the visitor back (first and last seen from the events): no event is deleted.
+    name: "events_visitor_id_fkey", table: "events", column: "visitor_id", parent: "visitors", parentColumn: "visitor_id",
+    onDelete: "cascade", index: "events_visitor_idx",
+    cleanup: "insert into app.visitors (visitor_id, first_seen, last_seen) select e.visitor_id, min(e.at), max(e.at) from app.events e where not exists (select 1 from app.visitors v where v.visitor_id = e.visitor_id) group by e.visitor_id on conflict (visitor_id) do nothing",
+  },
+  {
+    // Workers that claimed a job before the workers table existed get their row back (never deleted, nothing lost).
+    name: "credit_research_jobs_claimed_by_fkey", table: "credit_research_jobs", column: "claimed_by", parent: "credit_research_workers", parentColumn: "worker_id",
+    onDelete: "set null", index: "credit_research_jobs_claimed_by_idx",
+    cleanup: "insert into app.credit_research_workers (worker_id, last_seen) select j.claimed_by, max(coalesce(j.claimed_at, j.updated_at)) from app.credit_research_jobs j where j.claimed_by is not null and not exists (select 1 from app.credit_research_workers w where w.worker_id = j.claimed_by) group by j.claimed_by on conflict (worker_id) do nothing",
+  },
+  {
+    name: "credit_research_runs_worker_id_fkey", table: "credit_research_runs", column: "worker_id", parent: "credit_research_workers", parentColumn: "worker_id",
+    onDelete: "no action", index: "credit_research_runs_worker_idx",
+    cleanup: "insert into app.credit_research_workers (worker_id, last_seen) select r.worker_id, max(r.at) from app.credit_research_runs r where r.worker_id is not null and not exists (select 1 from app.credit_research_workers w where w.worker_id = r.worker_id) group by r.worker_id on conflict (worker_id) do nothing",
+  },
+  {
+    name: "bond_credit_analysis_history_isin_fkey", table: "bond_credit_analysis_history", column: "isin", parent: "bond_credit_analysis", parentColumn: "isin",
+    onDelete: "no action",
+  },
+  {
+    name: "pe_runs_bes_run_id_fkey", table: "pe_runs", column: "bes_run_id", parent: "bes_runs", parentColumn: "id",
+    onDelete: "set null", index: "pe_runs_bes_run_idx",
+    cleanup: "update app.pe_runs p set bes_run_id = null where p.bes_run_id is not null and not exists (select 1 from app.bes_runs b where b.id = p.bes_run_id)",
+  },
+  {
+    name: "efficient_portfolio_holdings_bes_run_id_fkey", table: "efficient_portfolio_holdings", column: "bes_run_id", parent: "bes_runs", parentColumn: "id",
+    onDelete: "set null", index: "efficient_portfolio_holdings_bes_run_idx",
+    cleanup: "update app.efficient_portfolio_holdings h set bes_run_id = null where h.bes_run_id is not null and not exists (select 1 from app.bes_runs b where b.id = h.bes_run_id)",
+  },
 ];
 
 /** Adds every link whose two tables exist and that is not there yet. Safe to run at every start and from several modules. */
@@ -88,8 +132,8 @@ export async function ensureLinks(sql: Sql, links: Link[] = LINKS): Promise<void
 /**
  * Tables with no link to another table of this database, by design (secval rule AD-01: reported as `standaloneTables`,
  * only tables with no foreign key count, at most half of all tables). Each reason says why no foreign key fits.
- * Not listed on purpose (they hold a link kept in code, see LINKS above): credit_research_runs, credit_research_workers,
- * credit_research_jobs (claimed_by names a worker), risk_premium_audit, visitors (events and consents name visitors).
+ * risk_premium_audit is listed although it names a version: an append-only audit must keep the id of a deleted draft.
+ * Every table is classified in docs/fk-register.md (A linked, C independent, D external or special design).
  */
 export const STANDALONE_TABLES: Record<string, string> = {
   settings: "key/value settings of the app",
@@ -109,8 +153,6 @@ export const STANDALONE_TABLES: Record<string, string> = {
   ytm_history: "daily yields of bonds from the copy; history outlives the bond",
   daily_counts: "anonymous daily page counts",
   assessment_evidence: "published evidence per ISIN of the bond copy (other login)",
-  bond_credit_analysis: "credit analysis per ISIN of the bond copy (other login)",
-  bond_credit_analysis_history: "history of credit analyses per ISIN; history outlives the bond",
   credit_reference_cases: "reference cases per ISIN, some for bonds not in the copy",
   correction_requests: "public correction form: ISIN and the sender's e-mail, no account needed",
   outreach: "outreach e-mail drafts to firms, not accounts",
@@ -120,4 +162,19 @@ export const STANDALONE_TABLES: Record<string, string> = {
   seo_daily_stats: "daily search-engine statistics",
   seo_manual: "manual SEO ratings with the admin's e-mail",
   seo_opportunities: "SEO keyword opportunities",
+  risk_premium_audit: "append-only audit of curve changes: keeps the id of a draft after the draft is deleted",
+  benchmark_curve: "Bund yield curve imported from the Bundesbank",
+  benchmark_imports: "log of Bund curve imports",
+  historical_default_probabilities: "published default-rate reference tables",
+  email_log: "log of sent e-mails, address masked, linked to nothing on purpose",
+  pe_reference_samples: "net-spread reference samples per bond-copy batch (batch id of the copy, other login)",
+  plan_features: "feature matrix per plan",
+  plan_limits: "key/value search limits per plan",
+  portfolio_builds: "log of portfolio build runs",
+  risk_band_config: "key/value risk band settings",
+  seo_daily: "daily search-engine totals",
+  llm_settings: "key/value AI settings",
+  gpt_ratings: "ratings per ISIN of the bond copy (other login)",
+  llm_calls: "AI call counter per ISIN of the bond copy (other login)",
+  bond_runs: "AI research runs per ISIN of the bond copy (other login); history outlives the bond",
 };

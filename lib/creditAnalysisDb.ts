@@ -1,5 +1,6 @@
 import { accountsSql } from "./accounts";
 import { CREDIT_POLICY_VERSION, CREDIT_SEEDS, type CreditOverlay } from "./creditOverlay";
+import { ensureLinks } from "./dbLinks";
 
 // One row per ISIN of stored credit analysis (any bond can have one). IR / BR are independent 0-100 scores (range or single value),
 // never agency ratings and never the site's 1-10 risk class. Market history is not touched: this table holds no prices.
@@ -33,6 +34,7 @@ async function sql() {
         updated_at timestamptz not null default now()
       )`;
     for (const seed of Object.values(CREDIT_SEEDS)) await seedRow(s, seed);
+    await ensureLinks(s); // links that need this module's tables (lib/dbLinks.ts)
   })().catch((e) => { ready = null; throw e; });
   await ready;
   return s;

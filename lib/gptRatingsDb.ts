@@ -8,6 +8,8 @@ import type { Detail } from "./provisionalScenarios";
 export type SavedGptRating = GptRating & { at: string; model?: string | null };
 
 let ready: Promise<void> | null = null;
+/** Builds this module's tables (used by the schema test). */
+export const gptTablesReady = async (): Promise<void> => { await sql(); };
 async function sql() {
   const s = await accountsSql();
   ready ??= (async () => {

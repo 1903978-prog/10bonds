@@ -12,6 +12,7 @@ import type { BondSource } from "../bonds";
 import { bandsKey } from "../riskBandsServe";
 import { loadStoredBands } from "../riskBandsStore";
 import { specConfig } from "./config";
+import { ensureLinks } from "../dbLinks";
 
 // Storage and daily run of Methodology 5 ("Portfolio Efficiency Optimization", owner brief 28/10/2026). Migration id: portfolio_efficiency_001 (additive tables
 // app.pe_*). Written only by scripts/portfolio-efficiency.ts on a runner; the website only reads the published run. A run is published in ONE transaction
@@ -45,6 +46,7 @@ export function peTablesReady(): Promise<void> {
     // Anchored bands (ps3): the ladder step, the band (sum of ten classes, tenths), the target, and the key's anchors R1 / R30 (tenths).
     await s`alter table app.pe_positions add column if not exists step smallint, add column if not exists band_lo smallint, add column if not exists band_hi smallint, add column if not exists band_target numeric(6,2), add column if not exists r1 smallint, add column if not exists r30 smallint`;
     await s`create index if not exists pe_runs_status on app.pe_runs (status, id desc)`;
+    await ensureLinks(s); // links that need this module's tables (lib/dbLinks.ts)
   })().catch((e) => { ready = null; throw e; });
   return ready;
 }
