@@ -39,7 +39,7 @@ Metric B "today" matches production (32 validated foreign keys, measured by the 
 - Existing FKs not validated or invalid: 0 in the fresh build; production UNVERIFIED (second query in `docs/fk-orphan-check.sql`).
 - Candidates awaiting investigation: 0.
 - Justified non-FK relationships: 58 (section 4).
-- Orphan-data issues (production, measured 08 Nov): 3 links. 73,563 dead run ids get cleared and 673 events get their visitor row back. 0 rows deleted at today's counts (section 3).
+- Orphan-data issues (production, measured 08 Nov): 3 links. 73,563 dead run ids get cleared, and 32 visitor rows are re-created for 673 events. 0 rows deleted at today's counts (section 3).
 
 ## 1. Tables by category
 
@@ -158,7 +158,7 @@ Orphan counts in production, measured by the Secval audit thread with `docs/fk-o
 
 None of the 13 makes the release fail. Each link's repair runs first, in the same transaction, before the rule is added:
 - **bes_run_id (73,560 + 3).** Cause: bond-efficiency runs are pruned (`lib/bes/store.ts` keeps the last 5 superseded or failed runs), and the holdings and net-spread runs that used an older run kept its id. The column is written but never read; the scores themselves are copied onto the holdings and stay. Release clears the dead ids; no score changes. The link stays because a run id that points at nothing is misleading.
-- **events.visitor_id (673).** Most likely events from before visitor rows were always written first, or from an earlier clean-up. Release re-creates the missing visitor rows, with first and last seen taken from their events, so no event is lost. Side effect: those visitors get new visitor numbers and appear in visitor lists with their old dates. The exact cause needs the events' dates (asked from the audit thread).
+- **events.visitor_id (673).** The 673 events come from 32 visitors, dated 18 Oct 2026 16:16 to 26 Oct 2026 10:47 UTC, and none since (audit thread, 08 Nov). That points to a past fault or clean-up in that window, now stopped. The repository history from then is squashed, so the exact cause can't be traced. Release re-creates the 32 visitor rows, with first and last seen taken from their events, so no event is lost. Side effect: those 32 visitors get new visitor numbers.
 - **weekly_email_sends and consents: 0 today.** Their repair does nothing now. It stays in case orphans appear before release, at no cost.
 
 How each new link handles rows that already break it:
