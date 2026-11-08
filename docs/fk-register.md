@@ -9,7 +9,7 @@
   - schema `app`: 83 tables, 32 foreign keys (all validated), 27 tables in a foreign key;
   - schema `public`: 1 table (`public_bonds`), no foreign key.
 - **Reconciled:** the repository build of `main` (before #497's links) gives exactly 32 foreign keys and 27 linked tables. The foreign keys match production.
-  - The repository builds 82 `app` tables. Production has 83: one `app` table exists in production that no current code creates (probably left over from a removed feature). It is category **E** until the auditor sends its name.
+  - The repository builds 82 `app` tables. Production has 83: the extra one is `bond_prices_daily`, which no code in this repository creates or has ever created. It is category **E** (section 1).
 - **Not measured by this thread:** this workspace has no production login, so orphan counts are **UNVERIFIED**. Run `docs/fk-orphan-check.sql` (read-only) on production before releasing #497.
 - **Schemas in scope:** `app` (login `tenbonds_app`) and `public`. `public.public_bonds` is the daily bond copy, written by lm-op-model and read by 10bonds with a read-only login (`tenbonds_reader`). It is listed here as category D.
 - **Correction:** until 08 Nov 2026 the tracked schema file listed 63 tables. 19 tables made on first use by other features were missing from it. Earlier reports of "63 tables" to Secval undercounted.
@@ -22,7 +22,7 @@
 
 | Metric | Today (code on `main`) | With draft PR #497 released |
 |---|---|---|
-| A. Table classification (production 84 tables) | 83 / 84 = 98.8% (1 unnamed leftover table) | same |
+| A. Table classification (production 84 tables) | 83 / 84 = 98.8% (`bond_prices_daily` unresolved) | same |
 | B. Required FK enforcement | 32 / 45 = 71% | 45 / 45 = 100% |
 | C. Candidate discovery | 103 / 103 = 100% resolved (see limitation above) | same |
 | D. Independent tables | 42 / 84 = 50% (C: 26, D: 16 incl. public_bonds) | same |
@@ -65,7 +65,7 @@ With #497 there are no B or E tables. On `main` today, these tables are B: they 
 - `seo_shares`, `trial_codes`, `user_exclusions`, `users`, `visitors`
 - `weekly_email_sends`
 
-**E, unresolved (1):** the 83rd `app` table in production, not created by any current code. Name needed from the auditor. Then: classify it, or propose dropping it (a production change, so it needs approval).
+**E, unresolved (1):** `bond_prices_daily`. It is in production (auditor's list, 08 Nov 05:02 UTC) but has never been in this repository's code or history; the code's daily prices live in `bond_daily_prices`. It was probably written by another app or made by hand. To close it, we need its columns, row count and latest write (asked from the auditor). Then classify it, or propose dropping it (a production change, so it needs approval).
 
 **C, independent (26):** each holds no reference to another row.
 
