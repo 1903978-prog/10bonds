@@ -1,6 +1,6 @@
 # Release dossier: 10bonds PR #497 (database links)
 
-09 Nov 2026. 10bonds thread. **Status: NO-GO until Livio approves, and until gate 3 (a fresh backup with a restore check right before the repair) is done.** The rehearsal on an isolated production copy passed (gate 8).
+09 Nov 2026. 10bonds thread. **Status: technically ready; NO-GO until Livio approves.** The rehearsal on an isolated production copy passed (gate 8). The latest backup and restore test passed (gate 3); a fresh one runs right before the repair.
 
 PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). The head SHA is the one on the PR at approval time; this dossier was written at `aa688aa`, and later commits on the branch touch only documentation. No other app depends on this release. Secval only reads it.
 
@@ -85,7 +85,7 @@ Expected row changes, measured read-only on production. These counts change dail
 |---|---|---|
 | 1 | Correct scope | PASS: 13 links, repair tool, docs; nothing else |
 | 2 | Exact commit SHA | the PR head at approval time |
-| 3 | No unapproved bundled changes / backup | UNVERIFIED: a fresh backup and a restore into an isolated database are needed right before step 2 (nightly backup job exists; its restore test is recorded in `app.settings`) |
+| 3 | No unapproved bundled changes / backup | **PASS for the last nightly run.** Production `app.settings` (read 09 Nov 02:50 UTC): `backup_last_ok_at` and `backup_restore_test_ok_at` both 2026-11-08T16:20:51Z. Both keys are written by the last step of `.github/workflows/backup.yml`, which runs only after `scripts/backup-accounts.sh` succeeds: it dumps the app schema, encrypts the dump, decrypts it, `pg_restore`s it into an empty Postgres, and checks every table and row count. At release: run that job once more right before step 2 (manual dispatch) |
 | 4 | Automated tests | PASS (section 4) |
 | 5 | Independent review | PENDING: the Secval audit thread is reviewing |
 | 6 | Security | PASS: no new endpoint, secret or permission; the repair runs with the app's own login |
