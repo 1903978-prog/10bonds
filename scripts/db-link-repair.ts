@@ -60,8 +60,8 @@ try {
             if (kind === "UNEXPECTED") unexpected = true;
             lines.push(`| ${c.table} | ${c.rowsBefore} | ${c.rowsAfter} | ${kind} |`);
           }
-          const left = inTx.filter((v) => v.rows > 0);
-          if (left.length) { unexpected = true; lines.push("", `Still breaking: ${left.map((v) => v.name).join(", ")}`); }
+          const left = inTx.filter((v) => v.rows > 0 || v.validated !== true);
+          if (left.length) { unexpected = true; lines.push("", `Still breaking or not validated: ${left.map((v) => v.name).join(", ")}`); }
           report = ["| Link | Rows repaired |", "|---|---:|", ...done.map((d) => `| ${d.name} | ${d.repaired} |`), "", ...lines].join("\n");
           if (unexpected) throw new RepairRolledBack("unexpected changes");
         },

@@ -107,32 +107,28 @@ export const LINKS: Link[] = [
  * Note: once a rule exists, its delete rule applies to every row, old or new (for example pruning a scoring run clears
  * the run id on holdings that still point at it).
  */
-export async function ensureLinks(sql: Sql, links: Link[] = LINKS): Promise<void> {
+export async function ensureLinks(sql: Sql, links: Link[] = LINKS, lockTimeout = "5s"): Promise<void> {
   for (const l of links) {
     const [r] = await sql`
       select to_regclass(${"app." + l.table}) as child, to_regclass(${"app." + l.parent}) as parent,
              exists (select 1 from pg_constraint where conname = ${l.name} and connamespace = 'app'::regnamespace) as present`;
     if (!r?.child || !r?.parent) continue;
-    if (l.index) {
-      try {
-        await sql.unsafe(`create index if not exists ${l.index} on app.${l.table} (${l.column})`);
-      } catch (e) {
-        // Another module or process created the same index at the same moment: it exists now.
-        if (!["23505", "42P07"].includes(String((e as { code?: string }).code))) throw e;
-      }
-    }
-    if (r.present) continue;
+    if (r.present && !l.index) continue;
     try {
-      // Wait at most 5 s for the table lock, so a busy table never stalls start-up; the next start tries again.
+      // Wait at most `lockTimeout` for each table lock, so a busy table never stalls start-up; the next start tries again.
       await sql.begin(async (tx) => {
-        await tx`set local lock_timeout = '5s'`;
-        await tx.unsafe(
-          `alter table app.${l.table} add constraint ${l.name} foreign key (${l.column}) references app.${l.parent} (${l.parentColumn}) on delete ${l.onDelete} not valid`,
-        );
+        await tx.unsafe(`set local lock_timeout = '${lockTimeout.replace(/[^0-9a-z]/gi, "")}'`);
+        if (l.index) await tx.unsafe(`create index if not exists ${l.index} on app.${l.table} (${l.column})`);
+        if (!r.present) {
+          await tx.unsafe(
+            `alter table app.${l.table} add constraint ${l.name} foreign key (${l.column}) references app.${l.parent} (${l.parentColumn}) on delete ${l.onDelete} not valid`,
+          );
+        }
       });
     } catch (e) {
       const code = String((e as { code?: string }).code);
-      if (code === "42710") continue; // another process added it at the same moment
+      // 42710 / 23505 / 42P07: another process added the same rule or index at the same moment.
+      if (["42710", "23505", "42P07"].includes(code)) continue;
       if (code === "55P03") { console.error(`[db-links] ${l.name}: table busy, rule not added this time (next start retries)`); continue; }
       throw e;
     }
@@ -170,15 +166,20 @@ export async function repairAndValidateLinks(
   hooks: {
     before?: (tx: postgres.TransactionSql) => Promise<void>;
     verify?: (tx: postgres.TransactionSql, result: { name: string; repaired: number }[]) => Promise<void>;
+    lockTimeout?: string;
   } = {},
 ): Promise<{ name: string; repaired: number; validated: boolean }[]> {
-  await ensureLinks(sql, links);
+  await ensureLinks(sql, links, hooks.lockTimeout);
   return (await sql.begin("isolation level repeatable read", async (tx) => {
     if (hooks.before) await hooks.before(tx);
     const done: { name: string; repaired: number }[] = [];
     for (const l of links) {
       const [r] = await tx`select convalidated from pg_constraint where conname = ${l.name} and connamespace = 'app'::regnamespace`;
-      if (!r) continue; // tables missing
+      if (!r) {
+        const [t] = await tx`select to_regclass(${"app." + l.table}) is not null and to_regclass(${"app." + l.parent}) is not null as both`;
+        if (t?.both) throw new RepairRolledBack(`${l.name}: the rule could not be added (table busy?); nothing was repaired, run again`);
+        continue; // a table of this link does not exist in this database
+      }
       if (r.convalidated) { done.push({ name: l.name, repaired: 0 }); continue; }
       const res = l.cleanup ? await tx.unsafe(l.cleanup) : null;
       await tx.unsafe(`alter table app.${l.table} validate constraint ${l.name}`);

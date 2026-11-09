@@ -2,7 +2,7 @@
 
 09 Nov 2026. 10bonds thread. **Status: technically ready; NO-GO until Livio approves.** The rehearsal on an isolated production copy passed (gate 8). The latest backup and restore test passed (gate 3); a fresh one runs right before the repair.
 
-PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). Code was last changed at `f2407f6`, which fixed the review notes. The repair statements are unchanged since `aa688aa`, which the rehearsal used: `docs/db-link-repair-dryrun.sql` is identical, and a test keeps it equal to the code. The release head is the PR head named in the consolidated release request, and the independent review must be on that exact SHA. No other app depends on this release. Secval only reads it.
+PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). Code was last changed in the commit that fixed the re-review note R1 (see gate 5). The repair statements are unchanged since `aa688aa`, which the rehearsal used: `docs/db-link-repair-dryrun.sql` is identical, and a test keeps it equal to the code. The release head is the PR head named in the consolidated release request, and the independent review must be on that exact SHA. No other app depends on this release. Secval only reads it.
 
 ## 0. Current production measurements (read-only, not results of this release)
 
@@ -27,7 +27,7 @@ Start-up writes the following to the schema. These are schema changes, not row c
 Start-up changes no rows and validates nothing (`ensureLinks`, lib/dbLinks.ts; proven by the test "start-up adds the rules without touching old rows").
 
 Locks:
-- Adding a `NOT VALID` foreign key takes a brief lock on the two tables. Start-up waits at most 5 seconds for it (`lock_timeout`). If the table is busy, it logs that and tries again at the next start.
+- Adding a `NOT VALID` foreign key, and creating its index, take a lock on the table. Start-up waits at most 5 seconds for each (`lock_timeout`). If the table is busy, it logs that, skips that link and tries again at the next start.
 - `create index` (not concurrent) blocks writes to that table while it builds. The audit thread measured production on 09 Nov: none of these indexes exist yet, and the largest table is `efficient_portfolio_holdings` with 100,390 rows. So each build takes about a second.
 - Two modules creating the same index at the same moment is handled (error 23505/42P07 is ignored, because the index then exists).
 
@@ -51,7 +51,8 @@ REPAIR_DATABASE_URL=<app login> npx vite-node -c vitest.config.ts scripts/db-lin
 
 - **All or nothing, in ONE transaction at REPEATABLE READ.** It fingerprints every table (row count and hash, with and without the repaired columns), then for each link repairs the old rows and runs `VALIDATE`. It then fingerprints again and compares, inside the same transaction, before anything is committed.
 - Live traffic committed by other connections during the run (new events, visitors, scoring runs, weekly sends) is invisible to the transaction's snapshot. So the comparison judges only the repair's own changes, and normal traffic cannot cause a false failure.
-- If a link does not validate, or anything outside the expected changes moved, the whole repair rolls back and nothing is kept. The script then exits 1.
+- If a link does not validate, a rule could not be added (busy table), or anything outside the expected changes moved, the whole repair rolls back and nothing is kept. The script then exits 1 and can simply be run again.
+- If a scoring run is pruned at the same moment, Postgres may stop the repair with a serialization error (40001). Nothing is kept; run it again.
 - Tested: "the repair is all-or-nothing, judges only its own changes (not live traffic), and rolls everything back when verification fails" in lib/schema.db.test.ts.
 - Recommended anyway: run it at a quiet hour, outside the 02:15 UTC backup, the scoring runs and the Monday weekly send. That keeps row locks on the holdings it updates short. Concurrent writes do not touch the same rows: the repaired holdings are only in superseded snapshots.
 
@@ -88,7 +89,7 @@ Expected row changes, measured read-only on production. These counts change dail
 
 ## 4. Tests on the release head
 
-- Full suite against a real Postgres 16: 162 files, 1079 tests pass (`f2407f6`).
+- Full suite against a real Postgres 16: 162 files, 1080 tests pass (release head).
 - `tsc` 0 errors; lint 0 errors.
 - The schema test passes on a fresh database and on a rerun.
 - Repair tests on local data, including orphans in 3 links:
@@ -103,7 +104,7 @@ Expected row changes, measured read-only on production. These counts change dail
 | 2 | Exact commit SHA | the PR head at approval time |
 | 3 | No unapproved bundled changes / backup | **PASS for the last nightly run.** Production `app.settings` (read 09 Nov 02:50 UTC): `backup_last_ok_at` and `backup_restore_test_ok_at` both 2026-11-08T16:20:51Z. Both keys are written by the last step of `.github/workflows/backup.yml`, which runs only after `scripts/backup-accounts.sh` succeeds: it dumps the app schema, encrypts the dump, decrypts it, `pg_restore`s it into an empty Postgres, and checks every table and row count. At release: run that job once more right before step 2 (manual dispatch) |
 | 4 | Automated tests | PASS (section 4) |
-| 5 | Independent review | Review of `2e2adb4`: PASS WITH NOTES (`docs/evidence/review-497-2e2adb4-2026-11-09.md`). The notes were fixed in the next head: N1 (live traffic made the check fail) is fixed by the single-transaction repair; N2 and N3 by the index-race and lock-timeout handling; N4 index sizes are recorded above. A re-review of the new head has been requested. |
+| 5 | Independent review | Review of `2e2adb4`: PASS WITH NOTES (`docs/evidence/review-497-2e2adb4-2026-11-09.md`). The notes were fixed in the next head: N1 (live traffic made the check fail) is fixed by the single-transaction repair; N2 and N3 by the index-race and lock-timeout handling; N4 index sizes are recorded above. Re-review of `a90fe71`: one note, R1 (a rule skipped on a busy table could still end in "committed"). Fixed: the repair now refuses inside its transaction when a rule is missing, the script also checks that every link is validated, and index creation has the same 5-second lock limit. Test added: "the repair rolls back when a rule could not be added (busy table)". Final re-review of the release head: requested. |
 | 6 | Security | PASS: no new endpoint, secret or permission; the repair runs with the app's own login |
 | 7 | Migration assessment | PASS: section 1 lists every schema and row change |
 | 8 | Rehearsal on an isolated production copy | **PASS**, by the Secval audit thread on Neon branch `repair-dryrun-497-2026-11-09`, copied from production 09 Nov 02:45:44 UTC; production not touched. Before the repair: holdings 80,200, events 673, pe_runs 3, other links 0. Afterwards: holdings (100,390 rows) and pe_runs (8 rows) changed only in the link column; visitors 3 → 35 (+32); the other 80 tables have identical fingerprints; 45 of 45 foreign keys validated. Output kept in the repository: `docs/evidence/db-link-repair-dryrun-output-2026-11-09.md` (and the reconciliation read in `docs/evidence/bes-orphan-reconcile-output-2026-11-09.md`). The branch still exists; deleting it is part of the approval request. |

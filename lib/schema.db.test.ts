@@ -280,6 +280,36 @@ describe.skipIf(!url)("links added 08 Nov 2026 (docs/fk-register.md)", () => {
     await sql`delete from app.pe_runs where id = ${pe.id}`;
   });
 
+  it("the repair rolls back when a rule could not be added (busy table) instead of reporting success", async () => {
+    const sql = await buildAll();
+    const { repairAndValidateLinks, LINKS } = await import("./dbLinks");
+    const l = LINKS.find((x) => x.name === "pe_runs_bes_run_id_fkey")!;
+    await sql.unsafe(`alter table app.${l.table} drop constraint ${l.name}`);
+    const { default: postgres } = await import("postgres");
+    const other = postgres(url!, { max: 1, onnotice: () => {} });
+    try {
+      // Another session holds the table: adding the rule times out, so it is skipped at "start-up".
+      let release!: () => void;
+      const held = new Promise<void>((r) => { release = r; });
+      let locked!: () => void;
+      const isLocked = new Promise<void>((r) => { locked = r; });
+      const holder = other.begin(async (tx) => { await tx.unsafe(`lock table app.${l.table} in access exclusive mode`); locked(); await held; });
+      await isLocked;
+      try {
+        await expect(repairAndValidateLinks(sql, LINKS, { lockTimeout: "200ms" })).rejects.toThrow(/could not be added/);
+      } finally {
+        release();
+        await holder;
+      }
+    } finally {
+      await other.end();
+    }
+    expect(await sql`select 1 from pg_constraint where conname = ${l.name}`).toHaveLength(0);
+    const { ensureLinks } = await import("./dbLinks");
+    await ensureLinks(sql); // a later start adds it
+    expect(await sql`select 1 from pg_constraint where conname = ${l.name}`).toHaveLength(1);
+  });
+
   it("pruning an old scoring run no longer leaves holdings or net-spread runs pointing at it (even before the repair step)", async () => {
     const sql = await buildAll();
     await sql`alter table app.efficient_portfolio_holdings drop constraint efficient_portfolio_holdings_bes_run_id_fkey`;
