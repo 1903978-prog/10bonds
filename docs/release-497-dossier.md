@@ -2,11 +2,23 @@
 
 09 Nov 2026. 10bonds thread. **Status: technically ready; NO-GO until Livio approves.** The rehearsal on an isolated production copy passed (gate 8). The latest backup and restore test passed (gate 3); a fresh one runs right before the repair.
 
-PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). The head SHA is the one on the PR at approval time; this dossier was written at `aa688aa`, and later commits on the branch touch only documentation. No other app depends on this release. Secval only reads it.
+PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). Code was last changed at `aa688aa`; the commits after it touch only `docs/`. The release head is the PR head named in the consolidated release request, and the independent review must be on that exact SHA. No other app depends on this release. Secval only reads it.
+
+## 0. Current production measurements (read-only, not results of this release)
+
+| Measure | Value | Source |
+|---|---|---|
+| Foreign keys in `app` | 32, all validated | Secval audit thread, 08 Nov 04:51 UTC |
+| Required links validated | 32 / 45 = 71% | register (`docs/fk-register.md`) |
+| Holdings with a dead `bes_run_id` | 80,200 (all in superseded snapshots; published snapshots: 0) | 09 Nov 02:39 UTC |
+| `pe_runs` with a dead `bes_run_id` | 3 | 09 Nov 02:39 UTC |
+| Events whose visitor row is missing | 673, from 32 visitors (18 to 26 Oct 2026, none since) | 09 Nov 02:39 UTC |
+| Other 10 new links | 0 rows breaking them | 09 Nov 02:45 (rehearsal copy) |
+| Last backup and real restore test | 08 Nov 2026 16:20:51 UTC | `app.settings`, read 09 Nov 02:50 UTC |
 
 ## 1. What changes, in order
 
-### Step 1: deploy (the normal Fly deploy of `main` after merge)
+### Step 1: immediate schema changes at deploy (the normal Fly deploy of `main` after merge)
 
 Start-up writes the following to the schema. These are schema changes, not row changes.
 - 13 foreign keys added as `NOT VALID`. Old rows are not checked; new and updated rows are.
@@ -18,14 +30,16 @@ Locks:
 - Adding a `NOT VALID` foreign key takes a brief lock on the two tables.
 - `create index` (not concurrent) blocks writes to that table while it builds. The table sizes for the 6 indexes are **UNVERIFIED**; the rehearsal (gate 8) measures the time.
 
-**Row changes the app makes by itself after the deploy** (delete rules of the new keys, part of normal operation):
+### Future operational effects of the new keys (from the deploy on, automatically, as part of normal operation)
+
+These are the delete rules of the new keys:
 - Every time a bond-efficiency run is pruned (about 1 to 2 times a day), `bes_run_id` is set to empty on the holdings and net-spread runs that still name it. That is about 3,320 holdings per pruned run. This is the fix that stops new dead references; scores are not touched.
 - Deleting an account now also deletes its weekly-e-mail send rows (before, they were left behind), and empties `consents.user_id`, keeping the consent text.
 - Deleting a visitor deletes its events. `forgetVisitor` already did this; the 13-month purge only removes visitors whose events are already purged.
 - Deleting a risk-premium draft empties `risk_spread_reviews.version_id`.
 - `claimJob` adds a worker row if one is missing. The claim route already does this first, so in practice nothing changes.
 
-### Step 2: the repair (a production data migration; needs its own explicit approval)
+### Step 2: the historical-data repair (a production data migration; separately approved, never run by a deploy)
 
 Run once, after step 1:
 
@@ -53,11 +67,10 @@ Expected row changes, measured read-only on production. These counts change dail
 
 **No DELETE runs at today's counts.** The one DELETE in the repair (weekly sends of deleted accounts) currently matches 0 rows. Every portfolio snapshot and historical record is kept. Old snapshots are not trimmed; that is a separate future decision.
 
-### Step 3: verify
+### Step 3: post-release acceptance criteria (expected after steps 1 and 2; these are targets, not current production results)
 
-- `docs/fk-orphan-check.sql` returns 0 on all 13 links.
-- Its last query returns no foreign key that is not validated.
-- Production has 45 validated foreign keys (32 + 13).
+- 45 / 45 required foreign keys exist and are validated (today: 32 / 45).
+- `docs/fk-orphan-check.sql` returns 0 on all 13 links (today: 80,200 + 673 + 3 breaking rows), and its last query lists no foreign key that is not validated.
 - The published slider snapshots show the same portfolios and scores before and after: compare `efficient_portfolio_positions` and the holdings' `bes_score` for status `published`. The repair touches neither, and the fingerprint proves it.
 
 ## 2. Current scores and historical scores
@@ -90,15 +103,15 @@ Expected row changes, measured read-only on production. These counts change dail
 | 5 | Independent review | PENDING: the Secval audit thread is reviewing |
 | 6 | Security | PASS: no new endpoint, secret or permission; the repair runs with the app's own login |
 | 7 | Migration assessment | PASS: section 1 lists every schema and row change |
-| 8 | Rehearsal on an isolated production copy | **PASS**, by the Secval audit thread on Neon branch `repair-dryrun-497-2026-11-09`, copied from production 09 Nov 02:45:44 UTC; production not touched. Before the repair: holdings 80,200, events 673, pe_runs 3, other links 0. Afterwards: holdings (100,390 rows) and pe_runs (8 rows) changed only in the link column; visitors 3 → 35 (+32); the other 80 tables have identical fingerprints; 45 of 45 foreign keys validated. Output: `/mnt/project-files/10bonds/db-link-repair-dryrun-output-2026-11-09.md`. The branch still exists; deleting it is part of the approval request. |
+| 8 | Rehearsal on an isolated production copy | **PASS**, by the Secval audit thread on Neon branch `repair-dryrun-497-2026-11-09`, copied from production 09 Nov 02:45:44 UTC; production not touched. Before the repair: holdings 80,200, events 673, pe_runs 3, other links 0. Afterwards: holdings (100,390 rows) and pe_runs (8 rows) changed only in the link column; visitors 3 → 35 (+32); the other 80 tables have identical fingerprints; 45 of 45 foreign keys validated. Output kept in the repository: `docs/evidence/db-link-repair-dryrun-output-2026-11-09.md` (and the reconciliation read in `docs/evidence/bes-orphan-reconcile-output-2026-11-09.md`). The branch still exists; deleting it is part of the approval request. |
 | 9 | Environment compatibility | PASS: Postgres features used (NOT VALID, VALIDATE) exist in Neon's Postgres 16 |
 | 10 | Rollback written | PASS (section 3) |
 | 11 | Post-deploy monitoring | step 3 checks; nightly live check |
 | 12 | Written release approval | REQUIRED: Livio, for step 1 (merge + deploy) and step 2 (repair) |
 
-**Visible side effect to know before approving:** production has only 3 visitor rows today, because visitors are counted only with cookie consent. The repair re-creates 32 visitors dated 18 to 26 Oct 2026, so admin visitor lists will show 35. The alternative is deleting the 673 orphan events instead, which loses history. Keeping them follows the instruction to preserve historical records.
+**Visible side effect to know before approving:** the production copy has only 3 visitor rows today. The repair re-creates 32 visitors dated 18 to 26 Oct 2026, so admin visitor lists will show 35. The alternative is deleting the 673 orphan events instead, which loses history. Keeping them follows the instruction to preserve historical records.
 
 **Approvals needed from Livio:**
 1. Merge and deploy #497. That is step 1: schema only, no rows changed.
 2. Run the repair (step 2): about 80,000 dead run ids emptied and 32 visitor rows re-created, no deletes at today's counts.
-3. Delete the rehearsal branch `repair-dryrun-497-2026-11-09` in Neon (a throwaway copy).
+3. Delete the rehearsal branch `repair-dryrun-497-2026-11-09` in Neon (a throwaway copy). Its evidence is already kept in the repository (`docs/evidence/`), so deleting it loses nothing.
