@@ -156,9 +156,9 @@ Orphan counts in production, measured by the Secval audit thread with `docs/fk-o
 - the other 10 links: 0
 - existing foreign keys not validated: 0
 
-None of the 13 makes the release fail. Each link's repair runs first, in the same transaction, before the rule is added:
-- **bes_run_id (73,560 + 3 on 08 Nov; 76,880 + 3 on 09 Nov).** Fully reconciled in `docs/bes-orphan-root-cause.md`. Superseded snapshots are kept forever, while scoring runs are pruned to the newest 5. All dead ids are in old superseded snapshots; no published snapshot is affected. The count grows by about 3,300 per pruned run. Release clears the dead ids and no score changes; from then on the foreign key clears them automatically.
-- **events.visitor_id (673).** The 673 events come from 32 visitors, dated 18 Oct 2026 16:16 to 26 Oct 2026 10:47 UTC, and none since (audit thread, 08 Nov). That points to a past fault or clean-up in that window, now stopped. The repository history from then is squashed, so the exact cause can't be traced. Release re-creates the 32 visitor rows, with first and last seen taken from their events, so no event is lost. Side effect: those 32 visitors get new visitor numbers.
+Since 09 Nov (commit aa688aa) the release has two stages; the full detail is in `docs/release-497-dossier.md`. The deploy only adds the 13 rules `NOT VALID` and changes no rows. A separate approved repair step (`scripts/db-link-repair.ts --apply`) then repairs and validates each link in its own transaction. Neither stage can fail on these orphans. Per link:
+- **bes_run_id (73,560 + 3 on 08 Nov; 76,880 + 3 on 09 Nov).** Fully reconciled in `docs/bes-orphan-root-cause.md`. Superseded snapshots are kept forever, while scoring runs are pruned to the newest 5. All dead ids are in old superseded snapshots; no published snapshot is affected. The count grows by about 3,300 per pruned run. The repair step clears the dead ids and no score changes. From the deploy on, the foreign key clears them automatically each time a run is pruned. On 09 Nov 02:39 UTC the count was 80,200.
+- **events.visitor_id (673).** The 673 events come from 32 visitors, dated 18 Oct 2026 16:16 to 26 Oct 2026 10:47 UTC, and none since (audit thread, 08 Nov). That points to a past fault or clean-up in that window, now stopped. The repository history from then is squashed, so the exact cause can't be traced. The repair step re-creates the 32 visitor rows, with first and last seen taken from their events, so no event is lost. Side effect: those 32 visitors get new visitor numbers.
 - **weekly_email_sends and consents: 0 today.** Their repair does nothing now. It stays in case orphans appear before release, at no cost.
 
 How each new link handles rows that already break it:
@@ -173,10 +173,9 @@ How each new link handles rows that already break it:
 | 41, 42 worker ids | re-creates the missing worker row | none |
 | 35, 36, 38, 39, 43 | none. If old rows break the link, the rule stays "not valid" (checks new rows only) and the error is logged | none |
 
-Nothing runs until the release is approved. Each link is added the safe way:
-1. Repair the rows that already break it.
-2. Add the rule as `NOT VALID` (instant).
-3. Validate it, which reads the old rows without blocking writes.
+Nothing runs until the release is approved, and the two stages need separate approvals:
+1. Deploy: the rule is added `NOT VALID`. This is instant and checks new rows only; no row changes.
+2. Repair step: in one transaction per link, repair the old rows, then validate. A failed validation rolls back that link's repair. The step fingerprints every table before and after to prove that only the expected rows changed.
 
 ## 4. Justified non-FK relationships (58)
 
