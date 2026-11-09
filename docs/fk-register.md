@@ -157,7 +157,7 @@ Orphan counts in production, measured by the Secval audit thread with `docs/fk-o
 - existing foreign keys not validated: 0
 
 None of the 13 makes the release fail. Each link's repair runs first, in the same transaction, before the rule is added:
-- **bes_run_id (73,560 + 3).** Cause: bond-efficiency runs are pruned (`lib/bes/store.ts` keeps the last 5 superseded or failed runs), and the holdings and net-spread runs that used an older run kept its id. The column is written but never read; the scores themselves are copied onto the holdings and stay. Release clears the dead ids; no score changes. The link stays because a run id that points at nothing is misleading.
+- **bes_run_id (73,560 + 3 on 08 Nov; 76,880 + 3 on 09 Nov).** Fully reconciled in `docs/bes-orphan-root-cause.md`. Superseded snapshots are kept forever, while scoring runs are pruned to the newest 5. All dead ids are in old superseded snapshots; no published snapshot is affected. The count grows by about 3,300 per pruned run. Release clears the dead ids and no score changes; from then on the foreign key clears them automatically.
 - **events.visitor_id (673).** The 673 events come from 32 visitors, dated 18 Oct 2026 16:16 to 26 Oct 2026 10:47 UTC, and none since (audit thread, 08 Nov). That points to a past fault or clean-up in that window, now stopped. The repository history from then is squashed, so the exact cause can't be traced. Release re-creates the 32 visitor rows, with first and last seen taken from their events, so no event is lost. Side effect: those 32 visitors get new visitor numbers.
 - **weekly_email_sends and consents: 0 today.** Their repair does nothing now. It stays in case orphans appear before release, at no cost.
 
