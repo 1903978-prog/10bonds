@@ -113,22 +113,34 @@ export async function ensureLinks(sql: Sql, links: Link[] = LINKS): Promise<void
       select to_regclass(${"app." + l.table}) as child, to_regclass(${"app." + l.parent}) as parent,
              exists (select 1 from pg_constraint where conname = ${l.name} and connamespace = 'app'::regnamespace) as present`;
     if (!r?.child || !r?.parent) continue;
-    if (l.index) await sql.unsafe(`create index if not exists ${l.index} on app.${l.table} (${l.column})`);
+    if (l.index) {
+      try {
+        await sql.unsafe(`create index if not exists ${l.index} on app.${l.table} (${l.column})`);
+      } catch (e) {
+        // Another module or process created the same index at the same moment: it exists now.
+        if (!["23505", "42P07"].includes(String((e as { code?: string }).code))) throw e;
+      }
+    }
     if (r.present) continue;
     try {
-      await sql.unsafe(
-        `alter table app.${l.table} add constraint ${l.name} foreign key (${l.column}) references app.${l.parent} (${l.parentColumn}) on delete ${l.onDelete} not valid`,
-      );
+      // Wait at most 5 s for the table lock, so a busy table never stalls start-up; the next start tries again.
+      await sql.begin(async (tx) => {
+        await tx`set local lock_timeout = '5s'`;
+        await tx.unsafe(
+          `alter table app.${l.table} add constraint ${l.name} foreign key (${l.column}) references app.${l.parent} (${l.parentColumn}) on delete ${l.onDelete} not valid`,
+        );
+      });
     } catch (e) {
-      // Another process added it at the same moment: nothing to do.
-      if ((e as { code?: string }).code === "42710") continue;
+      const code = String((e as { code?: string }).code);
+      if (code === "42710") continue; // another process added it at the same moment
+      if (code === "55P03") { console.error(`[db-links] ${l.name}: table busy, rule not added this time (next start retries)`); continue; }
       throw e;
     }
   }
 }
 
 /** Read-only: how many existing rows break each link (rows the repair would touch). Links whose tables are missing are skipped. */
-export async function linkViolations(sql: Sql, links: Link[] = LINKS): Promise<{ name: string; rows: number; validated: boolean | null }[]> {
+export async function linkViolations(sql: Sql | postgres.TransactionSql, links: Link[] = LINKS): Promise<{ name: string; rows: number; validated: boolean | null }[]> {
   const out: { name: string; rows: number; validated: boolean | null }[] = [];
   for (const l of links) {
     const [r] = await sql`select to_regclass(${"app." + l.table}) as child, to_regclass(${"app." + l.parent}) as parent,
@@ -142,31 +154,39 @@ export async function linkViolations(sql: Sql, links: Link[] = LINKS): Promise<{
   return out;
 }
 
+/** Thrown inside the repair transaction to undo everything (verification failed). */
+export class RepairRolledBack extends Error {}
+
 /**
- * The approved data step (never run at start-up): for each link, in one transaction, repairs the old rows that break it
- * (`cleanup`, same effect as the delete rule, or re-creating a missing parent) and validates the rule. If validation fails
- * the transaction rolls back, so no repair is kept for a link that is still not valid. Adds the rule first if a start-up
- * has not done it yet. Returns what happened per link.
+ * The approved data step (never run at start-up). Everything runs in ONE transaction at REPEATABLE READ: for each link, repair
+ * the old rows that break it (`cleanup`: same effect as the delete rule, or re-creating a missing parent) and validate the rule.
+ * `hooks.before` runs first and `hooks.verify` last, inside the same transaction, before anything is committed. Because of the snapshot it sees only this
+ * repair's own changes, not live traffic. If a link does not validate or `verify` throws, nothing at all is kept.
+ * Adds the rules first if a start-up has not done it yet.
  */
-export async function repairAndValidateLinks(sql: Sql, links: Link[] = LINKS): Promise<{ name: string; repaired: number; validated: boolean; error?: string }[]> {
+export async function repairAndValidateLinks(
+  sql: Sql,
+  links: Link[] = LINKS,
+  hooks: {
+    before?: (tx: postgres.TransactionSql) => Promise<void>;
+    verify?: (tx: postgres.TransactionSql, result: { name: string; repaired: number }[]) => Promise<void>;
+  } = {},
+): Promise<{ name: string; repaired: number; validated: boolean }[]> {
   await ensureLinks(sql, links);
-  const out: { name: string; repaired: number; validated: boolean; error?: string }[] = [];
-  for (const l of links) {
-    const [r] = await sql`select convalidated from pg_constraint where conname = ${l.name} and connamespace = 'app'::regnamespace`;
-    if (!r) continue; // tables missing
-    if (r.convalidated) { out.push({ name: l.name, repaired: 0, validated: true }); continue; }
-    try {
-      const repaired = await sql.begin(async (tx) => {
-        const res = l.cleanup ? await tx.unsafe(l.cleanup) : null;
-        await tx.unsafe(`alter table app.${l.table} validate constraint ${l.name}`);
-        return res?.count ?? 0;
-      });
-      out.push({ name: l.name, repaired, validated: true });
-    } catch (e) {
-      out.push({ name: l.name, repaired: 0, validated: false, error: (e as Error).message });
+  return (await sql.begin("isolation level repeatable read", async (tx) => {
+    if (hooks.before) await hooks.before(tx);
+    const done: { name: string; repaired: number }[] = [];
+    for (const l of links) {
+      const [r] = await tx`select convalidated from pg_constraint where conname = ${l.name} and connamespace = 'app'::regnamespace`;
+      if (!r) continue; // tables missing
+      if (r.convalidated) { done.push({ name: l.name, repaired: 0 }); continue; }
+      const res = l.cleanup ? await tx.unsafe(l.cleanup) : null;
+      await tx.unsafe(`alter table app.${l.table} validate constraint ${l.name}`);
+      done.push({ name: l.name, repaired: res?.count ?? 0 });
     }
-  }
-  return out;
+    if (hooks.verify) await hooks.verify(tx, done);
+    return done.map((d) => ({ ...d, validated: true }));
+  })) as { name: string; repaired: number; validated: boolean }[];
 }
 
 /**

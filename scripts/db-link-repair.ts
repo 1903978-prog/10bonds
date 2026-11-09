@@ -5,11 +5,13 @@
 //
 // Database: REPAIR_DATABASE_URL (a login that can write schema app). --apply on PRODUCTION is a production data change and needs
 // Livio's explicit release approval first. Test it on an isolated copy (a Neon branch of production) before that.
-// --apply exits 1 when anything changed that was not expected: a table outside the repair, a column outside REPAIR_COLUMNS,
-// a row-count change other than the expected deletions/re-creations, or a link that did not validate.
+// --apply runs everything in ONE transaction (REPEATABLE READ): fingerprint, repair, validate, fingerprint again, compare. Live
+// traffic is invisible to that snapshot, so it does not need a quiet window to be judged correctly. If anything changed that was
+// not expected (a table outside the repair, a column outside REPAIR_COLUMNS, a row-count change other than the expected
+// deletions/re-creations) or a link does not validate, the whole repair rolls back and the script exits 1. Nothing is half-done.
 import postgres from "postgres";
-import { LINKS, linkViolations, repairAndValidateLinks } from "@/lib/dbLinks";
-import { compareFingerprints, fingerprint } from "@/lib/dbFingerprint";
+import { LINKS, linkViolations, repairAndValidateLinks, RepairRolledBack } from "@/lib/dbLinks";
+import { compareFingerprints, fingerprint, REPAIR_COLUMNS, type TableFingerprint } from "@/lib/dbFingerprint";
 
 const url = process.env.REPAIR_DATABASE_URL;
 if (!url) { console.error("REPAIR_DATABASE_URL is not set."); process.exit(2); }
@@ -29,32 +31,51 @@ try {
   const violations = await linkViolations(sql);
   console.log("\n| Link | Rows breaking it | Rule validated |\n|---|---:|---|");
   for (const v of violations) console.log(`| ${v.name} | ${v.rows} | ${v.validated === null ? "not added yet" : v.validated ? "yes" : "no (NOT VALID)"} |`);
-  const before = await fingerprint(sql);
-  console.log(`\nFingerprint before: ${Object.keys(before).length} tables, ${Object.values(before).reduce((a, b) => a + b.rows, 0)} rows.`);
+  let snapBefore: Record<string, TableFingerprint> | undefined;
+  let inTxBefore = violations;
   if (!apply) {
+    const before = await fingerprint(sql);
+    console.log(`\nFingerprint: ${Object.keys(before).length} tables, ${Object.values(before).reduce((a, b) => a + b.rows, 0)} rows.`);
     console.log("\nRead-only check done. Nothing was written.");
   } else {
-    const result = await repairAndValidateLinks(sql);
-    console.log("\n| Link | Rows repaired | Validated |\n|---|---:|---|");
-    for (const r of result) console.log(`| ${r.name} | ${r.repaired} | ${r.validated ? "yes" : `NO: ${r.error}`} |`);
-    const after = await fingerprint(sql);
-    const changes = compareFingerprints(before, after);
-    console.log("\n| Table | Rows before | Rows after | Change |\n|---|---:|---:|---|");
-    let unexpected = result.some((r) => !r.validated);
-    const known = new Set(LINKS.map((l) => l.table).concat(Object.keys(ROW_COUNT_TABLES)));
-    for (const c of changes) {
-      const broke = (name: string) => violations.filter((v) => name.split("+").includes(v.name)).reduce((a, v) => a + v.rows, 0);
-      const exp = ROW_COUNT_TABLES[c.table];
-      // Sends: exactly the breaking rows go. Visitors/workers: at most one new row per breaking row (one per missing id), none removed.
-      const countOk = exp && (c.table === "weekly_email_sends" ? c.rowsBefore - c.rowsAfter === broke(exp) : c.rowsAfter > c.rowsBefore && c.rowsAfter - c.rowsBefore <= broke(exp));
-      const kind = c.onlyRepairColumns ? "only the link column" : countOk ? "rows deleted/re-created as expected" : "UNEXPECTED";
-      if (kind === "UNEXPECTED" || !known.has(c.table)) unexpected = true;
-      console.log(`| ${c.table} | ${c.rowsBefore} | ${c.rowsAfter} | ${kind} |`);
+    // One transaction at REPEATABLE READ: fingerprint, repair, validate, fingerprint, check. Live traffic is invisible to the
+    // snapshot, so only this repair's own changes are compared. Anything unexpected rolls the whole repair back.
+    let report = "";
+    let ok = false;
+    try {
+      const result = await repairAndValidateLinks(sql, LINKS, {
+        before: async (tx) => { inTxBefore = await linkViolations(tx); snapBefore = await fingerprint(tx); },
+        verify: async (tx, done) => {
+          const inTx = await linkViolations(tx);
+          const after = await fingerprint(tx);
+          const changes = compareFingerprints(snapBefore!, after);
+          const lines = ["| Table | Rows before | Rows after | Change |", "|---|---:|---:|---|"];
+          let unexpected = false;
+          for (const c of changes) {
+            const exp = ROW_COUNT_TABLES[c.table];
+            const broke = (name: string) => inTxBefore.filter((v) => name.split("+").includes(v.name)).reduce((x, v) => x + v.rows, 0);
+            // Sends: exactly the breaking rows go. Visitors/workers: at most one new row per breaking row, none removed.
+            const countOk = !!exp && (c.table === "weekly_email_sends" ? c.rowsBefore - c.rowsAfter === broke(exp) : c.rowsAfter > c.rowsBefore && c.rowsAfter - c.rowsBefore <= broke(exp));
+            const kind = c.onlyRepairColumns && REPAIR_COLUMNS[c.table] ? "only the link column" : countOk ? "rows deleted/re-created as expected" : "UNEXPECTED";
+            if (kind === "UNEXPECTED") unexpected = true;
+            lines.push(`| ${c.table} | ${c.rowsBefore} | ${c.rowsAfter} | ${kind} |`);
+          }
+          const left = inTx.filter((v) => v.rows > 0);
+          if (left.length) { unexpected = true; lines.push("", `Still breaking: ${left.map((v) => v.name).join(", ")}`); }
+          report = ["| Link | Rows repaired |", "|---|---:|", ...done.map((d) => `| ${d.name} | ${d.repaired} |`), "", ...lines].join("\n");
+          if (unexpected) throw new RepairRolledBack("unexpected changes");
+        },
+      });
+      ok = result.every((r) => r.validated);
+    } catch (e) {
+      console.log(report);
+      console.log(`\nRESULT: ROLLED BACK, nothing was kept (${(e as Error).message}).`);
+      process.exitCode = 1;
     }
-    const left = (await linkViolations(sql)).filter((v) => v.rows > 0 || v.validated !== true);
-    if (left.length) { unexpected = true; console.log(`\nStill breaking or not validated: ${left.map((v) => v.name).join(", ")}`); }
-    console.log(unexpected ? "\nRESULT: unexpected changes or failures (see above)." : "\nRESULT: every link validated; only the expected rows changed.");
-    if (unexpected) process.exitCode = 1;
+    if (ok) {
+      console.log(report);
+      console.log("\nRESULT: committed. Every link validated; only the expected rows changed.");
+    }
   }
 } finally {
   await sql.end();

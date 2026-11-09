@@ -249,6 +249,37 @@ describe.skipIf(!url)("links added 08 Nov 2026 (docs/fk-register.md)", () => {
     await expect(sql`insert into app.events (visitor_id, kind) values (${`${tag}-none`}, 'page_view')`).rejects.toThrow();
   });
 
+  it("the repair is all-or-nothing, judges only its own changes (not live traffic), and rolls everything back when verification fails", async () => {
+    const sql = await buildAll();
+    const { repairAndValidateLinks, RepairRolledBack, LINKS } = await import("./dbLinks");
+    const { fingerprint, compareFingerprints } = await import("./dbFingerprint");
+    const l = LINKS.find((x) => x.name === "pe_runs_bes_run_id_fkey")!;
+    await sql.unsafe(`alter table app.${l.table} drop constraint ${l.name}`);
+    const [pe] = await sql`insert into app.pe_runs (batch_id, bes_run_id, status, trigger) values ('aon', 999999997, 'superseded', 'test') returning id`;
+    const tag = `traffic-${Date.now()}`;
+    // 1. Live traffic commits while the repair runs: the repair's own comparison does not see it.
+    let seen: ReturnType<typeof compareFingerprints> = [];
+    let before: Awaited<ReturnType<typeof fingerprint>> = {};
+    await repairAndValidateLinks(sql, LINKS, {
+      before: async (tx) => {
+        before = await fingerprint(tx);
+        await sql`insert into app.visitors (visitor_id) values (${tag})`; // another connection, committed now
+      },
+      verify: async (tx) => { seen = compareFingerprints(before, await fingerprint(tx)); },
+    });
+    expect(seen.map((c) => c.table)).toEqual(["pe_runs"]);
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBeNull();
+    // 2. A failed verification keeps nothing: the dead id and the NOT VALID rule are exactly as before.
+    await sql.unsafe(`alter table app.${l.table} drop constraint ${l.name}`);
+    await sql`update app.pe_runs set bes_run_id = 999999997 where id = ${pe.id}`;
+    const { ensureLinks } = await import("./dbLinks");
+    await ensureLinks(sql);
+    await expect(repairAndValidateLinks(sql, LINKS, { verify: async () => { throw new RepairRolledBack("test"); } })).rejects.toThrow("test");
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBe("999999997");
+    expect((await sql`select convalidated from pg_constraint where conname = ${l.name}`)[0].convalidated).toBe(false);
+    await sql`delete from app.pe_runs where id = ${pe.id}`;
+  });
+
   it("pruning an old scoring run no longer leaves holdings or net-spread runs pointing at it (even before the repair step)", async () => {
     const sql = await buildAll();
     await sql`alter table app.efficient_portfolio_holdings drop constraint efficient_portfolio_holdings_bes_run_id_fkey`;

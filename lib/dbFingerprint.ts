@@ -1,6 +1,6 @@
 import type postgres from "postgres";
 
-type Sql = ReturnType<typeof postgres>;
+type Sql = ReturnType<typeof postgres> | postgres.TransactionSql;
 
 /** Columns the link repair may change (lib/dbLinks.ts cleanups). Every other column of every table must stay identical. */
 export const REPAIR_COLUMNS: Record<string, string[]> = {
