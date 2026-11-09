@@ -19,7 +19,8 @@ type Sql = ReturnType<typeof postgres>;
  * purged after 13 months while consent proof is kept), risk_premium_audit (append-only, names deleted drafts).
  *
  * Added in two stages on a live database: start-up only adds each rule NOT VALID (no row changes); the approved repair step
- * then handles old rows exactly as the rule would have (`cleanup`) and validates, one transaction per link.
+ * then handles old rows exactly as the rule would have (`cleanup`) and validates every link, all in ONE transaction:
+ * if any link fails, no row change and no validation is kept.
  */
 export type Link = {
   name: string;

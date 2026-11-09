@@ -2,6 +2,7 @@
 //
 //   npx vite-node -c vitest.config.ts scripts/db-link-repair.ts            read-only: rows that break each link + fingerprint
 //   npx vite-node -c vitest.config.ts scripts/db-link-repair.ts --apply    repair + validate, then prove what changed
+//   add --allow-deletes only with a separate approval: without it, any deleted row rolls the repair back
 //
 // Database: REPAIR_DATABASE_URL (a login that can write schema app). --apply on PRODUCTION is a production data change and needs
 // Livio's explicit release approval first. Test it on an isolated copy (a Neon branch of production) before that.
@@ -16,6 +17,8 @@ import { compareFingerprints, fingerprint, REPAIR_COLUMNS, type TableFingerprint
 const url = process.env.REPAIR_DATABASE_URL;
 if (!url) { console.error("REPAIR_DATABASE_URL is not set."); process.exit(2); }
 const apply = process.argv.includes("--apply");
+// Livio (09 Nov): no row deletions unless separately approved. Without this flag, any deletion rolls the whole repair back.
+const allowDeletes = process.argv.includes("--allow-deletes");
 const sql = postgres(url, { max: 1, onnotice: () => {}, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require" });
 
 // What the repair may do to row counts: weekly sends of deleted accounts are deleted; missing visitors and workers are re-created.
@@ -55,9 +58,10 @@ try {
             const exp = ROW_COUNT_TABLES[c.table];
             const broke = (name: string) => inTxBefore.filter((v) => name.split("+").includes(v.name)).reduce((x, v) => x + v.rows, 0);
             // Sends: exactly the breaking rows go. Visitors/workers: at most one new row per breaking row, none removed.
-            const countOk = !!exp && (c.table === "weekly_email_sends" ? c.rowsBefore - c.rowsAfter === broke(exp) : c.rowsAfter > c.rowsBefore && c.rowsAfter - c.rowsBefore <= broke(exp));
+            const countOk = !!exp && (c.table === "weekly_email_sends" ? allowDeletes && c.rowsBefore - c.rowsAfter === broke(exp) : c.rowsAfter > c.rowsBefore && c.rowsAfter - c.rowsBefore <= broke(exp));
             const kind = c.onlyRepairColumns && REPAIR_COLUMNS[c.table] ? "only the link column" : countOk ? "rows deleted/re-created as expected" : "UNEXPECTED";
             if (kind === "UNEXPECTED") unexpected = true;
+            if (c.rowsAfter < c.rowsBefore && !allowDeletes) lines.push(`(${c.table}: ${c.rowsBefore - c.rowsAfter} rows would be deleted; deletions need separate approval and --allow-deletes)`);
             lines.push(`| ${c.table} | ${c.rowsBefore} | ${c.rowsAfter} | ${kind} |`);
           }
           const left = inTx.filter((v) => v.rows > 0 || v.validated !== true);

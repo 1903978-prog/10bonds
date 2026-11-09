@@ -54,7 +54,7 @@ REPAIR_DATABASE_URL=<app login> npx vite-node -c vitest.config.ts scripts/db-lin
 - If a link does not validate, a rule could not be added (busy table), or anything outside the expected changes moved, the whole repair rolls back and nothing is kept. The script then exits 1 and can simply be run again.
 - If a scoring run is pruned at the same moment, Postgres may stop the repair with a serialization error (40001). Nothing is kept; run it again.
 - Tested: "the repair is all-or-nothing, judges only its own changes (not live traffic), and rolls everything back when verification fails" in lib/schema.db.test.ts.
-- Recommended anyway: run it at a quiet hour, outside the 02:15 UTC backup, the scoring runs and the Monday weekly send. That keeps row locks on the holdings it updates short. Concurrent writes do not touch the same rows: the repaired holdings are only in superseded snapshots.
+- Recommended anyway: run it at a quiet hour, outside the nightly backup (scheduled 02:15 UTC; GitHub has been starting it around 09:00 UTC), the scoring runs and the Monday weekly send. That keeps row locks on the holdings it updates short. Concurrent writes do not touch the same rows: the repaired holdings are only in superseded snapshots.
 
 Expected row changes, measured read-only on production. These counts change daily, so use the read-only check's numbers at run time.
 
@@ -69,10 +69,37 @@ Expected row changes, measured read-only on production. These counts change dail
 | credit_research_workers | re-create missing workers | 0 | none |
 | the other 6 links | nothing; validate only | 0 | none |
 
-**No DELETE runs at today's counts.** The one DELETE in the repair (weekly sends of deleted accounts) currently matches 0 rows. Every portfolio snapshot and historical record is kept. Old snapshots are not trimmed; that is a separate future decision.
+**No row is deleted.** The one DELETE in the repair (weekly sends of deleted accounts) matches 0 rows today, and the script now enforces Livio's rule: without the extra flag `--allow-deletes` (which needs its own approval), any deleted row makes the whole repair roll back. Every portfolio snapshot and historical record is kept. Old snapshots are not trimmed; that is a separate future decision.
+
+### Atomicity of the repair (answers Livio's blocker of 09 Nov 04:51)
+
+Approach chosen: **option 1, the data repair is genuinely atomic.** Earlier drafts (up to `aa688aa`, and old text in `docs/fk-register.md`) used one transaction per link. Since `f2407f6` the code uses one transaction for everything, and the stale text was corrected in this head.
+
+What is inside the ONE transaction (`repairAndValidateLinks`, lib/dbLinks.ts; `sql.begin("isolation level repeatable read", ...)`):
+- the "before" fingerprint and breaking-row counts;
+- for all 13 links: the row repair (`cleanup`) and `VALIDATE CONSTRAINT`;
+- the "after" fingerprint, the comparison and the check that every link is validated.
+Any error in any of these (a link that does not validate, an unexpected change, a missing rule, a serialization error 40001, a lost connection) rolls back every row change and every validation. Postgres runs `VALIDATE CONSTRAINT` inside a transaction, so it is undone too. There is no partial commit of data.
+
+What is outside it, and why that is safe:
+- Before opening the transaction, the script calls `ensureLinks`, the same schema step the deploy already ran. After stage 1 all 13 rules exist, so it adds nothing. It only ever adds rules `NOT VALID` and indexes, and changes no rows. If a rule could not be added, the transaction refuses to start the repair (test: "the repair rolls back when a rule could not be added (busy table)").
+
+Restart safety: after a rollback, the database is exactly as before, so the same command can simply be run again. If a run did commit, a second run finds every link validated, repairs 0 rows and changes nothing (each `cleanup` only touches rows that still break a link).
+
+Locks while it runs: `VALIDATE` takes SHARE UPDATE EXCLUSIVE on each child table, which does not block reads or writes. The repaired rows (holdings in superseded snapshots, 3 net-spread runs, the 32 new visitors) stay locked until commit; normal traffic does not write those rows.
+
+Proof: the tests "the repair is all-or-nothing, judges only its own changes (not live traffic), and rolls everything back when verification fails" and the busy-table test in lib/schema.db.test.ts. The rehearsal script `docs/db-link-repair-dryrun.sql` is also one transaction (`begin` on line 3, `rollback` on line 82).
+
+### Gates before the repair is run (at execution time)
+
+1. Fresh backup with real restore test: dispatch `.github/workflows/backup.yml` once, then confirm `backup_last_ok_at` and `backup_restore_test_ok_at` in `app.settings` are from that run.
+2. Fresh read-only reconciliation right before: run the script without `--apply` and `docs/bes-orphan-reconcile.sql`. Continue only if the counts match the approved effects (dead `bes_run_id` about 80,200 plus about 3,320 per pruned run since, pe_runs 3, missing visitors 32 for 673 events, every other link 0, weekly sends to delete 0). Any delete count above 0 needs separate approval, because no row deletions are approved.
+3. Run `--apply`. Accept only "RESULT: committed" with every change marked "only the link column" or "rows deleted/re-created as expected".
+4. Independent post-repair verification by the Secval audit thread: `docs/fk-orphan-check.sql` returns 0 on all 13 links, 45/45 validated, published snapshots unchanged.
 
 ### Step 3: post-release acceptance criteria (expected after steps 1 and 2; these are targets, not current production results)
 
+- After step 1 (before the repair): all 13 new foreign keys must be present. Start-up skips a link whose table is busy for more than 5 seconds, so count them (`select count(*) from pg_constraint where conname in (<the 13 names>)` = 13). If fewer, restart the app once and count again; the repair also refuses to run while one is missing.
 - 45 / 45 required foreign keys exist and are validated (today: 32 / 45).
 - `docs/fk-orphan-check.sql` returns 0 on all 13 links (today: 80,200 + 673 + 3 breaking rows), and its last query lists no foreign key that is not validated.
 - The published slider snapshots show the same portfolios and scores before and after: compare `efficient_portfolio_positions` and the holdings' `bes_score` for status `published`. The repair touches neither, and the fingerprint proves it.
@@ -89,7 +116,7 @@ Expected row changes, measured read-only on production. These counts change dail
 
 ## 4. Tests on the release head
 
-- Full suite against a real Postgres 16: 162 files, 1080 tests pass (release head).
+- Full suite against a real Postgres 16: 162 files, 1080 tests pass (release head, including `main` merged in). The delete guard was run by hand on local data: one orphan weekly send, `--apply` rolled back; with `--allow-deletes` it committed.
 - `tsc` 0 errors; lint 0 errors.
 - The schema test passes on a fresh database and on a rerun.
 - Repair tests on local data, including orphans in 3 links:
@@ -102,9 +129,9 @@ Expected row changes, measured read-only on production. These counts change dail
 |---|---|---|
 | 1 | Correct scope | PASS: 13 links, repair tool, docs; nothing else |
 | 2 | Exact commit SHA | the PR head at approval time |
-| 3 | No unapproved bundled changes / backup | **PASS for the last nightly run.** Production `app.settings` (read 09 Nov 02:50 UTC): `backup_last_ok_at` and `backup_restore_test_ok_at` both 2026-11-08T16:20:51Z. Both keys are written by the last step of `.github/workflows/backup.yml`, which runs only after `scripts/backup-accounts.sh` succeeds: it dumps the app schema, encrypts the dump, decrypts it, `pg_restore`s it into an empty Postgres, and checks every table and row count. At release: run that job once more right before step 2 (manual dispatch) |
+| 3 | No unapproved bundled changes / backup | **PASS for the last nightly run.** Production `app.settings` (read 09 Nov 02:50 UTC): `backup_last_ok_at` and `backup_restore_test_ok_at` both 2026-11-08T16:20:51Z. Both keys are written by the last step of `.github/workflows/backup.yml`, which runs only after `scripts/backup-accounts.sh` succeeds: it dumps the app schema, encrypts the dump, decrypts it, `pg_restore`s it into an empty Postgres, and checks every table and row count. Run link: https://github.com/1903978-prog/10bonds/actions/runs/42499213039 (manual, 08 Nov 16:18 UTC, success, on `main` 8b1cde0 with the restore-test fix #498). The scheduled runs of 06 to 08 Nov failed on the restore row compare (live growth in daily_counts), which #498 fixed; the 09 Nov scheduled run has not started yet (checked 04:55 UTC). At release: run that job once more right before step 2 (manual dispatch) |
 | 4 | Automated tests | PASS (section 4) |
-| 5 | Independent review (PASS) | Review of `2e2adb4`: PASS WITH NOTES (`docs/evidence/review-497-2e2adb4-2026-11-09.md`). The notes were fixed in the next head: N1 (live traffic made the check fail) is fixed by the single-transaction repair; N2 and N3 by the index-race and lock-timeout handling; N4 index sizes are recorded above. Re-review of `a90fe71`: one note, R1 (a rule skipped on a busy table could still end in "committed"). Fixed: the repair now refuses inside its transaction when a rule is missing, the script also checks that every link is validated, and index creation has the same 5-second lock limit. Test added: "the repair rolls back when a rule could not be added (busy table)". Final re-review of `ab5f8bd7`: **PASS** (`docs/evidence/review-497-final-ab5f8bd7-2026-11-09.md`). Commits after `ab5f8bd7` change only files under `docs/`. |
+| 5 | Independent review (PASS) | Review of `2e2adb4`: PASS WITH NOTES (`docs/evidence/review-497-2e2adb4-2026-11-09.md`). The notes were fixed in the next head: N1 (live traffic made the check fail) is fixed by the single-transaction repair; N2 and N3 by the index-race and lock-timeout handling; N4 index sizes are recorded above. Re-review of `a90fe71`: one note, R1 (a rule skipped on a busy table could still end in "committed"). Fixed: the repair now refuses inside its transaction when a rule is missing, the script also checks that every link is validated, and index creation has the same 5-second lock limit. Test added: "the repair rolls back when a rule could not be added (busy table)". Final re-review of `ab5f8bd7`: **PASS** (`docs/evidence/review-497-final-ab5f8bd7-2026-11-09.md`). After Livio's decisions of 09 Nov 04:51, three changes followed `0065b94c`: (a) `main` merged in (only `scripts/backup-accounts.sh`, PR #498, already on production); (b) the repair script refuses any row deletion unless run with `--allow-deletes` (Livio: no deletions without separate approval); (c) docs: the atomicity section, execution gates and stale per-link wording fixed. A short re-review of the new head is requested. |
 | 6 | Security | PASS: no new endpoint, secret or permission; the repair runs with the app's own login |
 | 7 | Migration assessment | PASS: section 1 lists every schema and row change |
 | 8 | Rehearsal on an isolated production copy | **PASS**, by the Secval audit thread on Neon branch `repair-dryrun-497-2026-11-09`, copied from production 09 Nov 02:45:44 UTC; production not touched. Before the repair: holdings 80,200, events 673, pe_runs 3, other links 0. Afterwards: holdings (100,390 rows) and pe_runs (8 rows) changed only in the link column; visitors 3 → 35 (+32); the other 80 tables have identical fingerprints; 45 of 45 foreign keys validated. Output kept in the repository: `docs/evidence/db-link-repair-dryrun-output-2026-11-09.md` (and the reconciliation read in `docs/evidence/bes-orphan-reconcile-output-2026-11-09.md`). The branch still exists; deleting it is part of the approval request. |
