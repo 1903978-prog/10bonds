@@ -1,6 +1,6 @@
 # Release dossier: 10bonds PR #497 (database links)
 
-09 Nov 2026. 10bonds thread. **Status: NO-GO until Livio approves, and until gates 3 and 8 are done** (see the gates table at the end).
+09 Nov 2026. 10bonds thread. **Status: NO-GO until Livio approves, and until gate 3 (a fresh backup with a restore check right before the repair) is done.** The rehearsal on an isolated production copy passed (gate 8).
 
 PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). The head SHA is the one on the PR at approval time; this dossier was written at `aa688aa`, and later commits on the branch touch only documentation. No other app depends on this release. Secval only reads it.
 
@@ -90,12 +90,15 @@ Expected row changes, measured read-only on production. These counts change dail
 | 5 | Independent review | PENDING: the Secval audit thread is reviewing |
 | 6 | Security | PASS: no new endpoint, secret or permission; the repair runs with the app's own login |
 | 7 | Migration assessment | PASS: section 1 lists every schema and row change |
-| 8 | Rehearsal on an isolated production copy | PENDING: `docs/db-link-repair-dryrun.sql` on a Neon branch (asked of the audit thread) |
+| 8 | Rehearsal on an isolated production copy | **PASS**, by the Secval audit thread on Neon branch `repair-dryrun-497-2026-11-09`, copied from production 09 Nov 02:45:44 UTC; production not touched. Before the repair: holdings 80,200, events 673, pe_runs 3, other links 0. Afterwards: holdings (100,390 rows) and pe_runs (8 rows) changed only in the link column; visitors 3 → 35 (+32); the other 80 tables have identical fingerprints; 45 of 45 foreign keys validated. Output: `/mnt/project-files/10bonds/db-link-repair-dryrun-output-2026-11-09.md`. The branch still exists; deleting it is part of the approval request. |
 | 9 | Environment compatibility | PASS: Postgres features used (NOT VALID, VALIDATE) exist in Neon's Postgres 16 |
 | 10 | Rollback written | PASS (section 3) |
 | 11 | Post-deploy monitoring | step 3 checks; nightly live check |
 | 12 | Written release approval | REQUIRED: Livio, for step 1 (merge + deploy) and step 2 (repair) |
 
+**Visible side effect to know before approving:** production has only 3 visitor rows today, because visitors are counted only with cookie consent. The repair re-creates 32 visitors dated 18 to 26 Oct 2026, so admin visitor lists will show 35. The alternative is deleting the 673 orphan events instead, which loses history. Keeping them follows the instruction to preserve historical records.
+
 **Approvals needed from Livio:**
 1. Merge and deploy #497. That is step 1: schema only, no rows changed.
 2. Run the repair (step 2): about 80,000 dead run ids emptied and 32 visitor rows re-created, no deletes at today's counts.
+3. Delete the rehearsal branch `repair-dryrun-497-2026-11-09` in Neon (a throwaway copy).
