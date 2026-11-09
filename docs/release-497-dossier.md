@@ -2,7 +2,7 @@
 
 09 Nov 2026. 10bonds thread. **Status: technically ready; NO-GO until Livio approves.** The rehearsal on an isolated production copy passed (gate 8). The latest backup and restore test passed (gate 3); a fresh one runs right before the repair.
 
-PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). Code was last changed at `aa688aa`; the commits after it touch only `docs/`. The release head is the PR head named in the consolidated release request, and the independent review must be on that exact SHA. No other app depends on this release. Secval only reads it.
+PR: https://github.com/1903978-prog/10bonds/pull/497 · branch `claude/project-thread-7z33df` · base `main` at `4c77d79` (PR #496, merged and deployed 07 Nov). Code was last changed at `f2407f6`, which fixed the review notes. The repair statements are unchanged since `aa688aa`, which the rehearsal used: `docs/db-link-repair-dryrun.sql` is identical, and a test keeps it equal to the code. The release head is the PR head named in the consolidated release request, and the independent review must be on that exact SHA. No other app depends on this release. Secval only reads it.
 
 ## 0. Current production measurements (read-only, not results of this release)
 
@@ -88,7 +88,7 @@ Expected row changes, measured read-only on production. These counts change dail
 
 ## 4. Tests on the release head
 
-- Full suite against a real Postgres 16: 162 files, 1078 tests pass (`aa688aa`).
+- Full suite against a real Postgres 16: 162 files, 1079 tests pass (`f2407f6`).
 - `tsc` 0 errors; lint 0 errors.
 - The schema test passes on a fresh database and on a rerun.
 - Repair tests on local data, including orphans in 3 links:
