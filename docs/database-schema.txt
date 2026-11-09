@@ -991,30 +991,30 @@ constraints
   app.bond_codes bond_codes_pkey: PRIMARY KEY (isin)
   app.bond_codes bond_codes_seq_check: CHECK (((seq >= 1) AND (seq <= 99999)))
   app.bond_credit_analysis bond_credit_analysis_pkey: PRIMARY KEY (isin)
-  app.bond_credit_analysis_history bond_credit_analysis_history_isin_fkey: FOREIGN KEY (isin) REFERENCES app.bond_credit_analysis(isin)
+  app.bond_credit_analysis_history bond_credit_analysis_history_isin_fkey: FOREIGN KEY (isin) REFERENCES app.bond_credit_analysis(isin) NOT VALID
   app.bond_credit_analysis_history bond_credit_analysis_history_pkey: PRIMARY KEY (id)
   app.bond_daily_prices bond_daily_prices_pkey: PRIMARY KEY (as_of, isin)
   app.bond_import_batches bond_import_batches_pkey: PRIMARY KEY (id)
-  app.bond_import_rows bond_import_rows_batch_id_fkey: FOREIGN KEY (batch_id) REFERENCES app.bond_import_batches(id) ON DELETE CASCADE
+  app.bond_import_rows bond_import_rows_batch_id_fkey: FOREIGN KEY (batch_id) REFERENCES app.bond_import_batches(id) ON DELETE CASCADE NOT VALID
   app.bond_import_rows bond_import_rows_pkey: PRIMARY KEY (batch_id, isin)
   app.bond_import_settings bond_import_settings_pkey: PRIMARY KEY (key)
   app.bond_price_weeks bond_price_weeks_pkey: PRIMARY KEY (isin, week)
   app.bond_runs bond_runs_pkey: PRIMARY KEY (id)
   app.broker_profiles broker_profiles_pkey: PRIMARY KEY (id)
   app.broker_settings broker_settings_pkey: PRIMARY KEY (key)
-  app.broker_tariffs broker_tariffs_broker_id_fkey: FOREIGN KEY (broker_id) REFERENCES app.broker_profiles(id)
+  app.broker_tariffs broker_tariffs_broker_id_fkey: FOREIGN KEY (broker_id) REFERENCES app.broker_profiles(id) NOT VALID
   app.broker_tariffs broker_tariffs_country_check: CHECK ((country = ANY (ARRAY['it'::text, 'fr'::text, 'de'::text])))
   app.broker_tariffs broker_tariffs_pkey: PRIMARY KEY (id)
   app.broker_tariffs broker_tariffs_status_check: CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'archived'::text])))
   app.consents consents_pkey: PRIMARY KEY (id)
-  app.consents consents_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
+  app.consents consents_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL NOT VALID
   app.correction_requests correction_requests_pkey: PRIMARY KEY (id)
   app.correction_requests correction_requests_status_check: CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'rejected'::text])))
   app.credit_reference_cases credit_reference_cases_pkey: PRIMARY KEY (isin)
-  app.credit_research_jobs credit_research_jobs_claimed_by_fkey: FOREIGN KEY (claimed_by) REFERENCES app.credit_research_workers(worker_id) ON DELETE SET NULL
+  app.credit_research_jobs credit_research_jobs_claimed_by_fkey: FOREIGN KEY (claimed_by) REFERENCES app.credit_research_workers(worker_id) ON DELETE SET NULL NOT VALID
   app.credit_research_jobs credit_research_jobs_pkey: PRIMARY KEY (isin)
   app.credit_research_runs credit_research_runs_pkey: PRIMARY KEY (id)
-  app.credit_research_runs credit_research_runs_worker_id_fkey: FOREIGN KEY (worker_id) REFERENCES app.credit_research_workers(worker_id)
+  app.credit_research_runs credit_research_runs_worker_id_fkey: FOREIGN KEY (worker_id) REFERENCES app.credit_research_workers(worker_id) NOT VALID
   app.credit_research_settings credit_research_settings_pkey: PRIMARY KEY (key)
   app.credit_research_tokens credit_research_tokens_pkey: PRIMARY KEY (token_hash)
   app.credit_research_workers credit_research_workers_pkey: PRIMARY KEY (worker_id)
@@ -1023,7 +1023,7 @@ constraints
   app.discount_codes discount_codes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES app.users(id) ON DELETE SET NULL
   app.discount_codes discount_codes_pkey: PRIMARY KEY (code)
   app.discount_codes discount_codes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
-  app.efficient_portfolio_holdings efficient_portfolio_holdings_bes_run_id_fkey: FOREIGN KEY (bes_run_id) REFERENCES app.bes_runs(id) ON DELETE SET NULL
+  app.efficient_portfolio_holdings efficient_portfolio_holdings_bes_run_id_fkey: FOREIGN KEY (bes_run_id) REFERENCES app.bes_runs(id) ON DELETE SET NULL NOT VALID
   app.efficient_portfolio_holdings efficient_portfolio_holdings_bond_code_fkey: FOREIGN KEY (bond_code) REFERENCES app.bond_codes(bond_code)
   app.efficient_portfolio_holdings efficient_portfolio_holdings_pkey: PRIMARY KEY (snapshot_id, portfolio_id, horizon, ord)
   app.efficient_portfolio_holdings efficient_portfolio_holdings_snapshot_id_fkey: FOREIGN KEY (snapshot_id) REFERENCES app.efficient_portfolio_snapshots(id) ON DELETE CASCADE
@@ -1054,7 +1054,7 @@ constraints
   app.email_log email_log_pkey: PRIMARY KEY (id)
   app.events events_pkey: PRIMARY KEY (id)
   app.events events_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE SET NULL
-  app.events events_visitor_id_fkey: FOREIGN KEY (visitor_id) REFERENCES app.visitors(visitor_id) ON DELETE CASCADE
+  app.events events_visitor_id_fkey: FOREIGN KEY (visitor_id) REFERENCES app.visitors(visitor_id) ON DELETE CASCADE NOT VALID
   app.frontier_cache frontier_cache_pkey: PRIMARY KEY (key)
   app.gpt_ratings gpt_ratings_pkey: PRIMARY KEY (isin)
   app.historical_default_probabilities historical_default_probabilities_pkey: PRIMARY KEY (data_version, issuer_category, rating_category, horizon_years)
@@ -1068,7 +1068,7 @@ constraints
   app.pe_positions pe_positions_run_id_horizon_position_key: UNIQUE (run_id, horizon, "position")
   app.pe_positions pe_positions_status_check: CHECK ((status = ANY (ARRAY['optimal'::text, 'uncertified'::text, 'infeasible'::text, 'error'::text])))
   app.pe_reference_samples pe_reference_samples_pkey: PRIMARY KEY (version, filter_key, horizon, "position", batch_id)
-  app.pe_runs pe_runs_bes_run_id_fkey: FOREIGN KEY (bes_run_id) REFERENCES app.bes_runs(id) ON DELETE SET NULL
+  app.pe_runs pe_runs_bes_run_id_fkey: FOREIGN KEY (bes_run_id) REFERENCES app.bes_runs(id) ON DELETE SET NULL NOT VALID
   app.pe_runs pe_runs_pkey: PRIMARY KEY (id)
   app.pe_runs pe_runs_status_check: CHECK ((status = ANY (ARRAY['requested'::text, 'running'::text, 'published'::text, 'failed'::text, 'superseded'::text])))
   app.plan_features plan_features_pkey: PRIMARY KEY (feature)
@@ -1083,9 +1083,9 @@ constraints
   app.risk_band_config risk_band_config_pkey: PRIMARY KEY (key)
   app.risk_calc_results risk_calc_results_pkey: PRIMARY KEY (run_id, isin)
   app.risk_calc_results risk_calc_results_run_id_fkey: FOREIGN KEY (run_id) REFERENCES app.risk_calc_runs(id) ON DELETE CASCADE
-  app.risk_calc_results risk_calc_results_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id)
+  app.risk_calc_results risk_calc_results_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id) NOT VALID
   app.risk_calc_runs risk_calc_runs_pkey: PRIMARY KEY (id)
-  app.risk_calc_runs risk_calc_runs_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id)
+  app.risk_calc_runs risk_calc_runs_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id) NOT VALID
   app.risk_calc_runs risk_calc_runs_version_id_signature_key: UNIQUE (version_id, signature)
   app.risk_premium_audit risk_premium_audit_pkey: PRIMARY KEY (id)
   app.risk_premium_versions risk_premium_versions_pkey: PRIMARY KEY (id)
@@ -1093,7 +1093,7 @@ constraints
   app.risk_premium_versions risk_premium_versions_version_key: UNIQUE (version)
   app.risk_spread_reviews risk_spread_reviews_decision_check: CHECK ((decision = ANY (ARRAY['approved'::text, 'rejected'::text])))
   app.risk_spread_reviews risk_spread_reviews_pkey: PRIMARY KEY (id)
-  app.risk_spread_reviews risk_spread_reviews_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id) ON DELETE SET NULL
+  app.risk_spread_reviews risk_spread_reviews_version_id_fkey: FOREIGN KEY (version_id) REFERENCES app.risk_premium_versions(id) ON DELETE SET NULL NOT VALID
   app.search_usage search_usage_kind_check: CHECK ((kind = ANY (ARRAY['single'::text, 'portfolio'::text])))
   app.search_usage search_usage_pkey: PRIMARY KEY (id)
   app.search_usage search_usage_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
@@ -1158,7 +1158,7 @@ constraints
   app.visitors visitors_code_no_key: UNIQUE (code_no)
   app.visitors visitors_pkey: PRIMARY KEY (visitor_id)
   app.weekly_email_sends weekly_email_sends_pkey: PRIMARY KEY (week, user_id)
-  app.weekly_email_sends weekly_email_sends_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
+  app.weekly_email_sends weekly_email_sends_user_id_fkey: FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE NOT VALID
   app.ytm_history ytm_history_pkey: PRIMARY KEY (as_of, isin)
 
 indexes

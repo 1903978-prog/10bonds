@@ -18,9 +18,8 @@ type Sql = ReturnType<typeof postgres>;
  * Left in code on purpose: links to the bond copy (ISINs come and go daily, other login), consents -> visitors (visitors are
  * purged after 13 months while consent proof is kept), risk_premium_audit (append-only, names deleted drafts).
  *
- * Added the safe way on a live database: rows that already break a link are first handled exactly as the new rule would
- * have handled them (`cleanup`), the constraint is added NOT VALID (instant, checks new rows only), then validated
- * (reads old rows without blocking writes). A validation that still fails is logged and the constraint stays NOT VALID.
+ * Added in two stages on a live database: start-up only adds each rule NOT VALID (no row changes); the approved repair step
+ * then handles old rows exactly as the rule would have (`cleanup`) and validates, one transaction per link.
  */
 export type Link = {
   name: string;
@@ -100,7 +99,14 @@ export const LINKS: Link[] = [
   },
 ];
 
-/** Adds every link whose two tables exist and that is not there yet. Safe to run at every start and from several modules. */
+/**
+ * Start-up step (runs at every boot, from several modules): for each link whose two tables exist, creates its index and adds
+ * the rule as NOT VALID. It never changes, adds or deletes a row and never validates: NOT VALID checks new and updated rows
+ * only, so old rows that break a link stay as they are. Repairing old rows and validating is a separate, approved step
+ * (`repairAndValidateLinks`, run by scripts/db-link-repair.ts), so a deploy alone cannot modify production data.
+ * Note: once a rule exists, its delete rule applies to every row, old or new (for example pruning a scoring run clears
+ * the run id on holdings that still point at it).
+ */
 export async function ensureLinks(sql: Sql, links: Link[] = LINKS): Promise<void> {
   for (const l of links) {
     const [r] = await sql`
@@ -110,23 +116,57 @@ export async function ensureLinks(sql: Sql, links: Link[] = LINKS): Promise<void
     if (l.index) await sql.unsafe(`create index if not exists ${l.index} on app.${l.table} (${l.column})`);
     if (r.present) continue;
     try {
-      await sql.begin(async (tx) => {
-        if (l.cleanup) await tx.unsafe(l.cleanup);
-        await tx.unsafe(
-          `alter table app.${l.table} add constraint ${l.name} foreign key (${l.column}) references app.${l.parent} (${l.parentColumn}) on delete ${l.onDelete} not valid`,
-        );
-      });
+      await sql.unsafe(
+        `alter table app.${l.table} add constraint ${l.name} foreign key (${l.column}) references app.${l.parent} (${l.parentColumn}) on delete ${l.onDelete} not valid`,
+      );
     } catch (e) {
       // Another process added it at the same moment: nothing to do.
       if ((e as { code?: string }).code === "42710") continue;
       throw e;
     }
+  }
+}
+
+/** Read-only: how many existing rows break each link (rows the repair would touch). Links whose tables are missing are skipped. */
+export async function linkViolations(sql: Sql, links: Link[] = LINKS): Promise<{ name: string; rows: number; validated: boolean | null }[]> {
+  const out: { name: string; rows: number; validated: boolean | null }[] = [];
+  for (const l of links) {
+    const [r] = await sql`select to_regclass(${"app." + l.table}) as child, to_regclass(${"app." + l.parent}) as parent,
+      (select convalidated from pg_constraint where conname = ${l.name} and connamespace = 'app'::regnamespace) as validated`;
+    if (!r?.child || !r?.parent) continue;
+    const [c] = await sql.unsafe(
+      `select count(*)::int as n from app.${l.table} c where c.${l.column} is not null and not exists (select 1 from app.${l.parent} p where p.${l.parentColumn} = c.${l.column})`,
+    );
+    out.push({ name: l.name, rows: Number(c.n), validated: r.validated ?? null });
+  }
+  return out;
+}
+
+/**
+ * The approved data step (never run at start-up): for each link, in one transaction, repairs the old rows that break it
+ * (`cleanup`, same effect as the delete rule, or re-creating a missing parent) and validates the rule. If validation fails
+ * the transaction rolls back, so no repair is kept for a link that is still not valid. Adds the rule first if a start-up
+ * has not done it yet. Returns what happened per link.
+ */
+export async function repairAndValidateLinks(sql: Sql, links: Link[] = LINKS): Promise<{ name: string; repaired: number; validated: boolean; error?: string }[]> {
+  await ensureLinks(sql, links);
+  const out: { name: string; repaired: number; validated: boolean; error?: string }[] = [];
+  for (const l of links) {
+    const [r] = await sql`select convalidated from pg_constraint where conname = ${l.name} and connamespace = 'app'::regnamespace`;
+    if (!r) continue; // tables missing
+    if (r.convalidated) { out.push({ name: l.name, repaired: 0, validated: true }); continue; }
     try {
-      await sql.unsafe(`alter table app.${l.table} validate constraint ${l.name}`);
+      const repaired = await sql.begin(async (tx) => {
+        const res = l.cleanup ? await tx.unsafe(l.cleanup) : null;
+        await tx.unsafe(`alter table app.${l.table} validate constraint ${l.name}`);
+        return res?.count ?? 0;
+      });
+      out.push({ name: l.name, repaired, validated: true });
     } catch (e) {
-      console.error(`[db-links] ${l.name}: old rows still break the link, kept NOT VALID:`, (e as Error).message);
+      out.push({ name: l.name, repaired: 0, validated: false, error: (e as Error).message });
     }
   }
+  return out;
 }
 
 /**

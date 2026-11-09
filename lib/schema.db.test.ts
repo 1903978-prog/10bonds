@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 // The database design is tracked in git: docs/database-schema.txt is what the app's setup code builds in schema "app".
 // CI runs this against an empty Postgres (twice, so setup must be repeatable); any table, column, rule or index change
@@ -149,7 +149,19 @@ describe.skipIf(!url)("database schema", () => {
   });
 });
 
+// The repair tests validate the link rules; put the database back to what a start-up leaves (rules NOT VALID), so a rerun on the
+// same database still matches docs/database-schema.txt.
+async function backToStartupState() {
+  if (!url) return;
+  const { accountsSql } = await import("./accounts");
+  const { ensureLinks, LINKS } = await import("./dbLinks");
+  const sql = await accountsSql();
+  for (const l of LINKS) await sql.unsafe(`alter table app.${l.table} drop constraint if exists ${l.name}`);
+  await ensureLinks(sql);
+}
+
 describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () => {
+  afterAll(backToStartupState);
   it("every table is linked, or listed as standalone with a reason", async () => {
     const sql = await buildAll();
     const { STANDALONE_TABLES } = await import("./dbLinks");
@@ -162,16 +174,25 @@ describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () =>
     expect(unlinked).toEqual([...listed].sort());
   });
 
-  it("repairs rows that already break a link the way the rule would, then enforces it", async () => {
+  it("start-up adds the rules without touching old rows; the approved repair step fixes them the way the rule would, then validates", async () => {
     const sql = await buildAll();
-    const { ensureLinks } = await import("./dbLinks");
+    const { ensureLinks, repairAndValidateLinks, linkViolations } = await import("./dbLinks");
     // A production database from before: no rule yet, and rows left behind by deleted accounts.
     await sql`alter table app.weekly_email_sends drop constraint weekly_email_sends_user_id_fkey`;
     await sql`alter table app.consents drop constraint consents_user_id_fkey`;
     const [u] = await sql`insert into app.users (email, password_hash) values (${`links-${Date.now()}@test.local`}, 'x') returning id`;
     await sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W01', 999999999, 'sent'), ('2026-W01', ${u.id}, 'sent')`;
     await sql`insert into app.consents (user_id, kind, version, lang, text_shown) values (999999999, 'terms', 'v', 'en', 't')`;
+    // Start-up (a deploy): the rules appear NOT VALID, the old rows are untouched, new breaking rows are already refused.
     await ensureLinks(sql);
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = 999999999`).toHaveLength(1);
+    expect(await sql`select 1 from app.consents where user_id = 999999999`).toHaveLength(1);
+    const sends = (await linkViolations(sql)).find((v) => v.name === "weekly_email_sends_user_id_fkey")!;
+    expect(sends).toMatchObject({ rows: 1, validated: false });
+    await expect(sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W03', 999999998, 'sent')`).rejects.toThrow();
+    // The approved repair step.
+    const done = await repairAndValidateLinks(sql);
+    expect(done.find((r) => r.name === "weekly_email_sends_user_id_fkey")).toMatchObject({ repaired: 1, validated: true });
     expect(await sql`select 1 from app.weekly_email_sends where user_id = 999999999`).toHaveLength(0);
     expect(await sql`select 1 from app.weekly_email_sends where user_id = ${u.id}`).toHaveLength(1);
     expect(await sql`select 1 from app.consents where user_id = 999999999`).toHaveLength(0);
@@ -186,9 +207,11 @@ describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () =>
 });
 
 describe.skipIf(!url)("links added 08 Nov 2026 (docs/fk-register.md)", () => {
-  it("restores missing parent rows instead of deleting history, clears names of pruned runs, then enforces every link", async () => {
+  afterAll(backToStartupState);
+  it("the repair restores missing parents instead of deleting history, clears names of pruned runs, changes nothing else, then validates", async () => {
     const sql = await buildAll();
-    const { ensureLinks, LINKS } = await import("./dbLinks");
+    const { ensureLinks, repairAndValidateLinks, LINKS } = await import("./dbLinks");
+    const { fingerprint, compareFingerprints } = await import("./dbFingerprint");
     const names = ["events_visitor_id_fkey", "credit_research_jobs_claimed_by_fkey", "credit_research_runs_worker_id_fkey", "pe_runs_bes_run_id_fkey",
       "efficient_portfolio_holdings_bes_run_id_fkey", "risk_calc_runs_version_id_fkey", "risk_calc_results_version_id_fkey", "bond_credit_analysis_history_isin_fkey"];
     // A production database from before these rules, with rows that break them.
@@ -200,7 +223,18 @@ describe.skipIf(!url)("links added 08 Nov 2026 (docs/fk-register.md)", () => {
     await sql`insert into app.events (visitor_id, kind, at) values (${tag}, 'page_view', '2026-01-02T00:00:00Z'), (${tag}, 'click', '2026-01-03T00:00:00Z')`;
     await sql`insert into app.credit_research_runs (isin, worker_id, ok) values ('XS0000000001', ${tag}, true)`;
     const [pe] = await sql`insert into app.pe_runs (batch_id, bes_run_id, status, trigger) values ('b', 999999999, 'failed', 'test') returning id`;
-    await ensureLinks(sql);
+    await ensureLinks(sql); // a deploy: no row changes
+    expect(await sql`select 1 from app.visitors where visitor_id = ${tag}`).toHaveLength(0);
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBe("999999999");
+    const before = await fingerprint(sql);
+    const done = await repairAndValidateLinks(sql);
+    expect(done.filter((r) => names.includes(r.name) && !r.validated)).toEqual([]);
+    // Only the expected tables changed: visitors and workers gained the re-created rows, pe_runs only in its run id.
+    expect(compareFingerprints(before, await fingerprint(sql))).toEqual([
+      { table: "credit_research_workers", rowsBefore: before.credit_research_workers.rows, rowsAfter: before.credit_research_workers.rows + 1, onlyRepairColumns: false },
+      { table: "pe_runs", rowsBefore: before.pe_runs.rows, rowsAfter: before.pe_runs.rows, onlyRepairColumns: true },
+      { table: "visitors", rowsBefore: before.visitors.rows, rowsAfter: before.visitors.rows + 1, onlyRepairColumns: false },
+    ]);
     const [v] = await sql`select first_seen, last_seen from app.visitors where visitor_id = ${tag}`;
     expect([new Date(v.first_seen).toISOString(), new Date(v.last_seen).toISOString()]).toEqual(["2026-01-02T00:00:00.000Z", "2026-01-03T00:00:00.000Z"]);
     expect(await sql`select 1 from app.events where visitor_id = ${tag}`).toHaveLength(2);
@@ -213,6 +247,27 @@ describe.skipIf(!url)("links added 08 Nov 2026 (docs/fk-register.md)", () => {
     await forgetVisitor(tag);
     expect(await sql`select 1 from app.events where visitor_id = ${tag}`).toHaveLength(0);
     await expect(sql`insert into app.events (visitor_id, kind) values (${`${tag}-none`}, 'page_view')`).rejects.toThrow();
+  });
+
+  it("pruning an old scoring run no longer leaves holdings or net-spread runs pointing at it (even before the repair step)", async () => {
+    const sql = await buildAll();
+    await sql`alter table app.efficient_portfolio_holdings drop constraint efficient_portfolio_holdings_bes_run_id_fkey`;
+    await sql`alter table app.pe_runs drop constraint pe_runs_bes_run_id_fkey`;
+    const { ensureLinks } = await import("./dbLinks");
+    await ensureLinks(sql); // rules back, NOT VALID, as right after a deploy
+    const [run] = await sql`insert into app.bes_runs (batch_id, status, trigger) values ('prune-test', 'superseded', 'test') returning id`;
+    const [snap] = await sql`insert into app.efficient_portfolio_snapshots (batch_id, input_fingerprint, filter_key, methodology, empty_policy, status)
+      values ('prune-test', ${`prune-${Date.now()}`}, 'TEST', 'm', 'p', 'superseded') returning id`;
+    await sql`insert into app.efficient_portfolio_holdings (snapshot_id, portfolio_id, horizon, ord, isin, bes_score, bes_run_id)
+      values (${snap.id}, 'p', 'short', 1, 'XS9999999990', 61.5, ${run.id})`;
+    const [pe] = await sql`insert into app.pe_runs (batch_id, bes_run_id, status, trigger) values ('prune-test', ${run.id}, 'superseded', 'test') returning id`;
+    // The prune statement of lib/bes/store.ts, aimed at this run.
+    await sql`delete from app.bes_runs where id = ${run.id} and status in ('superseded','failed')`;
+    expect((await sql`select bes_run_id from app.efficient_portfolio_holdings where snapshot_id = ${snap.id}`)[0].bes_run_id).toBeNull();
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBeNull();
+    // The holding itself, its score and its snapshot are kept.
+    expect((await sql`select bes_score from app.efficient_portfolio_holdings where snapshot_id = ${snap.id}`).map((r) => Number(r.bes_score))).toEqual([61.5]);
+    await sql`delete from app.efficient_portfolio_snapshots where id = ${snap.id}`;
   });
 });
 
