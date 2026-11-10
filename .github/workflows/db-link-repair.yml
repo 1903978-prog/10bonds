@@ -1,0 +1,56 @@
+# One-off database link repair for PR #497 (stage 2). MANUAL ONLY: no schedule, no push trigger.
+# Runs scripts/db-link-repair.ts against the app schema with the site's own login (secret ACCOUNTS_DATABASE_URL; no new secret).
+#   mode=check  (default) read-only: rows breaking each link + fingerprint. Nothing is written.
+#   mode=apply  repair + validate in ONE transaction; any unexpected change rolls everything back.
+# Deletions are hard-off: this workflow never passes --allow-deletes and has no input that could. A repair that would delete
+# any row rolls back. Production use needs Livio's release approval (given 10 Nov 2026 for the #497 repair).
+name: Database link repair (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check (read-only) or apply (repair)"
+        type: choice
+        options: [check, apply]
+        default: check
+concurrency:
+  group: db-link-repair
+  cancel-in-progress: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Stop if a scoring, portfolio or weekly-email job is queued or running
+        run: |
+          for wf in bes.yml portfolio-efficiency.yml weekly-email.yml; do
+            n=$(gh run list -R "$GITHUB_REPOSITORY" -w "$wf" --json status -q '[.[] | select(.status != "completed")] | length')
+            echo "$wf: $n not completed"
+            if [ "$n" != "0" ]; then echo "Stopped: $wf is queued or running. Nothing was done."; exit 1; fi
+          done
+      - name: Read-only check
+        run: |
+          export REPAIR_DATABASE_URL="$(node scripts/accounts-url.mjs)"
+          echo "::add-mask::$REPAIR_DATABASE_URL"
+          echo "::add-mask::$(node -e 'console.log(new URL(process.argv[1]).host)' "$REPAIR_DATABASE_URL")"
+          npx vite-node -c vitest.config.ts scripts/db-link-repair.ts
+      - name: Repair (all or nothing, no deletions)
+        if: inputs.mode == 'apply'
+        run: |
+          export REPAIR_DATABASE_URL="$(node scripts/accounts-url.mjs)"
+          echo "::add-mask::$REPAIR_DATABASE_URL"
+          echo "::add-mask::$(node -e 'console.log(new URL(process.argv[1]).host)' "$REPAIR_DATABASE_URL")"
+          npx vite-node -c vitest.config.ts scripts/db-link-repair.ts --apply
