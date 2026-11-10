@@ -20,6 +20,8 @@ async function bingRows<T>(method: string, key: string, site: string): Promise<T
 }
 
 let ready = false;
+/** Builds this module's tables (used by the schema test). */
+export const seoDailyTableReady = async (): Promise<void> => { await table(); };
 async function table() {
   const s = await seoSql();
   if (!ready) {

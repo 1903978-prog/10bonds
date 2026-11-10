@@ -18,6 +18,7 @@ import { bandsKey } from "./riskBandsServe";
 import type { StoredBands } from "./riskBandsBuild";
 import type { SliderPosition } from "./sliderPortfolios";
 import { assemble, EMPTY_POLICY, HORIZONS, METHOD_VERSION, snapshotProblems, type Assembled, type Horizon, type SnapshotRow } from "./sliderSnapshotBuild";
+import { ensureLinks } from "./dbLinks";
 
 // The persistent 90-position slider database (owner, 28/10/2026). Migration id: efficient_portfolio_snapshots_001 (created additively, like the other
 // app tables). A snapshot is built from the stored band lists in a few seconds (no solver), checked row by row, and published only when
@@ -111,6 +112,7 @@ async function sql() {
       await s.unsafe(`create index if not exists efficient_portfolio_positions_bond_${i}_idx on app.efficient_portfolio_positions (bond_${i})`);
     }
     await s`insert into app.efficient_portfolio_migrations (id) values (${MIGRATION_ID}) on conflict do nothing`;
+    await ensureLinks(s); // links that need this module's tables (lib/dbLinks.ts)
   })().catch((e) => { ready = null; throw e; });
   await ready;
   return s;

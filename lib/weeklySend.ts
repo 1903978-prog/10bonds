@@ -5,6 +5,7 @@ import { unsubscribeUrl } from "./newsletter";
 import { pickRanking } from "./pickRanking";
 import { bondRisk } from "./ratings";
 import { WEEKLY_INPUTS, weeklyEmail, type WeeklyPicks } from "./weeklyEmail";
+import { ensureLinks } from "./dbLinks";
 
 // Sending the weekly e-mail. Real subscribers get it only once the admin has sent a test to themselves and switched
 // sending on at /admin/weekly-email. Each account gets at most one e-mail per week, even if the job runs twice.
@@ -25,6 +26,7 @@ async function db() {
         at timestamptz not null default now(),
         primary key (week, user_id)
       )`;
+    await ensureLinks(sql);
   })().catch((e) => {
     ready = null;
     throw e;

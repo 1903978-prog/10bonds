@@ -3,6 +3,7 @@ import { purgeUnconfirmed } from "./unconfirmedPurge";
 import postgres from "postgres";
 import { accountsUrl } from "./pgUrl";
 import type { Tier } from "./types";
+import { ensureLinks } from "./dbLinks";
 
 // Accounts live in schema "app" of the 10BONDS database, written with their own login
 // (ACCOUNTS_DATABASE_URL). The bond copy keeps its separate read-only login.
@@ -237,6 +238,7 @@ async function setup(sql: ReturnType<typeof postgres>) {
   // Never-confirmed, never-paid accounts older than 30 days: removed only when PRIVACY_PURGE_UNCONFIRMED=on (off by default).
   await purgeUnconfirmed(sql, ADMIN_EMAILS);
   await indexLazyForeignKeys(sql);
+  await ensureLinks(sql);
 }
 
 /**

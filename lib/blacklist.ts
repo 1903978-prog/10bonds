@@ -9,6 +9,8 @@ export type Exclusion = { kind: ExclusionKind; value: string; label: string };
 export const MAX_EXCLUSIONS = 200;
 
 let ready: Promise<void> | null = null;
+/** Builds this module's tables (used by the schema test). */
+export const exclusionsTableReady = async (): Promise<void> => { await sql(); };
 async function sql() {
   const s = await accountsSql();
   ready ??= (async () => {

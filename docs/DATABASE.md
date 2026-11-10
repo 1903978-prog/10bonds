@@ -30,7 +30,7 @@ start): accounts with no confirmed address, no Stripe customer or subscription, 
 It is **off** unless the Fly secret `PRIVACY_PURGE_UNCONFIRMED=on`; Livio decides, and the privacy page's retention
 section gets the new period, before it is switched on.
 
-Links between records are enforced by the database (foreign keys): deleting an account removes its searches and Pro
+Links kept only in code until 07 Nov 2026 are now foreign keys too (`lib/dbLinks.ts`, which lists each link, why, and the ones left in code on purpose). Links between records are enforced by the database (foreign keys): deleting an account removes its searches and Pro
 request and blanks it in stats and codes. Every table has a primary key; allowed values are checked by the database.
 
 ## Held outside the database
@@ -74,7 +74,7 @@ See `docs/OPERATIONS.md` > Backups: nightly encrypted dump of schema `app` with 
   and the rebuilt ranking (`app.best_bonds`) are sent to secval's data quality check (`POST /api/quality/validate`).
   Bond facts only, no personal data. Rules: anti-hacker `server/quality/datasets/tenbonds.ts`.
   Fly secrets: `SECVAL_QUALITY_TOKEN` (off when unset), optional `SECVAL_URL` (default https://secval.onrender.com).
-- **Database report** `GET /api/secval/db-health` (`lib/secvalDbHealth.ts`): counts only (tables, keys, rules,
+- **Database report** `GET /api/secval/db-health` (`lib/secvalDbHealth.ts`): counts only (tables, keys, tables in links, rules,
   indexes, broken ranking links, last good backup and restore test), polled hourly by secval. 404 unless the Fly secret
   `SECVAL_DBCHECK_TOKEN` is set. The nightly backup job records its last good backup and restore test in `app.settings`
   (`backup_last_ok_at`, `backup_restore_test_ok_at`).

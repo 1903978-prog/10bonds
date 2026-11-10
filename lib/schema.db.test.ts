@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 // The database design is tracked in git: docs/database-schema.txt is what the app's setup code builds in schema "app".
 // CI runs this against an empty Postgres (twice, so setup must be repeatable); any table, column, rule or index change
@@ -31,6 +31,18 @@ async function buildAll() {
   const { frontierTableReady } = await import("./frontierStore");
   const { sliderTablesReady } = await import("./sliderSnapshot");
   const { creditResearchTablesReady } = await import("./creditResearchDb");
+  // Tables made on first use by other features (missing from this file before 08 Nov 2026; production has them).
+  const { benchmarkTablesReady } = await import("./bundCurve/store");
+  const { besTablesReady } = await import("./bes/store");
+  const { peTablesReady } = await import("./netSpread/store");
+  const { gptTablesReady } = await import("./gptRatingsDb");
+  const { recentEmailLog } = await import("./emailLog");
+  const { planFeaturesTableReady } = await import("./planFeatures");
+  const { planLimitsTableReady } = await import("./searchLimits");
+  const { buildTablesReady } = await import("./portfolioBuild");
+  const { riskBandTablesReady } = await import("./riskBandsStore");
+  const { seoDailyTableReady } = await import("./seo/dailyTable");
+  const { exclusionsTableReady } = await import("./blacklist");
   const sql = await accountsSql();
   await discountTable();
   await seoSql();
@@ -45,6 +57,17 @@ async function buildAll() {
   await frontierTableReady();
   await sliderTablesReady();
   await creditResearchTablesReady();
+  await benchmarkTablesReady();
+  await besTablesReady();
+  await peTablesReady();
+  await gptTablesReady();
+  await recentEmailLog();
+  await planFeaturesTableReady();
+  await planLimitsTableReady();
+  await buildTablesReady();
+  await riskBandTablesReady();
+  await seoDailyTableReady();
+  await exclusionsTableReady();
   return sql;
 }
 
@@ -83,6 +106,22 @@ describe.skipIf(!url)("database schema", () => {
     expect(first).toBe(readFileSync(FILE, "utf8"));
   }, 60_000);
 
+  it("builds every table the code creates (so this file and the database report count the same tables as production)", async () => {
+    const sql = await buildAll();
+    const { readdirSync, statSync } = await import("node:fs");
+    const walk = (d: string): string[] => readdirSync(d).flatMap((n) => {
+      const f = path.join(d, n);
+      return statSync(f).isDirectory() ? walk(f) : /\.tsx?$/.test(n) && !/\.test\.tsx?$/.test(n) ? [f] : [];
+    });
+    const root = path.join(__dirname, "..");
+    const inCode = new Set<string>();
+    for (const f of [...walk(path.join(root, "lib")), ...walk(path.join(root, "app"))]) {
+      for (const m of readFileSync(f, "utf8").matchAll(/create table if not exists app\.([a-z_0-9]+)/g)) inCode.add(m[1]);
+    }
+    const built = new Set((await sql`select relname from pg_class where relnamespace = 'app'::regnamespace and relkind = 'r'`).map((r) => String(r.relname)));
+    expect([...inCode].filter((t) => !built.has(t)).sort()).toEqual([]);
+  });
+
   it("every table has a primary key", async () => {
     const sql = await buildAll();
     const rows = await sql`
@@ -107,6 +146,189 @@ describe.skipIf(!url)("database schema", () => {
     const { setupAgainForTest } = await import("./accounts");
     await setupAgainForTest();
     expect((await unindexed()).map((r) => r.n)).toEqual([]);
+  });
+});
+
+// The repair tests validate the link rules; put the database back to what a start-up leaves (rules NOT VALID), so a rerun on the
+// same database still matches docs/database-schema.txt.
+async function backToStartupState() {
+  if (!url) return;
+  const { accountsSql } = await import("./accounts");
+  const { ensureLinks, LINKS } = await import("./dbLinks");
+  const sql = await accountsSql();
+  for (const l of LINKS) await sql.unsafe(`alter table app.${l.table} drop constraint if exists ${l.name}`);
+  await ensureLinks(sql);
+}
+
+describe.skipIf(!url)("links kept in code, now enforced (lib/dbLinks.ts)", () => {
+  afterAll(backToStartupState);
+  it("every table is linked, or listed as standalone with a reason", async () => {
+    const sql = await buildAll();
+    const { STANDALONE_TABLES } = await import("./dbLinks");
+    const rows = await sql`
+      select t.relname as name,
+             exists (select 1 from pg_constraint c where c.contype = 'f' and (c.conrelid = t.oid or c.confrelid = t.oid)) as linked
+      from pg_class t where t.relnamespace = 'app'::regnamespace and t.relkind in ('r', 'p')`;
+    const unlinked = rows.filter((r) => !r.linked).map((r) => String(r.name)).sort();
+    const listed = Object.keys(STANDALONE_TABLES);
+    expect(unlinked).toEqual([...listed].sort());
+  });
+
+  it("start-up adds the rules without touching old rows; the approved repair step fixes them the way the rule would, then validates", async () => {
+    const sql = await buildAll();
+    const { ensureLinks, repairAndValidateLinks, linkViolations } = await import("./dbLinks");
+    // A production database from before: no rule yet, and rows left behind by deleted accounts.
+    await sql`alter table app.weekly_email_sends drop constraint weekly_email_sends_user_id_fkey`;
+    await sql`alter table app.consents drop constraint consents_user_id_fkey`;
+    const [u] = await sql`insert into app.users (email, password_hash) values (${`links-${Date.now()}@test.local`}, 'x') returning id`;
+    await sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W01', 999999999, 'sent'), ('2026-W01', ${u.id}, 'sent')`;
+    await sql`insert into app.consents (user_id, kind, version, lang, text_shown) values (999999999, 'terms', 'v', 'en', 't')`;
+    // Start-up (a deploy): the rules appear NOT VALID, the old rows are untouched, new breaking rows are already refused.
+    await ensureLinks(sql);
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = 999999999`).toHaveLength(1);
+    expect(await sql`select 1 from app.consents where user_id = 999999999`).toHaveLength(1);
+    const sends = (await linkViolations(sql)).find((v) => v.name === "weekly_email_sends_user_id_fkey")!;
+    expect(sends).toMatchObject({ rows: 1, validated: false });
+    await expect(sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W03', 999999998, 'sent')`).rejects.toThrow();
+    // The approved repair step.
+    const done = await repairAndValidateLinks(sql);
+    expect(done.find((r) => r.name === "weekly_email_sends_user_id_fkey")).toMatchObject({ repaired: 1, validated: true });
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = 999999999`).toHaveLength(0);
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = ${u.id}`).toHaveLength(1);
+    expect(await sql`select 1 from app.consents where user_id = 999999999`).toHaveLength(0);
+    const notValid = await sql`select conname from pg_constraint where connamespace = 'app'::regnamespace and contype = 'f' and not convalidated`;
+    expect(notValid).toEqual([]);
+    // Enforced now: deleting the account takes its sends with it, and a send for no account is refused.
+    const { deleteUser } = await import("./accounts");
+    await deleteUser(Number(u.id));
+    expect(await sql`select 1 from app.weekly_email_sends where user_id = ${u.id}`).toHaveLength(0);
+    await expect(sql`insert into app.weekly_email_sends (week, user_id, status) values ('2026-W02', 999999999, 'sent')`).rejects.toThrow();
+  });
+});
+
+describe.skipIf(!url)("links added 08 Nov 2026 (docs/fk-register.md)", () => {
+  afterAll(backToStartupState);
+  it("the repair restores missing parents instead of deleting history, clears names of pruned runs, changes nothing else, then validates", async () => {
+    const sql = await buildAll();
+    const { ensureLinks, repairAndValidateLinks, LINKS } = await import("./dbLinks");
+    const { fingerprint, compareFingerprints } = await import("./dbFingerprint");
+    const names = ["events_visitor_id_fkey", "credit_research_jobs_claimed_by_fkey", "credit_research_runs_worker_id_fkey", "pe_runs_bes_run_id_fkey",
+      "efficient_portfolio_holdings_bes_run_id_fkey", "risk_calc_runs_version_id_fkey", "risk_calc_results_version_id_fkey", "bond_credit_analysis_history_isin_fkey"];
+    // A production database from before these rules, with rows that break them.
+    for (const n of names) {
+      const l = LINKS.find((x) => x.name === n)!;
+      await sql.unsafe(`alter table app.${l.table} drop constraint ${n}`);
+    }
+    const tag = `fk-${Date.now()}`;
+    await sql`insert into app.events (visitor_id, kind, at) values (${tag}, 'page_view', '2026-01-02T00:00:00Z'), (${tag}, 'click', '2026-01-03T00:00:00Z')`;
+    await sql`insert into app.credit_research_runs (isin, worker_id, ok) values ('XS0000000001', ${tag}, true)`;
+    const [pe] = await sql`insert into app.pe_runs (batch_id, bes_run_id, status, trigger) values ('b', 999999999, 'failed', 'test') returning id`;
+    await ensureLinks(sql); // a deploy: no row changes
+    expect(await sql`select 1 from app.visitors where visitor_id = ${tag}`).toHaveLength(0);
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBe("999999999");
+    const before = await fingerprint(sql);
+    const done = await repairAndValidateLinks(sql);
+    expect(done.filter((r) => names.includes(r.name) && !r.validated)).toEqual([]);
+    // Only the expected tables changed: visitors and workers gained the re-created rows, pe_runs only in its run id.
+    expect(compareFingerprints(before, await fingerprint(sql))).toEqual([
+      { table: "credit_research_workers", rowsBefore: before.credit_research_workers.rows, rowsAfter: before.credit_research_workers.rows + 1, onlyRepairColumns: false },
+      { table: "pe_runs", rowsBefore: before.pe_runs.rows, rowsAfter: before.pe_runs.rows, onlyRepairColumns: true },
+      { table: "visitors", rowsBefore: before.visitors.rows, rowsAfter: before.visitors.rows + 1, onlyRepairColumns: false },
+    ]);
+    const [v] = await sql`select first_seen, last_seen from app.visitors where visitor_id = ${tag}`;
+    expect([new Date(v.first_seen).toISOString(), new Date(v.last_seen).toISOString()]).toEqual(["2026-01-02T00:00:00.000Z", "2026-01-03T00:00:00.000Z"]);
+    expect(await sql`select 1 from app.events where visitor_id = ${tag}`).toHaveLength(2);
+    expect(await sql`select 1 from app.credit_research_workers where worker_id = ${tag}`).toHaveLength(1);
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBeNull();
+    const present = await sql`select conname, convalidated from pg_constraint where conname in ${sql(names)} and connamespace = 'app'::regnamespace`;
+    expect(present.map((r) => `${r.conname}:${r.convalidated}`).sort()).toEqual(names.map((n) => `${n}:true`).sort());
+    // Enforced now: forgetting a visitor takes its events, and an event for no visitor is refused.
+    const { forgetVisitor } = await import("./accounts");
+    await forgetVisitor(tag);
+    expect(await sql`select 1 from app.events where visitor_id = ${tag}`).toHaveLength(0);
+    await expect(sql`insert into app.events (visitor_id, kind) values (${`${tag}-none`}, 'page_view')`).rejects.toThrow();
+  });
+
+  it("the repair is all-or-nothing, judges only its own changes (not live traffic), and rolls everything back when verification fails", async () => {
+    const sql = await buildAll();
+    const { repairAndValidateLinks, RepairRolledBack, LINKS } = await import("./dbLinks");
+    const { fingerprint, compareFingerprints } = await import("./dbFingerprint");
+    const l = LINKS.find((x) => x.name === "pe_runs_bes_run_id_fkey")!;
+    await sql.unsafe(`alter table app.${l.table} drop constraint ${l.name}`);
+    const [pe] = await sql`insert into app.pe_runs (batch_id, bes_run_id, status, trigger) values ('aon', 999999997, 'superseded', 'test') returning id`;
+    const tag = `traffic-${Date.now()}`;
+    // 1. Live traffic commits while the repair runs: the repair's own comparison does not see it.
+    let seen: ReturnType<typeof compareFingerprints> = [];
+    let before: Awaited<ReturnType<typeof fingerprint>> = {};
+    await repairAndValidateLinks(sql, LINKS, {
+      before: async (tx) => {
+        before = await fingerprint(tx);
+        await sql`insert into app.visitors (visitor_id) values (${tag})`; // another connection, committed now
+      },
+      verify: async (tx) => { seen = compareFingerprints(before, await fingerprint(tx)); },
+    });
+    expect(seen.map((c) => c.table)).toEqual(["pe_runs"]);
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBeNull();
+    // 2. A failed verification keeps nothing: the dead id and the NOT VALID rule are exactly as before.
+    await sql.unsafe(`alter table app.${l.table} drop constraint ${l.name}`);
+    await sql`update app.pe_runs set bes_run_id = 999999997 where id = ${pe.id}`;
+    const { ensureLinks } = await import("./dbLinks");
+    await ensureLinks(sql);
+    await expect(repairAndValidateLinks(sql, LINKS, { verify: async () => { throw new RepairRolledBack("test"); } })).rejects.toThrow("test");
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBe("999999997");
+    expect((await sql`select convalidated from pg_constraint where conname = ${l.name}`)[0].convalidated).toBe(false);
+    await sql`delete from app.pe_runs where id = ${pe.id}`;
+  });
+
+  it("the repair rolls back when a rule could not be added (busy table) instead of reporting success", async () => {
+    const sql = await buildAll();
+    const { repairAndValidateLinks, LINKS } = await import("./dbLinks");
+    const l = LINKS.find((x) => x.name === "pe_runs_bes_run_id_fkey")!;
+    await sql.unsafe(`alter table app.${l.table} drop constraint ${l.name}`);
+    const { default: postgres } = await import("postgres");
+    const other = postgres(url!, { max: 1, onnotice: () => {} });
+    try {
+      // Another session holds the table: adding the rule times out, so it is skipped at "start-up".
+      let release!: () => void;
+      const held = new Promise<void>((r) => { release = r; });
+      let locked!: () => void;
+      const isLocked = new Promise<void>((r) => { locked = r; });
+      const holder = other.begin(async (tx) => { await tx.unsafe(`lock table app.${l.table} in access exclusive mode`); locked(); await held; });
+      await isLocked;
+      try {
+        await expect(repairAndValidateLinks(sql, LINKS, { lockTimeout: "200ms" })).rejects.toThrow(/could not be added/);
+      } finally {
+        release();
+        await holder;
+      }
+    } finally {
+      await other.end();
+    }
+    expect(await sql`select 1 from pg_constraint where conname = ${l.name}`).toHaveLength(0);
+    const { ensureLinks } = await import("./dbLinks");
+    await ensureLinks(sql); // a later start adds it
+    expect(await sql`select 1 from pg_constraint where conname = ${l.name}`).toHaveLength(1);
+  });
+
+  it("pruning an old scoring run no longer leaves holdings or net-spread runs pointing at it (even before the repair step)", async () => {
+    const sql = await buildAll();
+    await sql`alter table app.efficient_portfolio_holdings drop constraint efficient_portfolio_holdings_bes_run_id_fkey`;
+    await sql`alter table app.pe_runs drop constraint pe_runs_bes_run_id_fkey`;
+    const { ensureLinks } = await import("./dbLinks");
+    await ensureLinks(sql); // rules back, NOT VALID, as right after a deploy
+    const [run] = await sql`insert into app.bes_runs (batch_id, status, trigger) values ('prune-test', 'superseded', 'test') returning id`;
+    const [snap] = await sql`insert into app.efficient_portfolio_snapshots (batch_id, input_fingerprint, filter_key, methodology, empty_policy, status)
+      values ('prune-test', ${`prune-${Date.now()}`}, 'TEST', 'm', 'p', 'superseded') returning id`;
+    await sql`insert into app.efficient_portfolio_holdings (snapshot_id, portfolio_id, horizon, ord, isin, bes_score, bes_run_id)
+      values (${snap.id}, 'p', 'short', 1, 'XS9999999990', 61.5, ${run.id})`;
+    const [pe] = await sql`insert into app.pe_runs (batch_id, bes_run_id, status, trigger) values ('prune-test', ${run.id}, 'superseded', 'test') returning id`;
+    // The prune statement of lib/bes/store.ts, aimed at this run.
+    await sql`delete from app.bes_runs where id = ${run.id} and status in ('superseded','failed')`;
+    expect((await sql`select bes_run_id from app.efficient_portfolio_holdings where snapshot_id = ${snap.id}`)[0].bes_run_id).toBeNull();
+    expect((await sql`select bes_run_id from app.pe_runs where id = ${pe.id}`)[0].bes_run_id).toBeNull();
+    // The holding itself, its score and its snapshot are kept.
+    expect((await sql`select bes_score from app.efficient_portfolio_holdings where snapshot_id = ${snap.id}`).map((r) => Number(r.bes_score))).toEqual([61.5]);
+    await sql`delete from app.efficient_portfolio_snapshots where id = ${snap.id}`;
   });
 });
 
@@ -152,6 +374,7 @@ describe.skipIf(!url)("clean-up of never-confirmed accounts on a real database",
     const admin = await add("admin", { daysOld: 60 });
     const [{ email: adminEmail }] = await sql`select email from app.users where id = ${admin}`;
     await sql`insert into app.search_usage (user_id, kind) values (${old}, 'single')`;
+    await sql`insert into app.visitors (visitor_id) values ('v') on conflict do nothing`;
     await sql`insert into app.events (visitor_id, user_id, kind) values ('v', ${old}, 'page_view')`;
     const alive = async () => (await sql`select id from app.users where email like ${`%-${tag}@test.local`}`).map((r) => String(r.id)).sort();
 

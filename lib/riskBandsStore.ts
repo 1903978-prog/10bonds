@@ -7,6 +7,8 @@ import type { StoredBands } from "./riskBandsBuild";
 // same filter, horizon and band table is served when the data moved a little (a release or a price refresh never leaves the finder empty).
 
 let ready: Promise<void> | null = null;
+/** Builds this module's tables (used by the schema test). */
+export const riskBandTablesReady = async (): Promise<void> => { await sql(); };
 async function sql() {
   const s = await accountsSql();
   ready ??= (async () => {
