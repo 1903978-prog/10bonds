@@ -23,18 +23,17 @@ jobs:
   repair:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    env:
-      ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci   # no secrets in this step
+      - run: git rev-parse HEAD   # must be main at 571b4fd4 or later
       - name: Stop if a scoring, portfolio or weekly-email job is queued or running
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           for wf in bes.yml portfolio-efficiency.yml weekly-email.yml; do
             n=$(gh run list -R "$GITHUB_REPOSITORY" -w "$wf" --json status -q '[.[] | select(.status != "completed")] | length')
@@ -42,6 +41,9 @@ jobs:
             if [ "$n" != "0" ]; then echo "Stopped: $wf is queued or running. Nothing was done."; exit 1; fi
           done
       - name: Read-only check
+        env:
+          ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           export REPAIR_DATABASE_URL="$(node scripts/accounts-url.mjs)"
           echo "::add-mask::$REPAIR_DATABASE_URL"
@@ -49,6 +51,9 @@ jobs:
           npx vite-node -c vitest.config.ts scripts/db-link-repair.ts
       - name: Repair (all or nothing, no deletions)
         if: inputs.mode == 'apply'
+        env:
+          ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           export REPAIR_DATABASE_URL="$(node scripts/accounts-url.mjs)"
           echo "::add-mask::$REPAIR_DATABASE_URL"
