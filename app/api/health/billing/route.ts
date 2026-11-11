@@ -10,6 +10,7 @@ export async function GET() {
     const s = await ensureStripeSetup();
     return NextResponse.json({ configured: true, mode: stripeMode(), prices: Object.keys(s.prices).length, portal: Boolean(s.portalConfig), webhook: Boolean(s.webhookSecret) }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
-    return NextResponse.json({ configured: true, mode: stripeMode(), error: (e as Error).message.slice(0, 200) }, { status: 503 });
+    console.error("[health/billing]", (e as Error).message.slice(0, 200));
+    return NextResponse.json({ configured: true, mode: stripeMode(), error: "setup failed, see the server log" }, { status: 503 });
   }
 }

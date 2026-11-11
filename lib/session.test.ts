@@ -27,6 +27,11 @@ describe("emails", () => {
   it("normalises and rejects bad addresses", () => {
     expect(normaliseEmail("  Ann@Example.COM ")).toBe("ann@example.com");
     expect(normaliseEmail("not-an-email")).toBeNull();
+    expect(normaliseEmail("<script>@b.co")).toBeNull();
+    expect(normaliseEmail("a b@c.com")).toBeNull();
+    expect(normaliseEmail('"x"@c.com')).toBeNull();
+    expect(normaliseEmail("o'brien+tag@mail.example.co.uk")).toBe("o'brien+tag@mail.example.co.uk");
+    expect(normaliseEmail("élise@exämple.fr")).toBe("élise@exämple.fr");
     expect(normaliseEmail(5)).toBeNull();
   });
 });

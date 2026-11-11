@@ -399,7 +399,8 @@ export function generateUsername(email: string): string {
 export function normaliseEmail(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const e = raw.trim().toLowerCase();
-  return e.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
+  // Plain address characters only (letters, digits and . _ % + ' - in the name, letters, digits, dots and hyphens in the domain; no angle brackets, quotes or spaces).
+  return e.length <= 254 && /^[\p{L}\p{N}._%+'-]+@[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)*\.[\p{L}]{2,}$/u.test(e) ? e : null;
 }
 
 export async function createUser(email: string, username: string, passwordHash: string, termsVersion: string, newsletter = false): Promise<User | "email-taken" | "username-taken"> {
