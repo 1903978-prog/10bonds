@@ -44,7 +44,9 @@ export async function POST(req: Request) {
       try {
         coupon = await ensurePromoCoupon(promo.percent, promo.endsAt, "Halloween 2026 promo");
       } catch (e) {
-        console.error("[checkout] promo coupon failed, continuing without it:", (e as Error).message);
+        // The visitor was shown the promo price: never charge the full price instead. Stop and say so.
+        console.error("[checkout] promo coupon failed:", (e as Error).message);
+        return NextResponse.json({ error: "The launch offer could not be applied right now, so nothing was charged. Please try again in a few minutes." }, { status: 502 });
       }
     }
     const session = await stripe("POST", "/checkout/sessions", {

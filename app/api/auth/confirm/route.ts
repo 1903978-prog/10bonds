@@ -19,14 +19,15 @@ export async function GET(req: Request) {
     // Welcome e-mail only on the first confirmation; it never holds up the redirect.
     // Free full access is mentioned only to accounts that used a promo code.
     const lang = q.get("lang") ? welcomeLang(q.get("lang")) : requestLang(req);
-    void setEmailLang(user.id, lang).catch(() => {});
+    void setEmailLang(user.id, lang).catch((e) => console.error("[confirm] e-mail language not saved:", (e as Error).message));
     if (first)
       void usedPromoCode(user.id)
         .then((code) => sendWelcome(user.email, user.username ?? user.email, lang, code ? accessDaysLeft(user.premiumUntil) : null))
         .then((r) => console.log("[confirm] welcome e-mail:", r))
-        .catch(() => {});
+        .catch((e) => console.error("[confirm] welcome e-mail failed:", (e as Error).message));
     return back("confirmed=1");
-  } catch {
+  } catch (e) {
+    console.error("[confirm] failed:", (e as Error).message);
     return back("confirmed=error");
   }
 }

@@ -20,6 +20,6 @@ export async function POST(req: Request) {
     if (!backupAlertDue(last)) return NextResponse.json({ ok: true, result: "already-sent-today" });
   }
   const r = await sendLiveCheckAlert(summary, runUrl, kind);
-  if (kind === "backup" && r === "sent") await setSetting("backup_alert_sent_on", new Date().toISOString().slice(0, 10)).catch(() => {});
+  if (kind === "backup" && r === "sent") await setSetting("backup_alert_sent_on", new Date().toISOString().slice(0, 10)).catch((e) => console.error("[live-check-alert] could not remember the alert day:", (e as Error).message));
   return NextResponse.json({ ok: r === "sent", result: r }, { status: r === "sent" ? 200 : 502 });
 }
