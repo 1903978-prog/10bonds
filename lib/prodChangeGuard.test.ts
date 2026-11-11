@@ -5,16 +5,16 @@ import { join } from "node:path";
 import { check, codeHash, parseApprovals, GUARDED } from "../scripts/prod-change-gate.mjs";
 
 const ok = (o: Record<string, string> = {}) => {
-  const c = { id: "CHG-1", change: "null 5 stale links in table x, no deletions", wf: "db-link-repair", hash: "abc", rows: "5", rev: "yes, from backup", backup: "https://github.com/o/r/actions/runs/1 restore test passed", rb: "restore the backup run above", by: "Livio 2026-11-11", status: "APPROVED", ...o };
+  const c = { id: "CHG-0001", change: "null 5 stale links in table x, no deletions", wf: "db-link-repair", hash: "abc", rows: "5", rev: "yes, from backup", backup: "https://github.com/o/r/actions/runs/1 restore test passed", rb: "restore the backup run above", by: "Livio 2026-11-11", status: "APPROVED", ...o };
   return `## Production change approvals\n| ID | a |\n| --- |\n| ${c.id} | ${c.change} | ${c.wf} | ${c.hash} | ${c.rows} | ${c.rev} | ${c.backup} | ${c.rb} | ${c.by} | ${c.status} |\n`;
 };
-const run = (md: string, hash = "abc") => check(md, { workflow: "db-link-repair", approval: "CHG-1", hash });
+const run = (md: string, hash = "abc") => check(md, { workflow: "db-link-repair", approval: "CHG-0001", hash });
 
 describe("production change gate fails closed", () => {
   it("passes a complete approval", () => expect(run(ok())).toEqual([]));
   it("blocks without an id, unknown id, used, unapproved, other workflow, changed code, missing evidence", () => {
     expect(check(ok(), { workflow: "db-link-repair", approval: "", hash: "abc" })).not.toEqual([]);
-    expect(check(ok(), { workflow: "db-link-repair", approval: "CHG-2", hash: "abc" })).not.toEqual([]);
+    expect(check(ok(), { workflow: "db-link-repair", approval: "CHG-0002", hash: "abc" })).not.toEqual([]);
     expect(run(ok({ status: "USED" }))).not.toEqual([]);
     expect(run(ok({ status: "PENDING" }))).not.toEqual([]);
     expect(run(ok({ by: "Claude 2026-11-11" }))).not.toEqual([]);
@@ -28,10 +28,38 @@ describe("production change gate fails closed", () => {
     expect(parseApprovals(readFileSync("docs/livio-asks.md", "utf8")).length).toBeGreaterThan(0);
     for (const k of Object.keys(GUARDED)) expect(codeHash(k)).toMatch(/^[0-9a-f]{16}$/);
   });
-  it("the apply step of the repair workflow runs the gate first", () => {
+  it("rejects a malformed or injected approval id", () => {
+    for (const bad of ["CHG-1; rm -rf /", "$(id)", "CHG-0001\nx", "chg-0001", ""]) expect(check(ok(), { workflow: "db-link-repair", approval: bad, hash: "abc" })).not.toEqual([]);
+  });
+  it("the repair workflow: inputs only via env, environment approval, evidence, claim, then the write, in that order", () => {
     const y = readFileSync(".github/workflows/db-link-repair.yml", "utf8");
-    expect(y.indexOf("prod-change-gate.mjs")).toBeGreaterThan(0);
-    expect(y.indexOf("prod-change-gate.mjs")).toBeLessThan(y.indexOf("db-link-repair.ts --apply"));
+    expect(y).not.toMatch(/\$\{\{\s*inputs\.[a-z_]+\s*\}\}"/); // no input pasted into shell text
+    const a = y.slice(y.indexOf("  apply:"));
+    expect(a).toContain("environment: production-change");
+    const order = ["prod-change-gate.mjs", "/approvals", "prod-change-claim.mjs", "db-link-repair.ts --apply"].map((t) => a.indexOf(t));
+    expect(order.every((i) => i > 0)).toBe(true);
+    expect([...order].sort((x, y2) => x - y2)).toEqual(order);
+    expect(y).toContain("group: prod-change");
+    expect(y.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n")).not.toContain("--allow-deletes");
+  });
+  it("the claim step needs both backup and restore freshness and a single-use insert", () => {
+    const c = readFileSync("scripts/prod-change-claim.mjs", "utf8");
+    for (const t of ["backup_last_ok_at", "backup_restore_test_ok_at", "on conflict (key) do nothing", "GITHUB_RUN_ATTEMPT"]) expect(c).toContain(t);
+  });
+});
+
+// Every manual workflow that can change production data must go through the gate, and no new one may appear unguarded.
+describe("no unguarded production-change entry point", () => {
+  const wfs = readdirSync(".github/workflows").filter((n) => n.endsWith(".yml"));
+  const risky = /(--apply|--allow-deletes|repair|migrate|backfill|purge|wipe|truncate|reset-)/i;
+  it("workflows that run repair-like scripts reference the gate", () => {
+    const bad = wfs.filter((n) => { const y = readFileSync(join(".github/workflows", n), "utf8"); const runs = y.split("\n").filter((l) => /(npx|node|bash|vite-node)\s/.test(l) && !l.trim().startsWith("#")).join("\n"); return risky.test(runs) && !y.includes("prod-change-gate.mjs"); });
+    expect(bad).toEqual([]);
+  });
+  it("repair-like scripts are registered as guarded", () => {
+    const guarded = new Set(Object.values(GUARDED as Record<string, string[]>).flat());
+    const bad = readdirSync("scripts").filter((n) => /(repair|migrate|backfill|purge|wipe)/i.test(n) && !guarded.has("scripts/" + n));
+    expect(bad).toEqual([]);
   });
 });
 

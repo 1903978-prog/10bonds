@@ -33,12 +33,12 @@ export function parseApprovals(md) {
 
 export function check(md, { workflow, approval, hash }) {
   const errors = [];
-  if (!approval) return ["no approval id given"];
+  if (!/^CHG-\d{4}$/.test(approval ?? "")) return ["approval id must look like CHG-0001"];
   const row = parseApprovals(md).find((c) => c[0] === approval);
   if (!row) return [`approval ${approval} is not recorded in docs/livio-asks.md`];
   const [, change, wf, rowHash, rows, reversible, backup, rollback, by, status] = row;
   if (status !== "APPROVED") errors.push(`status is "${status}", must be APPROVED (single-use)`);
-  if (!/livio/i.test(by) || !/\d{4}-\d{2}-\d{2}/.test(by)) errors.push('"approved by / date" must name Livio and an ISO date');
+  if (!/livio/i.test(by) || !/\d{4}-\d{2}-\d{2}/.test(by)) errors.push('"approved by / date" must name Livio and an ISO date (the text is a record; proof is the environment approval click and the claim, checked in the workflow)');
   if (wf !== workflow) errors.push(`approval is for workflow "${wf}", not "${workflow}"`);
   if (rowHash !== hash) errors.push(`code changed since approval (approved ${rowHash}, current ${hash})`);
   if (change.length < 20) errors.push("exact change list missing");
