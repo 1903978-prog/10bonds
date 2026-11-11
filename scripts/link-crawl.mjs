@@ -114,7 +114,7 @@ async function extraChecks(ctx, role) {
       const fullCard = (isin) => [isin, new RegExp(isin), "full card"];
       for (const [isin, want, label] of [
         ["FR0000186413", /does not pay a fixed coupon|struttura che non modelliamo|structure que nous ne mod[ée]lisons|Struktur, die wir nicht modellieren/i, 'message "does not pay a fixed coupon" (any language: the page follows the language cookie the crawl set on /it, /fr or /de)'],
-        fullCard("DE000HEL4BV8"), fullCard("GR0128016731"), fullCard("US054989AB41"), fullCard("US263901AA85"),
+        fullCard("DE000HEL4BV8"), fullCard("GR0124041758"), fullCard("US054989AB41"), fullCard("US263901AA85"),
       ]) {
         const { page, status } = await open(`/bond-card?isin=${isin}`);
         let text = "";
@@ -353,7 +353,7 @@ await browser.close();
 
 // A page that answers 404 to a visitor or free user but works for the admin is closed to that role on purpose (admin-only for now).
 const adminOk = new Set(all.filter((r) => r.role === "admin" && r.status && r.status < 400).map((r) => r.path));
-for (const r of all) if (r.role !== "admin" && r.verdict === "broken" && r.status === 404 && adminOk.has(r.path)) { r.verdict = "ok"; r.note = "closed to this role (admin only)"; }
+for (const r of all) if (r.role !== "admin" && r.verdict === "broken" && r.status === 404 && adminOk.has(r.path)) { r.verdict = "ok"; r.note = "closed to this role (admin only)"; r.consoleErrors = r.consoleErrors.filter((e) => !/^HTTP 404 from /.test(e)); }
 
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, "link-check.json"), JSON.stringify({ base: BASE, at: new Date().toISOString(), notes, checks: allChecks, rows: all }, null, 1));

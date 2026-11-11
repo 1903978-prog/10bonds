@@ -17,7 +17,7 @@ export default async function WeeklyEmailPage({ searchParams }: { searchParams: 
   if (user?.adminState && user.adminState !== "ok") redirect("/admin");
   if (!user?.isAdmin) notFound();
   const lang = welcomeLang((await searchParams).lang);
-  const [picks, status] = await Promise.all([weeklyPicks(true).catch(() => null), weeklyStatus()]);
+  const [picks, status] = await Promise.all([weeklyPicks(true).catch(() => null), weeklyStatus().catch(() => ({ on: false, testedAt: null as string | null, subscribers: 0, last: null, week: "" }))]);
   const m = picks ? weeklyEmail(lang, picks, "#unsubscribe") : null;
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">

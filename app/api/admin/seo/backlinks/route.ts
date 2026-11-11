@@ -22,12 +22,14 @@ async function listingDone(): Promise<Record<string, string>> {
 }
 
 export async function GET() {
-  if (!(await seoAdmin())) return notFound();
+  const admin = await seoAdmin();
+  if (!admin) return notFound();
   const [backlinks, opportunities, checkedAt, done, bingAt] = await Promise.all([
     listBacklinks(), listOpportunities(), getSeoSetting("backlinks_checked_at"), listingDone(), getSeoSetting("backlinks_bing_at"),
   ]);
   return NextResponse.json(
-    { backlinks, opportunities, checkedAt, listing: { sites: LISTING_SITES, done }, bing: { configured: !!process.env.BING_WEBMASTER_API_KEY, syncedAt: bingAt } },
+    { backlinks, opportunities, checkedAt, listing: { sites: LISTING_SITES, done }, bing: { configured: !!process.env.BING_WEBMASTER_API_KEY && !admin.readOnly, // the page syncs by itself with a POST, which a read-only admin cannot make
+       syncedAt: bingAt } },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

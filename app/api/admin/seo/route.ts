@@ -16,7 +16,8 @@ const DAY = 86_400_000;
  * roadmap, plus the latest score of every market and their plain average (an internal metric).
  */
 export async function GET(req: Request) {
-  if (!(await seoAdmin())) return notFound();
+  const admin = await seoAdmin();
+  if (!admin) return notFound();
   if (!accountsConfigured()) return NextResponse.json({ error: "The accounts database is not connected, so SEO data cannot be stored." }, { status: 503 });
   const q = new URL(req.url).searchParams;
   const market = seoMarketOf(q.get("market"));
@@ -50,7 +51,8 @@ export async function GET(req: Request) {
       completedActions: Object.entries(actions).filter(([k, a]) => k.startsWith(`${market}:`) && a.status === "completed").length,
       issues: cur ? cur.results.filter((r) => (r.points ?? 0) < 2).length : null,
       // Reassess when data changed since the last run, or once a day.
-      needsRun: !latestAt || stale !== null || Date.now() - Date.parse(latestAt) > DAY,
+      // A read-only admin cannot run an assessment (the page would POST by itself and get a 404).
+      needsRun: !admin.readOnly && (!latestAt || stale !== null || Date.now() - Date.parse(latestAt) > DAY),
       staleSince: stale,
     },
     { headers: { "Cache-Control": "no-store" } },
