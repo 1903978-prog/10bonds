@@ -3,6 +3,7 @@ import { esc, siteUrl } from "./email";
 import { FOOTER_NOTE } from "./footerNote";
 import { pathOf } from "./seo/locales";
 import { welcomeLang, type WelcomeLang } from "./welcomeEmail";
+import { formatDate } from "./formatDate";
 
 // The weekly e-mail to newsletter subscribers (the owner, 24/10/2026: sign-up promises weekly bond picks).
 // One top 10 from the standard ranking, the same list the finder gives for these inputs. Customer wording rules:
@@ -87,7 +88,7 @@ const num = (v: number, lang: WelcomeLang, digits: number) => v.toLocaleString(T
 export function weeklyEmail(rawLang: unknown, picks: WeeklyPicks, unsubscribe: string | null, base = siteUrl(), now = new Date()) {
   const lang = welcomeLang(rawLang);
   const t = TEXT[lang];
-  const date = now.toLocaleDateString(t.locale, { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Rome" });
+  const date = formatDate(now, "Europe/Rome");
   const rows = picks.rows.slice(0, 10);
   const avgRet = rows.length ? rows.reduce((s, r) => s + r.ret, 0) / rows.length : 0;
   const risks = rows.map((r) => r.risk).filter((r): r is number => r !== null);

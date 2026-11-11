@@ -1,6 +1,7 @@
 import type { PublicBond } from "../types";
 import { bondRisk } from "../ratings";
 import { SITE_URL } from "./crawl";
+import { formatDate } from "../formatDate";
 
 // The free "bond yields" widget other websites can embed (/embed/yields). A small table, rebuilt from the bond copy
 // on every read: the median gross yield of EUR bonds per 10BONDS risk group and time to maturity (never agency grades). Every embed carries a plain link
@@ -87,7 +88,7 @@ export function widgetHtml(grid: YieldGrid, asOf: string | null, lang: WidgetLan
   const t = WIDGET_TEXT[lang];
   const fmt = (v: number | null) => (v === null ? "–" : `${v.toLocaleString(t.numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`);
   const c = dark ? { bg: "#1c1c1e", ink: "#f5f5f7", mute: "#a1a1a6", line: "#38383a", accent: "#2997ff" } : { bg: "#ffffff", ink: "#1d1d1f", mute: "#6e6e73", line: "#e5e5ea", accent: "#0071e3" };
-  const date = asOf ? new Date(asOf).toLocaleDateString(t.numLocale, { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Rome" }) : null;
+  const date = asOf ? formatDate(asOf, "Europe/Rome") : null;
   const body = grid.rows.length
     ? `<table><thead><tr><th>${esc(t.risk)}</th>${YEAR_COLS.map((y) => `<th>${y.label}</th>`).join("")}</tr></thead><tbody>${grid.rows
         .map((r) => `<tr><th>${r.risk}</th>${r.cells.map((v) => `<td>${fmt(v)}</td>`).join("")}</tr>`)

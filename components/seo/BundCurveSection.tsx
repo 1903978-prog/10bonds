@@ -4,6 +4,7 @@ import BundCurveChart from "@/components/seo/BundCurveChart";
 import { getBundCurve } from "@/lib/bundCurve/store";
 import { SITE_URL } from "@/lib/seo/crawl";
 import { bundCurvePath, type BundCurveText } from "@/lib/seo/bundCurve";
+import { formatDate } from "@/lib/formatDate";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 
@@ -12,7 +13,7 @@ export default async function BundCurveSection({ locale, text }: { locale: strin
   const loc = NUM[locale];
   const curve = await getBundCurve("ZAR").catch(() => null);
   if (!curve) return <p className="mt-6 rounded-lg border border-line bg-white p-6 text-mute">{text.empty}</p>;
-  const d = new Date(curve.asOf).toLocaleDateString(loc, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const d = formatDate(curve.asOf, "UTC");
   const at = (y: number) => `${curve.points.find((p) => p.years === y)!.yield.toLocaleString(loc, { minimumFractionDigits: 2 })}%`;
   const home = locale === "en" ? "/" : `/${locale}`;
   const bp = (v: number | null) => (v === null ? "–" : `${v > 0 ? "+" : ""}${v.toLocaleString(loc, { maximumFractionDigits: 1 })} bp`);

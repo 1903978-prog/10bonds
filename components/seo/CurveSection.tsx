@@ -1,6 +1,7 @@
 import YieldCurveChart from "@/components/seo/YieldCurveChart";
 import { loadBonds } from "@/lib/bonds";
 import { countryName, DEFAULT_COUNTRIES, govCurves, type CurveText } from "@/lib/seo/yieldCurves";
+import { formatDate } from "@/lib/formatDate";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 
@@ -12,7 +13,7 @@ export default async function CurveSection({ locale, text }: { locale: string; t
   const first = new Date().getFullYear();
   const years = [...new Set(curves.filter((c) => cols.includes(c.country)).flatMap((c) => c.points.map((p) => p.year)))].filter((y) => y <= first + 10).sort((a, b) => a - b);
   const pct = (v: number) => `${v.toLocaleString(NUM[locale], { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-  const asOf = data?.asOf ? new Date(data.asOf).toLocaleDateString(NUM[locale], { day: "numeric", month: "long", year: "numeric" }) : null;
+  const asOf = data?.asOf ? formatDate(data.asOf) : null;
   return (
     <>
       {asOf && <p className="mt-3 text-sm text-mute">{text.asOf} <time dateTime={data!.asOf!}>{asOf}</time>{data!.source === "sample" ? " (sample)" : ""}</p>}

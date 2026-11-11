@@ -1,6 +1,7 @@
 import { loadAllShown } from "@/lib/bonds";
 import { bondMap, type BondMapText } from "@/lib/seo/bondMap";
 import BondMapGrid from "@/components/seo/BondMapGrid";
+import { formatDate } from "@/lib/formatDate";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 // A currency gets its own tab once it has enough rated bonds to say something (USD ratings arrive in a later data release).
@@ -18,7 +19,7 @@ export default async function BondMapSection({ locale, text }: { locale: string;
     const m = bondMap(data.bonds.filter((b) => b.currency === c));
     if (m.bonds >= MIN_TAB) tabs.push({ key: c, label: c, map: m });
   }
-  const asOf = data.asOf ? new Date(data.asOf).toLocaleDateString(loc, { day: "numeric", month: "long", year: "numeric" }) : null;
+  const asOf = data.asOf ? formatDate(data.asOf) : null;
   const shown = all.bonds;
   // Everything else in the copy: no current yield, matured, stale price or a structure the main app cannot model.
   const noYield = data.total - shown - data.unrated - all.noMaturity;

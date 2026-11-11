@@ -5,6 +5,7 @@ import { lossAdjustedYield } from "../expectedLoss";
 import { lgdOf } from "../seniority";
 import { LOCALE, LOCALES, pathOf, type Locale } from "./locales";
 import { isSovereignBond } from "../sovereign";
+import { formatDate } from "../formatDate";
 
 // One public page per bond the site shows, at /bonds/{ISIN} (English) and /it/obbligazioni/{ISIN},
 // /fr/obligations/{ISIN}, /de/anleihen/{ISIN}, so a Google search for an ISIN can find 10BONDS (the owner, 20 Oct 2026).
@@ -43,12 +44,12 @@ export function fmtCoupon(l: BondLang, c: number): string {
 
 export function fmtMonthYear(l: BondLang, iso: string): string {
   const d = new Date(iso + "T00:00:00Z");
-  const s = d.toLocaleDateString(INTL[l], { month: "short", year: "numeric", timeZone: "UTC" }).replace(".", "");
+  const s = formatDate(d, "UTC").slice(3);
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export function fmtDay(l: BondLang, iso: string): string {
-  return new Date(iso.length === 10 ? iso + "T00:00:00Z" : iso).toLocaleDateString(INTL[l], { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  return formatDate(iso.length === 10 ? iso : new Date(iso), "UTC");
 }
 
 export function countryName(l: BondLang, code: string | null): string | null {

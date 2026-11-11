@@ -10,6 +10,7 @@ import { useBoxSize } from "@/components/useBoxSize";
 import { FINDER_TEXT, type FinderLang, type FinderText } from "@/lib/finderText";
 import type { BenchmarkBond } from "@/lib/benchmarkPortfolio";
 import type { SliderPosition } from "@/lib/sliderPortfolios";
+import { formatDate } from "@/lib/formatDate";
 
 // The landing carousel's "real screen" slides (the owner, 24/10/2026): the finder's own chart components with fixed
 // sample numbers, inside a browser frame with the app's header and controls, drawn at a fixed design size and scaled to
@@ -215,7 +216,7 @@ export function OneBondScreen({ lang, data, asOf, locale }: { lang: FinderLang; 
   const f = FINDER_TEXT[lang];
   const b = data.bond;
   const num = (v: number, d = 1) => v.toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d });
-  const date = new Date(b.maturity.slice(0, 10) + "T12:00:00Z").toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const date = formatDate(b.maturity.slice(0, 10), "UTC");
   const sym = b.currency === "USD" ? "US$" : "€";
   const facts: [string, ReactNode][] = [
     ["ISIN", `${b.isin.slice(0, 4)}••••••${b.isin.slice(-2)}`], [f.risk, <RiskBadge key="r" risk={b.risk} />], [f.duration, `${num(b.duration)} ${f.yrs}`],

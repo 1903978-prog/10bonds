@@ -7,6 +7,7 @@ import { GptRate, BR_HEAD, IR_HEAD } from "@/components/GptRate";
 import { Spread, SPREAD_HEAD, SPREAD_NOTE, RiskPayCell, RISKPAY_HEAD, RISKPAY_NOTE } from "@/components/Spread";
 import type { DropRow, DropsData, SortKey } from "@/lib/priceHistory";
 import { DROPS_TEXT, type DropsLang } from "@/lib/dropsText";
+import { formatDate } from "@/lib/formatDate";
 
 const ROWS = 10;
 const PAGES = 10;
@@ -33,7 +34,7 @@ export default function PriceDrops({ data, lang }: { data: DropsData; lang: Drop
   // Any new sort, currency or risk starts again on page 1.
   const setSort = (k: SortKey) => { setSortKey(k); setPage(0); };
   const padded = [...rows, ...Array<null>(Math.max(0, ROWS - rows.length)).fill(null)].slice(0, ROWS);
-  const day = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString(t.locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const day = (iso: string) => formatDate(iso.slice(0, 10), "UTC");
   const num = (n: number | null, d = 2) => (n === null ? "–" : n.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d }));
   const signed = (n: number | null) => (n === null ? "–" : `${n > 0 ? "+" : ""}${num(n, 1)}%`);
   const tone = (n: number | null) => (n === null ? "text-mute" : n < -0.05 ? "text-[#dc2626]" : n > 0.05 ? "text-[#16a34a]" : "");
