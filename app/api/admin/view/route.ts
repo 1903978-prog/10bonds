@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { findUserById } from "@/lib/accounts";
-import { AS_USER_COOKIE } from "@/lib/currentUser";
+import { AS_USER_COOKIE, sessionStillValid } from "@/lib/currentUser";
 import { readSession, SESSION_COOKIE } from "@/lib/session";
 import { adminStateOf, MFA_COOKIE } from "@/lib/twoFactor";
 
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const jar = await cookies();
   const id = readSession(jar.get(SESSION_COOKIE)?.value);
   const user = id === null ? null : await findUserById(id).catch(() => null);
-  if (!user || adminStateOf(user, jar.get(MFA_COOKIE)?.value) !== "ok") return new NextResponse(null, { status: 404 });
+  if (!user || !sessionStillValid(user, jar.get(SESSION_COOKIE)?.value) || adminStateOf(user, jar.get(MFA_COOKIE)?.value) !== "ok") return new NextResponse(null, { status: 404 });
   const body = (await req.json().catch(() => ({}))) as { asUser?: unknown };
   const res = NextResponse.json({ asUser: body.asUser === true }, { headers: { "Cache-Control": "no-store" } });
   if (body.asUser === true) res.cookies.set(AS_USER_COOKIE, "1", { path: "/", maxAge: 31536000, sameSite: "lax", secure: true });

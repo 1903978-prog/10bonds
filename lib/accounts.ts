@@ -49,6 +49,8 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists email_lang text`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
   await sql`alter table app.users add column if not exists stats_bonus_at timestamptz`;
+  // Sessions issued before this moment are refused (set on logout and password change/reset).
+  await sql`alter table app.users add column if not exists sessions_valid_after timestamptz`;
   // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
   await sql`alter table app.users add column if not exists stripe_customer_id text`;
   await sql`alter table app.users add column if not exists stripe_subscription_id text`;
@@ -288,6 +290,8 @@ export type User = {
   /** The admin chose "Admin no": the site treats them as an ordinary signed-in customer until they switch back. */
   asUser?: boolean;
   twoFactorOn: boolean;
+  /** Sessions issued before this time (ms) are no longer valid. */
+  sessionsValidAfter?: number | null;
   /** Opted in to the newsletter (and has not unsubscribed since). */
   newsletter: boolean;
   stripeCustomerId: string | null;
@@ -307,6 +311,7 @@ type UserRow = {
   created_at?: Date | null;
   totp_enabled_at?: Date | null;
   newsletter_opt_in?: boolean | null;
+  sessions_valid_after?: Date | null;
   stripe_customer_id?: string | null; subscription_status?: string | null; subscription_renews_at?: Date | null; subscription_cancel_at_end?: boolean | null; subscription_interval?: string | null;
 };
 function isAdminRow(r: UserRow): boolean {
@@ -329,7 +334,7 @@ export const OWNER_COOKIE = "tb_owner";
 
 /** How long a new account may be used before its e-mail address must be confirmed. */
 
-const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, newsletter_opt_in, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
+const USER_COLS = "id, email, username, plan, premium_until, email_verified_at, created_at, totp_enabled_at, newsletter_opt_in, sessions_valid_after, stripe_customer_id, subscription_status, subscription_renews_at, subscription_cancel_at_end, subscription_interval";
 
 export function toUser(r: UserRow, now = Date.now()): User {
   const readOnly = isReadOnlyAdminRow(r);
@@ -338,6 +343,7 @@ export function toUser(r: UserRow, now = Date.now()): User {
   const emailVerified = r.email_verified_at !== null;
   return {
     id: Number(r.id),
+    sessionsValidAfter: r.sessions_valid_after ? new Date(r.sessions_valid_after).getTime() : null,
     email: r.email,
     username: r.username,
     // The admin has every plan's features and is never charged.
@@ -426,13 +432,19 @@ export async function findUserByLogin(login: string) {
   return r ? { ...toUser(r), passwordHash: r.password_hash } : null;
 }
 
+/** Signs the account out everywhere: every session cookie issued before now stops working. */
+export async function revokeSessions(userId: number): Promise<void> {
+  const sql = await accountsSql();
+  await sql`update app.users set sessions_valid_after = ${new Date()} where id = ${userId}`;
+}
+
 /** Sets a new password only if the stored one is still the one the reset link was made for (so a link works once). */
 export async function replacePassword(userId: number, oldTag: (hash: string) => boolean, newHash: string): Promise<boolean> {
   const sql = await accountsSql();
   const rows = await sql<{ password_hash: string }[]>`select password_hash from app.users where id = ${userId} limit 1`;
   const cur = rows[0]?.password_hash;
   if (!cur || !oldTag(cur)) return false;
-  const r = await sql`update app.users set password_hash = ${newHash}, email_verified_at = coalesce(email_verified_at, now())
+  const r = await sql`update app.users set password_hash = ${newHash}, sessions_valid_after = ${new Date()}, email_verified_at = coalesce(email_verified_at, now())
     where id = ${userId} and password_hash = ${cur}`;
   return r.count === 1;
 }
