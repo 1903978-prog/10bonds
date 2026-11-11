@@ -927,6 +927,8 @@ table app.users
   email_lang text
   premium_until timestamp with time zone
   stats_bonus_at timestamp with time zone
+  stats_bonus_visitor text
+  sessions_valid_after timestamp with time zone
   stripe_customer_id text
   stripe_subscription_id text
   subscription_status text
@@ -1302,6 +1304,7 @@ indexes
   CREATE INDEX users_stripe_customer_idx ON app.users USING btree (stripe_customer_id) WHERE (stripe_customer_id IS NOT NULL)
   CREATE UNIQUE INDEX users_email_key ON app.users USING btree (email)
   CREATE UNIQUE INDEX users_pkey ON app.users USING btree (id)
+  CREATE UNIQUE INDEX users_stats_bonus_visitor_key ON app.users USING btree (stats_bonus_visitor) WHERE (stats_bonus_visitor IS NOT NULL)
   CREATE UNIQUE INDEX users_username_key ON app.users USING btree (lower(username))
   CREATE UNIQUE INDEX visitors_code_no_key ON app.visitors USING btree (code_no)
   CREATE UNIQUE INDEX visitors_pkey ON app.visitors USING btree (visitor_id)
