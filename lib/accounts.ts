@@ -49,6 +49,8 @@ async function setup(sql: ReturnType<typeof postgres>) {
   await sql`alter table app.users add column if not exists email_lang text`;
   await sql`alter table app.users add column if not exists premium_until timestamptz`;
   await sql`alter table app.users add column if not exists stats_bonus_at timestamptz`;
+  await sql`alter table app.users add column if not exists stats_bonus_visitor text`;
+  await sql`create unique index if not exists users_stats_bonus_visitor_key on app.users (stats_bonus_visitor) where stats_bonus_visitor is not null`;
   // Sessions issued before this moment are refused (set on logout and password change/reset).
   await sql`alter table app.users add column if not exists sessions_valid_after timestamptz`;
   // Paid plans (Stripe). The plan column follows the subscription; these keep the link to Stripe.
@@ -546,14 +548,28 @@ export async function redeemTrialCode(userId: number, code: string): Promise<{ p
 }
 
 /** One free week of Premium, once per account, for allowing usage statistics. Returns the end date, or null when already given. */
-export async function grantStatsBonus(userId: number, days = 7): Promise<string | null> {
+export type StatsBonusResult = { premiumUntil: string } | "no-consent-proof" | "already-given";
+
+/**
+ * Consent proof: the browser's id must already have a recorded "page_view" (events are only written after the visitor allowed Statistics),
+ * and one browser can earn the week for one account only (unique index), so new accounts made in the same browser earn nothing more.
+ */
+export async function grantStatsBonus(userId: number, visitorId: string | null, days = 7): Promise<StatsBonusResult> {
   const { sql, ready } = db();
   await ready;
-  const u = await sql<{ premium_until: Date }[]>`
-    update app.users
-    set premium_until = greatest(coalesce(premium_until, now()), now()) + make_interval(days => ${days}), stats_bonus_at = now()
-    where id = ${userId} and stats_bonus_at is null returning premium_until`;
-  return u[0] ? new Date(u[0].premium_until).toISOString() : null;
+  if (!visitorId || visitorId.length > 64) return "no-consent-proof";
+  const seen = await sql`select 1 from app.events where visitor_id = ${visitorId} and kind = 'page_view' limit 1`;
+  if (seen.length === 0) return "no-consent-proof";
+  try {
+    const u = await sql<{ premium_until: Date }[]>`
+      update app.users
+      set premium_until = greatest(coalesce(premium_until, now()), now()) + make_interval(days => ${days}), stats_bonus_at = now(), stats_bonus_visitor = ${visitorId}
+      where id = ${userId} and stats_bonus_at is null returning premium_until`;
+    return u[0] ? { premiumUntil: new Date(u[0].premium_until).toISOString() } : "already-given";
+  } catch (e) {
+    if ((e as { code?: string }).code === "23505") return "already-given";
+    throw e;
+  }
 }
 
 // Visits from usage statistics (only visitors who allowed them; the owner's browsers left out). Time is measured the same way
