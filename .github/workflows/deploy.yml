@@ -142,6 +142,12 @@ jobs:
           else
             echo "10bonds.com does not answer yet: the site stays on 10bonds.fly.dev."
           fi
+      # Proof of zero-downtime releases: the live site is asked every 0.5 s while the release runs; the summary below lists every answer that was not HTTP 200.
+      - name: Start the uptime probe
+        if: env.ok == '1'
+        run: |
+          nohup bash scripts/uptime-probe.sh "$RUNNER_TEMP/probe.log" >/dev/null 2>&1 &
+          echo $! > "$RUNNER_TEMP/probe.pid"
       - name: Deploy
         id: deploy
         if: env.ok == '1'
@@ -152,6 +158,13 @@ jobs:
             echo "deploy try $i failed"; sleep 20
           done
           exit 1
+      - name: Uptime during the release (zero-downtime proof)
+        if: always() && env.ok == '1'
+        continue-on-error: true
+        run: |
+          sleep 15
+          kill "$(cat "$RUNNER_TEMP/probe.pid")" 2>/dev/null || true
+          bash scripts/uptime-probe.sh --summary "$RUNNER_TEMP/probe.log" | tee -a "$GITHUB_STEP_SUMMARY"
       # Read-only checks after the deploy. Each step fails on its own, so the run's step list says where
       # sign-up is broken without anyone opening the log. The answer holds a stage and a Postgres code only.
       - name: Wait for the site to answer
