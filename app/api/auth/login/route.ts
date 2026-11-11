@@ -14,10 +14,10 @@ export async function POST(req: Request) {
   const { email, password } = await readCredentials(req);
   const e = typeof email === "string" ? email.trim().slice(0, 254) : "";
   // Only FAILED passwords count against an account, and per browser address: a stranger guessing from one address cannot lock the
-  // owner out from another. A wide cap over all addresses still stops a spread-out guessing run; a password reset by e-mail unlocks it.
+  // owner out from another. A wide cap (20) over all addresses still stops a spread-out guessing run; a password reset by e-mail unlocks it.
   const who = e.toLowerCase();
   const failKey = `loginfail:${who}:${clientIp(req)}`;
-  if (!allow(`login:${clientIp(req)}`, 30) || (e && (blocked(failKey, 10) || blocked(`loginfail:${who}`, 60))))
+  if (!allow(`login:${clientIp(req)}`, 30) || (e && (blocked(failKey, 10) || blocked(`loginfail:${who}`, 20))))
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   if (!e || typeof password !== "string") return NextResponse.json({ error: WRONG }, { status: 401 });
   try {

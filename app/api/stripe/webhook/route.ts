@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       // Never trust the event payload as state: a late, older event would overwrite a newer plan.
       // Re-read the subscription from Stripe; if that fails the 500 below makes Stripe retry.
       const id = event.data?.object?.id;
+      if (!id) console.warn("[webhook] subscription event without an id:", event.type);
       if (id) sub = await stripe("GET", `/subscriptions/${id}`);
     }
     if (sub) {

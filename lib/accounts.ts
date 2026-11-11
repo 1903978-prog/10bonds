@@ -551,14 +551,14 @@ export async function redeemTrialCode(userId: number, code: string): Promise<{ p
 export type StatsBonusResult = { premiumUntil: string } | "no-consent-proof" | "already-given";
 
 /**
- * Consent proof: the browser's id must already have a recorded "page_view" (events are only written after the visitor allowed Statistics),
+ * Consent proof: the browser's id must already have a recorded "page_view" made while signed in as this account (events are only written after the visitor allowed Statistics),
  * and one browser can earn the week for one account only (unique index), so new accounts made in the same browser earn nothing more.
  */
 export async function grantStatsBonus(userId: number, visitorId: string | null, days = 7): Promise<StatsBonusResult> {
   const { sql, ready } = db();
   await ready;
   if (!visitorId || visitorId.length > 64) return "no-consent-proof";
-  const seen = await sql`select 1 from app.events where visitor_id = ${visitorId} and kind = 'page_view' limit 1`;
+  const seen = await sql`select 1 from app.events where visitor_id = ${visitorId} and user_id = ${userId} and kind = 'page_view' limit 1`;
   if (seen.length === 0) return "no-consent-proof";
   try {
     const u = await sql<{ premium_until: Date }[]>`

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { accountsConfigured, revokeSessions } from "@/lib/accounts";
+import { accountsConfigured, findUserById, revokeSessions } from "@/lib/accounts";
+import { sessionStillValid } from "@/lib/currentUser";
 import { readSession, SESSION_COOKIE } from "@/lib/session";
 
 // Sign-out buttons are plain forms posting here, so they work even before the page's scripts have loaded.
@@ -9,7 +10,12 @@ export async function POST() {
   // Signing out ends every session of the account, so a copied cookie stops working too. Failure must not block the sign-out.
   try {
     const id = readSession((await cookies()).get(SESSION_COOKIE)?.value);
-    if (id !== null && accountsConfigured()) await revokeSessions(id);
+    // Only a session that is still valid can sign the account out everywhere (a stale copied cookie cannot).
+    const token = (await cookies()).get(SESSION_COOKIE)?.value;
+    if (id !== null && accountsConfigured()) {
+      const u = await findUserById(id);
+      if (u && sessionStillValid(u, token)) await revokeSessions(id);
+    }
   } catch (e) {
     console.error("[logout] revoke failed:", (e as Error).message);
   }
