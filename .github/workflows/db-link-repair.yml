@@ -13,6 +13,10 @@ on:
         type: choice
         options: [check, apply]
         default: check
+      approval_id:
+        description: "apply only: approval ID (CHG-xxxx) recorded as APPROVED in docs/livio-asks.md for this exact code"
+        type: string
+        required: false
 concurrency:
   group: db-link-repair
   cancel-in-progress: false
@@ -49,6 +53,16 @@ jobs:
           echo "::add-mask::$REPAIR_DATABASE_URL"
           echo "::add-mask::$(node -e 'console.log(new URL(process.argv[1]).host)' "$REPAIR_DATABASE_URL")"
           npx vite-node -c vitest.config.ts scripts/db-link-repair.ts
+      - name: Production change gate (fails closed without Livio's recorded approval)
+        if: inputs.mode == 'apply'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/prod-change-gate.mjs --workflow db-link-repair --approval "${{ inputs.approval_id }}"
+          last=$(gh run list -R "$GITHUB_REPOSITORY" -w backup.yml --status success --limit 1 --json createdAt,url -q '.[0].createdAt')
+          echo "latest successful backup: $last"
+          age=$(( $(date +%s) - $(date -d "$last" +%s) ))
+          if [ "$age" -gt 93600 ]; then echo "BLOCKED: newest successful backup+restore test is older than 26 h"; exit 1; fi
       - name: Repair (all or nothing, no deletions)
         if: inputs.mode == 'apply'
         env:

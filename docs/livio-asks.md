@@ -30,4 +30,12 @@ Times Bangkok. Add a row for every new ask and its outcome.
 | 2026-10-29 | Headline wording (Mathematics-based vs AI-based) | Pasted audits disagreed | Livio 13:38: "AI-based Bond portfolios", final; live 14:42 |
 | 2026-10-29 | Time-protection rules failed again | Rules lived in an optional skill | Moved into CLAUDE.md top block plus Stop hook (this change) |
 
+## Production change approvals
+
+A manual production data change (repair, bulk update, destructive migration, TRUNCATE, DROP) runs only if a row below is APPROVED by Livio for that exact change. Enforced by `scripts/prod-change-gate.mjs` inside the workflow (fails closed), not by habit. A row is single-use: set status to USED after the run. Print the code hash with `node scripts/prod-change-gate.mjs --workflow <key> --hash`. Routine app writes, bond imports, subscriptions, visitor events and scheduled calculations are not covered.
+
+| ID | Exact change | Workflow | Code hash | Est. rows | Reversible | Backup + restore evidence | Rollback plan | Approved by / date | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CHG-0001 | #497 link repair: add 45 foreign keys, null 76,880 portfolio run links, no deletions | db-link-repair | (code changed since; not reusable) | 76880 | Partly: links nulled, restore from backup | Backup 10 Nov 09:53Z; restore test passed (run 42781638182) | Restore from backup | Livio 2026-11-10 (apply ran 11:46Z, before the 11 Nov conditions) | USED |
+
 Rules history: `/mnt/project-files/working-rules/` holds older drafts; the CLAUDE.md block supersedes them.
