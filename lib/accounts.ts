@@ -18,11 +18,26 @@ function db() {
   const url = process.env.ACCOUNTS_DATABASE_URL;
   if (!url) throw new Error("Accounts are not connected yet.");
   sql ??= postgres(accountsUrl(url, process.env.DATABASE_URL), { ssl: url.includes("localhost") ? false : "require", max: 8, idle_timeout: 20, prepare: false, onnotice: () => {} });
-  ready ??= setup(sql).catch((e) => {
+  ready ??= setupLocked(sql).catch((e) => {
     ready = null;
     throw e;
   });
   return { sql, ready };
+}
+
+// Two processes starting at once (two machines, or parallel test files) both ran "create table if not exists" and one
+// failed with "duplicate key ... pg_type_typname_nsp_index". One setup at a time, across processes, on one connection.
+const SETUP_LOCK = 7_240_001;
+async function setupLocked(sql: ReturnType<typeof postgres>) {
+  // The lock lives on its own single connection (a session lock), the setup itself keeps using the normal pool.
+  const url = process.env.ACCOUNTS_DATABASE_URL!;
+  const lock = postgres(accountsUrl(url, process.env.DATABASE_URL), { ssl: url.includes("localhost") ? false : "require", max: 1, prepare: false, onnotice: () => {} });
+  try {
+    await lock`select pg_advisory_lock(${SETUP_LOCK})`;
+    await setup(sql);
+  } finally {
+    await lock.end({ timeout: 5 }); // closing the connection releases the lock
+  }
 }
 
 // Tables are created and extended additively; nothing is ever dropped here.
@@ -780,7 +795,7 @@ function urlShape(raw: string): Record<string, boolean | number> {
 /** The accounts connection, tables ready, for modules that keep their own tables in schema "app". */
 /** Runs the table setup once more on the open connection (schema check: setup must be repeatable). */
 export async function setupAgainForTest() {
-  await setup(db().sql);
+  await setupLocked(db().sql);
 }
 
 export async function accountsSql() {
