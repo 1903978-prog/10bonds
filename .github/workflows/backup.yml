@@ -62,3 +62,11 @@ jobs:
             ('backup_restore_test_ok_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
           on conflict (key) do update set value = excluded.value, updated_at = now();
           SQL
+      # A red night sends ONE e-mail (the app also refuses a second backup e-mail on the same UTC day).
+      - name: One e-mail if the backup or restore test failed
+        if: failure()
+        run: |
+          if [ -z "$ACCOUNTS_DATABASE_URL" ]; then echo "No ACCOUNTS_DATABASE_URL: cannot e-mail."; exit 0; fi
+          token=$(printf 'live-check-alert' | openssl dgst -sha256 -hmac "$ACCOUNTS_DATABASE_URL" -hex | awk '{print $NF}')
+          body=$(jq -n --arg u "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" '{kind:"backup",summary:"No good backup tonight. Open the run and read the step Back up and test the restore.",runUrl:$u}')
+          curl -sS --retry 2 --max-time 30 -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d "$body" https://10bonds.com/api/admin/live-check-alert || true

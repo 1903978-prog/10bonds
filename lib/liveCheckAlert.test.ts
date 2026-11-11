@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { liveCheckMail, liveCheckRecipient, liveCheckToken, liveCheckTokenOk } from "./liveCheckAlert";
+import { backupAlertDue, liveCheckMail, liveCheckRecipient, liveCheckToken, liveCheckTokenOk } from "./liveCheckAlert";
 
 describe("live check alert", () => {
   it("accepts only the right token", () => {
@@ -15,5 +15,12 @@ describe("live check alert", () => {
   });
   it("escapes the summary in the html body", () => {
     expect(liveCheckMail("<b>x</b>", "https://github.com/a").html).not.toContain("<b>x</b>");
+  });
+  it("backup alert: subject says backup, and only one per UTC day", () => {
+    expect(liveCheckMail("x", "https://github.com/a", "backup").subject).toContain("BACKUP");
+    const now = new Date("2026-11-09T03:00:00Z");
+    expect(backupAlertDue(null, now)).toBe(true);
+    expect(backupAlertDue("2026-11-08", now)).toBe(true);
+    expect(backupAlertDue("2026-11-09", now)).toBe(false);
   });
 });

@@ -17,16 +17,24 @@ export function liveCheckRecipient(env: string | undefined = process.env.ADMIN_E
   return (env ?? "1903978@gmail.com").split(",")[0].trim().toLowerCase();
 }
 
-export function liveCheckMail(summary: string, runUrl: string) {
+export type AlertKind = "live-check" | "backup";
+
+/** Backup alerts: at most one e-mail per UTC day (a retry or a manual run the same day stays quiet). */
+export function backupAlertDue(lastSentDay: string | null, now: Date = new Date()): boolean {
+  return lastSentDay !== now.toISOString().slice(0, 10);
+}
+
+export function liveCheckMail(summary: string, runUrl: string, kind: AlertKind = "live-check") {
   const s = summary.replace(/\s+/g, " ").trim().slice(0, 600);
+  const what = kind === "backup" ? "The nightly database backup (or its restore test)" : "The nightly live check of 10bonds.com";
   return {
-    subject: "10BONDS nightly live check FAILED",
-    text: `The nightly live check of 10bonds.com failed.\n\n${s}\n\nDetails: ${runUrl}`,
-    html: `<p>The nightly live check of 10bonds.com failed.</p><p>${esc(s)}</p><p><a href="${esc(runUrl)}">Details</a></p>`,
+    subject: kind === "backup" ? "10BONDS nightly BACKUP FAILED" : "10BONDS nightly live check FAILED",
+    text: `${what} failed.\n\n${s}\n\nDetails: ${runUrl}`,
+    html: `<p>${what} failed.</p><p>${esc(s)}</p><p><a href="${esc(runUrl)}">Details</a></p>`,
   };
 }
 
-export async function sendLiveCheckAlert(summary: string, runUrl: string) {
-  const m = liveCheckMail(summary, runUrl);
+export async function sendLiveCheckAlert(summary: string, runUrl: string, kind: AlertKind = "live-check") {
+  const m = liveCheckMail(summary, runUrl, kind);
   return sendEmail(liveCheckRecipient(), m.subject, m.html, m.text);
 }
