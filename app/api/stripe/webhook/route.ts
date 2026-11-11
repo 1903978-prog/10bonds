@@ -23,7 +23,10 @@ export async function POST(req: Request) {
       // Read the subscription itself, so the stored plan is what Stripe holds now.
       sub = await stripe("GET", `/subscriptions/${event.data.object.subscription}`);
     } else if (String(event.type).startsWith("customer.subscription.")) {
-      sub = event.data?.object;
+      // Never trust the event payload as state: a late, older event would overwrite a newer plan.
+      // Re-read the subscription from Stripe; if that fails the 500 below makes Stripe retry.
+      const id = event.data?.object?.id;
+      if (id) sub = await stripe("GET", `/subscriptions/${id}`);
     }
     if (sub) {
       const s = readSubscription(sub);
