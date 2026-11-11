@@ -2,6 +2,9 @@
 # Runs scripts/db-link-repair.ts against the app schema with the site's own login (secret ACCOUNTS_DATABASE_URL; no new secret).
 #   mode=check  (default) read-only: rows breaking each link + fingerprint. Nothing is written.
 #   mode=apply  repair + validate in ONE transaction; any unexpected change rolls everything back.
+# Apply needs: a recorded APPROVED single-use row (docs/livio-asks.md, bound to the code hash), a GitHub Environment approval click
+# (environment production-change with required reviewer; the run's approval record is read back through the API), fresh backup AND
+# restore test, and an atomic claim of the approval ID. Any failure stops before the first write.
 # Deletions are hard-off: this workflow never passes --allow-deletes and has no input that could. A repair that would delete
 # any row rolls back. Production use needs Livio's release approval (given 10 Nov 2026 for the #497 repair).
 name: Database link repair (manual)
@@ -13,14 +16,37 @@ on:
         type: choice
         options: [check, apply]
         default: check
+      approval_id:
+        description: "apply only: approval ID (CHG-0000) recorded as APPROVED in docs/livio-asks.md for this exact code"
+        type: string
+        required: false
 concurrency:
-  group: db-link-repair
+  group: prod-change
   cancel-in-progress: false
 permissions:
   contents: read
   actions: read
 jobs:
-  repair:
+  precheck:
+    # No secrets here. An unapproved apply fails in this job, before any environment approval is requested.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      MODE: ${{ inputs.mode }}
+      APPROVAL_ID: ${{ inputs.approval_id }}
+      RUN_ATTEMPT: ${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate inputs and recorded approval (read from origin/main)
+        run: |
+          case "$MODE" in check|apply) ;; *) echo "BLOCKED: bad mode"; exit 1;; esac
+          if [ "$MODE" = "apply" ]; then
+            [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "BLOCKED: production changes run only from main"; exit 1; }
+            [ "$RUN_ATTEMPT" = "1" ] || { echo "BLOCKED: a rerun cannot reuse an approval"; exit 1; }
+            node scripts/prod-change-gate.mjs --workflow db-link-repair --approval "$APPROVAL_ID"
+          fi
+  check:
+    needs: precheck
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -30,7 +56,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci   # no secrets in this step
-      - run: git rev-parse HEAD   # must be main at 571b4fd4 or later
+      - run: git rev-parse HEAD
       - name: Stop if a scoring, portfolio or weekly-email job is queued or running
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,8 +75,47 @@ jobs:
           echo "::add-mask::$REPAIR_DATABASE_URL"
           echo "::add-mask::$(node -e 'console.log(new URL(process.argv[1]).host)' "$REPAIR_DATABASE_URL")"
           npx vite-node -c vitest.config.ts scripts/db-link-repair.ts
+  apply:
+    if: inputs.mode == 'apply'
+    needs: [precheck, check]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Required reviewer on this environment = the independent approval click (Settings > Environments > production-change).
+    environment: production-change
+    env:
+      APPROVAL_ID: ${{ inputs.approval_id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci   # no secrets in this step
+      - name: Recorded approval matches this exact code
+        run: node scripts/prod-change-gate.mjs --workflow db-link-repair --approval "$APPROVAL_ID"
+      - name: Independent approval evidence (a recorded reviewer click on this run)
+        run: |
+          n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" --jq '[.[] | select(.state=="approved" and .user.login=="1903978-prog")] | length')
+          echo "approvals recorded by GitHub for this run: $n"
+          [ "$n" -ge 1 ] || { echo "BLOCKED: no environment approval recorded for this run"; exit 1; }
+      - name: Newest successful backup run (GitHub record, includes the restore test) is under 26 h old
+        run: |
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "BLOCKED: production changes run only from main"; exit 1; }
+          last=$(gh run list -R "$GITHUB_REPOSITORY" -w backup.yml --status success --limit 1 --json createdAt -q '.[0].createdAt')
+          [ -n "$last" ] || { echo "BLOCKED: no successful backup run"; exit 1; }
+          age=$(( $(date +%s) - $(date -d "$last" +%s) )); echo "backup run age: $((age/60)) min"
+          [ "$age" -le 93600 ] || { echo "BLOCKED: backup older than 26 h"; exit 1; }
+      - name: Fresh backup + restore test, then claim the approval (single-use)
+        env:
+          ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          export REPAIR_DATABASE_URL="$(node scripts/accounts-url.mjs)"
+          echo "::add-mask::$REPAIR_DATABASE_URL"
+          echo "::add-mask::$(node -e 'console.log(new URL(process.argv[1]).host)' "$REPAIR_DATABASE_URL")"
+          REPAIR_DATABASE_URL="$REPAIR_DATABASE_URL" node scripts/prod-change-claim.mjs
       - name: Repair (all or nothing, no deletions)
-        if: inputs.mode == 'apply'
         env:
           ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
