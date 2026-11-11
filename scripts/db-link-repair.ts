@@ -17,6 +17,7 @@ import { compareFingerprints, fingerprint, REPAIR_COLUMNS, type TableFingerprint
 const url = process.env.REPAIR_DATABASE_URL;
 if (!url) { console.error("REPAIR_DATABASE_URL is not set."); process.exit(2); }
 const apply = process.argv.includes("--apply");
+if (apply && (process.env.GITHUB_ACTIONS !== "true" || process.env.GITHUB_REF !== "refs/heads/main" || !process.env.GITHUB_RUN_ID)) { console.error("BLOCKED: --apply runs only inside the guarded workflow on main (see docs/livio-asks.md, Production change approvals)"); process.exit(1); }
 // Livio (09 Nov): no row deletions unless separately approved. Without this flag, any deletion rolls the whole repair back.
 const allowDeletes = process.argv.includes("--allow-deletes");
 const sql = postgres(url, { max: 1, onnotice: () => {}, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require" });

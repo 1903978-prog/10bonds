@@ -37,10 +37,11 @@ jobs:
       RUN_ATTEMPT: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
-      - name: Validate inputs and recorded approval
+      - name: Validate inputs and recorded approval (read from origin/main)
         run: |
           case "$MODE" in check|apply) ;; *) echo "BLOCKED: bad mode"; exit 1;; esac
           if [ "$MODE" = "apply" ]; then
+            [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "BLOCKED: production changes run only from main"; exit 1; }
             [ "$RUN_ATTEMPT" = "1" ] || { echo "BLOCKED: a rerun cannot reuse an approval"; exit 1; }
             node scripts/prod-change-gate.mjs --workflow db-link-repair --approval "$APPROVAL_ID"
           fi
@@ -98,6 +99,13 @@ jobs:
           n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" --jq '[.[] | select(.state=="approved" and .user.login=="1903978-prog")] | length')
           echo "approvals recorded by GitHub for this run: $n"
           [ "$n" -ge 1 ] || { echo "BLOCKED: no environment approval recorded for this run"; exit 1; }
+      - name: Newest successful backup run (GitHub record, includes the restore test) is under 26 h old
+        run: |
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "BLOCKED: production changes run only from main"; exit 1; }
+          last=$(gh run list -R "$GITHUB_REPOSITORY" -w backup.yml --status success --limit 1 --json createdAt -q '.[0].createdAt')
+          [ -n "$last" ] || { echo "BLOCKED: no successful backup run"; exit 1; }
+          age=$(( $(date +%s) - $(date -d "$last" +%s) )); echo "backup run age: $((age/60)) min"
+          [ "$age" -le 93600 ] || { echo "BLOCKED: backup older than 26 h"; exit 1; }
       - name: Fresh backup + restore test, then claim the approval (single-use)
         env:
           ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}

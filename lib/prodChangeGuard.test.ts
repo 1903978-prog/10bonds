@@ -36,7 +36,7 @@ describe("production change gate fails closed", () => {
     expect(y).not.toMatch(/\$\{\{\s*inputs\.[a-z_]+\s*\}\}"/); // no input pasted into shell text
     const a = y.slice(y.indexOf("  apply:"));
     expect(a).toContain("environment: production-change");
-    const order = ["prod-change-gate.mjs", "/approvals", "prod-change-claim.mjs", "db-link-repair.ts --apply"].map((t) => a.indexOf(t));
+    const order = ["prod-change-gate.mjs", "/approvals", "backup.yml", "prod-change-claim.mjs", "db-link-repair.ts --apply"].map((t) => a.indexOf(t));
     expect(order.every((i) => i > 0)).toBe(true);
     expect([...order].sort((x, y2) => x - y2)).toEqual(order);
     expect(y).toContain("group: prod-change");

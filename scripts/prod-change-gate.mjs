@@ -4,12 +4,14 @@
 //        node scripts/prod-change-gate.mjs --workflow <key> --hash               print the code hash to put in the approval row
 // An approval lives in docs/livio-asks.md, section "Production change approvals", and is bound to the exact code
 // (content hash of the files that run), single-use (status APPROVED -> USED after the run), and must record every field below.
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
 
 // Every workflow/script that can change production data must be listed here with the files whose content defines the change.
 export const GUARDED = {
-  "db-link-repair": ["scripts/db-link-repair.ts", "scripts/db-link-repair-sql.ts", "lib/dbLinks.ts", ".github/workflows/db-link-repair.yml"],
+  "db-link-repair": ["scripts/db-link-repair.ts", "scripts/db-link-repair-sql.ts", "lib/dbLinks.ts", "lib/dbLinkRepairSql.ts", ".github/workflows/db-link-repair.yml", "scripts/prod-change-gate.mjs", "scripts/prod-change-claim.mjs", "scripts/accounts-url.mjs", "lib/pgUrl.ts", "vitest.config.ts", "package.json", "package-lock.json"],
 };
 const HEADER = ["id", "exact change", "workflow", "code hash", "est. rows", "reversible", "backup + restore evidence", "rollback plan", "approved by / date", "status"];
 
@@ -49,14 +51,21 @@ export function check(md, { workflow, approval, hash }) {
   return errors;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+if (!isMain && !process.env.VITEST) { console.error("BLOCKED: gate was not run as a command"); process.exit(1); }
+if (isMain) {
   const a = process.argv.slice(2);
   const get = (k) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : undefined; };
   const workflow = get("--workflow");
   try {
     const hash = codeHash(workflow);
     if (a.includes("--hash")) { console.log(hash); process.exit(0); }
-    const errors = check(readFileSync("docs/livio-asks.md", "utf8"), { workflow, approval: get("--approval"), hash });
+    // The approval is read from origin/main (not from the ref being run), so a branch cannot approve itself.
+    let doc;
+    try { execFileSync("git", ["fetch", "-q", "origin", "main"]); doc = execFileSync("git", ["show", "origin/main:docs/livio-asks.md"], { encoding: "utf8" }); }
+    catch { throw new Error("cannot read docs/livio-asks.md from origin/main"); }
+    if (process.env.GITHUB_ACTIONS && process.env.GITHUB_REF !== "refs/heads/main") throw new Error("production changes run only from main");
+    const errors = check(doc, { workflow, approval: get("--approval"), hash });
     if (errors.length) { console.error("BLOCKED: production change not approved.\n- " + errors.join("\n- ")); process.exit(1); }
     console.log(`OK: approval ${get("--approval")} valid for ${workflow} (code ${hash}).`);
   } catch (e) { console.error("BLOCKED: " + e.message); process.exit(1); }
