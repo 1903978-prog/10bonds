@@ -16,6 +16,7 @@ import { promoCents, promoEndLabel, promoLine } from "@/lib/promo";
 import { loadFreeLimits } from "@/lib/searchLimits";
 import TrackView from "@/components/TrackView";
 import { OG_IMAGES } from "@/lib/ogImage";
+import { formatDate } from "@/lib/formatDate";
 
 export const metadata: Metadata = {
   title: "Plans · 10BONDS",
@@ -63,7 +64,7 @@ export default async function Pricing({ searchParams }: { searchParams: Promise<
           <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">{t.pastDue[0]}<Link href="/account" className="underline">{t.pastDue[1]}</Link>{t.pastDue[2]}</p>
         )}
         {sub?.cancelAtEnd && sub.renewsAt && (
-          <p className="mt-4 text-sm text-mute">{t.endsOn(new Date(sub.renewsAt).toLocaleDateString(lang === "en" ? "en-GB" : lang, { day: "numeric", month: "long", year: "numeric" }))}</p>
+          <p className="mt-4 text-sm text-mute">{t.endsOn(formatDate(sub.renewsAt))}</p>
         )}
       </div>
       <div className="mt-3 flex justify-center">

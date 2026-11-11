@@ -6,6 +6,7 @@ import { esc, siteUrl } from "../email";
 import { FOOTER_NOTE } from "../footerNote";
 import { ECB_POLICY_PAGE, ECB_REUSE_PAGE, ECB_URLS, curveFrom, parseEcbCsv, policyFrom, type Curve, type Policy } from "./ecb";
 import { chooseVersion, scanOutput, type BondInput, type Decision, type GateOptions, type Version, type Violation } from "./gate";
+import { formatDate, formatDateTime } from "../formatDate";
 
 export type IssueInput = {
   now: Date;
@@ -36,8 +37,8 @@ export type Issue = {
 const LOCALE = "en-GB";
 const TZ = "Europe/Rome";
 const f2 = (v: number) => v.toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const day = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(LOCALE, { day: "numeric", month: "short", timeZone: "UTC" });
-const dayY = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const day = (iso: string) => formatDate(iso, "UTC").slice(0, 6);
+const dayY = (iso: string) => formatDate(iso, "UTC");
 
 /** ISO week key, e.g. "2026-W44": the idempotency key of an issue (one issue per week per version). */
 export function issueWeek(d: Date): string {
@@ -69,7 +70,7 @@ export function buildIssue(input: IssueInput, o: GateOptions = {}): Issue {
   const polR = policyFrom(parseEcbCsv(input.depositCsv), today);
   const ecbOk = curveR.ok && polR.ok;
   const decision = chooseVersion({ ecbOk, bonds: input.bonds ?? [] }, o);
-  const publishedAt = input.now.toLocaleString(LOCALE, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: TZ, timeZoneName: "short" });
+  const publishedAt = formatDateTime(input.now, TZ);
   const issueKey = `${issueWeek(input.now)}-${decision.version}`;
   if (decision.version === "none" || !curveR.ok || !polR.ok) {
     const why = !curveR.ok ? curveR.reason : !polR.ok ? polR.reason : decision.reasons.join(" ");

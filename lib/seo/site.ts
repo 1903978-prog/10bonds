@@ -4,6 +4,7 @@ import { accountsConfigured } from "../accounts";
 import { allComparisons, hasEnough, type ComparisonData, type ComparisonDef } from "./comparisons";
 import { LOCALE, LOCALES, pathOf, type Locale, type Section } from "./locales";
 import { listGuides, listPeople, type Guide, type Person } from "./store";
+import { formatDate } from "../formatDate";
 
 // What the public SEO pages read. Failures give empty lists: a missing database never breaks a public page.
 
@@ -74,5 +75,5 @@ export function guideAlternates(g: Guide, siblings: Guide[]): Metadata["alternat
 }
 
 const DATE_LOCALE: Record<Locale | "en", string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
-export const fmtDate = (l: Locale | "en", iso: string) => new Date(iso).toLocaleDateString(DATE_LOCALE[l], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome" });
+export const fmtDate = (l: Locale | "en", iso: string) => formatDate(iso, "Europe/Rome");
 export const fmtNum = (l: Locale | "en", n: number, d = 2) => n.toLocaleString(DATE_LOCALE[l], { minimumFractionDigits: d, maximumFractionDigits: d });

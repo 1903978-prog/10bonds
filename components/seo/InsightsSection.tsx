@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadBonds } from "@/lib/bonds";
 import { marketInsights, type InsightsText } from "@/lib/seo/insights";
 import { countryName } from "@/lib/seo/yieldCurves";
+import { formatDate } from "@/lib/formatDate";
 
 const NUM: Record<string, string> = { it: "it-IT", fr: "fr-FR", de: "de-DE", en: "en-GB" };
 const GOV_NAME: Record<string, string> = { IT: "BTP", FR: "OAT", ES: "Bonos" };
@@ -15,7 +16,7 @@ export default async function InsightsSection({ locale, text, curveHref, methodH
   const loc = NUM[locale];
   const pct = (v: number) => `${v.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
   const n = (v: number) => v.toLocaleString(loc);
-  const asOf = data.asOf ? new Date(data.asOf).toLocaleDateString(loc, { day: "numeric", month: "long", year: "numeric" }) : null;
+  const asOf = data.asOf ? formatDate(data.asOf) : null;
   return (
     <>
       {asOf && <p className="mt-3 text-sm text-mute">{text.asOf} <time dateTime={data.asOf!}>{asOf}</time></p>}
