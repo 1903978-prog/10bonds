@@ -8,7 +8,7 @@ vi.mock("@/lib/highsSolver", async (orig) => {
   const a = await orig<Record<string, unknown>>();
   return Object.fromEntries(Object.entries(a).map(([k, v]) => [k, typeof v === "function" ? spy.highs : v]));
 });
-vi.mock("@/lib/auth", async (orig) => ({ ...(await orig<object>()), currentUser: async () => null }));
+vi.mock("@/lib/currentUser", () => ({ currentUser: async () => null }));
 vi.mock("@/lib/bonds", async (orig) => ({ ...(await orig<object>()), loadBondsFor: async () => ({ bonds: [], source: "live", asOf: "2026-10-28T00:00:00.000Z" }) }));
 vi.mock("@/lib/riskBandsStore", async (orig) => ({ ...(await orig<object>()), loadStoredBands: async () => null }));
 

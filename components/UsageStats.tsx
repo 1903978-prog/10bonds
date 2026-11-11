@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { countOpposed, flushNow, getCategories, getConsent, reopenCookieBanner, setCategories, setCountOpposed, track, type Categories } from "@/lib/track";
+import { countOpposed, consentedVisitorId, flushNow, getCategories, getConsent, reopenCookieBanner, setCategories, setCountOpposed, track, type Categories } from "@/lib/track";
 import { COOKIE_TEXT, cookieLang, type CookieLang } from "@/lib/cookieText";
 
 function browserZone(): string | null {
@@ -68,11 +68,17 @@ export default function UsageStats() {
       return;
     }
     if (consent !== "yes") return;
-    // Allowing Statistics earns one free week of Premium, once per account (the server decides).
-    if (!bonusDone.current) {
-      fetch("/api/account/stats-bonus", { method: "POST" }).then((r) => { if (r.ok) bonusDone.current = true; }).catch(() => {});
-    }
     track("page_view", { referrer: document.referrer ? new URL(document.referrer).host : null, tz: browserZone(), lang: navigator.language?.slice(0, 12) ?? null });
+    // Allowing Statistics earns one free week of Premium, once per account (the server decides). The page view is sent first,
+    // because the server wants proof that Statistics really ran in this browser for this account.
+    let t: ReturnType<typeof setTimeout> | undefined;
+    if (!bonusDone.current) {
+      flushNow();
+      t = setTimeout(() => {
+        fetch("/api/account/stats-bonus", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ visitorId: consentedVisitorId() }) }).then((r) => { if (r.ok) bonusDone.current = true; }).catch(() => {});
+      }, 2000);
+    }
+    return () => { if (t) clearTimeout(t); };
   }, [pathname, consent]);
 
   useEffect(() => {

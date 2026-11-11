@@ -31,6 +31,12 @@ export function readSession(token: string | undefined | null, now = Date.now()):
   return Number(id);
 }
 
+/** When the session cookie was issued (its expiry minus the session length), or null if the token is not valid. */
+export function sessionIssuedAt(token: string | undefined | null, now = Date.now()): number | null {
+  if (readSession(token, now) === null || !token) return null;
+  return Number(token.split(".")[1]) - SESSION_DAYS * 86400_000;
+}
+
 /** A signed, expiring token for one purpose (e-mail confirmation, bot check). Payload must not contain ".". */
 export function signToken(purpose: string, payload: string, ttlMs: number, now = Date.now()): string | null {
   const key = secret();

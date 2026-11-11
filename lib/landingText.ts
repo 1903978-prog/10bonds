@@ -7,7 +7,7 @@ import type { FinderLang } from "./finderText";
 // "hand-picked portfolio" is allowed.
 const en = {
   // ETF benchmark card (the owner, 24/10/2026): no provider or fund named, no equal-risk claim; caveats live in lib/disclaimer.ts.
-  tagline: "Mathematics instead of guesswork. Bond portfolios built from the data, from lower risk to higher return on one slider.",
+  tagline: "AI-based bond portfolios built from the data, from lower risk to higher return on one slider.",
   noData: "not available",
   fresh: "Prices updated daily, last update",
   cardTitleBench: "Model portfolio vs bond ETF",

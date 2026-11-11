@@ -63,6 +63,11 @@ export function reopenCookieBanner() {
   window.dispatchEvent(new Event("tb-cookie-open"));
 }
 
+/** The id of this browser, only while statistics are allowed (sent with the free-week claim so the server can check consent). */
+export function consentedVisitorId(): string | null {
+  return getConsent() === "yes" ? visitorId() : null;
+}
+
 function visitorId(): string | null {
   const s = store();
   if (!s) return null;

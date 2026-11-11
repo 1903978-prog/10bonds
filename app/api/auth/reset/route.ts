@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { accountsConfigured, replacePassword } from "@/lib/accounts";
+import { accountsConfigured, findUserById, replacePassword } from "@/lib/accounts";
 import { hashPassword } from "@/lib/password";
 import { passwordTag, readReset } from "@/lib/passwordReset";
-import { allow, clientIp } from "@/lib/rateLimit";
+import { allow, clearHits, clientIp } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please choose a password of at least 8 characters." }, { status: 400 });
   try {
     const ok = await replacePassword(t.userId, (hash) => passwordTag(hash) === t.tag, await hashPassword(pw));
+    if (ok) {
+      // A password reset by e-mail link is the unlock path for an account locked by failed sign-ins.
+      const u = await findUserById(t.userId).catch(() => null);
+      if (u) clearHits(`loginfail:${u.email.trim().toLowerCase()}`);
+    }
     return ok ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "bad" }, { status: 400 });
   } catch (err) {
     console.error("[reset] failed:", (err as Error).message);
