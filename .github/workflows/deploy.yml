@@ -142,6 +142,24 @@ jobs:
           else
             echo "10bonds.com does not answer yet: the site stays on 10bonds.fly.dev."
           fi
+      # 10B-0003: a cancelled blue-green release can leave its never-healthy new machine behind on another image; Fly then refuses
+      # every later blue-green deploy ("found multiple image versions"). Remove ONLY such leftovers: never a healthy machine, and
+      # nothing at all unless exactly one image is serving (lib/flyLeftovers.ts). No data is touched.
+      - uses: actions/setup-node@v4
+        if: env.ok == '1'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Remove leftover machines of a failed release
+        if: env.ok == '1'
+        run: |
+          npm ci --no-audit --no-fund >/dev/null
+          flyctl machines list -a 10bonds --json > machines.json
+          ids=$(npx vite-node -c vitest.config.ts scripts/fly-leftovers.ts < machines.json)
+          for id in $ids; do
+            echo "Removing leftover machine $id"
+            flyctl machines destroy "$id" -a 10bonds --force
+          done
       - name: Deploy
         id: deploy
         if: env.ok == '1'
