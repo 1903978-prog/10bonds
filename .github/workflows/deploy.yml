@@ -5,6 +5,11 @@
 name: Deploy to Fly
 on:
   workflow_dispatch:
+    inputs:
+      remove_machine:
+        description: "Optional: id of ONE machine to remove before deploying (only if another healthy machine keeps serving)"
+        type: string
+        default: ""
 concurrency: deploy
 jobs:
   # Nothing reaches the live site unless all checks pass (types, lint, tests, database design, browser check).
@@ -150,6 +155,23 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # 10B-0004: two healthy machines on different images (a cancelled release's machine turned healthy) block blue-green, and the
+      # automatic step rightly refuses to choose. The owner session names the machine to remove; it is removed only if another
+      # healthy machine keeps serving (lib/flyLeftovers.ts canRemoveNamed). No data is touched.
+      - name: Remove the named machine
+        if: env.ok == '1' && inputs.remove_machine != ''
+        env:
+          REMOVE_MACHINE: ${{ inputs.remove_machine }}
+        run: |
+          npm ci --no-audit --no-fund >/dev/null
+          flyctl machines list -a 10bonds --json > machines.json
+          npx vite-node -c vitest.config.ts scripts/fly-remove-named.ts < machines.json
+          # Graceful first (kill_signal + kill_timeout let in-flight requests finish), then check again, then remove.
+          flyctl machines stop "$REMOVE_MACHINE" -a 10bonds
+          sleep 15
+          flyctl machines list -a 10bonds --json > machines.json
+          npx vite-node -c vitest.config.ts scripts/fly-remove-named.ts < machines.json
+          flyctl machines destroy "$REMOVE_MACHINE" -a 10bonds --force
       - name: Remove leftover machines of a failed release
         if: env.ok == '1'
         run: |
