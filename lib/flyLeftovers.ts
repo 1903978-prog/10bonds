@@ -18,3 +18,12 @@ export function leftoverMachines(machines: FlyMachine[]): { destroy: string[]; r
   const destroy = machines.filter((m) => imageOf(m) !== keep && !healthy(m)).map((m) => m.id);
   return { destroy, reason: destroy.length ? `remove ${destroy.length} unhealthy machine(s) not on the serving image` : "nothing to clean" };
 }
+
+/** Named removal (deploy input remove_machine): allowed only if that machine exists and another healthy machine keeps serving. */
+export function canRemoveNamed(machines: FlyMachine[], id: string): { ok: boolean; reason: string } {
+  if (!/^[0-9a-f]{8,20}$/.test(id)) return { ok: false, reason: "not a machine id" };
+  if (!machines.some((m) => m.id === id)) return { ok: false, reason: `machine ${id} not found` };
+  const others = machines.filter((m) => m.id !== id && healthy(m));
+  if (others.length === 0) return { ok: false, reason: "no other healthy machine: refusing (would cause downtime)" };
+  return { ok: true, reason: `remove ${id}; ${others.length} other healthy machine(s) keep serving` };
+}

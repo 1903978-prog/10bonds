@@ -22,3 +22,18 @@ describe("leftoverMachines", () => {
     expect(r.destroy).toEqual(["c"]);
   });
 });
+
+import { canRemoveNamed } from "./flyLeftovers";
+describe("canRemoveNamed", () => {
+  const two = [m("d8911715b70d98", "old", "started", ["passing", "passing"]), m("784ee4e5a317d8", "new", "started", ["passing", "passing"])];
+  it("allows removing one of two healthy machines (12 Nov case)", () => {
+    expect(canRemoveNamed(two, "784ee4e5a317d8").ok).toBe(true);
+  });
+  it("refuses when no other machine is healthy", () => {
+    expect(canRemoveNamed([two[0], m("784ee4e5a317d8", "new", "started", ["critical"])], "d8911715b70d98").ok).toBe(false);
+  });
+  it("refuses unknown or malformed ids", () => {
+    expect(canRemoveNamed(two, "abcdef0123").ok).toBe(false);
+    expect(canRemoveNamed(two, "x; rm -rf").ok).toBe(false);
+  });
+});
