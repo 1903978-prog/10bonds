@@ -17,17 +17,25 @@ Settings (environment variables):
 | `INFERENCE_TIMEOUT_S` | whole-answer limit, default 1800 (30 min); there is no shorter hidden limit |
 | `OLLAMA_THINK` | `1` turns the model's thinking on; default off (thinking makes qwen3 models slow and breaks the JSON) |
 
-**Easiest (Windows): double-click `start-worker.bat`** (download it from https://raw.githubusercontent.com/1903978-prog/10bonds/main/scripts/credit-worker/start-worker.bat). It installs nothing else, updates `worker.mjs` itself at every start, remembers the token (asked once) and the model in `%USERPROFILE%\10bonds-worker\config.txt`, starts Ollama if needed and restarts the worker if it stops.
+## Install on the Lenovo (Windows, unattended 24/7)
 
-Run once by hand: `node scripts/credit-worker/worker.mjs`.
+Double-click `install-autostart.bat` once (it asks for administrator once). It runs `install-service.ps1`, which:
 
-Start at boot:
-- Windows: Task Scheduler > Create Task > Trigger "At startup" > Action `node.exe` with argument `C:\path\to\10bonds\scripts\credit-worker\worker.mjs`; set the variables in a small `run.cmd` (`set WORKER_TOKEN=...`) and point the task at it. Tick "Restart if the task fails".
-- Linux: a systemd unit with `Restart=always` and `EnvironmentFile=` holding the settings above.
+- copies only the reviewed `worker.mjs`, `package.json` and `run-worker.ps1` (their SHA-256 are pinned in the installer; a different file is refused);
+- stores the token encrypted (Windows DPAPI) in `%USERPROFILE%\10bonds-worker\token.bin`, readable only by this account, SYSTEM and administrators, and removes the old plain-text `config.txt`;
+- registers the task **10bonds credit worker**: starts at boot before anyone signs in, after resume from sleep and every 5 minutes as a watchdog; no time limit; restarts on failure; one copy only;
+- removes the old sign-in shortcut; reports the sleep setting (changes it only with `-KeepAwakeOnAC`).
 
-When the computer sleeps the worker stops claiming; the website shows it offline after 3 minutes and an unfinished job is handed out again after its 15-minute lease runs out.
+`run-worker.ps1` (started by the task) keeps one worker alive: it starts Ollama on 127.0.0.1 if it is not answering, restarts the worker with growing waits (10 s to 10 min, with jitter), pauses 30 min after 10 starts in 30 min, and writes `logs\worker.log` (5 MB, 3 old copies). It never downloads code.
+The worker claims no job while Ollama or `qwen3:8b` is missing (it never pulls a model) and reports that to the site; a rejected token makes it wait 5 min, doubling to 1 hour, instead of restarting every 20 s.
+To update: run the installer from the new release. To remove: `uninstall-autostart.bat`.
+
+Check from anywhere: https://10bonds.com/api/credit-worker/status (connected, stage, jobs done, oldest queued job, alerts).
+
+After changing `worker.mjs`, `package.json` or `run-worker.ps1`, run `node scripts/credit-worker/pin.mjs` (a test fails otherwise).
+
+Run once by hand (development): `node scripts/credit-worker/worker.mjs`.
+Linux: a systemd unit with `Restart=always` and `EnvironmentFile=` holding the settings above.
+
+When the computer sleeps the worker stops claiming; the website shows it offline after 3 minutes and an unfinished job is handed out again after its 15-minute lease runs out. The site accepts each result once (a repeat of the same result is recognised; a job claimed by another worker is refused).
 Pause/resume, retry and "Analyse now" are on Admin > Credit Research.
-
-## Autostart at Windows sign-in
-
-Double-click `install-autostart.bat` once (it puts a minimized shortcut to `start-worker.bat` in the Startup folder and starts the worker). Double-click `uninstall-autostart.bat` to undo it.

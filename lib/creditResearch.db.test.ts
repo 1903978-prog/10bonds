@@ -110,6 +110,22 @@ describe.skipIf(!url)("credit research queue (real Postgres)", () => {
     await s`delete from app.bond_credit_analysis where isin in (${X}, ${Y})`;
   }, 60_000);
 
+  it("worker status shows queue age, arrivals and alerts (a connected worker that finishes nothing is flagged)", async () => {
+    process.env.ACCOUNTS_DATABASE_URL = url;
+    const db = await import("./creditResearchDb");
+    const { accountsSql } = await import("./accounts");
+    const s = await accountsSql();
+    await db.enqueueIsins([B], false, 1);
+    await s`update app.credit_research_jobs set status = 'queued', created_at = now() - interval '30 hours' where isin = ${B}`;
+    await db.touchWorker("worker-status-test", { model: "qwen3:8b", host: "h", isin: null, stage: "model-missing", version: "t" });
+    const st = await db.workerStatus();
+    expect(st.connected).toBe(true);
+    expect(st.oldestQueuedHours).toBeGreaterThanOrEqual(30);
+    expect(typeof st.jobsCreatedLast24h).toBe("number");
+    expect(st.alerts.join(" ")).toMatch(/qwen3:8b/);
+    await s`delete from app.credit_research_jobs where isin = ${B}`;
+    await s`delete from app.credit_research_workers where worker_id = 'worker-status-test'`;
+  }, 60_000);
   it("the database and the public API never show an unpublished rating; a validated one survives a failed refresh", async () => {
     process.env.ACCOUNTS_DATABASE_URL = url;
     const db = await import("./creditResearchDb");

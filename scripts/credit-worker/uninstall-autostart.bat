@@ -1,4 +1,3 @@
 @echo off
-rem One double-click: stops the credit worker from starting at sign-in. Nothing else is deleted.
-powershell -NoProfile -Command "$p=[Environment]::GetFolderPath('Startup')+'\10bonds credit worker.lnk'; if (Test-Path $p) { Remove-Item $p; Write-Host 'Autostart removed.' } else { Write-Host 'Autostart was not installed.' }"
-pause
+rem One double-click (asks for administrator once): stops the credit worker and removes its task. Token, knowledge file and logs stay.
+powershell -NoProfile -Command "Start-Process powershell -Verb RunAs -ArgumentList -NoProfile -ExecutionPolicy Bypass -NoExit -File \"%~dp0uninstall-service.ps1\""
