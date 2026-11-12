@@ -24,7 +24,7 @@ Double-click `install-autostart.bat` once (it asks for administrator once). It r
 - copies only the reviewed `worker.mjs`, `package.json` and `run-worker.ps1` (their SHA-256 are pinned in the installer; a different file is refused);
 - stores the token encrypted (Windows DPAPI) in `%USERPROFILE%\10bonds-worker\token.bin`, readable only by this account, SYSTEM and administrators, and removes the old plain-text `config.txt`;
 - registers the task **10bonds credit worker**: starts at boot before anyone signs in, after resume from sleep and every 5 minutes as a watchdog; no time limit; restarts on failure; one copy only;
-- removes the old sign-in shortcut; reports the sleep setting (changes it only with `-KeepAwakeOnAC`).
+- removes the old sign-in shortcut; turns off sleep and hibernation on mains power, as before (`-AllowSleep` leaves the power plan alone).
 
 `run-worker.ps1` (started by the task) keeps one worker alive: it starts Ollama on 127.0.0.1 if it is not answering, restarts the worker with growing waits (10 s to 10 min, with jitter), pauses 30 min after 10 starts in 30 min, and writes `logs\worker.log` (5 MB, 3 old copies). It never downloads code.
 The worker claims no job while Ollama or `qwen3:8b` is missing (it never pulls a model) and reports that to the site; a rejected token makes it wait 5 min, doubling to 1 hour, instead of restarting every 20 s.

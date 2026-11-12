@@ -21,7 +21,7 @@ const OLLAMA = (process.env.OLLAMA_URL ?? "http://127.0.0.1:11434").replace(/\/$
 export const ONLY_MODEL = "qwen3:8b";
 const MODEL = ONLY_MODEL;
 const ID = process.env.WORKER_ID ?? `worker-${hostname().replace(/[^A-Za-z0-9._-]/g, "")}`.slice(0, 60);
-export const WORKER_VERSION = "2026-11-12.1";
+export const WORKER_VERSION = "2026-11-12.2";
 let NET_DIAG = null;
 const IDLE_MS = Number(process.env.IDLE_SECONDS ?? 60) * 1000;
 const MAX_DOCS = Number(process.env.MAX_DOCS ?? 6);
@@ -400,15 +400,24 @@ async function collect(job) {
   // 1. Legal entity (GLEIF) and its ultimate parent: a finance vehicle's credit is its parent's.
   let parent = null;
   await guard(async () => {
+    const norm = (x) => String(x || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/\b(s\.?p\.?a\.?|a\.?g\.?|s\.?e\.?|n\.?v\.?|plc|ltd|gmbh|sa|ag|se|nv|spa|group|holding|holdings|inc|corp|co)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
     for (const n of names) {
-      const g = await get(`https://api.gleif.org/api/v1/lei-records?filter[entity.legalName]=${encodeURIComponent(n)}&page[size]=1`);
-      const e = g ? JSON.parse(g).data?.[0] : null;
+      // exact legal-name filter first, then a full-text search (catalogue names rarely equal the registered legal name)
+      let e = null;
+      for (const q of [`filter[entity.legalName]=${encodeURIComponent(n)}`, `filter[fulltext]=${encodeURIComponent(n)}`]) {
+        const g = await get(`https://api.gleif.org/api/v1/lei-records?${q}&page[size]=10`);
+        let list = []; try { list = g ? (JSON.parse(g).data ?? []) : []; } catch { list = []; }
+        // accept only an ACTIVE record whose legal name equals the issuer name after removing legal-form words (never a loose match)
+        e = list.find((r) => norm(r.attributes?.entity?.legalName?.name) === norm(n) && (r.attributes?.registration?.status ?? "ISSUED") === "ISSUED") || null;
+        if (e) break;
+      }
       if (!e) continue;
       const en = e.attributes.entity;
-      add({ url: `https://search.gleif.org/#/record/${e.id}`, title: `GLEIF record ${en.legalName.name}`, publisher: "GLEIF", period: null, primary: true, method: "api", text: JSON.stringify({ lei: e.id, legalName: en.legalName.name, jurisdiction: en.jurisdiction, category: en.category, status: en.status, registration: e.attributes.registration?.status }) });
+      job.identity = { legalName: en.legalName.name, lei: e.id, status: en.status ?? null };
+      add({ url: `https://search.gleif.org/#/record/${e.id}`, title: `GLEIF record ${en.legalName.name}`, publisher: "gleif.org", period: null, primary: true, method: "api", verified: true, text: JSON.stringify({ lei: e.id, legalName: en.legalName.name, jurisdiction: en.jurisdiction, category: en.category, status: en.status, registration: e.attributes.registration?.status }) });
       const pr = await get(`https://api.gleif.org/api/v1/lei-records/${e.id}/ultimate-parent`);
-      const pn = pr ? JSON.parse(pr).data?.attributes?.entity?.legalName?.name : null;
-      if (pn) { parent = pn; add({ url: `https://api.gleif.org/api/v1/lei-records/${e.id}/ultimate-parent`, title: `Ultimate parent: ${pn}`, publisher: "GLEIF", period: null, primary: true, method: "api", text: `Ultimate parent of ${en.legalName.name}: ${pn}` }); }
+      let pn = null; try { pn = pr ? JSON.parse(pr).data?.attributes?.entity?.legalName?.name : null; } catch {}
+      if (pn) { parent = pn; add({ url: `https://api.gleif.org/api/v1/lei-records/${e.id}/ultimate-parent`, title: `Ultimate parent: ${pn}`, publisher: "gleif.org", period: null, primary: true, method: "api", verified: true, text: `Ultimate parent of ${en.legalName.name}: ${pn}` }); }
       break;
     }
   });
@@ -884,12 +893,15 @@ if (isMain) {
   }))).join(" | ");
   log("network check:", NET_DIAG);
   // No self-update: the worker only runs the reviewed copy the installer put on this computer (12 Nov 2026).
-  let fails = 0, authFails = 0, notReady = 0;
+  let fails = 0, authFails = 0, notReady = 0, ollamaDown = 0;
   while (!stopping) {
     let wait = IDLE_MS;
     try {
       // Ollama and qwen3:8b first: a job is only claimed when it can actually be worked on.
       const ready = await ollamaReady();
+      // Ollama crashed or was stopped: after 3 failed looks in a row, exit (code 4) so the supervisor (run-worker.ps1) starts Ollama again and relaunches this worker.
+      ollamaDown = ready === "ollama-down" ? ollamaDown + 1 : 0;
+      if (ollamaDown >= 3) { log("Ollama is not answering: exiting so the supervisor starts it again"); process.exit(4); }
       if (ready !== "ok") {
         notReady++;
         log(ready === "model-missing" ? `${ONLY_MODEL} is not installed in Ollama: no job claimed (the worker never downloads a model)` : "Ollama is not answering: no job claimed");

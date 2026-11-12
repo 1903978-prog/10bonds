@@ -10,19 +10,19 @@
 #     and every 5 minutes as a watchdog; runs as this account without a stored password (S4U); no time limit;
 #     restarts on failure; only one copy at a time.
 #  4. Removes the old sign-in shortcut and stops the old window loop.
-#  5. Reports the sleep setting. It changes the power plan only with -KeepAwakeOnAC.
+#  5. Turns off sleep and hibernation on mains power (as #512 did), and says so; -AllowSleep leaves the power plan alone.
 # It never installs, pulls or loads a model and never opens Ollama to the network.
 #Requires -RunAsAdministrator
 param(
   [string]$Token = '',
-  [switch]$KeepAwakeOnAC,
+  [switch]$AllowSleep,
   [string]$Ref = 'main'
 )
 $ErrorActionPreference = 'Stop'
 
 # Reviewed release: SHA-256 of each file (lower case). lib/creditWorkerService.test.ts fails when a file changes without its pin.
 $Pins = [ordered]@{
-  'worker.mjs'     = '8b4913b684d9d7aa705237542e3dad00499cec70aa378347b8166c14a6577e5a'
+  'worker.mjs'     = 'a3c86d82fb01d8af5120dbc511d32eeec17a9e2b0af54ab4c2290ac45947c6ef'
   'package.json'   = '4be4bd19e681457db42a1a993bf7ea46452bd282f0dbfb8a47cae879e10981dc'
   'run-worker.ps1' = '1e461a6980ba47315f6303b7961e26728e013f8a6b2c72fdda053eafadc2ce88'
 }
@@ -103,10 +103,9 @@ Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($atBoot, $
 $lnk = Join-Path ([Environment]::GetFolderPath('Startup')) '10bonds credit worker.lnk'
 if (Test-Path $lnk) { Remove-Item -Force $lnk }
 
-# 5. Sleep: report; change only when asked.
-$acSleep = (powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE | Select-String 'Current AC Power Setting Index' | ForEach-Object { [Convert]::ToInt32(($_ -split ':')[1].Trim(), 16) }) | Select-Object -First 1
-if ($KeepAwakeOnAC) { powercfg /change standby-timeout-ac 0; Write-Host 'Sleep on mains power: off (changed because -KeepAwakeOnAC was given).' }
-elseif ($acSleep -gt 0) { Write-Warning ("This computer sleeps after $([int]($acSleep / 60)) min on mains power; the worker stops while it sleeps and resumes after. Run again with -KeepAwakeOnAC to keep it awake on mains power.") }
+# 5. Sleep: as on main since #512 (12 Nov 2026), no sleep or hibernation on mains power; said on screen, never silent. -AllowSleep leaves the power plan alone.
+if ($AllowSleep) { Write-Warning 'Power plan left as it is (-AllowSleep): the worker stops while the computer sleeps and resumes after.' }
+else { powercfg /change standby-timeout-ac 0; powercfg /change hibernate-timeout-ac 0; Write-Host 'Sleep and hibernation on mains power: off (the worker runs 24/7). Run with -AllowSleep to keep your own setting.' }
 
 Start-ScheduledTask -TaskName $TaskName
 Start-Sleep -Seconds 20
