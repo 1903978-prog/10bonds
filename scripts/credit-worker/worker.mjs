@@ -193,6 +193,55 @@ export function extractBankFigures(text) {
   const have = new Set(found.map((f) => f.parameter));
   return { found, missing: BANK_RULES.map((r) => r.parameter).filter((p) => !have.has(p)) };
 }
+// ---- Corporate accounts figures (EUR millions). Same rule as the bank figures: a figure counts only if a sentence of the document names it; that sentence is the citation. ----
+const SCALE = "(bn|billion|m|million|mn|mio)\\b";
+const eurAmt = (label, extra = "") => new RegExp(`${label}[^.;\\n\\d]{0,70}?(?:EUR|€)?\\s?${AMT}\\s?${SCALE}${extra}`, "gi");
+const toEurM = (v, unit) => { const n = toNumber(v); return /^(bn|billion)$/i.test(unit) ? Math.round(n * 1000 * 100) / 100 : n; };
+export const CORP_RULES = [
+  { parameter: "netDebt", pats: [eurAmt("net (?:financial )?debt(?! to)(?! /)")] },
+  { parameter: "ebitda", pats: [eurAmt("(?:adjusted |group |reported )?EBITDA(?! margin)(?! to)")] },
+  { parameter: "netInterestExpense", pats: [eurAmt("net (?:interest|financial) (?:expenses?|costs?|result)")] },
+  { parameter: "cfo", pats: [eurAmt("(?:net )?cash (?:flow )?(?:generated )?(?:from|provided by) operating activities"), eurAmt("operating cash flow")] },
+  { parameter: "capex", pats: [eurAmt("(?:capital expenditures?|\\bcapex\\b|investments? in (?:property, plant and equipment|fixed assets))")] },
+  { parameter: "totalDebt", pats: [eurAmt("(?:total|gross) (?:financial )?(?:debt|borrowings|liabilities)")] },
+  { parameter: "cashPlusUndrawn", pats: [eurAmt("(?:available |total |group )?liquidity(?: position| reserves?)?(?! coverage)")] },
+];
+const GROW = "(?:up|increased?|rose|grew|growth of|higher by)";
+const FALL = "(?:down|decreased?|fell|declined?|lower by)";
+export function extractCorporateFigures(text) {
+  const found = [];
+  for (const r of CORP_RULES) {
+    let best = null;
+    for (const re of r.pats) {
+      re.lastIndex = 0;
+      for (const m of text.matchAll(re)) {
+        const quote = sentenceAround(text, m.index, m.index + m[0].length);
+        if (SEGMENT_CUE.test(quote)) continue;                               // a segment, not the group
+        const beforeNumber = m[0].slice(0, m[0].indexOf(m[1]));
+        if (PRIOR_CUE.test(beforeNumber)) continue;
+        const value = toEurM(m[1], m[2]);
+        if (!Number.isFinite(value) || value <= 0) continue;
+        if (!best || m.index < best.idx) best = { idx: m.index, value, quote };
+        break;
+      }
+    }
+    if (best) found.push({ parameter: r.parameter, value: best.value, unit: "EUR m", quote: best.quote, offset: best.idx });
+  }
+  // EBITDA change on the previous year, only when the sentence states the direction and the percentage.
+  const g = new RegExp(`EBITDA[^.;\\n]{0,80}?\\b(${GROW}|${FALL})\\b[^.;\\n\\d]{0,20}?${NUM}${PCT}`, "gi");
+  for (const m of text.matchAll(g)) {
+    const quote = sentenceAround(text, m.index, m.index + m[0].length);
+    if (SEGMENT_CUE.test(quote)) continue;
+    const v = toNumber(m[2]); if (!Number.isFinite(v)) continue;
+    found.push({ parameter: "ebitdaYoyPct", value: new RegExp(`^${FALL}$`, "i").test(m[1]) ? -v : v, unit: "%", quote, offset: m.index });
+    break;
+  }
+  return { found };
+}
+/** Banks, insurers and sovereigns are read with their own figures; everything else is a corporate. A name test only, because the model's type arrives after retrieval. */
+export const isBankLike = (job) => /\b(bank|banca|banco|bancorp|sparkasse|landesbank|kreditanstalt|bpce|crédit|credit agricole|hypo|pfandbrief|insurance|assicura|versicherung|assurances?|republic|kingdom|bundesrepublik)\b/i.test(`${job.known?.issuer ?? ""} ${job.known?.name ?? ""} ${job.identity?.legalName ?? ""}`);
+const allFigures = (text, job) => [...extractBankFigures(text).found, ...(isBankLike(job) ? [] : extractCorporateFigures(text).found)];
+
 /** The reporting period a document talks about, as a label and its end date (H1 2026 -> 2026-06-30). Null when the text does not say. */
 export function reportPeriod(text) {
   const t = text.slice(0, 20000);
@@ -243,6 +292,15 @@ export async function findFinalTerms(job, docs) {
 // The metric the website's gate needs, per figure; NPE stays an NPE figure (not relabelled as NPL).
 const METRIC_OF = { cet1Pct: "cet1Pct", nplPct: "nplPct", debtToGdpPct: "debtToGdpPct" };
 /** Parameters the next retrieval round must look for, most publication-critical first, and the words that find the right document. */
+export const CORP_TARGETS = [
+  { parameter: "netDebt", words: /annual|integrated|financial|results|interim|half-year|report|presentation/i },
+  { parameter: "ebitda", words: /annual|integrated|financial|results|interim|half-year|report|presentation/i },
+  { parameter: "netInterestExpense", words: /financial|results|report|interim/i },
+  { parameter: "cfo", words: /cash.?flow|financial|results|report/i },
+  { parameter: "capex", words: /cash.?flow|financial|results|report/i },
+  { parameter: "totalDebt", words: /debt|financ|funding|results|report/i },
+  { parameter: "cashPlusUndrawn", words: /liquidity|financ|funding|debt|results|report/i },
+];
 export const TARGETS = [
   { parameter: "cet1Pct", words: /capital|pillar|results|financial|interim|half-year|report/i },
   { parameter: "nplPct", words: /asset.?quality|risk|results|financial|report/i },
@@ -601,7 +659,7 @@ export async function gatherFigures(job, docs, fetchMore = null, rounds = 2) {
   const take = (d) => {
     if (d.method === "api") return;
     const per = reportPeriod(d.text);
-    for (const f of extractBankFigures(d.text).found) {
+    for (const f of allFigures(d.text, job)) {
       const have = figures.find((x) => x.parameter === f.parameter);
       const rd = per?.end ?? null;
       // the first (highest-priority) document wins, unless a later document is for a NEWER reporting period (H1 2026 beats FY 2025); a conflicting same-period value is reported below
@@ -617,14 +675,15 @@ export async function gatherFigures(job, docs, fetchMore = null, rounds = 2) {
   // a second document naming a different value for the same figure is a conflict, not a tie-break
   for (const d of docs) {
     if (d.method === "api") continue;
-    for (const f of extractBankFigures(d.text).found) {
+    for (const f of allFigures(d.text, job)) {
       const have = figures.find((x) => x.parameter === f.parameter);
       if (have && have.value !== f.value && have.url !== d.url && have.reportingDate === (reportPeriod(d.text)?.end ?? null)) conflicts.push(`${f.parameter}: ${have.value} (${have.url}) vs ${f.value} (${d.url})`);
     }
   }
-  const critical = ["cet1Pct", "npePct"];
+  const bankLike = isBankLike(job);
+  const critical = bankLike ? ["cet1Pct", "npePct"] : ["netDebt", "ebitda"];
   for (let round = 1; round <= rounds && fetchMore && critical.some((p) => !figures.some((f) => f.parameter === p)); round++) {
-    const want = TARGETS.filter((t) => !figures.some((f) => f.parameter === t.parameter));
+    const want = (bankLike ? TARGETS : CORP_TARGETS).filter((t) => !figures.some((f) => f.parameter === t.parameter));
     // look for the NEXT missing parameter specifically (e.g. CET1 in the capital/results documents), not for the ISIN again
     const next = want.find((t) => critical.includes(t.parameter)) ?? want[0];
     const more = await fetchMore(next, round);
