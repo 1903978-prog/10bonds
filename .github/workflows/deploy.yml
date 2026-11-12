@@ -166,8 +166,12 @@ jobs:
           npm ci --no-audit --no-fund >/dev/null
           flyctl machines list -a 10bonds --json > machines.json
           npx vite-node -c vitest.config.ts scripts/fly-remove-named.ts < machines.json
+          # Graceful first (kill_signal + kill_timeout let in-flight requests finish), then check again, then remove.
+          flyctl machines stop "$REMOVE_MACHINE" -a 10bonds
+          sleep 15
+          flyctl machines list -a 10bonds --json > machines.json
+          npx vite-node -c vitest.config.ts scripts/fly-remove-named.ts < machines.json
           flyctl machines destroy "$REMOVE_MACHINE" -a 10bonds --force
-          sleep 10
       - name: Remove leftover machines of a failed release
         if: env.ok == '1'
         run: |
