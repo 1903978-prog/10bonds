@@ -1,3 +1,4 @@
+import { noteWorkerSeen } from "./workerWatch";
 import { createHash, randomBytes } from "node:crypto";
 import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
@@ -274,6 +275,7 @@ export async function setPaused(p: boolean): Promise<void> {
 const clean = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
 
 export async function touchWorker(workerId: string, info: { model?: unknown; host?: unknown; isin?: string | null; stage?: unknown; version?: unknown; diag?: unknown }) {
+  noteWorkerSeen();
   const s = await sql();
   const version = clean(info.version, 30) || null, diag = clean(info.diag, 600) || null;
   await s`

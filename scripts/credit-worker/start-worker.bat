@@ -16,6 +16,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem --- keep Windows awake while this window is open (display may still turn off; closing the window ends it) ---
+start "" /b powershell -NoProfile -WindowStyle Hidden -Command "$p=(Get-CimInstance Win32_Process -Filter \"ProcessId=$PID\").ParentProcessId; Add-Type -Namespace W -Name K -MemberDefinition '[System.Runtime.InteropServices.DllImport(\"kernel32.dll\")] public static extern uint SetThreadExecutionState(uint f);'; while (Get-Process -Id $p -ErrorAction SilentlyContinue) { [W.K]::SetThreadExecutionState(0x80000001) | Out-Null; Start-Sleep 30 }"
+
 rem --- remembered settings ---
 set "WORKER_TOKEN="
 set "OLLAMA_MODEL="
