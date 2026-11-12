@@ -27,17 +27,51 @@ function db() {
 
 // Two processes starting at once (two machines, or parallel test files) both ran "create table if not exists" and one
 // failed with "duplicate key ... pg_type_typname_nsp_index". One setup at a time, across processes, on one connection.
+// Defect 10B-0001 (12 Nov 2026): the first version waited without limit on pg_advisory_lock through Neon's pooler. The pooler
+// (transaction mode) keeps the server connection after the client leaves, so the lock was never released and the next
+// start (the new machine of the 11 Nov release) waited forever: its pages never rendered and the deploy timed out.
+// Now: the lock uses the direct (non-pooler) host, so closing the connection really releases it; it is only tried, for at
+// most SETUP_LOCK_WAIT_MS; it is released explicitly; and if it cannot be had, setup runs anyway (it is additive and repeatable).
 const SETUP_LOCK = 7_240_001;
-async function setupLocked(sql: ReturnType<typeof postgres>) {
-  // The lock lives on its own single connection (a session lock), the setup itself keeps using the normal pool.
-  const url = process.env.ACCOUNTS_DATABASE_URL!;
-  const lock = postgres(accountsUrl(url, process.env.DATABASE_URL), { ssl: url.includes("localhost") ? false : "require", max: 1, prepare: false, onnotice: () => {} });
+export const SETUP_LOCK_WAIT_MS = 20_000;
+
+/** The same database address without Neon's "-pooler" host suffix (session locks need a real session). */
+export function directDbUrl(raw: string): string {
   try {
-    await lock`select pg_advisory_lock(${SETUP_LOCK})`;
+    const u = new URL(raw);
+    u.hostname = u.hostname.replace(/-pooler(?=\.)/, "");
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
+
+async function setupLocked(sql: ReturnType<typeof postgres>, waitMs = SETUP_LOCK_WAIT_MS) {
+  const url = process.env.ACCOUNTS_DATABASE_URL!;
+  const lock = postgres(directDbUrl(accountsUrl(url, process.env.DATABASE_URL)), { ssl: url.includes("localhost") ? false : "require", max: 1, prepare: false, connect_timeout: 10, onnotice: () => {} });
+  let held = false;
+  try {
+    const deadline = Date.now() + waitMs;
+    for (;;) {
+      const [r] = await lock<{ ok: boolean }[]>`select pg_try_advisory_lock(${SETUP_LOCK}) as ok`;
+      if (r?.ok) { held = true; break; }
+      if (Date.now() >= deadline) { console.error("[accounts] setup lock busy, running setup without it"); break; }
+      await new Promise((res) => setTimeout(res, 250));
+    }
+  } catch (e) {
+    console.error("[accounts] setup lock unavailable, running setup without it:", (e as { code?: string }).code ?? (e as Error).message.slice(0, 80));
+  }
+  try {
     await setup(sql);
   } finally {
-    await lock.end({ timeout: 5 }); // closing the connection releases the lock
+    if (held) await lock`select pg_advisory_unlock(${SETUP_LOCK})`.catch(() => {});
+    await lock.end({ timeout: 5 }).catch(() => {});
   }
+}
+
+/** Test hook: setup with a short lock wait. */
+export async function setupLockedForTest(waitMs: number) {
+  await setupLocked(db().sql, waitMs);
 }
 
 // Tables are created and extended additively; nothing is ever dropped here.
