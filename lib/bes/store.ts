@@ -110,7 +110,7 @@ export async function runBes(bonds: PublicBond[], trigger: string, force = false
       await tx`update app.bes_runs set status = 'superseded' where status = 'published'`;
       await tx`update app.bes_runs set status = 'superseded', finished_at = now() where status = 'requested'`;
       await tx`update app.bes_runs set status = 'published', finished_at = now(), runtime_ms = ${Date.now() - t0}, price_as_of = ${newest}, stats = ${tx.json(stats)} where id = ${id}`;
-      await tx`delete from app.bes_runs where id not in (select id from app.bes_runs order by id desc limit 5) and status in ('superseded','failed')`;
+      await pruneBesRuns(tx);
     });
     return { status: "published", runId: id, message: `Run #${id}: ${counts.valid} valid, ${counts.limited} limited, ${counts.unavailable} unavailable of ${counts.total}.`, counts };
   } catch (e) {
@@ -128,6 +128,21 @@ const toDb = (run: number, r: BesRow, code: string | null) => ({
 });
 
 /** Customer-safe read for the bond card: the score and its plain label only (no spreads, no default figures). */
+/**
+ * Keeps the 5 newest bond runs plus every run that a published result still points at (10B-0002, 12 Nov 2026).
+ * Before, a published portfolio run (pe_runs) or a published portfolio snapshot's holdings could lose the bond run they were
+ * computed from: the link was emptied (ON DELETE SET NULL) and the published numbers could no longer be traced to their scores.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function pruneBesRuns(tx: any): Promise<number> {
+  const [t] = await tx`select to_regclass('app.pe_runs') is not null as pe, to_regclass('app.efficient_portfolio_holdings') is not null as h`;
+  const r = await tx`delete from app.bes_runs b
+    where b.id not in (select id from app.bes_runs order by id desc limit 5) and b.status in ('superseded','failed')
+      and not ${t.pe ? tx`exists (select 1 from app.pe_runs p where p.bes_run_id = b.id and p.status = 'published')` : tx`false`}
+      and not ${t.h ? tx`exists (select 1 from app.efficient_portfolio_holdings h join app.efficient_portfolio_snapshots e on e.id = h.snapshot_id where h.bes_run_id = b.id and e.status = 'published')` : tx`false`}`;
+  return r.count;
+}
+
 export async function besPublic(codeOrIsin: string): Promise<{ score: number | null; status: string; label: string | null; peers: number; netSpreadBp: number | null } | null> {
   await besTablesReady();
   const s = await accountsSql();
