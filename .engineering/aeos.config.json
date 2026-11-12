@@ -1,0 +1,41 @@
+{
+  "aeos_version": "1.0.0",
+  "execution_window_hours": 5,
+  "application": "10bonds",
+  "repository": "1903978-prog/10bonds",
+  "production_environment": "Fly.io app '10bonds', region cdg, always on (min_machines_running 1, auto_stop off), 1024 MB, health /api/health and /api/ready (fly.toml). Read from repository files on 06 Nov 2026; NOT live-checked (no production or Render/Fly credentials in this environment).",
+  "development_environment": "local / cloud session; claude/* branches",
+  "authorized_branches": [
+    "claude/*"
+  ],
+  "release_restrictions": [
+    "HOLD (CLAUDE.md): no workflow runs on push to claude/** or session branches",
+    "HOLD: draft PRs do not run CI; CI starts when marked ready",
+    "HOLD: only nightly-live-check may e-mail Livio",
+    "RULE ZERO: never ask Livio to do what a tool can do",
+    "Lenovo: only qwen3:8b with keep_alive; dates like 03 Nov 2026",
+    "Production deploy: separate written approval"
+  ],
+  "data_sensitivity": "Public market and bond data; accounts database exists (ACCOUNTS_DATABASE_URL): treat user data as sensitive",
+  "required_tests": [
+    "npm test (vitest)",
+    "lint per CLAUDE.md"
+  ],
+  "deployment_process": "CLAUDE.md: the owning session runs 'fly deploy' after merge; deploy.yml is manual fallback (workflow_dispatch) and requires the CI workflow to pass first. Not performed under AEOS without written approval.",
+  "rollback_process": "One click: Actions 'Roll back to the previous release' (rollback.yml, workflow_dispatch) runs scripts/fly-rollback.sh, putting the previous image back on Fly; the deploy workflow runs the same script itself when post-deploy checks fail.",
+  "critical_workflows": [
+    "bond ranking and frontier",
+    "nightly live checks",
+    "weekly e-mail"
+  ],
+  "existing_instruction_conflicts": [],
+  "verified_facts": [
+    "fly.toml: app 10bonds, cdg, health /api/health",
+    "rollback.yml workflow_dispatch runs scripts/fly-rollback.sh",
+    "deploy.yml is workflow_dispatch only"
+  ],
+  "unverified": [
+    "live Fly machine state",
+    "FLY_API_TOKEN secret presence"
+  ]
+}
