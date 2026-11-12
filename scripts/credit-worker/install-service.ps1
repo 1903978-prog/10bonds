@@ -67,6 +67,7 @@ if (-not (Test-Path $tokenFile)) { throw 'No worker token. Nothing was started.'
 # Only this account, SYSTEM and administrators may read the token file.
 $me = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 icacls $tokenFile /inheritance:r /grant:r "${me}:(R,W)" 'SYSTEM:(F)' '*S-1-5-32-544:(F)' | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Could not restrict access to token.bin. The worker was not started.' }
 if (Test-Path $oldConfig) { Set-Content -Path $oldConfig -Value ('x' * 200); Remove-Item -Force $oldConfig }
 
 # Stop the old window loop and the running worker before swapping files.
@@ -88,7 +89,7 @@ if (-not $ollama) { Write-Warning 'Ollama was not found. The worker will wait (a
 # 3. The task.
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $Dir 'run-worker.ps1') + '"') -WorkingDirectory $Dir
 $atBoot = New-ScheduledTaskTrigger -AtStartup
-$watchdog = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+$watchdog = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration ([TimeSpan]::FromDays(3650))
 $cls = Get-CimClass -ClassName MSFT_TaskEventTrigger -Namespace Root/Microsoft/Windows/TaskScheduler
 $onResume = New-CimInstance -CimClass $cls -ClientOnly
 $onResume.Enabled = $true
