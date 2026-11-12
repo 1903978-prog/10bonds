@@ -8,6 +8,9 @@ powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing '%RAW%/
 if errorlevel 1 (pause & exit /b 1)
 powershell -NoProfile -Command "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Startup')+'\10bonds credit worker.lnk'); $s.TargetPath=$env:USERPROFILE+'\10bonds-worker\start-worker.bat'; $s.WorkingDirectory=$env:USERPROFILE+'\10bonds-worker'; $s.WindowStyle=7; $s.Save()"
 if errorlevel 1 (echo Could not create the startup shortcut. & pause & exit /b 1)
+rem Never sleep or hibernate while on mains power (the worker must run 24/7).
+powercfg /change standby-timeout-ac 0 >nul 2>nul
+powercfg /change hibernate-timeout-ac 0 >nul 2>nul
 echo.
 echo Done. The credit worker will now start by itself every time you sign in to Windows.
 echo Starting it now ...

@@ -21,7 +21,7 @@ const OLLAMA = (process.env.OLLAMA_URL ?? "http://127.0.0.1:11434").replace(/\/$
 export const ONLY_MODEL = "qwen3:8b";
 const MODEL = ONLY_MODEL;
 const ID = process.env.WORKER_ID ?? `worker-${hostname().replace(/[^A-Za-z0-9._-]/g, "")}`.slice(0, 60);
-export const WORKER_VERSION = "2026-11-04.1";
+export const WORKER_VERSION = "2026-11-12.1";
 let NET_DIAG = null;
 const IDLE_MS = Number(process.env.IDLE_SECONDS ?? 60) * 1000;
 const MAX_DOCS = Number(process.env.MAX_DOCS ?? 6);
@@ -866,9 +866,14 @@ if (isMain) {
     try { const r = await fetch(u, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(15_000) }); return `${new URL(u).hostname} ${r.status}`; } catch (e) { return `${new URL(u).hostname} ${e.cause?.code ?? e.message}`; }
   }))).join(" | ");
   log("network check:", NET_DIAG);
-  let fails = 0;
+  let fails = 0, ollamaDown = 0;
   let lastUpdateCheck = Date.now();
   while (!stopping) {
+    // Ollama crashed or was stopped: after 3 failed looks in a row, exit so start-worker.bat starts Ollama again and relaunches this worker.
+    const alive = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(8000) }).then((r) => r.ok).catch(() => false);
+    ollamaDown = alive ? 0 : ollamaDown + 1;
+    if (ollamaDown >= 3) { log("Ollama is not answering: restarting so it is started again"); process.exit(1); }
+    if (!alive) { await sleep(10_000); continue; }
     // Self-restart: every 10 minutes, between jobs, look at the published worker; if its version is newer, exit so start-worker.bat downloads it and relaunches.
     if (Date.now() - lastUpdateCheck > 10 * 60_000) {
       lastUpdateCheck = Date.now();
