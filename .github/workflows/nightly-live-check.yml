@@ -27,6 +27,12 @@ jobs:
       - name: Live finder check (page + list API + score tile)
         id: live
         run: node scripts/bes-tile-live-check.mjs 2>&1 | tee live.log
+      # 10B-0007: the live commit must carry a recorded release approval (fails for a release made outside deploy.yml).
+      - name: Live release is approved
+        if: success() || failure()
+        run: |
+          set -o pipefail
+          node scripts/release-audit.mjs 2>&1 | tee -a live.log
       - name: One e-mail if it failed
         if: failure()
         run: |

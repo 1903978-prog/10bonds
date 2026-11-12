@@ -1,18 +1,59 @@
-# One-click rollback: Actions > "Roll back to the previous release" > Run workflow.
+# Rollback: Actions > "Roll back to the previous release" > Run workflow.
 # Puts the image of the release before the current one back on Fly. Nothing is rebuilt and no data is touched.
-# The deploy workflow runs the same script by itself when the checks after a deploy fail.
+# Release gate (10B-0007): needs a release approval (REL-0001, workflow "rollback") recorded as APPROVED by Livio in
+# docs/livio-asks.md, OR, for an emergency only, a written reason (20+ characters). An emergency rollback is labelled
+# EMERGENCY in the run name and recorded in the database (release_emergency:<run>), so it can be audited afterwards.
+# The deploy workflow runs the same script by itself, inside an approved release, when the checks after a deploy fail.
 name: Roll back to the previous release
+run-name: "Rollback ${{ inputs.approval_id || 'EMERGENCY' }}"
 on:
   workflow_dispatch:
+    inputs:
+      approval_id:
+        description: "Release approval (REL-0001) for this rollback; leave empty only for an emergency"
+        type: string
+        default: ""
+      emergency_reason:
+        description: "Emergency only: why the site must go back now (20+ characters; recorded)"
+        type: string
+        default: ""
 concurrency: deploy
 jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Release approval or emergency reason
+        env:
+          EMERGENCY_REASON: ${{ inputs.emergency_reason }}
+        run: node scripts/release-gate.mjs --workflow rollback --approval "${{ inputs.approval_id }}"
   rollback:
+    needs: gate
+    environment: production
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Claim the approval or record the emergency (single use)
+        env:
+          ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+          APPROVAL_ID: ${{ inputs.approval_id }}
+          EMERGENCY_REASON: ${{ inputs.emergency_reason }}
+          WORKFLOW: rollback
+        run: |
+          npm ci --no-audit --no-fund >/dev/null
+          node scripts/release-claim.mjs
       # Pinned: the same tool version every run, changed on purpose only.
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
         with:
