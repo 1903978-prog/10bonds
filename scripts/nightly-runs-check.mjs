@@ -10,6 +10,9 @@ export const MAX_AGE_HOURS = 26;
 
 /** Problem text for one workflow's recent scheduled runs (newest first), or null when the last one passed recently. */
 export function judgeRuns(label, runs, now = Date.now()) {
+  // A run still going after an hour (slow or hung) is a problem, not a reason to judge the night before (review 13 Nov).
+  const newest = (runs ?? [])[0];
+  if (newest && newest.status !== "completed" && !((now - Date.parse(newest.created_at)) / 3_600_000 < 1)) return `${label}: tonight's run is still ${newest.status} after more than 1 h (${newest.html_url})`;
   const done = (runs ?? []).filter((r) => r.status === "completed");
   if (!done.length) return `${label}: no completed scheduled run found`;
   const last = done[0];

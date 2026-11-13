@@ -30,7 +30,10 @@ describe("owner e-mails", () => {
     expect(judgeRuns("Backup", [run({ conclusion: "failure" })], now)).toMatch(/failure/);
     expect(judgeRuns("Backup", [run({ created_at: "2026-11-11T02:15:00Z" })], now)).toMatch(/h old/);
     expect(judgeRuns("Backup", [], now)).toMatch(/no completed/);
-    expect(judgeRuns("Backup", [{ ...run({}), status: "in_progress" }, run({ conclusion: "failure" })], now)).toMatch(/failure/);
+    expect(judgeRuns("Backup", [{ ...run({ created_at: "2026-11-13T02:50:00Z" }), status: "in_progress" }, run({ conclusion: "failure" })], now)).toMatch(/failure/);
     expect(judgeRuns("Backup", [run({ created_at: "garbage" })], now)).toMatch(/old/);
+    // Tonight's run hung: reported, even though last night's passed.
+    expect(judgeRuns("Backup", [{ ...run({ created_at: "2026-11-13T02:00:00Z" }), status: "in_progress" }, run({ created_at: "2026-11-12T02:15:00Z" })], now)).toMatch(/still in_progress/);
+    expect(judgeRuns("Backup", [{ ...run({ created_at: "2026-11-13T02:45:00Z" }), status: "in_progress" }, run({ created_at: "2026-11-12T02:15:00Z" })], now)).toBeNull();
   });
 });
