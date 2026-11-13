@@ -6,11 +6,10 @@ import { readFileSync } from "node:fs";
 import { parseReleaseApprovals } from "./release-approvals.mjs";
 
 export function auditLive(md, live) {
-  if (!live || live.sha === "unknown" || !/^[0-9a-f]{40}$/.test(live.sha ?? "")) return "live release has no recorded commit (made outside the release gate)";
-  const row = parseReleaseApprovals(md).find((c) => c[0] === live.approval);
-  if (!row) return `live approval ${live.approval} is not in Release approvals`;
-  if (row[3] !== live.sha) return `live commit ${live.sha.slice(0, 12)} is not the approved ${row[3].slice(0, 12)}`;
-  if (!["APPROVED", "USED"].includes(row[6])) return `approval ${row[0]} has status ${row[6]}`;
+  if (!live || !/^[0-9a-f]{40}$/.test(live.sha ?? "")) return "live release has no recorded commit (made outside the release gate)";
+  // After a rollback the live commit is an older one; it passes only if that commit had its own approved deploy.
+  const ok = parseReleaseApprovals(md).some((c) => c[1] === "10bonds" && c[2] === "deploy" && c[3] === live.sha && ["APPROVED", "USED"].includes(c[6]));
+  if (!ok) return `live commit ${live.sha.slice(0, 12)} (${live.approval ?? "no approval"}) has no approved deploy in Release approvals`;
   return null;
 }
 

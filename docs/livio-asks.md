@@ -32,7 +32,7 @@ Times Bangkok. Add a row for every new ask and its outcome.
 
 ## Release approvals
 
-A 10bonds release (deploy.yml) or rollback (rollback.yml) runs only if a row below is APPROVED by Livio for that workflow and, for a deploy, for the EXACT 40-character commit. Enforced by `scripts/release-gate.mjs` (reads this file from main, fails closed) and `scripts/release-claim.mjs` (single use, claimed in the database before anything reaches Fly). Since 10B-0007; added after 10e5eb2f was deployed on 12 Nov 2026 04:47 UTC without a GO. An emergency rollback (previous image, nothing rebuilt) may run without a row only with a written reason; it is labelled EMERGENCY and recorded. No row is ever added after the fact.
+A 10bonds release (deploy.yml) or rollback (rollback.yml) runs only if a row below is APPROVED by Livio for that workflow and, for a deploy, for the EXACT 40-character commit. Enforced by `scripts/release-gate.mjs` (reads this file from main, fails closed) and `scripts/release-claim.mjs` (single use, claimed in the database before anything reaches Fly). Since 10B-0007; added after 10e5eb2f was deployed on 12 Nov 2026 04:47 UTC without a GO. An emergency rollback (previous image, nothing rebuilt) may run without a row only with a written reason (40+ characters); it is labelled EMERGENCY and recorded. No row is ever added after the fact.
 
 | ID | App | Workflow | Exact SHA | Scope | Approved by / date | Status |
 | --- | --- | --- | --- | --- | --- | --- |

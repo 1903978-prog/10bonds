@@ -1,7 +1,7 @@
 # Rollback: Actions > "Roll back to the previous release" > Run workflow.
 # Puts the image of the release before the current one back on Fly. Nothing is rebuilt and no data is touched.
 # Release gate (10B-0007): needs a release approval (REL-0001, workflow "rollback") recorded as APPROVED by Livio in
-# docs/livio-asks.md, OR, for an emergency only, a written reason (20+ characters). An emergency rollback is labelled
+# docs/livio-asks.md, OR, for an emergency only, a written reason (40+ characters). An emergency rollback is labelled
 # EMERGENCY in the run name and recorded in the database (release_emergency:<run>), so it can be audited afterwards.
 # The deploy workflow runs the same script by itself, inside an approved release, when the checks after a deploy fail.
 name: Roll back to the previous release
@@ -14,7 +14,7 @@ on:
         type: string
         default: ""
       emergency_reason:
-        description: "Emergency only: why the site must go back now (20+ characters; recorded)"
+        description: "Emergency only: why the site must go back now (40+ characters; recorded)"
         type: string
         default: ""
 concurrency: deploy
@@ -31,8 +31,9 @@ jobs:
           node-version: 22
       - name: Release approval or emergency reason
         env:
+          APPROVAL_ID: ${{ inputs.approval_id }}
           EMERGENCY_REASON: ${{ inputs.emergency_reason }}
-        run: node scripts/release-gate.mjs --workflow rollback --approval "${{ inputs.approval_id }}"
+        run: node scripts/release-gate.mjs --workflow rollback --approval "$APPROVAL_ID"
   rollback:
     needs: gate
     environment: production
@@ -58,4 +59,7 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
         with:
           version: 0.4.118
-      - run: bash scripts/fly-rollback.sh
+      - name: Put the previous image back
+        env:
+          RELEASE_ID: ${{ inputs.approval_id || 'EMERGENCY' }}
+        run: bash scripts/fly-rollback.sh

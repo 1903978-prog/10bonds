@@ -4,5 +4,5 @@ export const dynamic = "force-dynamic";
 export function GET() {
   const sha = process.env.RELEASE_SHA;
   const approval = process.env.RELEASE_ID;
-  return Response.json({ sha: sha && /^[0-9a-f]{40}$/.test(sha) ? sha : "unknown", approval: approval && /^REL-\d{4}$/.test(approval) ? approval : "unknown" }, { headers: { "cache-control": "no-store" } });
+  return Response.json({ sha: sha && /^[0-9a-f]{40}$/.test(sha) ? sha : "unknown", approval: approval && /^(REL-\d{4}|EMERGENCY|AUTO)$/.test(approval) ? approval : "unknown" }, { headers: { "cache-control": "no-store" } });
 }
