@@ -46,6 +46,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Checked before the claim, so a missing token never uses up an approval (re-review 13 Nov).
+      - name: Stop if the Fly token is not set
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then echo "FLY_API_TOKEN secret is not set: nothing rolled back."; exit 1; fi
       - name: Claim the approval or record the emergency (single use)
         env:
           ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}

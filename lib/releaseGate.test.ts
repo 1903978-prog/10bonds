@@ -85,6 +85,7 @@ describe("release gate", () => {
     expect(rollback).toMatch(/release-gate\.mjs --workflow rollback/);
     expect(rollback).toMatch(/needs: gate/);
     expect(rollback.indexOf("release-claim.mjs")).toBeLessThan(rollback.indexOf("fly-rollback.sh"));
+    expect(rollback.indexOf("Stop if the Fly token is not set")).toBeLessThan(rollback.indexOf("release-claim.mjs"));
     expect(read(".github/workflows/nightly-live-check.yml")).toMatch(/release-audit\.mjs/);
     // A missing Fly token stops the run red, before the approval is used up.
     expect(deploy).toMatch(/FLY_API_TOKEN secret is not set: nothing deployed\."\n\s+exit 1/);
