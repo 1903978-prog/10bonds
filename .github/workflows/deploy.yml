@@ -40,7 +40,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
   deploy:
     needs: [gate, test]
-    # Required reviewer on this environment = the approval click (Settings > Environments > production).
+    # Environment production: main only + deploy token (docs/release-governance-setup.md). Livio is the only human approver (EEN-REL-001).
     environment: production
     runs-on: ubuntu-24.04
     timeout-minutes: 25 # build ~10 min + blue-green wait; 15 cut off the 11 Nov release (10B-0001)

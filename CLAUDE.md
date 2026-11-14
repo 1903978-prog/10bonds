@@ -1,3 +1,10 @@
+# RELEASE POLICY EEN-REL-001 (Livio, 14 Nov 2026, permanent): Livio is the only human release approver.
+Release = develop, CI/tests, independent AI code review, Livio's exact-SHA GO, merge, deploy, production check. No other human
+approver, extra GitHub account, collaborator or formal approving review is ever required or requested; an AI review never
+means a GitHub approval. A GO stays valid while the SHA and scope are unchanged; a changed SHA or scope needs a new GO.
+Branch settings: require PR, approving reviews = 0, CI checks on. An approval-count block is CONFIGURATION DRIFT: report its
+location once. Checked by lib/releasePolicy.test.ts.
+
 # LENOVO MODEL RULE (Livio, 04 Nov 2026, standing)
 
 On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, `bge-m3` or any other model. Every Lenovo request sets `keep_alive`. Displayed dates are written like `03 Nov 2026`.

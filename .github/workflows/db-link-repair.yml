@@ -3,7 +3,7 @@
 #   mode=check  (default) read-only: rows breaking each link + fingerprint. Nothing is written.
 #   mode=apply  repair + validate in ONE transaction; any unexpected change rolls everything back.
 # Apply needs: a recorded APPROVED single-use row (docs/livio-asks.md, bound to the code hash), a GitHub Environment approval click
-# (environment production-change with required reviewer; the run's approval record is read back through the API), fresh backup AND
+# (environment production-change with Livio as the reviewer; the run's approval record is read back through the API), fresh backup AND
 # restore test, and an atomic claim of the approval ID. Any failure stops before the first write.
 # Deletions are hard-off: this workflow never passes --allow-deletes and has no input that could. A repair that would delete
 # any row rolls back. Production use needs Livio's release approval (given 10 Nov 2026 for the #497 repair).
@@ -80,7 +80,7 @@ jobs:
     needs: [precheck, check]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    # Required reviewer on this environment = the independent approval click (Settings > Environments > production-change).
+    # Livio's own approval click on this environment (Settings > Environments > production-change). One human only (EEN-REL-001).
     environment: production-change
     env:
       APPROVAL_ID: ${{ inputs.approval_id }}
@@ -94,7 +94,7 @@ jobs:
       - run: npm ci   # no secrets in this step
       - name: Recorded approval matches this exact code
         run: node scripts/prod-change-gate.mjs --workflow db-link-repair --approval "$APPROVAL_ID"
-      - name: Independent approval evidence (a recorded reviewer click on this run)
+      - name: Livio's approval evidence (a recorded approval click on this run)
         run: |
           n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" --jq '[.[] | select(.state=="approved" and .user.login=="1903978-prog")] | length')
           echo "approvals recorded by GitHub for this run: $n"
