@@ -18,15 +18,19 @@ GitHub › 10bonds › Settings › Environments › `production` (created by th
   Claude session. Effect: only a job inside `production` (main only, gate passed) can deploy; local `fly deploy` stops working.
 - Same for `ACCOUNTS_DATABASE_URL` used by the claim step: also add it as a `production` environment secret.
 
-## 3. Independent approver (prevents same-account approval)
-- Environments › `production` › **Required reviewers**: a second GitHub account used only for approvals (no write or admin
-  access to the repo, no Fly token, never used by a Claude session). Tick "Prevent self-review".
-- Without this, the account that dispatches can also approve; steps 1-2 still stop branch and local deploys.
+## 3. One human approver: Livio (policy EEN-REL-001, 14 Nov 2026)
+- Livio is the only human release approver. No other human, extra GitHub account, collaborator or formal approving
+  review is ever required, and none may be requested. Independent AI code review stays mandatory.
+- His approval is the exact-SHA REL-#### row (step "Release approvals" in docs/livio-asks.md), written from his own words.
+- Remaining risk, stated plainly: one admin account can still edit the approvals table, change workflows or use a Fly token it
+  holds. The gate stops mistakes and unapproved automated releases; the nightly release audit detects a deliberate bypass.
 
-## 4. Protect main
-- Settings › Rules › Rulesets › New branch ruleset for `main`: require a pull request, 1 approval from someone other than the
-  author (the approver account in step 3), block force pushes and deletions; no bypass list for the development account.
-- Effect: `docs/livio-asks.md` (the approvals table) and the workflows cannot be changed on main without the approver.
+## 4. Protect main (EEN-REL-001 configuration)
+- Settings › Branches (or Rules › Rulesets) for `main`: require a pull request, **required approving reviews = 0**, required
+  status check `test / checks`, block force pushes and deletions.
+- The approval row then reaches main through a docs-only pull request (the gate accepts a head whose only change from the
+  approved commit is docs/livio-asks.md, including a merge commit).
+- Checked 14 Nov 2026: main has no branch protection and no ruleset, so no review count exists to correct.
 
 ## Verification after applying
 1. Dispatch deploy.yml from a non-main branch: the deploy job must not start (environment rule).
@@ -35,6 +39,5 @@ GitHub › 10bonds › Settings › Environments › `production` (created by th
 4. `/api/health/version` after the first approved release shows the approved SHA and REL id; nightly release audit green.
 
 ## Who must act
-Steps 2 (token creation/revocation), 3 (second account) and the ruleset in 4 change credentials and access: Livio's explicit
-approval is required for each. Claude sessions cannot create GitHub accounts and the available GitHub connector has no
-environment or ruleset API.
+Steps 2 (token creation/revocation) and the main protection in 4 change credentials and repository settings; the GitHub
+connector available to Claude sessions has no environment, secret or ruleset API. Step 3 needs no action.
