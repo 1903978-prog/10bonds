@@ -65,6 +65,8 @@ jobs:
       X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the claim compares the approved commit with main's head (only docs/livio-asks.md may differ)
       # Single use: the approval id is claimed in the database before anything reaches Fly (a second run with it stops here).
       - uses: actions/setup-node@v4
         with:
@@ -78,6 +80,7 @@ jobs:
           fi
           echo "ok=1" >> "$GITHUB_ENV"
       - name: Claim the release approval (single use)
+        id: claim
         env:
           APPROVAL_ID: ${{ inputs.approval_id }}
           WORKFLOW: deploy
@@ -222,12 +225,14 @@ jobs:
         if: env.ok == '1'
         env:
           APPROVAL_ID: ${{ inputs.approval_id }}
+          APPROVED_SHA: ${{ steps.claim.outputs.approved_sha }}
         run: |
+          [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "No approved commit from the claim step: nothing deployed."; exit 1; }
           # The remote builder sometimes drops the connection ("rpc error ... EOF"); a second try is safe.
           for i in 1 2; do
             # RELEASE_SHA / RELEASE_ID are shown by /api/health/version, so anyone can check which approved commit is live.
-            # The image is labelled sha-<commit>, so a later rollback knows which commit it puts back.
-            flyctl deploy --remote-only -a 10bonds --ha=false --image-label "sha-$GITHUB_SHA" --env RELEASE_SHA="$GITHUB_SHA" --env RELEASE_ID="$APPROVAL_ID" && exit 0
+            # The image is labelled sha-<approved commit>, so a later rollback knows which approved commit it puts back.
+            flyctl deploy --remote-only -a 10bonds --ha=false --image-label "sha-$APPROVED_SHA" --env RELEASE_SHA="$APPROVED_SHA" --env RELEASE_ID="$APPROVAL_ID" && exit 0
             echo "deploy try $i failed"; sleep 20
           done
           exit 1

@@ -10,7 +10,7 @@
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-import { checkRelease, readMainDoc } from "./release-approvals.mjs";
+import { checkRelease, gitSameCode, readMainDoc } from "./release-approvals.mjs";
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
 if (!isMain && !process.env.VITEST) { console.error("BLOCKED: gate was not run as a command"); process.exit(1); }
@@ -23,7 +23,7 @@ if (isMain) {
     // The approval is read from origin/main, never from the files being deployed, so a branch cannot approve itself.
     const doc = readMainDoc();
     const workflow = get("--workflow"), approval = get("--approval") || "", sha = get("--sha") || process.env.GITHUB_SHA || "";
-    const errors = checkRelease(doc, { workflow, approval, sha, emergencyReason: process.env.EMERGENCY_REASON ?? "" });
+    const errors = checkRelease(doc, { workflow, approval, sha, emergencyReason: process.env.EMERGENCY_REASON ?? "", same: gitSameCode });
     if (errors.length) { console.error("BLOCKED: release not approved.\n- " + errors.join("\n- ")); process.exit(1); }
     console.log(approval ? `OK: ${approval} approves ${workflow} of ${sha.slice(0, 12)}.` : "EMERGENCY rollback allowed without approval; reason recorded.");
   } catch (e) { console.error("BLOCKED: " + e.message); process.exit(1); }

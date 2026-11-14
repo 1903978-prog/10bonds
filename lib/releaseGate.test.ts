@@ -21,6 +21,36 @@ const row = (o: Partial<Record<string, string>> = {}) => `| ${o.id ?? "REL-0001"
 const run = (script: string, env: Record<string, string>, args: string[] = []) =>
   spawnSync(process.execPath, [join(root, "scripts", script), ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", ...env } as unknown as NodeJS.ProcessEnv });
 
+async function git() {
+  const p = "../scripts/release-approvals.mjs";
+  return (await import(/* @vite-ignore */ p)) as { gitSameCode: (a: string, b: string, cwd: string) => boolean; checkRelease: (md: string, o: Record<string, unknown>) => string[] };
+}
+
+describe("approved commit vs main's head (the approval row itself is a commit on main)", () => {
+  it("accepts a descendant that changes only docs/livio-asks.md, nothing else", async () => {
+    const { gitSameCode } = await git();
+    const { mkdtempSync, writeFileSync, mkdirSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const d = mkdtempSync(join(tmpdir(), "relgate-"));
+    const g = (...a: string[]) => spawnSync("git", a, { cwd: d, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } as unknown as NodeJS.ProcessEnv }).stdout.trim();
+    g("init", "-q"); mkdirSync(join(d, "docs"));
+    writeFileSync(join(d, "app.ts"), "1"); writeFileSync(join(d, "docs/livio-asks.md"), "a"); g("add", "-A"); g("commit", "-qm", "code");
+    const approved = g("rev-parse", "HEAD");
+    writeFileSync(join(d, "docs/livio-asks.md"), "a + row"); g("commit", "-qam", "row");
+    const rowOnly = g("rev-parse", "HEAD");
+    writeFileSync(join(d, "app.ts"), "2"); g("commit", "-qam", "sneak");
+    const sneaked = g("rev-parse", "HEAD");
+    g("checkout", "-q", "-b", "side", approved + "~0"); writeFileSync(join(d, "docs/livio-asks.md"), "x"); g("commit", "-qam", "side");
+    const side = g("rev-parse", "HEAD");
+    expect(gitSameCode(approved, approved, d)).toBe(true);
+    expect(gitSameCode(approved, rowOnly, d)).toBe(true);
+    expect(gitSameCode(approved, sneaked, d)).toBe(false);
+    expect(gitSameCode(rowOnly, approved, d)).toBe(false); // not a descendant
+    expect(gitSameCode(side, rowOnly, d)).toBe(false);
+    expect(gitSameCode("f".repeat(40), rowOnly, d)).toBe(false);
+  });
+});
+
 describe("release gate", () => {
   it("the gate and the claim exit non-zero when they refuse (fail closed)", () => {
     const wrongBranch = run("release-gate.mjs", { GITHUB_ACTIONS: "true", GITHUB_REF: "refs/heads/other" }, ["--workflow", "deploy", "--approval", "REL-0001", "--sha", SHA]);
@@ -81,7 +111,8 @@ describe("release gate", () => {
     expect(deploy).toMatch(/release-claim\.mjs/);
     expect(deploy.indexOf("release-claim.mjs")).toBeLessThan(deploy.indexOf("flyctl deploy"));
     expect(deploy).toMatch(/environment: production/);
-    expect(deploy).toMatch(/RELEASE_SHA="\$GITHUB_SHA"/);
+    expect(deploy).toMatch(/RELEASE_SHA="\$APPROVED_SHA"/);
+    expect(deploy).toMatch(/approved_sha \}\}/);
     expect(rollback).toMatch(/release-gate\.mjs --workflow rollback/);
     expect(rollback).toMatch(/needs: gate/);
     expect(rollback.indexOf("release-claim.mjs")).toBeLessThan(rollback.indexOf("fly-rollback.sh"));
@@ -91,7 +122,7 @@ describe("release gate", () => {
     expect(deploy).toMatch(/FLY_API_TOKEN secret is not set: nothing deployed\."\n\s+exit 1/);
     expect(deploy.indexOf("Stop if the Fly token is not set")).toBeLessThan(deploy.indexOf("release-claim.mjs"));
     // A rollback records which commit it put back.
-    expect(deploy).toMatch(/--image-label "sha-\$GITHUB_SHA"/);
+    expect(deploy).toMatch(/--image-label "sha-\$APPROVED_SHA"/);
     expect(read("scripts/fly-rollback.sh")).toMatch(/--env RELEASE_SHA=/);
     // No other workflow may run flyctl deploy or the rollback script.
     for (const f of readdirSync(join(root, ".github/workflows"))) {
