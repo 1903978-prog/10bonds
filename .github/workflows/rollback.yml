@@ -53,6 +53,7 @@ jobs:
       - name: Claim the approval or record the emergency (single use)
         env:
           ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           APPROVAL_ID: ${{ inputs.approval_id }}
           EMERGENCY_REASON: ${{ inputs.emergency_reason }}
           WORKFLOW: rollback

@@ -125,6 +125,10 @@ describe("release gate", () => {
     expect(rollback).toMatch(/needs: gate/);
     expect(rollback.indexOf("release-claim.mjs")).toBeLessThan(rollback.indexOf("fly-rollback.sh"));
     expect(rollback.indexOf("Stop if the Fly token is not set")).toBeLessThan(rollback.indexOf("release-claim.mjs"));
+    // The claim connects like the site and the backup: the secret may be only the app password (first release, 14 Nov).
+    expect(read("scripts/release-claim.mjs")).toMatch(/postgres\(accountsUrl\(process\.env\.ACCOUNTS_DATABASE_URL, process\.env\.DATABASE_URL\)/);
+    expect(rollback).toMatch(/DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/);
+    expect(deploy).toMatch(/DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/);
     expect(read(".github/workflows/nightly-live-check.yml")).toMatch(/release-audit\.mjs/);
     // A missing Fly token stops the run red, before the approval is used up.
     expect(deploy).toMatch(/FLY_API_TOKEN secret is not set: nothing deployed\."\n\s+exit 1/);

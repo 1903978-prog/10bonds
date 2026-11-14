@@ -3,10 +3,11 @@
 // insert ... on conflict do nothing: a second dispatch, a re-run or a concurrent run with the same id stops here. 10B-0007.
 // It checks the approval again against docs/livio-asks.md on origin/main (same rules as release-gate.mjs), so this step
 // fails closed even if the gate job was skipped or bypassed (review 13 Nov).
-// Needs ACCOUNTS_DATABASE_URL, WORKFLOW, GITHUB_RUN_ID, GITHUB_SHA, GITHUB_ACTOR; APPROVAL_ID or EMERGENCY_REASON.
+// Needs ACCOUNTS_DATABASE_URL (and DATABASE_URL when it holds only the password), WORKFLOW, GITHUB_RUN_ID, GITHUB_SHA, GITHUB_ACTOR; APPROVAL_ID or EMERGENCY_REASON.
 import postgres from "postgres";
 import { appendFileSync } from "node:fs";
 import { approvedSha, checkRelease, gitSameCode, readMainDoc } from "./release-approvals.mjs";
+import { accountsUrl } from "./accounts-url.mjs";
 
 const fail = (m) => { console.error("BLOCKED: " + m); process.exit(1); };
 const id = process.env.APPROVAL_ID ?? "", reason = (process.env.EMERGENCY_REASON ?? "").trim(), wf = process.env.WORKFLOW ?? "";
@@ -20,7 +21,11 @@ const errors = checkRelease(doc, { workflow: wf, approval: id, sha: process.env.
 if (errors.length) fail("release not approved.\n- " + errors.join("\n- "));
 if (!process.env.ACCOUNTS_DATABASE_URL) fail("ACCOUNTS_DATABASE_URL is not set: the approval cannot be claimed, so nothing is released");
 const key = id ? `release_claim:${id}` : `release_emergency:${process.env.GITHUB_RUN_ID}`;
-const sql = postgres(process.env.ACCOUNTS_DATABASE_URL, { max: 1, connect_timeout: 20 });
+// The secret may hold only the app password (same rule as the site and the nightly backup): scripts/accounts-url.mjs.
+// First release, 14 Nov 2026: passing the raw secret to postgres() failed with "Invalid URL" (nothing was claimed or deployed).
+let sql;
+try { sql = postgres(accountsUrl(process.env.ACCOUNTS_DATABASE_URL, process.env.DATABASE_URL), { max: 1, connect_timeout: 20 }); }
+catch (e) { fail("accounts database link is not usable: " + (e.code ?? e.message)); }
 try {
   const value = JSON.stringify({ workflow: wf, run: process.env.GITHUB_RUN_ID, sha: process.env.GITHUB_SHA, actor: process.env.GITHUB_ACTOR, reason: id ? null : reason.slice(0, 500), at: new Date().toISOString() });
   const claimed = await sql`insert into app.settings (key, value) values (${key}, ${value}) on conflict (key) do nothing returning key`;
