@@ -10,7 +10,10 @@ export async function POST(req: Request) {
   const g = await workerGate(req);
   if (g instanceof NextResponse) return g;
   const { workerId, body } = g;
-  await touchWorker(workerId, { model: body.model, host: body.host, isin: null, stage: "idle", version: body.version, diag: body.diag });
+  // The worker reports Ollama or qwen3:8b missing instead of claiming: it is seen as connected but not able to work (monitoring shows the difference).
+  const notReady = body.ready === false ? (body.notReady === "model-missing" ? "model-missing" : "ollama-down") : null;
+  await touchWorker(workerId, { model: body.model, host: body.host, isin: null, stage: notReady ?? "idle", version: body.version, diag: body.diag });
+  if (notReady) return NextResponse.json({ paused: false, job: null, notReady });
   if (await isPaused()) return NextResponse.json({ paused: true, job: null });
   let job = await claimJob(workerId);
   if (!job) { await seedAllBondJobs().catch((e) => console.error("[credit-research] seed", (e as Error).message)); job = await claimJob(workerId); }

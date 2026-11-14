@@ -30,6 +30,13 @@ Times Bangkok. Add a row for every new ask and its outcome.
 | 2026-10-29 | Headline wording (Mathematics-based vs AI-based) | Pasted audits disagreed | Livio 13:38: "AI-based Bond portfolios", final; live 14:42 |
 | 2026-10-29 | Time-protection rules failed again | Rules lived in an optional skill | Moved into CLAUDE.md top block plus Stop hook (this change) |
 
+## Release approvals
+
+A 10bonds release (deploy.yml) or rollback (rollback.yml) runs only if a row below is APPROVED by Livio for that workflow and, for a deploy, for the EXACT 40-character commit. Enforced by `scripts/release-gate.mjs` (reads this file from main, fails closed) and `scripts/release-claim.mjs` (single use, claimed in the database before anything reaches Fly). Since 10B-0007; added after 10e5eb2f was deployed on 12 Nov 2026 04:47 UTC without a GO. An emergency rollback (previous image, nothing rebuilt) may run without a row only with a written reason (40+ characters); it is labelled EMERGENCY and recorded. No row is ever added after the fact.
+
+| ID | App | Workflow | Exact SHA | Scope | Approved by / date | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Production change approvals
 
 A manual production data change (repair, bulk update, destructive migration, TRUNCATE, DROP) runs only if a row below is APPROVED by Livio for that exact change. Enforced by `scripts/prod-change-gate.mjs` inside the workflow (fails closed), not by habit. A row is single-use: set status to USED after the run. Print the code hash with `node scripts/prod-change-gate.mjs --workflow <key> --hash`. Routine app writes, bond imports, subscriptions, visitor events and scheduled calculations are not covered.

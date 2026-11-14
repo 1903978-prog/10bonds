@@ -1,5 +1,6 @@
 name: Nightly live check
-# The ONLY scheduled production check that reports a failure by e-mail (one summary, via the site, to the owner).
+# The ONLY production check that reports a failure by e-mail (one summary, via the site, to the owner). It also reports
+# last night's backup + restore test and link check, which no longer e-mail by themselves (10B-0008).
 # Runs once per night and once after a successful manual "Deploy to Fly". Never on push, never on a branch.
 on:
   schedule:
@@ -8,6 +9,9 @@ on:
   workflow_run:
     workflows: ["Deploy to Fly"]
     types: [completed]
+permissions:
+  contents: read
+  actions: read
 concurrency:
   group: nightly-live-check
   cancel-in-progress: false
@@ -27,6 +31,20 @@ jobs:
       - name: Live finder check (page + list API + score tile)
         id: live
         run: node scripts/bes-tile-live-check.mjs 2>&1 | tee live.log
+      # 10B-0007: the live commit must carry a recorded release approval (fails for a release made outside deploy.yml).
+      - name: Live release is approved
+        if: success() || failure()
+        run: |
+          set -o pipefail
+          node scripts/release-audit.mjs 2>&1 | tee -a live.log
+      # 10B-0008: backup (02:15) and link check (02:10) no longer e-mail; their failure is reported here, in the same one e-mail.
+      - name: Last night's backup and link check passed
+        if: success() || failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          node scripts/nightly-runs-check.mjs 2>&1 | tee -a live.log
       - name: One e-mail if it failed
         if: failure()
         run: |

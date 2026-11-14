@@ -1,4 +1,3 @@
-import { noteWorkerSeen } from "./workerWatch";
 import { createHash, randomBytes } from "node:crypto";
 import { accountsSql } from "./accounts";
 import { loadCreditAnalysis } from "./creditAnalysisDb";
@@ -275,7 +274,6 @@ export async function setPaused(p: boolean): Promise<void> {
 const clean = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
 
 export async function touchWorker(workerId: string, info: { model?: unknown; host?: unknown; isin?: string | null; stage?: unknown; version?: unknown; diag?: unknown }) {
-  noteWorkerSeen();
   const s = await sql();
   const version = clean(info.version, 30) || null, diag = clean(info.diag, 600) || null;
   await s`
@@ -513,17 +511,37 @@ export async function workerStatus() {
   const s = await sql();
   const w = await s<{ version: string | null; model: string | null; stage: string | null; seconds_ago: number; diag: string | null }[]>`
     select version, model, stage, diag, extract(epoch from now() - last_seen)::int as seconds_ago from app.credit_research_workers order by last_seen desc limit 1`;
-  const [c] = await s<{ done_1h: number; done_24h: number; queued: number; processing: number }[]>`
+  const [c] = await s<{ done_1h: number; done_24h: number; queued: number; processing: number; created_24h: number; oldest_queued_h: number | null }[]>`
     select count(*) filter (where status = 'done' and completed_at > now() - interval '1 hour')::int done_1h,
       count(*) filter (where status = 'done' and completed_at > now() - interval '1 day')::int done_24h,
-      count(*) filter (where status = 'queued')::int queued, count(*) filter (where status = 'processing')::int processing
+      count(*) filter (where status = 'queued')::int queued, count(*) filter (where status = 'processing')::int processing,
+      count(*) filter (where created_at > now() - interval '1 day')::int created_24h,
+      (extract(epoch from now() - min(created_at) filter (where status = 'queued')) / 3600)::int oldest_queued_h
     from app.credit_research_jobs`;
+  const [r] = await s<{ ok_6h: number; failed_24h: number; last_ok_s: number | null }[]>`
+    select count(*) filter (where ok and at > now() - interval '6 hours')::int ok_6h, count(*) filter (where not ok and at > now() - interval '1 day')::int failed_24h,
+      extract(epoch from now() - max(at) filter (where ok))::int last_ok_s
+    from app.credit_research_runs`;
   const x = w[0];
+  const connected = !!x && x.seconds_ago < 180;
   return {
-    connected: !!x && x.seconds_ago < 180,
+    connected,
     lastSeenSecondsAgo: x ? x.seconds_ago : null,
     version: x?.version ?? null, model: x?.model ?? null, stage: x?.stage ?? null,
     network: x?.diag ? x.diag.replace(/\s+/g, " ").slice(0, 400) : null,
     jobsDoneLastHour: c.done_1h, jobsDoneLast24h: c.done_24h, queued: c.queued, processing: c.processing,
+    jobsCreatedLast24h: c.created_24h, oldestQueuedHours: c.oldest_queued_h, failedRunsLast24h: r.failed_24h,
+    lastCompletedJobSecondsAgo: r.last_ok_s,
+    alerts: workerAlerts({ connected, stage: x?.stage ?? null, queued: c.queued, okLast6h: r.ok_6h }),
   };
+}
+
+/** Plain reasons the research worker needs attention (empty when it is working). Connected is not enough: it must also finish jobs. */
+export function workerAlerts(v: { connected: boolean; stage: string | null; queued: number; okLast6h: number }): string[] {
+  const out: string[] = [];
+  if (!v.connected) out.push("worker offline (no contact for 3 minutes)");
+  else if (v.stage === "ollama-down") out.push("worker connected but Ollama is not answering");
+  else if (v.stage === "model-missing") out.push("worker connected but qwen3:8b is not installed");
+  if (v.queued > 0 && v.okLast6h === 0) out.push("jobs are waiting but none finished in the last 6 hours");
+  return out;
 }

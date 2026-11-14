@@ -21,7 +21,7 @@ const OLLAMA = (process.env.OLLAMA_URL ?? "http://127.0.0.1:11434").replace(/\/$
 export const ONLY_MODEL = "qwen3:8b";
 const MODEL = ONLY_MODEL;
 const ID = process.env.WORKER_ID ?? `worker-${hostname().replace(/[^A-Za-z0-9._-]/g, "")}`.slice(0, 60);
-export const WORKER_VERSION = "2026-11-12.1";
+export const WORKER_VERSION = "2026-11-12.2";
 let NET_DIAG = null;
 const IDLE_MS = Number(process.env.IDLE_SECONDS ?? 60) * 1000;
 const MAX_DOCS = Number(process.env.MAX_DOCS ?? 6);
@@ -80,6 +80,32 @@ if (!TOKEN) { console.error("WORKER_TOKEN is not set"); process.exit(1); }
 let stopping = false;
 for (const s of ["SIGINT", "SIGTERM"]) process.on(s, () => { log("stopping after the current step"); stopping = true; });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ---- Unattended running (12 Nov 2026): the worker never gives up on its own; it waits and tries again. ----
+/** Wait before the next try: doubles per failure up to the cap, with +/-25% jitter so a restart of the site or the Lenovo does not line everything up. */
+export function backoffMs(fails, baseMs, capMs, rand = Math.random) {
+  const d = Math.min(capMs, baseMs * 2 ** Math.max(0, Math.min(fails, 20)));
+  return Math.round(d * (0.75 + 0.5 * rand()));
+}
+/** True when Ollama lists qwen3:8b (reading the list never loads a model). */
+export function modelInstalled(tags) { return (tags?.models ?? []).some((m) => m?.name === ONLY_MODEL || m?.model === ONLY_MODEL); }
+/** "ok", "model-missing" or "ollama-down". No job is claimed unless this is "ok"; the worker never pulls a model. */
+export async function ollamaReady(call = (u) => fetch(u, { signal: AbortSignal.timeout(8000) }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })) {
+  try { return modelInstalled(await call(`${OLLAMA}/api/tags`)) ? "ok" : "model-missing"; } catch { return "ollama-down"; }
+}
+/** Sends a finished result, trying again on a network error or a 5xx/429. Safe to repeat: the site recognises the same result (result hash) and does not publish it twice. */
+export async function completeWithRetry(send, tries = 4, wait = sleep) {
+  let last = null;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await send();
+      if (res.status < 500 && res.status !== 429) return res;
+      last = new Error(`complete answered HTTP ${res.status}`);
+    } catch (e) { last = e; }
+    if (i < tries - 1) await wait(backoffMs(i, 5_000, 120_000));
+  }
+  throw last ?? new Error("complete failed");
+}
 
 async function api(path, body) {
   const r = await fetch(`${SITE}/api/credit-worker/${path}`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${TOKEN}` }, body: JSON.stringify({ workerId: ID, model: MODEL, host: hostname(), ...body }), signal: AbortSignal.timeout(30_000) });
@@ -686,7 +712,7 @@ function summaryBlock(job, docs, figures, conflicts, x, res) {
     `   shared memory: ${kbWarned ? "website database not available (local file used)" : "website database in use"}`,
     `2 access:     ${stats.fetchOk} fetched, ${blocked.length ? `refused: ${blocked.join(", ")}` : "none refused"}${Object.keys(stats.failedHosts).length ? `, unreachable: ${Object.keys(stats.failedHosts).join(", ")}` : ""}`,
     `3 parsing:    ${stats.pdfParsed} PDF parsed, ${stats.pdfFailed} failed`,
-    `4 extraction: ${figures.length} figure(s) found${x ? `, model ${Math.round((x.ms ?? 0) / 1000)} s` : ", model not used"}; retrieval: ${embedStats.used ? `BGE-M3 (${embedStats.chunks} passages embedded, ${embedStats.fromCache} from cache)` : embedState === false ? "keywords (BGE-M3 not installed: ollama pull bge-m3 to enable)" : "keywords"}`,
+    `4 extraction: ${figures.length} figure(s) found${x ? `, model ${Math.round((x.ms ?? 0) / 1000)} s` : ", model not used"}; retrieval: ${embedStats.used ? `BGE-M3 (${embedStats.chunks} passages embedded, ${embedStats.fromCache} from cache)` : embedState === false ? "keywords (BGE-M3 not used: only qwen3:8b is allowed)" : "keywords"}`,
     `5 verification: ${verified.length} with quote + source (${figures.filter((f) => f.cached).length} from earlier jobs); missing mandatory: ${missing.join(", ") || "none"}; conflicts: ${conflicts.length ? conflicts.join(" | ") : "none"}`,
     ...figures.map((f) => `   ${f.parameter} = ${f.value} ${f.unit} · ${f.period ?? "period unknown"} · ${f.url.slice(0, 90)}${f.page ? ` p.${f.page}` : ""}${f.cached ? " (cached)" : ""}`),
     `6 scoring/publication: ${res ? `IR ${res.ir ?? "?"} · BR ${res.br ?? "?"} · ${res.status}` : "not reached"}`,
@@ -737,7 +763,7 @@ async function work(job) {
     const result0 = x ? { ...x.result, ...extra, metrics: { ...(x.result.metrics ?? {}), ...metrics }, notes: [...(x.result.notes ?? []), ...extra.notes], conflicts: [...(x.result.conflicts ?? []), ...extra.conflicts], evidence, usage: { model: MODEL, ms: x.ms, tokensIn: x.tokensIn, tokensOut: x.tokensOut } } : { ...extra, metrics, notes: [`automatic research incomplete: ${problem}`, ...extra.notes], evidence, usage: { model: MODEL, ms: 0, tokensIn: 0, tokensOut: 0 } };
     const result = mergeDeterministic(result0, job.det);
     stage = "publishing";
-    const res = await api("complete", { isin: job.isin, result });
+    const res = await completeWithRetry(() => api("complete", { isin: job.isin, result }));
     log(job.isin, "complete", res.status, JSON.stringify({ ir: res.ir, br: res.br, status: res.status }));
     console.log(summaryBlock(job, docs, [...figures, ...cachedList.filter((c) => !figures.some((f) => f.parameter === c.parameter))], figConflicts, x, res));
     if (res.status >= 400 && res.status !== 409) throw new Error(`complete rejected: ${res.error}`);
@@ -827,7 +853,7 @@ export async function lenovoCheck() {
   const tags = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).catch(() => null);
   line(!!tags, "Ollama answers", OLLAMA);
   line(!!tags?.models?.some((m) => m.name === MODEL), `model ${MODEL} installed`);
-  const emb = await embedAvailable(); info("BGE-M3 retrieval", emb ? "installed - used for choosing passages" : "not installed (optional): run `ollama pull bge-m3` to enable; keyword retrieval is used meanwhile");
+  const emb = await embedAvailable(); info("BGE-M3 retrieval", emb ? "installed - used for choosing passages" : "not used: only qwen3:8b is allowed on the Lenovo; keyword retrieval is used");
   if (emb) { try { const v = await embedTexts(["capital ratio"]); line(Array.isArray(v?.[0]) && v[0].length > 100, "BGE-M3 embedding works", `${v?.[0]?.length ?? 0} dimensions`); } catch (e) { line(false, "BGE-M3 embedding works", e.message); } }
   // 3 PDF reader
   let pdfOk = false; try { await run("pdftotext", ["-v"], { timeout: 8000 }); pdfOk = true; } catch (e) { pdfOk = e.code !== "ENOENT" && !!e.stderr; }
@@ -866,31 +892,39 @@ if (isMain) {
     try { const r = await fetch(u, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(15_000) }); return `${new URL(u).hostname} ${r.status}`; } catch (e) { return `${new URL(u).hostname} ${e.cause?.code ?? e.message}`; }
   }))).join(" | ");
   log("network check:", NET_DIAG);
-  let fails = 0, ollamaDown = 0;
-  let lastUpdateCheck = Date.now();
+  // No self-update: the worker only runs the reviewed copy the installer put on this computer (12 Nov 2026).
+  let fails = 0, authFails = 0, notReady = 0, ollamaDown = 0;
   while (!stopping) {
-    // Ollama crashed or was stopped: after 3 failed looks in a row, exit so start-worker.bat starts Ollama again and relaunches this worker.
-    const alive = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(8000) }).then((r) => r.ok).catch(() => false);
-    ollamaDown = alive ? 0 : ollamaDown + 1;
-    if (ollamaDown >= 3) { log("Ollama is not answering: restarting so it is started again"); process.exit(1); }
-    if (!alive) { await sleep(10_000); continue; }
-    // Self-restart: every 10 minutes, between jobs, look at the published worker; if its version is newer, exit so start-worker.bat downloads it and relaunches.
-    if (Date.now() - lastUpdateCheck > 10 * 60_000) {
-      lastUpdateCheck = Date.now();
-      try {
-        const txt = await fetch("https://raw.githubusercontent.com/1903978-prog/10bonds/main/scripts/credit-worker/worker.mjs", { signal: AbortSignal.timeout(30_000) }).then((x) => x.text());
-        const remote = /WORKER_VERSION = "([^"]+)"/.exec(txt)?.[1];
-        if (remote && remote > WORKER_VERSION) { log(`newer worker ${remote} published: restarting to update`); process.exit(0); }
-      } catch { /* offline: keep working */ }
-    }
+    let wait = IDLE_MS;
     try {
+      // Ollama and qwen3:8b first: a job is only claimed when it can actually be worked on.
+      const ready = await ollamaReady();
+      // Ollama crashed or was stopped: after 3 failed looks in a row, exit (code 4) so the supervisor (run-worker.ps1) starts Ollama again and relaunches this worker.
+      ollamaDown = ready === "ollama-down" ? ollamaDown + 1 : 0;
+      if (ollamaDown >= 3) { log("Ollama is not answering: exiting so the supervisor starts it again"); process.exit(4); }
+      if (ready !== "ok") {
+        notReady++;
+        log(ready === "model-missing" ? `${ONLY_MODEL} is not installed in Ollama: no job claimed (the worker never downloads a model)` : "Ollama is not answering: no job claimed");
+        await api("claim", { version: WORKER_VERSION, diag: NET_DIAG, ready: false, notReady: ready }).catch(() => {});
+        await sleep(backoffMs(notReady - 1, 30_000, 10 * 60_000));
+        continue;
+      }
+      notReady = 0;
       const r = await api("claim", { version: WORKER_VERSION, diag: NET_DIAG });
-      if (r.status === 401) { console.error("token rejected: create a new one in Admin > Credit Research"); process.exit(2); }
+      if (r.status === 401) {
+        // A rejected token is not a reason to stop for good or to hammer the site: wait 5 min, doubling to 1 hour, and keep trying.
+        authFails++;
+        console.error("token rejected: create a new one in Admin > Credit Research and run the installer again");
+        await sleep(backoffMs(authFails - 1, 5 * 60_000, 60 * 60_000));
+        continue;
+      }
+      authFails = 0;
+      if (r.status >= 500) throw new Error(`website answered HTTP ${r.status}`);
       fails = 0;
       if (r.job) { log("claimed", r.job.isin, `P${r.job.priority}`); await work(r.job); continue; }
       if (r.paused) log("paused in admin");
-    } catch (e) { fails++; log("website not reachable:", e.message); }
-    await sleep(Math.min(15 * 60_000, IDLE_MS * 2 ** Math.min(fails, 4)));
+    } catch (e) { fails++; log("website not reachable:", e.message); wait = backoffMs(fails, IDLE_MS, 15 * 60_000); }
+    await sleep(wait);
   }
   log("stopped");
 

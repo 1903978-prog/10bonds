@@ -3,20 +3,45 @@
 # Needs one repo secret: FLY_API_TOKEN (a Fly token the owner creates himself).
 # The build runs on Fly's remote builder; the runner only waits.
 name: Deploy to Fly
+# The run name carries the approval id, so the list of runs shows which GO each release used.
+run-name: "Deploy ${{ github.sha }} with ${{ inputs.approval_id }}"
 on:
   workflow_dispatch:
     inputs:
+      approval_id:
+        description: "Required: release approval (REL-0001) recorded as APPROVED by Livio for this exact commit in docs/livio-asks.md"
+        type: string
+        required: true
       remove_machine:
         description: "Optional: id of ONE machine to remove before deploying (only if another healthy machine keeps serving)"
         type: string
         default: ""
 concurrency: deploy
 jobs:
+  # Release gate (10B-0007): no approval for this exact commit, no deploy. No secrets in this job; it fails before anything else runs.
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Inputs reach the shell only through env and are quoted, never pasted into the script (review 13 Nov: injection).
+      - name: Release approval for this exact commit
+        env:
+          APPROVAL_ID: ${{ inputs.approval_id }}
+        run: node scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA"
   # Nothing reaches the live site unless all checks pass (types, lint, tests, database design, browser check).
   test:
+    needs: gate
     uses: ./.github/workflows/ci.yml
   deploy:
-    needs: test
+    needs: [gate, test]
+    # Required reviewer on this environment = the approval click (Settings > Environments > production).
+    environment: production
     runs-on: ubuntu-24.04
     timeout-minutes: 25 # build ~10 min + blue-green wait; 15 cut off the 11 Nov release (10B-0001)
     env:
@@ -40,17 +65,32 @@ jobs:
       X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the claim compares the approved commit with main's head (only docs/livio-asks.md may differ)
+      # Single use: the approval id is claimed in the database before anything reaches Fly (a second run with it stops here).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Checked before the claim, so a missing token never uses up an approval; and the run is red, not green.
+      - name: Stop if the Fly token is not set
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "FLY_API_TOKEN secret is not set: nothing deployed."
+            exit 1
+          fi
+          echo "ok=1" >> "$GITHUB_ENV"
+      - name: Claim the release approval (single use)
+        id: claim
+        env:
+          APPROVAL_ID: ${{ inputs.approval_id }}
+          WORKFLOW: deploy
+        run: |
+          npm ci --no-audit --no-fund >/dev/null
+          node scripts/release-claim.mjs
       # Pinned: the same tool version every run, changed on purpose only.
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
         with:
           version: 0.4.118
-      - name: Stop if the Fly token is not set yet
-        run: |
-          if [ -z "$FLY_API_TOKEN" ]; then
-            echo "FLY_API_TOKEN secret is not set: nothing deployed."
-            exit 0
-          fi
-          echo "ok=1" >> "$GITHUB_ENV"
       - name: Create the app if it does not exist
         if: env.ok == '1'
         run: flyctl status -a 10bonds >/dev/null 2>&1 || flyctl apps create 10bonds
@@ -74,8 +114,6 @@ jobs:
           else
             echo "No ACCOUNTS_DATABASE_URL secret yet: sign-up shows 'opens very soon'."
           fi
-          # Reply inbox for the Pro outreach e-mails (an address, not a secret). Sending itself stays a manual click in /admin/outreach.
-          flyctl secrets set OUTREACH_REPLY_TO=privacy@10bonds.com -a 10bonds --stage >/dev/null
           # Reply inbox for the Pro outreach e-mails (an address, not a secret). Sending itself stays a manual click in /admin/outreach.
           flyctl secrets set OUTREACH_REPLY_TO=privacy@10bonds.com -a 10bonds --stage >/dev/null
           # The key that signs sign-in cookies is made once on the server and never printed.
@@ -185,10 +223,16 @@ jobs:
       - name: Deploy
         id: deploy
         if: env.ok == '1'
+        env:
+          APPROVAL_ID: ${{ inputs.approval_id }}
+          APPROVED_SHA: ${{ steps.claim.outputs.approved_sha }}
         run: |
+          [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "No approved commit from the claim step: nothing deployed."; exit 1; }
           # The remote builder sometimes drops the connection ("rpc error ... EOF"); a second try is safe.
           for i in 1 2; do
-            flyctl deploy --remote-only -a 10bonds --ha=false && exit 0
+            # RELEASE_SHA / RELEASE_ID are shown by /api/health/version, so anyone can check which approved commit is live.
+            # The image is labelled sha-<approved commit>, so a later rollback knows which approved commit it puts back.
+            flyctl deploy --remote-only -a 10bonds --ha=false --image-label "sha-$APPROVED_SHA" --env RELEASE_SHA="$APPROVED_SHA" --env RELEASE_ID="$APPROVAL_ID" && exit 0
             echo "deploy try $i failed"; sleep 20
           done
           exit 1
@@ -263,4 +307,6 @@ jobs:
       # A new release that fails any check above is replaced at once by the previous one; the run stays red.
       - name: Automatic rollback when a check failed
         if: failure() && steps.deploy.outcome == 'success'
+        env:
+          RELEASE_ID: AUTO
         run: bash scripts/fly-rollback.sh

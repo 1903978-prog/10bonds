@@ -9,9 +9,6 @@ import { ALL_FILTERS, buildSnapshot } from "./lib/sliderSnapshot";
 import { loadBandConfig } from "./lib/riskBandsStore";
 import { activeMethodology, bandTableOf } from "./lib/methodologyChoice";
 import { warmFrontiers } from "./lib/frontierCache";
-import { startWorkerWatch } from "./lib/workerWatch";
-
-startWorkerWatch();
 
 // On the live site the slider maximums and the 30 slider positions of the default search (EUR, all sizes) are
 // read shortly after the server starts (3 s), so the first visitor rarely waits for them, and again every 30 minutes, so a
