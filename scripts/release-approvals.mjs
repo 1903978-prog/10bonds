@@ -40,7 +40,7 @@ export function gitSameCode(approved, sha, cwd = process.cwd()) {
   try {
     return sameCode(approved, sha, {
       isAncestor: (a, b) => { try { execFileSync("git", ["merge-base", "--is-ancestor", a, b], { cwd, stdio: "ignore" }); return true; } catch { return false; } },
-      changedFiles: (a, b) => execFileSync("git", ["diff", "--name-only", a, b], { cwd, encoding: "utf8" }).split("\n").filter(Boolean),
+      changedFiles: (a, b) => execFileSync("git", ["diff", "--name-only", "--no-renames", "--no-ext-diff", a, b], { cwd, encoding: "utf8" }).split("\n").filter(Boolean),
     });
   } catch { return false; }
 }

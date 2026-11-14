@@ -48,6 +48,14 @@ describe("approved commit vs main's head (the approval row itself is a commit on
     expect(gitSameCode(rowOnly, approved, d)).toBe(false); // not a descendant
     expect(gitSameCode(side, rowOnly, d)).toBe(false);
     expect(gitSameCode("f".repeat(40), rowOnly, d)).toBe(false);
+    // A code file renamed into the approvals table must not hide its deletion (review 14 Nov).
+    const d2 = mkdtempSync(join(tmpdir(), "relgate-"));
+    const g2 = (...a: string[]) => spawnSync("git", a, { cwd: d2, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } as unknown as NodeJS.ProcessEnv }).stdout.trim();
+    g2("init", "-q"); mkdirSync(join(d2, "docs"));
+    writeFileSync(join(d2, "middleware.ts"), "export const auth = true;\n".repeat(20)); g2("add", "-A"); g2("commit", "-qm", "code");
+    const base = g2("rev-parse", "HEAD");
+    g2("mv", "middleware.ts", "docs/livio-asks.md"); g2("commit", "-qm", "rename");
+    expect(gitSameCode(base, g2("rev-parse", "HEAD"), d2)).toBe(false);
   });
 });
 
