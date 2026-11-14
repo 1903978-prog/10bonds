@@ -37,6 +37,7 @@ A 10bonds release (deploy.yml) or rollback (rollback.yml) runs only if a row bel
 | ID | App | Workflow | Exact SHA | Scope | Approved by / date | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | REL-0001 | 10bonds | deploy | f0615d2431924fa57625223df573b017aed5213f | #510: credit worker 24/7, fail-closed release gate, one owner e-mail | Livio, 14 Nov 2026 06:00 UTC ("GO 10bonds #510 f0615d2431924fa57625223df573b017aed5213f") | APPROVED |
+| REL-0002 | 10bonds | deploy | 06258777c6b558b83d773029ca03732ccf6aca2c | #513 (release claim fix) with #510: credit worker 24/7, fail-closed release gate, one owner e-mail | Livio, 14 Nov 2026 06:36 UTC ("GO 10bonds #513 06258777c6b558b83d773029ca03732ccf6aca2c") | APPROVED |
 
 ## Production change approvals
 
