@@ -16,7 +16,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "setup" }, { status: 500 });
   }
   if (!verifySignature(payload, req.headers.get("stripe-signature"), secret)) return NextResponse.json({ error: "bad signature" }, { status: 400 });
-  const event = JSON.parse(payload);
+  // A signed but malformed delivery must not crash the route with an uncaught
+  // exception. Stripe sends JSON; malformed input is a terminal client error.
+  let event: { type?: string; data?: { object?: { subscription?: string; id?: string } } };
+  try {
+    event = JSON.parse(payload);
+    if (!event || typeof event !== "object") throw new Error("event is not an object");
+  } catch {
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  }
   try {
     let sub: unknown = null;
     if (event.type === "checkout.session.completed" && event.data?.object?.subscription) {
