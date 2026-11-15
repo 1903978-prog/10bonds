@@ -12,6 +12,9 @@ describe("Lenovo post-install verification (read-only)", () => {
     expect(source).toContain("taskWatchdog");
     expect(source).toContain("taskOnResume");
     expect(source).toContain("taskLogonType -eq 'S4U'");
+    expect(source).toContain("Microsoft-Windows-Power-Troubleshooter");
+    expect(source).toMatch(/EventID\\s\*=\\s\*1/);
+    expect(source).not.toContain("if ($class -match 'EventTrigger') { $summary.taskOnResume = $true }");
   });
 
   it("checks installed worker code integrity, encrypted-token presence and local model readiness", () => {

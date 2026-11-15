@@ -44,11 +44,16 @@ try {
     # Scheduled Task CIM classes use type-specific properties; avoid depending
     # on localized display strings or reading any credentials.
     $class = [string]$trigger.CimClass.CimClassName
+    $subscription = [string]$trigger.Subscription
     if ($class -match 'BootTrigger') { $summary.taskAtBoot = $true }
     if ($class -match 'TimeTrigger' -and $trigger.Repetition.Interval) {
       $summary.taskWatchdog = $true
     }
-    if ($class -match 'EventTrigger') { $summary.taskOnResume = $true }
+    if ($class -match 'EventTrigger' -and
+        $subscription -match 'Microsoft-Windows-Power-Troubleshooter' -and
+        $subscription -match 'EventID\s*=\s*1') {
+      $summary.taskOnResume = $true
+    }
   }
   try {
     $taskInfo = Get-ScheduledTaskInfo -TaskName $taskName -ErrorAction Stop
