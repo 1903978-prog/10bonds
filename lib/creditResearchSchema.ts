@@ -68,7 +68,7 @@ export function parseResult(isin: string, raw: unknown): Parsed {
   for (const k of Object.keys(FIG_OF)) {
     const v = numOrNull(m[k]);
     if (v === null) continue;
-    const ok = figures.some((f) => f.parameter === FIG_OF[k] && f.value === v) || (k === "debtToGdpPct" && r.metricsOfficial === true);
+    const ok = figures.some((f) => f.parameter === FIG_OF[k] && f.value === v);
     if (!ok) { m[k] = null; rejected.push(`${k} ${v} dropped: no accepted citation`); }
   }
   const se = (r.seniorityEvidence && typeof r.seniorityEvidence === "object" ? r.seniorityEvidence : null) as Record<string, unknown> | null;

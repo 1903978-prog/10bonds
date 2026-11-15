@@ -139,4 +139,23 @@ describe("LBBW end to end through the worker steps (fixture documents)", () => {
     expect(r.ok && r.facts.metrics.cet1Pct).toBeNull();
     expect(r.ok && r.facts.notes?.join(" ")).toMatch(/quote does not contain the number/);
   });
+  it("a worker cannot mark an uncited sovereign metric as official", () => {
+    const r = parseResult(LBBW_CASE.isin, {
+      issuerType: "sovereign",
+      evidence: [{ url: URL_H1, verification: "verified", primary: true, publisher: "World Bank" }],
+      metrics: { debtToGdpPct: 38 },
+      metricsOfficial: true,
+    });
+    expect(r.ok && r.facts.metrics.debtToGdpPct).toBeNull();
+    expect(r.ok && r.facts.notes?.join(" ")).toMatch(/no accepted citation/);
+  });
+  it("a sovereign metric with a retrieved quote and matching value is retained", () => {
+    const r = parseResult(LBBW_CASE.isin, {
+      issuerType: "sovereign",
+      evidence: [{ url: URL_H1, verification: "verified", primary: true, publisher: "World Bank" }],
+      figures: [{ parameter: "debtToGdpPct", value: 38, unit: "% of GDP", quote: "Public debt was 38% of GDP.", url: URL_H1 }],
+      metrics: { debtToGdpPct: 38 },
+    });
+    expect(r.ok && r.facts.metrics.debtToGdpPct).toBe(38);
+  });
 });
