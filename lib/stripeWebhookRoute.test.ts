@@ -113,7 +113,7 @@ describe("Stripe webhook route: offline acceptance", () => {
     }
   });
 
-  it.each(["{not-json", "null", "false", '"not-an-event"'])("rejects malformed or non-object signed JSON (%s)", async (payload) => {
+  it.each(["{not-json", "null", "false", '"not-an-event"', "[]", "{}"])("rejects malformed or invalid signed event JSON (%s)", async (payload) => {
     const response = await deliver(payload);
     expect(response.status).toBe(400);
     expect(stripe).not.toHaveBeenCalled();
