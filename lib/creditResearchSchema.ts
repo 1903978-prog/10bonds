@@ -56,7 +56,7 @@ export function parseResult(isin: string, raw: unknown): Parsed {
   } : undefined;
   // Evidence-backed figures: a number is accepted only if the quote the worker cites contains it and the quote's source URL was retrieved.
   const rejected: string[] = [];
-  const inQuote = (quote: string, v: number) => [String(v), v.toFixed(1), v.toFixed(1).replace(".", ","), String(v).replace(".", ",")].some((t) => new RegExp(`(^|[^\\d.,])${t.replace(".", "\\.")}(?![\\d])`).test(quote));
+  const inQuote = (quote: string, v: number) => [String(v), v.toFixed(1), v.toFixed(1).replace(".", ","), String(v).replace(".", ",")].some((t) => new RegExp(`(^|[^\\d.,+\\-])${t.replace(".", "\\.")}(?![\\d.,+\\-])`).test(quote));
   const figures = (Array.isArray(r.figures) ? r.figures : []).slice(0, 40).flatMap((x: Record<string, unknown>) => {
     const value = numOrNull(x?.value), quote = str(x?.quote, 400), url = str(x?.url, 500);
     if (value === null || !quote || !urls.has(url)) { rejected.push(`${str(x?.parameter, 40) || "figure"} without a retrievable source`); return []; }

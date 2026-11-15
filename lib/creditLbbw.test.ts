@@ -158,4 +158,17 @@ describe("LBBW end to end through the worker steps (fixture documents)", () => {
     });
     expect(r.ok && r.facts.metrics.debtToGdpPct).toBe(38);
   });
+  it.each([
+    ["a decimal continuation", "Public debt was 38.4% of GDP.", 38],
+    ["an opposite sign", "Public debt was -38% of GDP.", 38],
+  ])("rejects a sovereign metric citation with %s", (_case, quote, value) => {
+    const r = parseResult(LBBW_CASE.isin, {
+      issuerType: "sovereign",
+      evidence: [{ url: URL_H1, verification: "verified", primary: true, publisher: "World Bank" }],
+      figures: [{ parameter: "debtToGdpPct", value, unit: "% of GDP", quote, url: URL_H1 }],
+      metrics: { debtToGdpPct: value },
+    });
+    expect(r.ok && r.facts.metrics.debtToGdpPct).toBeNull();
+    expect(r.ok && r.facts.notes?.join(" ")).toMatch(/no accepted citation/);
+  });
 });
