@@ -22,3 +22,8 @@ Follow this policy for every change in this repository.
 - Record the final SHA, independent review, required-check results, and live verification still outstanding. A merged PR is not proof that functionality is live.
 
 This file guides Copilot behavior; it does not change GitHub organization settings, enable a missing Copilot agent, or override repository protections.
+
+## Global engineering queue and backup gate
+- The global orchestrator scans all five Eendigo repositories. Do not start an issue task unless it is explicitly labelled `orchestrator:ready`; it assigns only one Copilot task across the group at a time. Keep task work isolated and report a genuine blocker on the issue.
+- Before a release, record evidence for two distinct, independently validated database backups and two distinct, independently validated code backups for this application. Include backup IDs, validation time, and restore/archive validation result in the PR. Upload success or a filename alone is not validation.
+- A review-ready PR and passing CI are not release approval. Only Livio may authorize merge or production deployment, in writing, for the exact full 40-character SHA and named action. Never merge, enable auto-merge, deploy, run production migrations, or change production data.
