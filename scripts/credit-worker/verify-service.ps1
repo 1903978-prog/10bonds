@@ -45,8 +45,9 @@ try {
     # on localized display strings or reading any credentials.
     $class = [string]$trigger.CimClass.CimClassName
     $subscription = [string]$trigger.Subscription
+    $interval = [string]$trigger.Repetition.Interval
     if ($class -match 'BootTrigger') { $summary.taskAtBoot = $true }
-    if ($class -match 'TimeTrigger' -and $trigger.Repetition.Interval) {
+    if ($class -match 'TimeTrigger' -and $interval -match '^PT5M$') {
       $summary.taskWatchdog = $true
     }
     if ($class -match 'EventTrigger' -and
@@ -101,6 +102,7 @@ try {
 
 $summary.localConfigurationHealthy = (
   $summary.installed -and
+  ($summary.taskState -in @('Ready', 'Running')) -and
   $summary.taskLogonType -eq 'S4U' -and
   $summary.taskAtBoot -and
   $summary.taskWatchdog -and

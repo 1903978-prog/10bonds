@@ -11,6 +11,8 @@ describe("Lenovo post-install verification (read-only)", () => {
     expect(source).toContain("taskAtBoot");
     expect(source).toContain("taskWatchdog");
     expect(source).toContain("taskOnResume");
+    expect(source).toMatch(/\$interval -match '\^PT5M\$'/);
+    expect(source).toMatch(/\$summary\.taskState -in @\('Ready', 'Running'\)/);
     expect(source).toContain("taskLogonType -eq 'S4U'");
     expect(source).toContain("Microsoft-Windows-Power-Troubleshooter");
     expect(source).toMatch(/EventID\\s\*=\\s\*1/);
