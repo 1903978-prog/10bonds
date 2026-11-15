@@ -1,3 +1,11 @@
+# RELEASE POLICY EEN-REL-001 — 14 Nov 2026 (owner decision; applies to every engineering agent)
+
+Livio is the **sole human release approver**. Do not request another GitHub account, second human reviewer, collaborator or approving review. Independent AI/code review and CI remain mandatory quality gates, but an AI review is not a GitHub approval.
+
+Before any production merge or deploy, obtain Livio's explicit GO for the exact full 40-character code SHA **and scope**. A change in code SHA or release scope requires new approval. The recorded, single-use release gate in `scripts/release-gate.mjs` and `scripts/release-claim.mjs` is mandatory; use the approved `deploy.yml` / `rollback.yml` workflows. Do not bypass those controls with direct `fly deploy` or by altering secrets. Emergency rollback follows its separately documented written-reason gate. No implicit deployment approval follows from an issue, PR, tests or administrative closure.
+
+For `main` protection: require PR and CI status checks, block force pushes and deletion, **required human approving reviews = 0**. Until repository environment/ruleset and scoped-secret controls are actually confirmed, label them UNVERIFIED / NOT APPLIED; do not represent a documented policy as technical enforcement. The single shared admin account remains a bypass risk even after repository protections are configured.
+
 # LENOVO MODEL RULE (Livio, 04 Nov 2026, standing)
 
 On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, `bge-m3` or any other model. Every Lenovo request sets `keep_alive`. Displayed dates are written like `03 Nov 2026`.
@@ -31,7 +39,7 @@ On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, 
 - No workflow runs on push to `claude/**` or any session branch. Allowed triggers: `schedule`, `workflow_dispatch`, `pull_request` into the shipping branch only (with `paths-ignore: ["**.md", "docs/**"]`), and `workflow_run` after a successful deploy.
 - Every check has a `concurrency` group with `cancel-in-progress: true` so a newer commit cancels older runs (backups/deploys: `false`).
 - Live / link / tile checks: one scheduled run per night plus one run after a successful deploy; never on every push, never while a deploy is in progress.
-- DEPLOY RULE (Livio 28/10/2026, final, do not flip-flop): 10bonds deploys ONLY with `fly deploy` run by the owning session after merge. The GitHub "Deploy to Fly" workflow is manual-only and never runs on push or merge. No workflow builds, tests or deploys on merge to `main`. Fly apps (10bonds, lm-op-model, Nexus, security scanner) follow the same rule; compplan (Render) keeps its GitHub ship workflow.
+- DEPLOY RULE (10B-0007 / EEN-REL-001, 14 Nov 2026; supersedes the 28 Oct direct-fly instruction for 10BONDS): 10BONDS production releases use the **manual-only** GitHub Deploy to Fly / rollback workflows with the recorded exact-SHA owner GO, fail-closed gate and single-use claim. Never run a direct `fly deploy` to circumvent the gate. No deployment occurs automatically on push or merge to `main`. Do not change release rules in other repositories.
 - A failing check is diagnosed from its logs and fixed at the cause (or removed if redundant). Never re-run a failed workflow just to see if it passes.
 - Failure emails: only a nightly live-check failure on the production site may email Livio (one summary, sent by the app). Branch and PR check failures never email him.
 - Draft PRs do not run CI (it starts when the PR is marked ready). `nightly-live-check.yml` is the one production check that e-mails: it posts to `/api/admin/live-check-alert` (HMAC with ACCOUNTS_DATABASE_URL, no new secret), which e-mails the first ADMIN_EMAILS address once.
