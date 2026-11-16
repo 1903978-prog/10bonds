@@ -38,6 +38,7 @@ A 10bonds release (deploy.yml) or rollback (rollback.yml) runs only if a row bel
 | --- | --- | --- | --- | --- | --- | --- |
 | REL-0001 | 10bonds | deploy | f0615d2431924fa57625223df573b017aed5213f | #510: credit worker 24/7, fail-closed release gate, one owner e-mail | Livio, 14 Nov 2026 06:00 UTC ("GO 10bonds #510 f0615d2431924fa57625223df573b017aed5213f") | APPROVED |
 | REL-0002 | 10bonds | deploy | 06258777c6b558b83d773029ca03732ccf6aca2c | #513 (release claim fix) with #510: credit worker 24/7, fail-closed release gate, one owner e-mail | Livio, 14 Nov 2026 06:36 UTC ("GO 10bonds #513 06258777c6b558b83d773029ca03732ccf6aca2c") | APPROVED |
+| REL-0003 | 10bonds | deploy | b8559842f4f878726d62103ae4634bb590209e13 | main with #518 (EEN-REL-001 policy text + tests), #520 (Stripe webhook malformed-JSON guard), #521 (Lenovo read-only diagnostics), #522 (credit research citations), #526 (informational uptime probe in deploy.yml) | Livio, 16 Nov 2026 14:49 UTC (chat: "approved production deployment of exact commit b8559842f4f878726d62103ae4634bb590209e13 ... Execute the existing release workflow"; PR #526 comment 6919537252 "approve b8559842f4f878726d62103ae4634bb590209e13") | APPROVED |
 
 ## Production change approvals
 
