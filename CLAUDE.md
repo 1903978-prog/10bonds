@@ -41,3 +41,9 @@ On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, 
 Always write dates as "03 Nov 2026" (DD Mon YYYY, English month abbreviation, two-digit day) everywhere: every page, PDF, export, email, slide and "Generated" stamp. In TS/JS use `formatDate` / `formatDateTime` from `lib/formatDate.ts` (`@/lib/formatDate`), never `toLocaleDateString()` on a date; in Python `strftime("%d %b %Y")`. Machine formats (ISO in APIs, database, file names) stay as they are. New code must follow this; do not add other human-visible date formats.
 
 Open question for Livio: dates on the IT/FR/DE pages still follow each language (localized month names); not converted yet.
+
+## Delivery registry (een-code)
+
+Every ask is split into atoms (`task_10bonds_NNNL`) in `docs/delivery-ledger.json` (data) and `docs/DELIVERY_LEDGER.md` (human view); `docs/delivery-table.md` is the last printed table. The older `docs/execution-ledger.md` (10B-000x) stays; its IDs are the Legacy column. Release approvals stay in `docs/livio-asks.md`.
+
+Auto-update: commit messages and PR bodies name the atom IDs they cover. When an atom moves a stage, update its row in both ledger files in the same turn (commit → Impl; criterion test passes → Test; merged to main → Merge; live `/api/health/version` has the SHA → Deploy; its own live check passes → Live). Never mark Live from a health check alone.
