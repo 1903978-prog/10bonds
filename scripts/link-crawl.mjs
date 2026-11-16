@@ -306,13 +306,13 @@ async function crawlRole(browser, role) {
     if (attempt === 1 && transient && !IGNORE?.test(path)) {
       const first = `first try: ${row.status === 0 ? row.note || "no answer" : row.consoleErrors.find((e) => e.startsWith("HTTP 5") || /Loading chunk/i.test(e))}`;
       await new Promise((r) => setTimeout(r, 2000));
-      const before = rows.length;
-      await visit(path, 2);
-      const again = rows[before];
-      if (again) again.note = `${again.note ? again.note + " | " : ""}${first}`;
-      return;
+      // Workers run in parallel, so take the retry's own row (not rows[n], which another worker may have filled meanwhile).
+      const again = await visit(path, 2);
+      again.note = `${again.note ? again.note + " | " : ""}${first}`;
+      return again;
     }
     rows.push(row);
+    return row;
   }
 
   let idx = 0;
