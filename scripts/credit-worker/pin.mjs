@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 export const PINNED = ["worker.mjs", "package.json", "run-worker.ps1"];
-export const sha = (name) => createHash("sha256").update(readFileSync(join(dir, name))).digest("hex");
+export const sha = (name) => createHash("sha256").update(readFileSync(join(dir, name), "utf8").replace(/\r\n/g, "\n")).digest("hex");
 const file = join(dir, "install-service.ps1");
 let s = readFileSync(file, "utf8");
 for (const name of PINNED) s = s.replace(new RegExp(`('${name.replace(".", "\\.")}'\\s*=\\s*')[^']*(')`), `$1${sha(name)}$2`);

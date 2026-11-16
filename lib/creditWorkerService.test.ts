@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { workerAlerts } from "./creditResearchDb";
@@ -8,17 +9,19 @@ import { workerAlerts } from "./creditResearchDb";
 // Unattended 24/7 running of the Lenovo credit worker (12 Nov 2026 audit: the worker was silent 2-12 Nov).
 const dir = join(__dirname, "../scripts/credit-worker");
 const read = (n: string) => readFileSync(join(dir, n), "utf8");
+const importNative = createRequire(import.meta.url)("./workerTestImport.cjs") as (specifier: string) => Promise<unknown>;
 async function worker() {
   process.env.WORKER_TOKEN = "crw_test";
-  const path = "../scripts/credit-worker/worker.mjs";
-  return (await import(/* @vite-ignore */ path)) as any;
+  const workerUrl = new URL("../scripts/credit-worker/worker.mjs", import.meta.url).href;
+  return (await importNative(workerUrl)) as any;
 }
 
 describe("credit worker installer and supervisor", () => {
   it("pins the exact reviewed files (run node scripts/credit-worker/pin.mjs after a change)", () => {
     const ps = read("install-service.ps1");
     for (const n of ["worker.mjs", "package.json", "run-worker.ps1"]) {
-      const sha = createHash("sha256").update(readFileSync(join(dir, n))).digest("hex");
+      const source = readFileSync(join(dir, n), "utf8").replace(/\r\n/g, "\n");
+      const sha = createHash("sha256").update(source).digest("hex");
       expect(ps).toContain(`'${n}'`);
       expect(ps.match(new RegExp(`'${n.replace(".", "\\.")}'\\s*=\\s*'([0-9a-f]{64})'`))?.[1]).toBe(sha);
     }

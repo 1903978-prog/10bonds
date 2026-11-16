@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createRequire } from "node:module";
 import { extractBankFigures, quoteSupports } from "./creditExtract";
 import { reconcileSeniority } from "./creditFeedFacts";
 import { evaluate } from "./creditGate";
@@ -9,6 +10,7 @@ import { RISK_KEYS, scoreResearch, type ResearchFacts } from "./creditScoring";
 // it is NOT LBBW's wording. The real citations come from the Lenovo worker reading LBBW's own H1 2026 page. These tests prove the pipeline logic:
 // exact figures are recovered with quotes, absent figures stay missing, seniority is not taken from the data copy, and nothing becomes public early.
 const URL_H1 = "https://www.lbbw.de/article/press-release/lbbw-firmly-on-track_ancu4bx2g2_e.html";
+const importNative = createRequire(import.meta.url)("./workerTestImport.cjs") as (specifier: string) => Promise<unknown>;
 const FIXTURE = [
   "Group results for the first half of 2026.",
   "The CET1 ratio stood at 16.1 percent at the end of June.",
@@ -92,8 +94,8 @@ import { enrichFromFeed } from "./creditFeedFacts";
 type Doc = { url: string; title: string; publisher: string; period: string | null; primary: boolean; method: string; text: string; retrievedAt: string; verified?: boolean };
 async function worker() {
   process.env.WORKER_TOKEN = "crw_test"; process.env.OLLAMA_MODEL = "test";
-  const path = "../scripts/credit-worker/worker.mjs";
-  return (await import(/* @vite-ignore */ path)) as Record<string, (...a: never[]) => unknown>;
+  const workerUrl = new URL("../scripts/credit-worker/worker.mjs", import.meta.url).href;
+  return (await importNative(workerUrl)) as Record<string, (...a: never[]) => unknown>;
 }
 const NOWISO = "2026-11-02T10:00:00Z";
 const docs = (): Doc[] => [
