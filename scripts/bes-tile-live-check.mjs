@@ -18,7 +18,12 @@ const res = await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout
 status = res?.status() ?? 0;
 console.log(`page status ${status}`);
 const listed = page.waitForResponse((r) => r.url().includes("/api/bonds?"), { timeout: 120000 }).catch(() => null);
-await page.getByTestId("find-portfolio").click();
+const findBtn = page.getByTestId("find-portfolio");
+// A normal click first, as a visitor would. If something sits over the button, say so and press it through the page, so the check still reaches the data it exists to read.
+try { await findBtn.click({ timeout: 15000 }); } catch (e) {
+  console.log(`WARNING: the find button could not be clicked normally (${String(e.message).split("\n").find((l) => /intercepts|not visible|not stable|outside/.test(l))?.trim() ?? "click timed out"}); pressing it through the page`);
+  await findBtn.evaluate((b) => b.click());
+}
 const lr = await listed;
 if (lr) await lr.finished().catch(() => null);
 await page.waitForTimeout(3000);

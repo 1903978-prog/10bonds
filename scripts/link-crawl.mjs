@@ -256,7 +256,7 @@ async function crawlRole(browser, role) {
     }
   }
 
-  async function visit(path) {
+  async function visit(path, attempt = 1) {
     const started = Date.now();
     const row = { role, path, status: null, finalPath: null, ms: 0, consoleErrors: [], empty: [], note: "" };
     const isApi = path.startsWith("/api/") || /\.(xml|txt|json|csv|pdf)$/.test(path);
@@ -300,6 +300,18 @@ async function crawlRole(browser, role) {
       }
     }
     row.ms = Date.now() - started;
+    // One retry for a one-off failure (the page did not load at all, a script chunk was replaced by a deploy, a 5xx on a side request).
+    // A real fault fails twice and is still reported; the first failure is kept in the note.
+    const transient = row.status === 0 || row.consoleErrors.some((e) => e.startsWith("HTTP 5") || /Loading chunk .* failed/i.test(e));
+    if (attempt === 1 && transient && !IGNORE?.test(path)) {
+      const first = `first try: ${row.status === 0 ? row.note || "no answer" : row.consoleErrors.find((e) => e.startsWith("HTTP 5") || /Loading chunk/i.test(e))}`;
+      await new Promise((r) => setTimeout(r, 2000));
+      const before = rows.length;
+      await visit(path, 2);
+      const again = rows[before];
+      if (again) again.note = `${again.note ? again.note + " | " : ""}${first}`;
+      return;
+    }
     rows.push(row);
   }
 
