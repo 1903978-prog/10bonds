@@ -1,6 +1,6 @@
-# Deploys the public 10BONDS site to Fly.io. MANUAL ONLY (Livio, 28/10/2026): the owning session deploys with `fly deploy`
-# after merge; this workflow is a manual fallback and never runs on push.
-# Needs one repo secret: FLY_API_TOKEN (a Fly token the owner creates himself).
+# Deploys 10BONDS to Fly.io. Manual-only workflow; exact-SHA owner GO and single-use database claim are mandatory.
+# EEN-REL-001 (14 Nov 2026) supersedes older direct-fly guidance; do not bypass this workflow.
+# Production credentials belong in the scoped 'production' environment (configuration must be verified, not assumed).
 # The build runs on Fly's remote builder; the runner only waits.
 name: Deploy to Fly
 # The run name carries the approval id, so the list of runs shows which GO each release used.
@@ -40,7 +40,8 @@ jobs:
     uses: ./.github/workflows/ci.yml
   deploy:
     needs: [gate, test]
-    # Required reviewer on this environment = the approval click (Settings > Environments > production).
+    # 'production' environment isolates deployment credentials; no second human approver is required.
+    # The release-gate/claim enforce Livio's exact-SHA GO; verify actual environment branch restrictions separately.
     environment: production
     runs-on: ubuntu-24.04
     timeout-minutes: 25 # build ~10 min + blue-green wait; 15 cut off the 11 Nov release (10B-0001)
