@@ -123,6 +123,10 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
   const [touched, setTouched] = useState(fromLanding);
   // The list replaces the chart only when the main button is pressed (the owner, 26/10/2026); until then the chart follows the horizon.
   const [listOn, setListOn] = useState(fromLanding);
+  // The main button stays disabled until the page's code has loaded: a press made before that (slow connection) did nothing,
+  // and the frontier chart then stayed over the results and the Chart tab (nightly live check, 16 Nov 2026).
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
   // iPhone (the owner, 24/10/2026): "Show AI Efficient Portfolio" opens the results as their own full-screen page, no scrolling.
   const [sheet, setSheet] = useState(() => fromLanding && typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches);
   // Each press of "Show AI Efficient Portfolio" runs the search again, so the press always shows the search and a fresh list.
@@ -803,6 +807,8 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
             type="button"
             data-testid="find-portfolio"
             tabIndex={mode === "portfolio" ? 0 : -1}
+            disabled={!ready}
+            aria-busy={!ready}
             onClick={() => {
               setTouched(true);
               setListOn(true);
@@ -812,7 +818,7 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
               if (window.matchMedia("(max-width: 639px)").matches) setSheet(true);
               else if (window.matchMedia("(max-width: 1023px)").matches) resultsBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
           >
             <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
             {t.findPortfolio}
