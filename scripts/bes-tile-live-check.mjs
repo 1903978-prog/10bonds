@@ -18,10 +18,12 @@ const res = await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout
 status = res?.status() ?? 0;
 console.log(`page status ${status}`);
 const listed = page.waitForResponse((r) => r.url().includes("/api/bonds?"), { timeout: 120000 }).catch(() => null);
+let clickBlocked = false;
 const findBtn = page.getByTestId("find-portfolio");
 // A normal click first, as a visitor would. If something sits over the button, say so and press it through the page, so the check still reaches the data it exists to read.
 try { await findBtn.click({ timeout: 15000 }); } catch (e) {
-  console.log(`WARNING: the find button could not be clicked normally (${String(e.message).split("\n").find((l) => /intercepts|not visible|not stable|outside/.test(l))?.trim() ?? "click timed out"}); pressing it through the page`);
+  console.log(`UX DEGRADED: the find button could not be clicked normally (${String(e.message).split("\n").find((l) => /intercepts|not visible|not stable|outside/.test(l))?.trim() ?? "click timed out"}); pressing it through the page only to record backend availability`);
+  clickBlocked = true;
   await findBtn.evaluate((b) => b.click());
 }
 const lr = await listed;
@@ -50,4 +52,5 @@ console.log(`chart view scroll: ${JSON.stringify(await scroll())}`);
 await page.screenshot({ path: "bes-tile-chart.png" });
 console.log(`console errors: ${errors.length}`);
 await browser.close();
-process.exit(status === 200 && api === 200 && !process.exitCode ? 0 : 1);
+console.log(`backend: page ${status}, api ${api}; visitor click: ${clickBlocked ? "BLOCKED (UX defect, check fails)" : "ok"}`);
+process.exit(status === 200 && api === 200 && !clickBlocked && !process.exitCode ? 0 : 1);
