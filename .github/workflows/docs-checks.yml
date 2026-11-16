@@ -1,0 +1,22 @@
+name: Checks
+# Companion to ci.yml, which skips pull requests that change only documentation (paths-ignore). A required status
+# check that never starts leaves such a PR "waiting" for ever. This reports the same check name for documentation-only
+# changes. The path filters here and in ci.yml are exact opposites, so a PR with any code change still runs the full
+# checks and never reaches this one. Branch protection is not changed or bypassed.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths: ["**.md", "docs/**"]
+permissions:
+  contents: read
+concurrency:
+  group: docs-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - run: echo "Documentation-only change: no code to check."
