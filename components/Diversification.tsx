@@ -52,7 +52,7 @@ export default function Diversification({ rows, lang, locked: notAllowed, signed
       <div className={locked ? "blur-[6px]" : ""} aria-hidden={locked}><Bars title={t.industry} slices={locked ? decoy : d?.industry ?? []} other={t.other} none={t.none} /></div>
       <div className={locked ? "blur-[6px]" : ""} aria-hidden={locked}><Bars title={t.country} slices={locked ? decoy : d?.country ?? []} other={t.other} none={t.none} /></div>
       {locked && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-3 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 px-3 text-center" data-testid="diversification-overlay">
           <p className="text-[12px] font-semibold leading-none">{t.score}</p>
           <p className="max-w-[460px] text-[10.5px] leading-tight text-mute">{t.hint}</p>
           <Link href={signedIn ? "/pricing" : `/signup?next=${lang === "en" ? "/" : `/${lang}`}`} data-testid="diversification-lock" className="rounded-full bg-accent px-4 py-1 text-[13px] font-semibold text-white shadow-lg transition hover:opacity-90">{signedIn ? t.lock : t.signUp}</Link>
