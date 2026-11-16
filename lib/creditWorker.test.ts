@@ -1,11 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it } from "vitest";
+import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+const importNative = createRequire(import.meta.url)("./workerTestImport.cjs") as (specifier: string) => Promise<unknown>;
+const pdfReaderAvailable =
+  existsSync(new URL("../scripts/credit-worker/node_modules/pdfjs-dist/", import.meta.url)) ||
+  spawnSync("pdftotext", ["-v"], { stdio: "ignore" }).status === 0;
 
 // The worker script is plain JavaScript run on the owner's computer; its pure helpers are tested here.
 async function worker() {
   process.env.WORKER_TOKEN = "crw_test"; process.env.OLLAMA_MODEL = "test";
-  const path = "../scripts/credit-worker/worker.mjs";
-  return (await import(/* @vite-ignore */ path)) as Record<string, (...a: never[]) => unknown>;
+  const workerUrl = new URL("../scripts/credit-worker/worker.mjs", import.meta.url).href;
+  return (await importNative(workerUrl)) as Record<string, (...a: never[]) => unknown>;
 }
 
 describe("credit worker helpers", () => {
@@ -58,7 +65,7 @@ describe("LBBW H1 2026 figures (owner's reference values)", () => {
 });
 
 describe("PDF reports and the issuer figure cache", () => {
-  it("parses a LBBW-style financial PDF with page numbers and the right figures", async () => {
+  it.skipIf(!pdfReaderAvailable)("parses a LBBW-style financial PDF with page numbers and the right figures", async () => {
     const w = await worker();
     const { readFileSync } = await import("node:fs");
     const buf = readFileSync("scripts/credit-worker/fixtures/lbbw-h1-2026-extract.pdf");
