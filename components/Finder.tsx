@@ -518,12 +518,15 @@ export default function Finder({ lang = "en", heading = true }: { lang?: FinderL
     setHeatPick({ ytm: p.target, duration: d });
   };
   const pickView = (v: string) => {
+    // Choosing a view means the visitor wants the results, so the chart overlay must give way.
+    setTouched(true);
+    setListOn(true);
     setChartOn(v !== "list");
     setShowHeat(v === "heat");
     setShowAll(v === "multi");
   };
   const viewTabs = (
-    <div className="flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5" role="tablist" data-testid="view-tabs" data-tip="views">
+    <div className={`flex h-7 items-center gap-0.5 rounded-full bg-black/[0.04] p-0.5 ${!listOn && data ? "relative z-20" : ""}`} role="tablist" data-testid="view-tabs" data-tip="views">
       {([["list", t.chartOff], ["chart", t.chartOn], ["multi", isAdmin ? "Multi-year chart" : t.chartMulti], ["heat", isAdmin ? "Heat map" : t.chartHeat]] as [string, string][]).map(([k, label]) => (
         <button
           key={k}
