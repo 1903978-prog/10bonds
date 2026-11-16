@@ -14,14 +14,14 @@
 | task_10bonds_013A | #522 | 15 Nov 2026 | Sovereign credit metrics must carry citations | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
 | task_10bonds_014A | #518 | 15 Nov 2026 | Reconcile sole-human release policy (EEN-REL-001) with regre | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
 | task_10bonds_015A | #519 | 15 Nov 2026 | Restore archived #454 uptime proof during controlled Fly dep | ✅ ✅ ❌ ❌ ❌ | superseded by task_10bonds_015B |
+| task_10bonds_015B | #526 | 16 Nov 2026 | Uptime probe during Fly deploys (replaces #519) | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
 | task_10bonds_016A | #520 | 15 Nov 2026 | Stripe webhook offline signed-event acceptance + malformed J | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
 | task_10bonds_017A | #521 | 15 Nov 2026 | Lenovo worker read-only scheduled-task, Ollama, integrity di | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
 | task_10bonds_018A | #523 | 15 Nov 2026 | Add 10BONDS Copilot release-evidence guidance (docs) | ✅ ❓ ❌ ❌ ❌ | closed unmerged 16 Nov 14:06 UTC; reopen only if wanted |
 | task_10bonds_019A | #525 | 15 Nov 2026 | Revise standing rules and deployment guidelines (docs) | ✅ ❓ ❌ ❌ ❌ | closed unmerged 16 Nov 14:06 UTC; reopen only if wanted |
 | task_10bonds_020A | docs/release-governance-setup.md | 13 Nov 2026 | GitHub settings for release governance applied (production e | ❌ ❌ ❌ ❌ ❌ | Livio decision (owner settings) |
 | task_10bonds_021A | P4 | 12 Nov 2026 | Stripe test-mode signup, plan, checkout verified end to end | ❌ ❌ ❌ ❌ ❌ | needs Stripe test key; no live payment |
-| task_10bonds_015B | #526 | 16 Nov 2026 | Uptime probe during Fly deploys (replaces #519) | ✅ ✅ ❌ ❌ ❌ | review and merge |
 
-Atoms: 26 captured · 23 implemented · 17 tested · 18 merged · 13 deployed · 5 verified live · 4 blocked
+Atoms: 26 captured · 23 implemented · 17 tested · 19 merged · 13 deployed · 5 verified live · 4 blocked
 
-Last synced: 16 Nov 2026 14:30 UTC
+Last synced: 16 Nov 2026 14:37 UTC
