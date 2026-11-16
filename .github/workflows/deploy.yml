@@ -221,6 +221,17 @@ jobs:
             echo "Removing leftover machine $id"
             flyctl machines destroy "$id" -a 10bonds --force
           done
+      # Read-only observation of actual public availability while Fly changes images.
+      # The watcher is deliberately independent from the release and rollback gates.
+      - name: Start public uptime probe
+        if: env.ok == '1'
+        continue-on-error: true
+        run: |
+          # GitHub Actions clears ordinary background processes after a step;
+          # opt this one helper out, and stop it explicitly in the following step.
+          RUNNER_TRACKING_ID="" nohup bash scripts/uptime-probe.sh "$RUNNER_TEMP/uptime-probe.log" > "$RUNNER_TEMP/uptime-probe-stderr.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/uptime-probe.pid"
+          echo "Probe launched; reporting is informational only."
       - name: Deploy
         id: deploy
         if: env.ok == '1'
@@ -237,6 +248,17 @@ jobs:
             echo "deploy try $i failed"; sleep 20
           done
           exit 1
+      - name: Publish uptime observations (informational only)
+        if: always() && env.ok == '1'
+        continue-on-error: true
+        run: |
+          # Capture the first seconds after deploy; allow a short settling interval.
+          sleep 10
+          if [ -f "$RUNNER_TEMP/uptime-probe.pid" ]; then
+            pid=$(cat "$RUNNER_TEMP/uptime-probe.pid")
+            kill "$pid" 2>/dev/null || true
+          fi
+          bash scripts/uptime-probe.sh --summary "$RUNNER_TEMP/uptime-probe.log" | tee -a "$GITHUB_STEP_SUMMARY"
       # Read-only checks after the deploy. Each step fails on its own, so the run's step list says where
       # sign-up is broken without anyone opening the log. The answer holds a stage and a Postgres code only.
       - name: Wait for the site to answer
