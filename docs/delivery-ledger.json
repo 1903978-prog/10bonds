@@ -1,7 +1,7 @@
 {
  "project": "10bonds",
  "repo": "1903978-prog/10bonds",
- "last_synced": "2026-11-16T10:00:00Z",
+ "last_synced": "2026-11-16T14:30:00Z",
  "atoms": [
   {
    "id": "task_10bonds_001A",
@@ -85,8 +85,8 @@
    "deployed": "no",
    "live_checked": "no",
    "next_step": "install on Lenovo (physical access); PowerShell never run",
-   "evidence": "status 16 Nov: connected=false, last seen 364,914 s (~4.2 days), queued 17,186, oldest 364 h; installer tests UNVERIFIED (no Windows run)",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "evidence": "status 16 Nov 14:20 UTC: connected=false, last seen 380,902 s (~4.4 days), queued 17,186, oldest 369 h; installer tests UNVERIFIED (no Windows run)",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_005A",
@@ -285,12 +285,12 @@
    "atom": "Sovereign credit metrics must carry citations",
    "implemented": "yes",
    "tested": "yes",
-   "merged": "no",
+   "merged": "yes",
    "deployed": "no",
    "live_checked": "no",
-   "next_step": "merge after review and exact-SHA GO",
-   "evidence": "PR #522 head 2f221ad, 1 check SUCCESS; open, mergeable",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "next_step": "needs exact-SHA GO to deploy; live still 0625877",
+   "evidence": "PR #522 head 2f221ad, 1 check SUCCESS; open, mergeable; merged to main 16 Nov 14:06 UTC d6d2b87 (#522); live sha unchanged 0625877 (checked 16 Nov)",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_014A",
@@ -302,12 +302,12 @@
    "atom": "Reconcile sole-human release policy (EEN-REL-001) with regression tests",
    "implemented": "yes",
    "tested": "yes",
-   "merged": "no",
+   "merged": "yes",
    "deployed": "no",
    "live_checked": "no",
-   "next_step": "review and merge",
-   "evidence": "PR #518 head 5ea82aa, checks SUCCESS 2 / SKIPPED 1; open",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "next_step": "needs exact-SHA GO to deploy; live still 0625877",
+   "evidence": "PR #518 head 5ea82aa, checks SUCCESS 2 / SKIPPED 1; open; merged to main 16 Nov 14:06 UTC 7637934 (#518); live sha unchanged 0625877 (checked 16 Nov)",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_015A",
@@ -322,9 +322,9 @@
    "merged": "no",
    "deployed": "no",
    "live_checked": "no",
-   "next_step": "review and merge",
-   "evidence": "PR #519 head 1c36d41, check SUCCESS; open",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "next_step": "superseded by task_10bonds_015B",
+   "evidence": "PR #519 head 1c36d41, check SUCCESS; open; #519 closed unmerged 16 Nov 14:11 UTC",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_016A",
@@ -336,12 +336,12 @@
    "atom": "Stripe webhook offline signed-event acceptance + malformed JSON guard",
    "implemented": "yes",
    "tested": "yes",
-   "merged": "no",
+   "merged": "yes",
    "deployed": "no",
    "live_checked": "no",
-   "next_step": "review and merge",
-   "evidence": "PR #520 head ef50f3f, check SUCCESS; open",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "next_step": "needs exact-SHA GO to deploy; live still 0625877",
+   "evidence": "PR #520 head ef50f3f, check SUCCESS; open; merged to main 16 Nov 14:06 UTC f62474f (#520); live sha unchanged 0625877 (checked 16 Nov)",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_017A",
@@ -353,12 +353,12 @@
    "atom": "Lenovo worker read-only scheduled-task, Ollama, integrity diagnostics",
    "implemented": "yes",
    "tested": "yes",
-   "merged": "no",
+   "merged": "yes",
    "deployed": "no",
    "live_checked": "no",
-   "next_step": "review and merge",
-   "evidence": "PR #521 head 7cee0bc, check SUCCESS; open",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "next_step": "needs exact-SHA GO to deploy; live still 0625877",
+   "evidence": "PR #521 head 7cee0bc, check SUCCESS; open; merged to main 16 Nov 14:06 UTC 85ea9b0 (#521); live sha unchanged 0625877 (checked 16 Nov)",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_018A",
@@ -373,9 +373,9 @@
    "merged": "no",
    "deployed": "no",
    "live_checked": "no",
-   "next_step": "review and merge",
-   "evidence": "PR #523 head 1fa48ed, no checks (docs); open",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "next_step": "closed unmerged 16 Nov 14:06 UTC; reopen only if wanted",
+   "evidence": "PR #523 head 1fa48ed, no checks (docs); open; PR closed unmerged 16 Nov 14:06 UTC",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_019A",
@@ -390,9 +390,9 @@
    "merged": "no",
    "deployed": "no",
    "live_checked": "no",
-   "next_step": "review and merge; touches the rules",
-   "evidence": "PR #525 head 39f82a1, no checks (docs); open",
-   "updated_at": "2026-11-16T10:00:00Z"
+   "next_step": "closed unmerged 16 Nov 14:06 UTC; reopen only if wanted",
+   "evidence": "PR #525 head 39f82a1, no checks (docs); open; PR closed unmerged 16 Nov 14:06 UTC",
+   "updated_at": "2026-11-16T14:30:00Z"
   },
   {
    "id": "task_10bonds_020A",
@@ -427,6 +427,23 @@
    "next_step": "needs Stripe test key; no live payment",
    "evidence": "execution-ledger 12 Nov: UNVERIFIED",
    "updated_at": "2026-11-16T10:00:00Z"
+  },
+  {
+   "id": "task_10bonds_015B",
+   "legacy_id": "#526",
+   "parent": "task_10bonds_015",
+   "asked_at": "2026-11-16",
+   "asked_time": "unknown",
+   "original_ask": "unknown (PR #526 title: Uptime probe during Fly deploys, from #519)",
+   "atom": "Uptime probe during Fly deploys (replaces #519)",
+   "implemented": "yes",
+   "tested": "yes",
+   "merged": "no",
+   "deployed": "no",
+   "live_checked": "no",
+   "next_step": "review and merge",
+   "evidence": "PR #526 head ac0555b, check SUCCESS, open (checked 16 Nov)",
+   "updated_at": "2026-11-16T14:30:00Z"
   }
  ]
 }

@@ -3,7 +3,7 @@
 Human view of `docs/delivery-ledger.json`. Every ask is split into atoms (`task_10bonds_NNNL`) and tracked through Implemented, Tested, Merged, Deployed, Verified live.
 Icons: ✅ done · ❌ not done · ⏸ parked · ❓ unknown. Live = the atom's own check passed in production in the turn it was recorded.
 Existing register imported, not replaced: `docs/execution-ledger.md` (IDs 10B-000x kept in the Legacy column). Release approvals stay in `docs/livio-asks.md`.
-Last synced: 16 Nov 2026 10:00 UTC. Backfill window: 09 Nov to 16 Nov 2026.
+Last synced: 16 Nov 2026 14:30 UTC. Backfill window: 09 Nov to 16 Nov 2026.
 
 ## All atoms
 | ID | Legacy | Asked | This atom | Impl · Test · Merge · Deploy · Live | Next step |
@@ -24,14 +24,15 @@ Last synced: 16 Nov 2026 10:00 UTC. Backfill window: 09 Nov to 16 Nov 2026.
 | task_10bonds_011A | #489/#504 | 04 Nov 2026 | Dates shown as 03 Nov 2026 on English pages, e-mails, newsle | ✅ ❓ ✅ ✅ ❓ | spot-check pages |
 | task_10bonds_011B | CLAUDE.md | 04 Nov 2026 | Dates on IT/FR/DE pages follow the same format (open questio | ❌ ❌ ❌ ❌ ❌ | Livio decision (open question in CLAUDE.md) |
 | task_10bonds_012A | #490/#492 | 04 Nov 2026 | Lenovo uses only qwen3:8b, always keep_alive | ✅ ❓ ✅ ✅ ✅ | none |
-| task_10bonds_013A | #522 | 15 Nov 2026 | Sovereign credit metrics must carry citations | ✅ ✅ ❌ ❌ ❌ | merge after review and exact-SHA GO |
-| task_10bonds_014A | #518 | 15 Nov 2026 | Reconcile sole-human release policy (EEN-REL-001) with regre | ✅ ✅ ❌ ❌ ❌ | review and merge |
-| task_10bonds_015A | #519 | 15 Nov 2026 | Restore archived #454 uptime proof during controlled Fly dep | ✅ ✅ ❌ ❌ ❌ | review and merge |
-| task_10bonds_016A | #520 | 15 Nov 2026 | Stripe webhook offline signed-event acceptance + malformed J | ✅ ✅ ❌ ❌ ❌ | review and merge |
-| task_10bonds_017A | #521 | 15 Nov 2026 | Lenovo worker read-only scheduled-task, Ollama, integrity di | ✅ ✅ ❌ ❌ ❌ | review and merge |
-| task_10bonds_018A | #523 | 15 Nov 2026 | Add 10BONDS Copilot release-evidence guidance (docs) | ✅ ❓ ❌ ❌ ❌ | review and merge |
-| task_10bonds_019A | #525 | 15 Nov 2026 | Revise standing rules and deployment guidelines (docs) | ✅ ❓ ❌ ❌ ❌ | review and merge; touches the rules |
+| task_10bonds_013A | #522 | 15 Nov 2026 | Sovereign credit metrics must carry citations | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
+| task_10bonds_014A | #518 | 15 Nov 2026 | Reconcile sole-human release policy (EEN-REL-001) with regre | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
+| task_10bonds_015A | #519 | 15 Nov 2026 | Restore archived #454 uptime proof during controlled Fly dep | ✅ ✅ ❌ ❌ ❌ | superseded by task_10bonds_015B |
+| task_10bonds_016A | #520 | 15 Nov 2026 | Stripe webhook offline signed-event acceptance + malformed J | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
+| task_10bonds_017A | #521 | 15 Nov 2026 | Lenovo worker read-only scheduled-task, Ollama, integrity di | ✅ ✅ ✅ ❌ ❌ | needs exact-SHA GO to deploy; live still 0625877 |
+| task_10bonds_018A | #523 | 15 Nov 2026 | Add 10BONDS Copilot release-evidence guidance (docs) | ✅ ❓ ❌ ❌ ❌ | closed unmerged 16 Nov 14:06 UTC; reopen only if wanted |
+| task_10bonds_019A | #525 | 15 Nov 2026 | Revise standing rules and deployment guidelines (docs) | ✅ ❓ ❌ ❌ ❌ | closed unmerged 16 Nov 14:06 UTC; reopen only if wanted |
 | task_10bonds_020A | docs/release-governance-setup.md | 13 Nov 2026 | GitHub settings for release governance applied (production e | ❌ ❌ ❌ ❌ ❌ | Livio decision (owner settings) |
 | task_10bonds_021A | P4 | 12 Nov 2026 | Stripe test-mode signup, plan, checkout verified end to end | ❌ ❌ ❌ ❌ ❌ | needs Stripe test key; no live payment |
+| task_10bonds_015B | #526 | 16 Nov 2026 | Uptime probe during Fly deploys (replaces #519) | ✅ ✅ ❌ ❌ ❌ | review and merge |
 
-Atoms: 25 captured · 22 implemented · 16 tested · 14 merged · 13 deployed · 5 verified live · 4 blocked
+Atoms: 26 captured · 23 implemented · 17 tested · 18 merged · 13 deployed · 5 verified live · 4 blocked
