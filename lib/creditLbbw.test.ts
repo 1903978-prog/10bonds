@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createRequire } from "node:module";
 import { extractBankFigures, quoteSupports } from "./creditExtract";
 import { reconcileSeniority } from "./creditFeedFacts";
 import { evaluate } from "./creditGate";
@@ -9,6 +10,7 @@ import { RISK_KEYS, scoreResearch, type ResearchFacts } from "./creditScoring";
 // it is NOT LBBW's wording. The real citations come from the Lenovo worker reading LBBW's own H1 2026 page. These tests prove the pipeline logic:
 // exact figures are recovered with quotes, absent figures stay missing, seniority is not taken from the data copy, and nothing becomes public early.
 const URL_H1 = "https://www.lbbw.de/article/press-release/lbbw-firmly-on-track_ancu4bx2g2_e.html";
+const importNative = createRequire(import.meta.url)("./workerTestImport.cjs") as (specifier: string) => Promise<unknown>;
 const FIXTURE = [
   "Group results for the first half of 2026.",
   "The CET1 ratio stood at 16.1 percent at the end of June.",
@@ -92,8 +94,8 @@ import { enrichFromFeed } from "./creditFeedFacts";
 type Doc = { url: string; title: string; publisher: string; period: string | null; primary: boolean; method: string; text: string; retrievedAt: string; verified?: boolean };
 async function worker() {
   process.env.WORKER_TOKEN = "crw_test"; process.env.OLLAMA_MODEL = "test";
-  const path = "../scripts/credit-worker/worker.mjs";
-  return (await import(/* @vite-ignore */ path)) as Record<string, (...a: never[]) => unknown>;
+  const workerUrl = new URL("../scripts/credit-worker/worker.mjs", import.meta.url).href;
+  return (await importNative(workerUrl)) as Record<string, (...a: never[]) => unknown>;
 }
 const NOWISO = "2026-11-02T10:00:00Z";
 const docs = (): Doc[] => [
@@ -138,5 +140,37 @@ describe("LBBW end to end through the worker steps (fixture documents)", () => {
     const r = parseResult(LBBW_CASE.isin, { issuerType: "bank", evidence: [{ url: URL_H1, verification: "verified", primary: true, publisher: "lbbw.de" }], figures: [{ parameter: "cet1Pct", value: 17.5, unit: "%", quote: "The CET1 ratio stood at 16.1 percent.", url: URL_H1 }], metrics: { cet1Pct: 17.5 } });
     expect(r.ok && r.facts.metrics.cet1Pct).toBeNull();
     expect(r.ok && r.facts.notes?.join(" ")).toMatch(/quote does not contain the number/);
+  });
+  it("a worker cannot mark an uncited sovereign metric as official", () => {
+    const r = parseResult(LBBW_CASE.isin, {
+      issuerType: "sovereign",
+      evidence: [{ url: URL_H1, verification: "verified", primary: true, publisher: "World Bank" }],
+      metrics: { debtToGdpPct: 38 },
+      metricsOfficial: true,
+    });
+    expect(r.ok && r.facts.metrics.debtToGdpPct).toBeNull();
+    expect(r.ok && r.facts.notes?.join(" ")).toMatch(/no accepted citation/);
+  });
+  it("a sovereign metric with a retrieved quote and matching value is retained", () => {
+    const r = parseResult(LBBW_CASE.isin, {
+      issuerType: "sovereign",
+      evidence: [{ url: URL_H1, verification: "verified", primary: true, publisher: "World Bank" }],
+      figures: [{ parameter: "debtToGdpPct", value: 38, unit: "% of GDP", quote: "Public debt was 38% of GDP.", url: URL_H1 }],
+      metrics: { debtToGdpPct: 38 },
+    });
+    expect(r.ok && r.facts.metrics.debtToGdpPct).toBe(38);
+  });
+  it.each([
+    ["a decimal continuation", "Public debt was 38.4% of GDP.", 38],
+    ["an opposite sign", "Public debt was -38% of GDP.", 38],
+  ])("rejects a sovereign metric citation with %s", (_case, quote, value) => {
+    const r = parseResult(LBBW_CASE.isin, {
+      issuerType: "sovereign",
+      evidence: [{ url: URL_H1, verification: "verified", primary: true, publisher: "World Bank" }],
+      figures: [{ parameter: "debtToGdpPct", value, unit: "% of GDP", quote, url: URL_H1 }],
+      metrics: { debtToGdpPct: value },
+    });
+    expect(r.ok && r.facts.metrics.debtToGdpPct).toBeNull();
+    expect(r.ok && r.facts.notes?.join(" ")).toMatch(/no accepted citation/);
   });
 });
