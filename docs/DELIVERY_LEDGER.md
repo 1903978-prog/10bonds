@@ -1,0 +1,37 @@
+# Delivery ledger (een-code)
+
+Human view of `docs/delivery-ledger.json`. Every ask is split into atoms (`task_10bonds_NNNL`) and tracked through Implemented, Tested, Merged, Deployed, Verified live.
+Icons: ✅ done · ❌ not done · ⏸ parked · ❓ unknown. Live = the atom's own check passed in production in the turn it was recorded.
+Existing register imported, not replaced: `docs/execution-ledger.md` (IDs 10B-000x kept in the Legacy column). Release approvals stay in `docs/livio-asks.md`.
+Last synced: 16 Nov 2026 10:00 UTC. Backfill window: 09 Nov to 16 Nov 2026.
+
+## All atoms
+| ID | Legacy | Asked | This atom | Impl · Test · Merge · Deploy · Live | Next step |
+|---|---|---|---|---|---|
+| task_10bonds_001A | 10B-0001 | 12 Nov 2026 | App startup lock can no longer block the app from starting | ✅ ✅ ✅ ✅ ✅ | none |
+| task_10bonds_002A | 10B-0003 | 12 Nov 2026 | Deploy removes the stuck machine a cancelled release left be | ✅ ✅ ✅ ✅ ❓ | confirm on next controlled deploy |
+| task_10bonds_003A | 10B-0004 | 12 Nov 2026 | Deploy can remove one named machine when two healthy version | ✅ ✅ ✅ ✅ ❓ | confirm on next controlled deploy |
+| task_10bonds_004A | 10B-0005 | 12 Nov 2026 | Status endpoint shows queue age, failures and worker alerts | ✅ ✅ ✅ ✅ ✅ | none |
+| task_10bonds_004B | 10B-0005 | 12 Nov 2026 | Credit worker runs 24/7 on the Lenovo (service install) | ✅ ❌ ✅ ❌ ❌ | install on Lenovo (physical access); PowerShell never run |
+| task_10bonds_005A | 10B-0006 | 12 Nov 2026 | Worker offline e-mail removed; alerts only on status endpoin | ✅ ✅ ✅ ✅ ❓ | confirm with nightly live check |
+| task_10bonds_006A | 10B-0007 | 12 Nov 2026 | Fail-closed release gate: deploy needs REL-#### row for exac | ✅ ✅ ✅ ✅ ✅ | none |
+| task_10bonds_006B | 10B-0007 | 14 Nov 2026 | First gated release goes live (#510 + #513, REL-0002) | ✅ ✅ ✅ ✅ ✅ | none |
+| task_10bonds_007A | 10B-0008 | 13 Nov 2026 | Unauthorized e-mail alerts removed (backup, link check) | ✅ ✅ ✅ ✅ ❓ | confirm at next nightly live check |
+| task_10bonds_007B | 10B-0008 | 13 Nov 2026 | Nightly live check reports last backup and link-check run in | ✅ ✅ ✅ ✅ ❓ | confirm at next nightly live check |
+| task_10bonds_008A | 10B-0002 | 12 Nov 2026 | Keep bond runs that published portfolio results still in use | ✅ ❓ ⏸ ⏸ ⏸ | decide when to release (held out of 12 Nov release) |
+| task_10bonds_009A | 10B-D01 | 11 Nov 2026 | DB setup test no longer flaky (defect D-01) | ✅ ✅ ✅ ✅ ❓ | none unless CI flakes again |
+| task_10bonds_010A | #506 | 11 Nov 2026 | Failed promo coupon stops checkout instead of full-price pay | ✅ ✅ ✅ ✅ ❓ | cannot test in live Stripe mode; code check only |
+| task_10bonds_011A | #489/#504 | 04 Nov 2026 | Dates shown as 03 Nov 2026 on English pages, e-mails, newsle | ✅ ❓ ✅ ✅ ❓ | spot-check pages |
+| task_10bonds_011B | CLAUDE.md | 04 Nov 2026 | Dates on IT/FR/DE pages follow the same format (open questio | ❌ ❌ ❌ ❌ ❌ | Livio decision (open question in CLAUDE.md) |
+| task_10bonds_012A | #490/#492 | 04 Nov 2026 | Lenovo uses only qwen3:8b, always keep_alive | ✅ ❓ ✅ ✅ ✅ | none |
+| task_10bonds_013A | #522 | 15 Nov 2026 | Sovereign credit metrics must carry citations | ✅ ✅ ❌ ❌ ❌ | merge after review and exact-SHA GO |
+| task_10bonds_014A | #518 | 15 Nov 2026 | Reconcile sole-human release policy (EEN-REL-001) with regre | ✅ ✅ ❌ ❌ ❌ | review and merge |
+| task_10bonds_015A | #519 | 15 Nov 2026 | Restore archived #454 uptime proof during controlled Fly dep | ✅ ✅ ❌ ❌ ❌ | review and merge |
+| task_10bonds_016A | #520 | 15 Nov 2026 | Stripe webhook offline signed-event acceptance + malformed J | ✅ ✅ ❌ ❌ ❌ | review and merge |
+| task_10bonds_017A | #521 | 15 Nov 2026 | Lenovo worker read-only scheduled-task, Ollama, integrity di | ✅ ✅ ❌ ❌ ❌ | review and merge |
+| task_10bonds_018A | #523 | 15 Nov 2026 | Add 10BONDS Copilot release-evidence guidance (docs) | ✅ ❓ ❌ ❌ ❌ | review and merge |
+| task_10bonds_019A | #525 | 15 Nov 2026 | Revise standing rules and deployment guidelines (docs) | ✅ ❓ ❌ ❌ ❌ | review and merge; touches the rules |
+| task_10bonds_020A | docs/release-governance-setup.md | 13 Nov 2026 | GitHub settings for release governance applied (production e | ❌ ❌ ❌ ❌ ❌ | Livio decision (owner settings) |
+| task_10bonds_021A | P4 | 12 Nov 2026 | Stripe test-mode signup, plan, checkout verified end to end | ❌ ❌ ❌ ❌ ❌ | needs Stripe test key; no live payment |
+
+Atoms: 25 captured · 22 implemented · 16 tested · 14 merged · 13 deployed · 5 verified live · 4 blocked
