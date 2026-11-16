@@ -10,6 +10,8 @@ on:
     paths: ["**.md", "docs/**"]
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
 concurrency:
   group: docs-checks-${{ github.ref }}
   cancel-in-progress: true
@@ -17,6 +19,21 @@ jobs:
   checks:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 2
+    timeout-minutes: 20
     steps:
-      - run: echo "Documentation-only change: no code to check."
+      - name: Documentation-only passes; a mix with code waits for and mirrors the full Checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          code=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" --paginate --jq '.[].filename' | grep -vE '\.md$|^docs/' || true)
+          if [ -z "$code" ]; then echo "Documentation-only change: no code to check."; exit 0; fi
+          echo "This PR also changes code, so it needs the full Checks run:"; echo "$code"
+          for i in $(seq 1 110); do
+            r=$(gh run list --workflow ci.yml --commit "$SHA" --event pull_request --json status,conclusion --jq 'map(select(.status=="completed"))|first|.conclusion // "none"')
+            case "$r" in success) echo "Full Checks passed."; exit 0;; none) ;; *) echo "Full Checks result: $r"; exit 1;; esac
+            sleep 10
+          done
+          echo "Full Checks did not finish in time"; exit 1
