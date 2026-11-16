@@ -4,6 +4,14 @@ import { ensureStripeSetup, readSubscription, stripe, stripeConfigured, verifySi
 
 export const dynamic = "force-dynamic";
 
+type StripeWebhookEvent = { type: string; data?: { object?: { subscription?: string; id?: string } } };
+
+function isStripeWebhookEvent(value: unknown): value is StripeWebhookEvent {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const type = Reflect.get(value, "type");
+  return typeof type === "string" && type.length > 0;
+}
+
 /** Stripe tells us about payments here. Only signed messages are acted on; the plan follows the subscription. */
 export async function POST(req: Request) {
   if (!stripeConfigured()) return NextResponse.json({ error: "not configured" }, { status: 503 });
@@ -16,7 +24,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "setup" }, { status: 500 });
   }
   if (!verifySignature(payload, req.headers.get("stripe-signature"), secret)) return NextResponse.json({ error: "bad signature" }, { status: 400 });
-  const event = JSON.parse(payload);
+  // A signed but malformed delivery must not crash the route with an uncaught
+  // exception. Stripe sends JSON; malformed input is a terminal client error.
+  let event: StripeWebhookEvent;
+  try {
+    const parsed: unknown = JSON.parse(payload);
+    if (!isStripeWebhookEvent(parsed)) return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+    event = parsed;
+  } catch {
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  }
   try {
     let sub: unknown = null;
     if (event.type === "checkout.session.completed" && event.data?.object?.subscription) {
