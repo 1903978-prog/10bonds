@@ -36,7 +36,7 @@ On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, 
 
 # GitHub Actions rules (permanent, Livio 28/10/2026 — target under 50 cents/day across all repos)
 
-- No workflow runs on push to `claude/**` or any session branch. Allowed triggers: `schedule`, `workflow_dispatch`, `pull_request` into the shipping branch only (with `paths-ignore: ["**.md", "docs/**"]`), and `workflow_run` after a successful deploy.
+- No workflow runs on push to `claude/**` or any session branch. Allowed triggers: `schedule`, `workflow_dispatch`, `pull_request` into the shipping branch only (docs-only and `.md`-only PRs skip CI, except `docs/livio-asks.md` release-approval rows, which run `checks` because main requires it; see `ci.yml` `paths`), and `workflow_run` after a successful deploy.
 - Every check has a `concurrency` group with `cancel-in-progress: true` so a newer commit cancels older runs (backups/deploys: `false`).
 - Live / link / tile checks: one scheduled run per night plus one run after a successful deploy; never on every push, never while a deploy is in progress.
 - DEPLOY RULE (10B-0007 / EEN-REL-001, 14 Nov 2026; supersedes the 28 Oct direct-fly instruction for 10BONDS): 10BONDS production releases use the **manual-only** GitHub Deploy to Fly / rollback workflows with the recorded exact-SHA owner GO, fail-closed gate and single-use claim. Never run a direct `fly deploy` to circumvent the gate. No deployment occurs automatically on push or merge to `main`. Do not change release rules in other repositories.
