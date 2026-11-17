@@ -39,6 +39,7 @@ A 10bonds release (deploy.yml) or rollback (rollback.yml) runs only if a row bel
 | REL-0001 | 10bonds | deploy | f0615d2431924fa57625223df573b017aed5213f | #510: credit worker 24/7, fail-closed release gate, one owner e-mail | Livio, 14 Nov 2026 06:00 UTC ("GO 10bonds #510 f0615d2431924fa57625223df573b017aed5213f") | APPROVED |
 | REL-0002 | 10bonds | deploy | 06258777c6b558b83d773029ca03732ccf6aca2c | #513 (release claim fix) with #510: credit worker 24/7, fail-closed release gate, one owner e-mail | Livio, 14 Nov 2026 06:36 UTC ("GO 10bonds #513 06258777c6b558b83d773029ca03732ccf6aca2c") | APPROVED |
 | REL-0004 | 10bonds | deploy | 61adc02bc95b10c02a59a6f0b61f6d383326d850 | #518 release-policy docs and tests, #520 Stripe webhook guard, #521 credit-worker verify script, #522 credit research citation integrity, #526 uptime probe during deploys, #530 CI runs checks on release-approval PRs | Livio, 16 Nov 2026 15:35 UTC ("Approve deploy" on the decision card for main 61adc02bc95b10c02a59a6f0b61f6d383326d850; he had earlier approved b8559842f4f878726d62103ae4634bb590209e13 for deploy, and 61adc02 is that commit plus the #530 workflow line) | APPROVED |
+| REL-0005 | 10bonds | deploy | 8b15c2a604c943dfe65f3b375ffe70091ef4a606 | #534 Finder: main button waits until the page has loaded (chart overlay fix); merged into main as 21d56148 (merge commit, same code) | Livio, 17 Nov 2026 01:52 UTC (chat: "approve 8b15c2a604c943dfe65f3b375ffe70091ef4a606") | APPROVED |
 
 ## Production change approvals
 
