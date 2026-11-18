@@ -1,4 +1,5 @@
 // Opens the live finder as an anonymous visitor, runs one search and prints the page status and the efficiency score tile text. Read-only.
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright-core";
 
 const base = process.env.BASE_URL ?? "https://10bonds.com";
@@ -14,6 +15,11 @@ page.on("response", async (r) => {
   api = r.status();
   try { const j = await r.json(); bes = JSON.stringify({ bes: j.bes ?? null, rows: j.rows?.length ?? null, status: j.status ?? null }); } catch { bes = "not json"; }
 });
+// Act as a returning visitor who already accepted the one-time agreement (components/ConsentGate.tsx): the box would otherwise cover the
+// Chart tab, and pressing "continue" would store a consent record for this robot on production. The version is read from the source so it stays in step.
+const consentVersion = readFileSync(new URL("../lib/consentText.ts", import.meta.url), "utf8").match(/CONSENT_VERSION = "([^"]+)"/)?.[1];
+if (!consentVersion) throw new Error("CONSENT_VERSION not found in lib/consentText.ts");
+await page.addInitScript((v) => { try { localStorage.setItem("tb_agree", v); } catch {} }, consentVersion);
 const res = await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 60000 });
 status = res?.status() ?? 0;
 console.log(`page status ${status}`);
