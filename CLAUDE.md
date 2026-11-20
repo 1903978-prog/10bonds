@@ -6,6 +6,10 @@ Before any production merge or deploy, obtain Livio's explicit GO for the exact 
 
 For `main` protection: require PR and CI status checks, block force pushes and deletion, **required human approving reviews = 0**. Until repository environment/ruleset and scoped-secret controls are actually confirmed, label them UNVERIFIED / NOT APPLIED; do not represent a documented policy as technical enforcement. The single shared admin account remains a bypass risk even after repository protections are configured.
 
+# ONE-CLICK APPROVALS (Livio, 20 Nov 2026, permanent; changes the interface, not the authorization requirements)
+
+Approvals are one-click GO cards in the project chat, never typed text. The card shows repo and PR, a short description, the exact SHA, test and independent-review status, cost, and production/database impact. Merge and deploy of the same verified release are ONE card. Livio's button press is the approval for that exact SHA and scope; continue automatically afterwards and never ask him to type "approve <SHA>". Never fake an approval or treat an unverified click as one: verify the press (the user's own message) before acting. Threads tell the coordinator when an approval is needed and the coordinator posts the card. Record it in `docs/livio-asks.md` as before.
+
 # LENOVO MODEL RULE (Livio, 04 Nov 2026, standing)
 
 On the Lenovo use ONLY `qwen3:8b`. Never request, load or warm up `qwen3.5:2b`, `bge-m3` or any other model. Every Lenovo request sets `keep_alive`. Displayed dates are written like `03 Nov 2026`.
