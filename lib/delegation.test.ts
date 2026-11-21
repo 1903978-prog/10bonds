@@ -297,7 +297,14 @@ describe("wiring", () => {
     const { activeActivation, policyHash } = await lib();
     const md = read("docs/livio-asks.md");
     const act = activeActivation(md, policyText);
-    expect(md).toContain("PENDING-GO"); // flipped to ACTIVE only by the recorded GO
-    if (act) expect(act[1]).toBe(policyHash(policyText));
+    // Either still waiting, or ACTIVE with the approver's name, a date and a real press message id.
+    const row = md.split("\n").find((l) => l.startsWith("| DEL-0001 |")) ?? "";
+    const pending = row.includes("| PENDING-GO |");
+    const recorded = /\| Livio, \d{2} [A-Z][a-z]{2} \d{4} \(one-click GO, card press cmsg_[A-Za-z0-9]{20,}\) \| ACTIVE \|$/.test(row);
+    expect(pending || recorded).toBe(true);
+    if (act) {
+      expect(recorded).toBe(true);
+      expect(act[1]).toBe(policyHash(policyText));
+    }
   });
 });
