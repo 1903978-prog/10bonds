@@ -17,7 +17,7 @@ export async function runDelegation({ sha, env = process.env, live } = {}) {
   const policyText = execFileSync("git", ["show", `${liveCommit}:docs/delegation/policy.json`], { encoding: "utf8" });
   const activationMd = readMainFile("docs/livio-asks.md");
   const register = JSON.parse(readMainFile("docs/release-register.json"));
-  let { files, changes, addedLines, codeAddedLines, asksLines } = gitChange(liveCommit, sha);
+  let { files, changes, addedLines, codeAddedLines, codeRemovedLines, asksLines } = gitChange(liveCommit, sha);
   // Recording the use of the owner-approved release that is live now is not a new approval: only that row may change.
   if (files.includes("docs/livio-asks.md") && approvalRowOnlyEdit(asksLines, activationMd, liveCommit)) {
     files = files.filter((f) => f !== "docs/livio-asks.md"); changes = changes.filter((c) => c.path !== "docs/livio-asks.md");
@@ -27,5 +27,5 @@ export async function runDelegation({ sha, env = process.env, live } = {}) {
   const evidence = { ci: {}, backupAt: "" };
   if (entry) evidence.ci[entry.sha] = await ciSucceeded(entry.sha, env);
   evidence.backupAt = await latestBackup(env);
-  return checkDelegation({ policyText, activationMd, register, files, changes, addedLines, codeAddedLines, sha, live: liveCommit, env, now: new Date(), sameCode: gitRegisterOnly, evidence });
+  return checkDelegation({ policyText, activationMd, register, files, changes, addedLines, codeAddedLines, codeRemovedLines, sha, live: liveCommit, env, now: new Date(), sameCode: gitRegisterOnly, evidence });
 }

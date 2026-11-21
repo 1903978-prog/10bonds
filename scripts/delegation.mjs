@@ -73,6 +73,11 @@ export function forbiddenCode(addedLines, policy) {
   const re = new RegExp(policy.forbiddenCodeInAddedLines, "i");
   return (addedLines ?? []).filter((l) => re.test(l));
 }
+/** Removed lines (any file outside docs) that held enforcement code (login, admin, plan, quota, 401/403): removing a check is outside standing authority. */
+export function forbiddenRemoved(removedLines, policy) {
+  const re = new RegExp(policy.forbiddenRemovedLines, "i");
+  return (removedLines ?? []).filter((l) => re.test(l));
+}
 /** Existing tests and checks may be added to, never edited, renamed or deleted, by an automatic release (a check cannot be weakened to get green). */
 export function protectedEdits(changes, policy) {
   return (changes ?? []).filter((c) => c.status !== "A" && matches(policy.protectedEdits, c.path)).map((c) => c.path);
@@ -110,7 +115,8 @@ export function checkDelegation(ctx) {
   if (klass === "RED") errors.push("RED change: outside standing authority, needs Livio's own GO (" + reasons.slice(0, 6).join("; ") + ")");
   const prot = protectedEdits(ctx.changes, policy);
   if (prot.length) errors.push("existing tests/checks edited or deleted: outside standing authority (" + prot.slice(0, 4).join(", ") + ")");
-  if (forbiddenCode(ctx.codeAddedLines, policy).length) errors.push("added code sends e-mail, touches payments or reads secrets: outside standing authority");
+  if (forbiddenCode(ctx.codeAddedLines, policy).length) errors.push("added code sends e-mail, touches payments, reads secrets, writes files, calls out, or imports a RED module: outside standing authority");
+  if (forbiddenRemoved(ctx.codeRemovedLines, policy).length) errors.push("removed lines held enforcement code (login, admin, plan, quota, 401/403): outside standing authority");
   const reg = ctx.register, entry = findEntry(reg, sha, ctx.sameCode ?? ((a, b) => a === b));
   if (!entry) errors.push("no release-register entry for this commit on main (its own sha, or an ancestor differing only in the register)");
   else {
@@ -119,6 +125,7 @@ export function checkDelegation(ctx) {
     const rv = entry.review ?? {}; // attestation: recorded, not provable; the binding controls are the owner pin, GitHub CI/backup evidence, path classes and the scans
     if (rv.verdict !== policy.releaseEvidence.reviewVerdictRequired) errors.push("independent review verdict is not PASS");
     if (!rv.reviewer || !rv.at) errors.push("independent review must name the reviewer and the date");
+    if (entry.authority !== "standing-delegation") errors.push('register entry authority must be "standing-delegation"');
     if (!entry.author) errors.push("register entry must name the author");
     else if (rv.reviewer && String(rv.reviewer).toLowerCase() === String(entry.author).toLowerCase()) errors.push("reviewer and author must differ");
     if (ctx.evidence?.ci?.[entry.sha] !== true) errors.push("GitHub does not show a successful 'checks' run for the entry's commit (the register's own CI field is not trusted)");
@@ -143,9 +150,11 @@ export function gitChange(live, sha, cwd = process.cwd()) {
   const lines = (a) => run(["diff", "--no-renames", "--no-ext-diff", "-U0", live, sha, ...a]).split("\n");
   // destructive SQL is looked for everywhere; the code scan skips docs and tests (they may name these words)
   const addedLines = lines([]).filter((l) => l.startsWith("+") && !l.startsWith("+++")).map((l) => l.slice(1));
-  const codeAddedLines = lines(["--", ".", ":(exclude,glob)docs/**", ":(exclude,glob)**/*.test.*"]).filter((l) => l.startsWith("+") && !l.startsWith("+++")).map((l) => l.slice(1));
+  const codeLines = lines(["--", ".", ":(exclude,glob)docs/**"]);
+  const codeAddedLines = codeLines.filter((l) => l.startsWith("+") && !l.startsWith("+++")).map((l) => l.slice(1));
+  const codeRemovedLines = codeLines.filter((l) => l.startsWith("-") && !l.startsWith("---")).map((l) => l.slice(1));
   const asksLines = files.includes("docs/livio-asks.md") ? lines(["--", "docs/livio-asks.md"]).filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l)).map((l) => l.slice(1)) : [];
-  return { files, changes, addedLines, codeAddedLines, asksLines };
+  return { files, changes, addedLines, codeAddedLines, codeRemovedLines, asksLines };
 }
 /** True when `later` is `earlier` or a descendant whose only changed file is docs/release-register.json. */
 export function gitRegisterOnly(earlier, later, cwd = process.cwd()) {

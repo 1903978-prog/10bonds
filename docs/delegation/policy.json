@@ -6,7 +6,8 @@
   "notes": [
     "Changing this file changes its SHA-256, which ends the delegation until Livio sets the new hash in the repository variable RELEASE_POLICY_SHA256 and records a new activation row in docs/livio-asks.md (changing authority is RED). A release is judged by the policy on the LIVE commit, never by the one in the change.",
     "Order of classification: a RED pattern wins over everything; then AMBER; then GREEN; a path that matches nothing is RED (fail closed).",
-    "GREEN is an explicit allowlist (display-only pages, charts and formatting helpers). Everything else under app/ and lib/ and components/ is RED by default; legal wording, e-mail, auth, plans/pricing/quota, data purges and the health/version route are also listed RED explicitly."
+    "GREEN is an explicit allowlist (display-only pages, charts and formatting helpers). Everything else under app/ and lib/ and components/ is RED by default; legal wording, e-mail, auth, plans/pricing/quota, data purges and the health/version route are also listed RED explicitly.",
+    "The gate and claim code that judge an AUTO release run from the LIVE commit (git archive in deploy.yml), never from the candidate; the workflow file itself and the production environment rules remain UNVERIFIED as a control. Removed lines are scanned for enforcement code (auth, plan, quota, 401/403)."
   ],
   "red": [
     ".github/**",
@@ -93,7 +94,12 @@
     "app/reset-password/**",
     "public/**/*.html",
     "public/**/terms*",
-    "public/**/privacy*"
+    "public/**/privacy*",
+    "app/api/bonds/loss-curve/**",
+    "app/api/bonds/curve/**",
+    "app/api/bonds/card/**",
+    "app/api/bonds/slider/**",
+    "public/**/*.svg"
   ],
   "amber": [
     "db/**",
@@ -108,16 +114,8 @@
     "public/*.png",
     "public/*.jpg",
     "public/*.webp",
-    "public/*.svg",
     "app/globals.css",
     "app/icon.svg",
-    "app/bonds/**",
-    "app/bond-card/**",
-    "app/isin-search/**",
-    "app/price-drops/**",
-    "app/widget/**",
-    "app/embed/**",
-    "app/report/**",
     "components/*Chart.tsx",
     "components/Logo.tsx",
     "components/CloseButton.tsx",
@@ -128,7 +126,14 @@
     "lib/formatDate.ts",
     "lib/fmtMin.ts",
     "lib/bondFilter.ts",
-    "lib/curveFilter.ts"
+    "lib/curveFilter.ts",
+    "app/bonds/**/page.tsx",
+    "app/bond-card/**/page.tsx",
+    "app/isin-search/**/page.tsx",
+    "app/price-drops/**/page.tsx",
+    "app/widget/page.tsx",
+    "app/embed/**/page.tsx",
+    "app/report/**/page.tsx"
   ],
   "protectedEdits": [
     "**/*.test.ts",
@@ -136,7 +141,7 @@
     "scripts/*-check.mjs",
     "scripts/*-live-check.mjs"
   ],
-  "forbiddenCodeInAddedLines": "\\b(resend|nodemailer|sendgrid|postmark|stripe|sendmail|sendemail|child_process|execSync|spawnSync)\\b|\\bsend[A-Z]\\w*\\s*\\(|process\\.env(?!\\.(NODE_ENV|NEXT_PUBLIC_[A-Z0-9_]+)\\b)|\\bmethod\\s*:\\s*[\"'`](POST|PUT|PATCH|DELETE)|fetch\\(\\s*[\"'`]https?:|\\bfrom\\s+[\"'][^\"']*(\\.test|/docs/)|\\bimport\\([\"'][^\"']*(\\.test|/docs/)|\\beval\\(|new\\s+Function\\(",
+  "forbiddenCodeInAddedLines": "\\b(resend|nodemailer|sendgrid|postmark|stripe|sendmail|sendemail|child_process|execSync|spawnSync|execFile)\\b|\\bsend[A-Z]\\w*\\s*\\(|\\bprocess\\s*(\\.|\\[\\s*[\\\"\\'`])\\s*(?!env\\s*\\.\\s*(NODE_ENV|NEXT_PUBLIC_[A-Z0-9_]+)\\b)(env|exit|kill|binding)|from\\s+[\\\"'](node:)?(process|fs|fs/promises|net|http|https|dgram|child_process|worker_threads|vm)[\\\"']|\\brequire\\s*\\(\\s*[\\\"'](node:)?(process|fs|net|http|https|child_process|vm)[\\\"']|\\bfetch\\s*\\(\\s*(?![\\\"'`]/[^/])|\\bmethod\\s*:|\\.(writeFile|appendFile|unlink|rm|rmdir|mkdir)\\w*\\s*\\(|\\beval\\s*\\(|new\\s+Function\\s*\\(|\\bfrom\\s+[\\\"'][^\\\"']*(\\.test|/docs/)|\\bimport\\s*\\(\\s*[\\\"'][^\\\"']*(\\.test|/docs/)|(from|import\\s*\\(|require\\s*\\()\\s*[\\\"'][^\\\"']*/(email|outreach|weeklyEmail|welcomeEmail|passwordReset|emailLog|stripe|auth|session|password|secretBox|accounts|adminOnly|creditWorkerAuth|legal|weeklySend|newsletter|liveCheckAlert|unconfirmedPurge|totp|twoFactor|csp|botCheck|currentUser|rationaleAccess|plans|tiers|pro|promo|searchQuota|terms|disclaimer|cookieText|riskWarning|consentText|brokers)\\w*[\\\"']",
   "amberRequires": {
     "recoveryBackupMaxAgeHours": 24,
     "rollbackTargetMustBeBaseline": true,
@@ -159,5 +164,6 @@
     "activeValue": "ACTIVE",
     "pinVariable": "RELEASE_POLICY_SHA256",
     "rule": "Anything other than exactly ACTIVE (unset, empty, PAUSED, active) pauses automatic release. The pin variable must equal the SHA-256 of this file on the live commit."
-  }
+  },
+  "forbiddenRemovedLines": "\\b(currentUser|isAdmin|adminOnly|requireAdmin|requireAuth|tierFeatures|consumeSearch|searchQuota|authorize|authenticate|Forbidden|Unauthorized|plan|tier|quota|subscription|paywall|consent|disclaimer)\\b|\\b(401|403|429)\\b"
 }

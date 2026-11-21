@@ -15,7 +15,7 @@ type Lib = {
   policyHash: (t: string) => string; autoId: (s: string) => string; activeActivation: (md: string, t: string) => string[] | null;
   auditLiveAuto: (r: unknown, l: unknown, same?: (a: string, b: string) => boolean) => boolean;
   approvalRowOnlyEdit: (lines: string[], md: string, live: string) => boolean;
-  forbiddenCode: (l: string[], pol: unknown) => string[]; forbiddenSql: (l: string[], pol: unknown) => string[];
+  forbiddenCode: (l: string[], pol: unknown) => string[]; forbiddenRemoved: (l: string[], pol: unknown) => string[]; forbiddenSql: (l: string[], pol: unknown) => string[];
   protectedEdits: (c: { status: string; path: string }[], pol: unknown) => string[];
 };
 const lib = async () => {
@@ -198,7 +198,7 @@ describe("self-activation and forged evidence are not possible", () => {
   it("new code that sends e-mail, touches payments or reads secrets is outside standing authority", async () => {
     const { checkDelegation } = await lib();
     for (const l of ['import { Resend } from "resend";', "await stripe.customers.create({})", "const k = process.env.SESSION_SECRET;", "sendEmail(user)"]) {
-      expect(checkDelegation(await ctx({ codeAddedLines: [l] })).errors.join(), l).toMatch(/e-mail, touches payments or reads secrets/);
+      expect(checkDelegation(await ctx({ codeAddedLines: [l] })).errors.join(), l).toMatch(/e-mail, touches payments, reads secrets/);
     }
   });
   it("destructive SQL covers drop index/constraint/view, column type changes and update without where", async () => {
@@ -258,8 +258,27 @@ describe("wiring", () => {
   });
   it("the code scan catches env reads, send calls, outside posts, and imports of tests or docs", async () => {
     const { forbiddenCode } = await lib();
-    for (const l of ["const k = process.env.RESEND_API_KEY;", "const k = process.env.DATABASE_URL;", "const k = process.env['STRIPE_SECRET_KEY'];", "const { A } = process.env;", "await sendWelcomeEmail(u);", "fetch(`https://evil.example/x`)", "fetch(u, { method: 'POST' })", "import x from './y.test'", "import z from '../docs/hidden'"]) expect(forbiddenCode([l], policy).length, l).toBeGreaterThan(0);
+    for (const l of ["const k = process.env.RESEND_API_KEY;", "const k = process.env.DATABASE_URL;", "const k = process.env['STRIPE_SECRET_KEY'];", "const { A } = process.env;", "await sendWelcomeEmail(u);", "fetch(`https://evil.example/x`)", "fetch(u, { method: 'POST' })", "import x from './y.test'", "import z from '../docs/hidden'", "const k = process['env'].X;", "import { env } from 'node:process'", "fetch(u)", "const o = { method: m };", "import { runWeeklySend } from '@/lib/weeklySend'", "import { purge } from '../lib/unconfirmedPurge'", "fs.writeFileSync(a, b)", "import fs from 'node:fs'"]) expect(forbiddenCode([l], policy).length, l).toBeGreaterThan(0);
     for (const l of ["const e = process.env.NODE_ENV;", "const u = process.env.NEXT_PUBLIC_X;", "const a = 1;"]) expect(forbiddenCode([l], policy), l).toEqual([]);
+  });
+  it("removing enforcement code is caught, ordinary removals are not", async () => {
+    const { forbiddenRemoved } = await lib();
+    for (const l of ["  if (!user.isAdmin) return new Response(null, { status: 403 });", "const u = await currentUser();", "await consumeSearch(u)", "if (plan !== 'pro')"]) expect(forbiddenRemoved([l], policy).length, l).toBeGreaterThan(0);
+    expect(forbiddenRemoved(["const a = 1;", "<p>Hello</p>"], policy)).toEqual([]);
+  });
+  it("enforcement routes and server routes are not GREEN or AMBER by accident", async () => {
+    const { classifyPath } = await lib();
+    for (const p of ["app/api/bonds/loss-curve/route.ts", "app/api/bonds/curve/route.ts", "app/api/bonds/card/route.ts", "app/api/bonds/slider/route.ts", "public/x.svg", "app/embed/yields/route.ts", "app/bonds/sitemap.xml/route.ts"]) expect(classifyPath(p, policy), p).toBe("RED");
+  });
+  it("an entry without authority standing-delegation is refused", async () => {
+    const { checkDelegation } = await lib();
+    expect((checkDelegation(await ctx({ register: { releases: [entry({ authority: "owner-go" })] } }))).errors.join()).toMatch(/authority/);
+  });
+  it("AUTO releases run the gate and claim from the live commit, never the candidate's copy", () => {
+    const wf = read(".github/workflows/deploy.yml");
+    expect(wf).toContain("git archive \"$LIVE\" scripts");
+    expect(wf).toContain("node .livegate/scripts/release-gate.mjs");
+    expect(wf).toContain("node .livegate/scripts/release-claim.mjs");
   });
   it("destructive SQL split over several lines is caught", async () => {
     const { forbiddenSql } = await lib();

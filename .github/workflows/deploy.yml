@@ -43,7 +43,21 @@ jobs:
           RELEASE_POLICY_SHA256: ${{ vars.RELEASE_POLICY_SHA256 }}
           # Read-only token: CI and backup evidence come from the GitHub API, not from files an agent can write.
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA"
+        run: |
+          # AUTO releases run the gate/claim code of the commit that is LIVE now (already released), never the candidate's copy:
+          # a merged change to the gate scripts cannot judge itself. If the live commit has no such code, this fails closed.
+          live_scripts() {
+            LIVE=$(curl -fsS --max-time 20 https://10bonds.com/api/health/version | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(String(JSON.parse(s).sha||"")))')
+            case "$LIVE" in *[!0-9a-f]*|"") echo "BLOCKED: live commit unknown"; exit 1;; esac
+            [ "${#LIVE}" = 40 ] || { echo "BLOCKED: live commit unknown"; exit 1; }
+            git cat-file -e "$LIVE^{commit}" 2>/dev/null || git fetch -q origin "$LIVE" || { echo "BLOCKED: live commit not fetchable"; exit 1; }
+            rm -rf .livegate && mkdir .livegate && git archive "$LIVE" scripts | tar -x -C .livegate
+            [ -f .livegate/scripts/delegation.mjs ] || { echo "BLOCKED: the live commit has no standing-delegation code"; exit 1; }
+          }
+          case "$APPROVAL_ID" in
+            AUTO-*) live_scripts; node .livegate/scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA" ;;
+            *) node scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA" ;;
+          esac
   # Nothing reaches the live site unless all checks pass (types, lint, tests, database design, browser check).
   test:
     needs: gate
@@ -104,7 +118,20 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           npm ci --no-audit --no-fund >/dev/null
-          node scripts/release-claim.mjs
+          # AUTO releases run the gate/claim code of the commit that is LIVE now (already released), never the candidate's copy:
+          # a merged change to the gate scripts cannot judge itself. If the live commit has no such code, this fails closed.
+          live_scripts() {
+            LIVE=$(curl -fsS --max-time 20 https://10bonds.com/api/health/version | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(String(JSON.parse(s).sha||"")))')
+            case "$LIVE" in *[!0-9a-f]*|"") echo "BLOCKED: live commit unknown"; exit 1;; esac
+            [ "${#LIVE}" = 40 ] || { echo "BLOCKED: live commit unknown"; exit 1; }
+            git cat-file -e "$LIVE^{commit}" 2>/dev/null || git fetch -q origin "$LIVE" || { echo "BLOCKED: live commit not fetchable"; exit 1; }
+            rm -rf .livegate && mkdir .livegate && git archive "$LIVE" scripts | tar -x -C .livegate
+            [ -f .livegate/scripts/delegation.mjs ] || { echo "BLOCKED: the live commit has no standing-delegation code"; exit 1; }
+          }
+          case "$APPROVAL_ID" in
+            AUTO-*) live_scripts; node .livegate/scripts/release-claim.mjs ;;
+            *) node scripts/release-claim.mjs ;;
+          esac
       # Pinned: the same tool version every run, changed on purpose only.
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
         with:
