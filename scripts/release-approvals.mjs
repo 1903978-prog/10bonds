@@ -33,7 +33,7 @@ export function readMainFile(path) {
 
 /** Files that may differ between the approved commit and the commit deployed: only the approvals table itself. Recording the
  *  approval on main is a commit, so main's head can never be the approved SHA (found at the first release, 14 Nov 2026). */
-export const APPROVAL_ONLY_FILES = ["docs/livio-asks.md", "docs/release-register.json"];
+export const APPROVAL_ONLY_FILES = ["docs/livio-asks.md"];
 
 /** True when `sha` is the approved commit, or a descendant of it whose only changes are the approvals table. */
 export function sameCode(approved, sha, { isAncestor, changedFiles }) {

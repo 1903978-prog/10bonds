@@ -4,7 +4,7 @@
   "title": "Standing delegation for routine releases (GREEN / AMBER / RED)",
   "owner": "Livio",
   "notes": [
-    "Changing this file changes its SHA-256, which ends the delegation until Livio records a new activation row in docs/livio-asks.md (changing authority is RED).",
+    "Changing this file changes its SHA-256, which ends the delegation until Livio sets the new hash in the repository variable RELEASE_POLICY_SHA256 and records a new activation row in docs/livio-asks.md (changing authority is RED). A release is judged by the policy on the LIVE commit, never by the one in the change.",
     "Order of classification: a RED pattern wins over everything; then AMBER; then GREEN; a path that matches nothing is RED (fail closed)."
   ],
   "red": [
@@ -68,23 +68,32 @@
     "scripts/*-live-check.mjs",
     "scripts/*-check.mjs"
   ],
+  "protectedEdits": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "scripts/*-check.mjs",
+    "scripts/*-live-check.mjs"
+  ],
+  "forbiddenCodeInAddedLines": "\\b(resend|nodemailer|sendgrid|postmark|stripe|sendmail|sendemail)\\b|process\\.env\\.[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PRIVATE)",
   "amberRequires": {
     "recoveryBackupMaxAgeHours": 24,
     "rollbackTargetMustBeBaseline": true,
     "impactRequired": true,
     "migrationReversibleRequired": true,
-    "forbiddenSqlInAddedLines": "\\b(drop\\s+(table|schema|column|database)|truncate|delete\\s+from)\\b"
+    "forbiddenSqlInAddedLines": "\\b(drop\\s+(table|schema|column|database|index|constraint|view|type|trigger|function)|truncate|delete\\s+from|alter\\s+table\\s+\\S+\\s+(alter\\s+column\\s+\\S+\\s+(type|set\\s+not\\s+null)|rename)|update\\s+\\S+\\s+set\\b(?![^;]*\\bwhere\\b))"
   },
   "releaseEvidence": {
     "registerFile": "docs/release-register.json",
     "registerOnlyFiles": ["docs/release-register.json"],
     "reviewVerdictRequired": "PASS",
+    "evidenceFromGitHub": "CI success (check run 'checks') and the nightly backup run time are read from the GitHub API at release time; the register's own CI/backup fields are not trusted. The review is an attestation: recorded, not provable.",
     "reviewerMustDifferFromAuthor": true,
     "ciSource": "the 'test' job of deploy.yml runs ci.yml on the exact commit and the deploy job needs it"
   },
   "pauseSwitch": {
     "githubRepositoryVariable": "RELEASE_DELEGATION",
     "activeValue": "ACTIVE",
-    "rule": "Anything other than exactly ACTIVE (unset, empty, PAUSED, active) pauses automatic release."
+    "pinVariable": "RELEASE_POLICY_SHA256",
+    "rule": "Anything other than exactly ACTIVE (unset, empty, PAUSED, active) pauses automatic release. The pin variable must equal the SHA-256 of this file on the live commit."
   }
 }

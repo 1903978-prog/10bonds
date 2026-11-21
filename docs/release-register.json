@@ -4,7 +4,8 @@
   "about": "One shared evidence register for 10bonds releases. 'history' = real deploy runs read from GitHub on 21 Nov 2026 (deploy.yml, workflow_dispatch, run attempt 1). 'releases' = entries Claude prepares for the standing delegation (docs/delegation/policy.json); a release deploys under AUTO-<first 12 of sha> only if its entry is READY, merged to main, and every check in scripts/delegation.mjs passes. Real data only: nothing here is invented, and an unknown is written as null.",
   "limits": [
     "review.reviewer is an attestation recorded by the agent that ran the independent review; GitHub cannot prove who reviewed.",
-    "Claude and Livio share the GitHub account 1903978-prog, so a repository file cannot separate them; the owner-set repository variable RELEASE_DELEGATION is the pause switch and is UNVERIFIED / NOT APPLIED until Livio confirms that agents cannot write it.",
+    "Claude and Livio share the GitHub account 1903978-prog, so a repository file cannot separate them; the owner-set repository variables RELEASE_DELEGATION (pause switch) and RELEASE_POLICY_SHA256 (activation pin) and is UNVERIFIED / NOT APPLIED until Livio confirms that agents cannot write it.",
+    "CI success and the nightly backup time are read from the GitHub API at release time; fields an agent writes in this file are not trusted for them.",
     "Branch/environment protections are UNVERIFIED / NOT APPLIED until confirmed in repository settings."
   ],
   "history": [

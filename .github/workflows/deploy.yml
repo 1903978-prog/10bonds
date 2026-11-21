@@ -22,6 +22,10 @@ jobs:
   gate:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +39,10 @@ jobs:
           APPROVAL_ID: ${{ inputs.approval_id }}
           # Owner-controlled pause switch (repository variable set by Livio); anything but ACTIVE blocks automatic releases.
           RELEASE_DELEGATION: ${{ vars.RELEASE_DELEGATION }}
+          # Owner-set pin: the SHA-256 of docs/delegation/policy.json on the live commit. A branch cannot change a repository variable.
+          RELEASE_POLICY_SHA256: ${{ vars.RELEASE_POLICY_SHA256 }}
+          # Read-only token: CI and backup evidence come from the GitHub API, not from files an agent can write.
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA"
   # Nothing reaches the live site unless all checks pass (types, lint, tests, database design, browser check).
   test:
@@ -46,6 +54,10 @@ jobs:
     # The release-gate/claim enforce Livio's exact-SHA GO; verify actual environment branch restrictions separately.
     environment: production
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      checks: read
+      actions: read
     timeout-minutes: 25 # build ~10 min + blue-green wait; 15 cut off the 11 Nov release (10B-0001)
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -88,6 +100,8 @@ jobs:
           APPROVAL_ID: ${{ inputs.approval_id }}
           WORKFLOW: deploy
           RELEASE_DELEGATION: ${{ vars.RELEASE_DELEGATION }}
+          RELEASE_POLICY_SHA256: ${{ vars.RELEASE_POLICY_SHA256 }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           npm ci --no-audit --no-fund >/dev/null
           node scripts/release-claim.mjs

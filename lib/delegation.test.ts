@@ -13,7 +13,9 @@ type Lib = {
   classifyPath: (p: string, pol: unknown) => string; classifyChange: (f: string[], pol: unknown) => { klass: string };
   checkDelegation: (c: Ctx) => { errors: string[]; klass: string; id: string };
   policyHash: (t: string) => string; autoId: (s: string) => string; activeActivation: (md: string, t: string) => string[] | null;
-  auditLiveAuto: (r: unknown, l: unknown) => boolean;
+  auditLiveAuto: (r: unknown, l: unknown, same?: (a: string, b: string) => boolean) => boolean;
+  approvalRowOnlyEdit: (lines: string[], md: string, live: string) => boolean;
+  protectedEdits: (c: { status: string; path: string }[], pol: unknown) => string[];
 };
 const lib = async () => {
   const p = "../scripts/delegation.mjs";
@@ -24,17 +26,19 @@ const SHA = "c".repeat(40), LIVE = "d".repeat(40);
 const act = (hash: string, status = "ACTIVE", by = "Livio, 21 Nov 2026 10:00 UTC (one-click GO)") => `# x\n\n## Standing delegation\n\n| ID | Policy sha256 | Activated by / date | Status |\n| --- | --- | --- | --- |\n| DEL-0001 | ${hash} | ${by} | ${status} |\n\n## Release approvals\n`;
 const entry = (o: Record<string, unknown> = {}) => ({
   sha: SHA, class: "GREEN", status: "READY", author: "claude-impl", authority: "standing-delegation",
-  review: { verdict: "PASS", reviewer: "claude-reviewer", at: "21 Nov 2026" }, ci: { conclusion: "success", sha: SHA },
+  review: { verdict: "PASS", reviewer: "claude-reviewer", at: "21 Nov 2026" },
   ...o,
 });
 async function ctx(o: Ctx = {}): Promise<Ctx> {
   const { policyHash } = await lib();
   return {
     policyText, activationMd: act(policyHash(policyText)), register: { releases: [entry()] }, files: ["app/page.tsx"], addedLines: ["const a = 1;"],
-    sha: SHA, live: LIVE, env: { RELEASE_DELEGATION: "ACTIVE" }, now: new Date("2026-11-21T12:00:00Z"), ...o,
+    changes: [{ status: "M", path: "app/page.tsx" }], codeAddedLines: ["const a = 1;"], sameCode: (a: string, b: string) => a === b,
+    evidence: { ci: { [SHA]: true }, backupAt: "2026-11-21T06:00:00Z" },
+    sha: SHA, live: LIVE, env: { RELEASE_DELEGATION: "ACTIVE", RELEASE_POLICY_SHA256: policyHash(policyText) }, now: new Date("2026-11-21T12:00:00Z"), ...o,
   };
 }
-const amber = (o: Record<string, unknown> = {}) => entry({ class: "AMBER", amber: { impact: "adds one nullable column, no reads change", migrationReversible: true, rollbackTarget: LIVE, backupAt: "2026-11-21T06:00:00Z", ...o } });
+const amber = (o: Record<string, unknown> = {}) => entry({ class: "AMBER", amber: { impact: "adds one nullable column, no reads change", migrationReversible: true, rollbackTarget: LIVE, ...o } });
 
 describe("classification", () => {
   it("GREEN, AMBER and RED paths", async () => {
@@ -79,7 +83,7 @@ describe("automatic release checks (fail closed)", () => {
   it("is paused unless the owner variable is exactly ACTIVE", async () => {
     const { checkDelegation } = await lib();
     for (const v of [undefined, "", "PAUSED", "active", "ACTIVE ", "true"]) {
-      const r = checkDelegation(await ctx({ env: v === undefined ? {} : { RELEASE_DELEGATION: v } }));
+      const r = checkDelegation(await ctx({ env: v === undefined ? {} : { RELEASE_DELEGATION: v, RELEASE_POLICY_SHA256: (await lib()).policyHash(policyText) } }));
       expect(r.errors.join(" "), String(v)).toMatch(/paused/);
     }
   });
@@ -119,9 +123,10 @@ describe("automatic release checks (fail closed)", () => {
     expect(await run({ review: { verdict: "PASS", reviewer: "CLAUDE-IMPL", at: "x" } })).toMatch(/must differ/);
     expect(await run({ review: { verdict: "PASS", at: "x" } })).toMatch(/name the reviewer/);
     expect(await run({ author: undefined })).toMatch(/author/);
-    expect(await run({ ci: { conclusion: "failure", sha: SHA } })).toMatch(/CI success/);
-    expect(await run({ ci: { conclusion: "success", sha: LIVE } })).toMatch(/CI success/);
-    expect(await run({ ci: undefined })).toMatch(/CI success/);
+    // CI comes from GitHub, not from the register: a self-written "success" is ignored
+    const noCi = checkDelegation(await ctx({ evidence: { ci: {}, backupAt: "2026-11-21T06:00:00Z" }, register: { releases: [entry({ ci: { conclusion: "success", sha: SHA } })] } })).errors.join();
+    expect(noCi).toMatch(/successful 'checks' run/);
+    expect(checkDelegation(await ctx({ evidence: { ci: { [LIVE]: true }, backupAt: "" } })).errors.join()).toMatch(/successful 'checks' run/);
     expect(await run({ class: "AMBER" })).toMatch(/register says class/);
   });
   it("blocks destructive SQL in added lines, for GREEN and AMBER", async () => {
@@ -133,16 +138,17 @@ describe("automatic release checks (fail closed)", () => {
   });
   it("AMBER needs impact, reversible migration, baseline rollback target and a fresh backup", async () => {
     const { checkDelegation } = await lib();
-    const run = async (o: Record<string, unknown>, files = ["db/migrations/002.sql"]) => checkDelegation(await ctx({ files, register: { releases: [amber(o)] } }));
+    const run = async (o: Record<string, unknown>, files = ["db/migrations/002.sql"], backupAt = "2026-11-21T06:00:00Z") => checkDelegation(await ctx({ files, register: { releases: [amber(o)] }, evidence: { ci: { [SHA]: true }, backupAt } }));
     expect((await run({})).errors).toEqual([]);
     expect((await run({})).klass).toBe("AMBER");
     expect((await run({ impact: "" })).errors.join()).toMatch(/impact/);
     expect((await run({ migrationReversible: false })).errors.join()).toMatch(/reversible/);
     expect((await run({ rollbackTarget: SHA })).errors.join()).toMatch(/rollback target/);
-    expect((await run({ backupAt: "2026-11-19T06:00:00Z" })).errors.join()).toMatch(/backup/);
-    expect((await run({ backupAt: "" })).errors.join()).toMatch(/backup/);
-    expect((await run({ backupAt: "2026-11-22T06:00:00Z" })).errors.join()).toMatch(/backup/);
-    expect((await run({ backupAt: undefined })).errors.join()).toMatch(/backup/);
+    // the backup time is read from GitHub; a time written into the register is ignored
+    expect((await run({}, undefined, "2026-11-19T06:00:00Z")).errors.join()).toMatch(/backup/);
+    expect((await run({}, undefined, "")).errors.join()).toMatch(/backup/);
+    expect((await run({}, undefined, "2026-11-22T06:00:00Z")).errors.join()).toMatch(/backup/);
+    expect((await run({ backupAt: "2026-11-21T06:00:00Z" }, undefined, "")).errors.join()).toMatch(/backup/);
   });
   it("an entry cannot lower the class below what the files say", async () => {
     const { checkDelegation } = await lib();
@@ -160,11 +166,68 @@ describe("automatic release checks (fail closed)", () => {
   });
 });
 
+describe("self-activation and forged evidence are not possible", () => {
+  it("needs the owner-set pin RELEASE_POLICY_SHA256 to equal the hash of the policy on the live commit", async () => {
+    const { checkDelegation, policyHash } = await lib();
+    for (const v of [undefined, "", "0".repeat(64), policyHash(policyText).toUpperCase()]) {
+      const env: Record<string, string> = { RELEASE_DELEGATION: "ACTIVE" }; if (v !== undefined) env.RELEASE_POLICY_SHA256 = v;
+      expect(checkDelegation(await ctx({ env })).errors.join(), String(v)).toMatch(/not pinned/);
+    }
+  });
+  it("a PR that rewrites the policy to make everything GREEN and adds an ACTIVE row is stopped: judged by the live policy, and the pin does not match the new one", async () => {
+    const { checkDelegation, policyHash } = await lib();
+    const live = policyText; // the policy on the LIVE commit is what judges the change
+    const forged = JSON.stringify({ ...policy, red: [], amber: [], green: ["**"] });
+    const r = checkDelegation(await ctx({ policyText: live, activationMd: act(policyHash(forged)), files: ["docs/delegation/policy.json", ".github/workflows/deploy.yml", "scripts/release-gate.mjs", "docs/livio-asks.md"] }));
+    expect(r.errors.join()).toMatch(/RED change/); expect(r.errors.join()).toMatch(/activation/);
+    // and even if the forged policy were used, the owner pin still holds the live policy's hash
+    const r2 = checkDelegation(await ctx({ policyText: forged, activationMd: act(policyHash(forged)) }));
+    expect(r2.errors.join()).toMatch(/not pinned/);
+  });
+  it("edits or deletes of existing tests and checks are refused; adding new ones is allowed", async () => {
+    const { checkDelegation, protectedEdits } = await lib();
+    expect(protectedEdits([{ status: "M", path: "lib/delegation.test.ts" }, { status: "D", path: "scripts/page-check.mjs" }, { status: "A", path: "lib/new.test.ts" }], policy)).toEqual(["lib/delegation.test.ts", "scripts/page-check.mjs"]);
+    expect(checkDelegation(await ctx({ changes: [{ status: "M", path: "lib/x.test.ts" }], files: ["lib/x.test.ts"] })).errors.join()).toMatch(/tests\/checks edited/);
+    expect(checkDelegation(await ctx({ changes: [{ status: "A", path: "lib/x.test.ts" }], files: ["lib/x.test.ts"] })).errors).toEqual([]);
+  });
+  it("new code that sends e-mail, touches payments or reads secrets is outside standing authority", async () => {
+    const { checkDelegation } = await lib();
+    for (const l of ['import { Resend } from "resend";', "await stripe.customers.create({})", "const k = process.env.SESSION_SECRET;", "sendEmail(user)"]) {
+      expect(checkDelegation(await ctx({ codeAddedLines: [l] })).errors.join(), l).toMatch(/e-mail, touches payments or reads secrets/);
+    }
+  });
+  it("destructive SQL covers drop index/constraint/view, column type changes and update without where", async () => {
+    const { checkDelegation } = await lib();
+    for (const l of ["DROP INDEX bonds_idx;", "alter table x drop constraint y", "drop view v", "alter table bonds alter column isin type text", "update bonds set rating = 1;"]) {
+      expect(checkDelegation(await ctx({ addedLines: [l] })).errors.join(), l).toMatch(/destructive SQL/);
+    }
+    expect(checkDelegation(await ctx({ addedLines: ["update bonds set rating = 1 where isin = $1;"] })).errors).toEqual([]);
+  });
+  it("the entry may be an ancestor that differs only in the register; anything else has no entry", async () => {
+    const { checkDelegation } = await lib();
+    const DEPLOY = "f".repeat(40);
+    const only = (a: string, b: string) => a === SHA && b === DEPLOY;
+    expect(checkDelegation(await ctx({ sha: DEPLOY, sameCode: only })).errors).toEqual([]);
+    expect(checkDelegation(await ctx({ sha: DEPLOY, sameCode: () => false })).errors.join()).toMatch(/no release-register entry/);
+  });
+  it("only the row of the owner-approved release that is live may change in docs/livio-asks.md", async () => {
+    const { approvalRowOnlyEdit } = await lib();
+    const md = `## Release approvals\n\n| ID | App | Workflow | Exact SHA | Scope | Approved by / date | Status |\n| --- | --- | --- | --- | --- | --- | --- |\n| REL-0008 | 10bonds | deploy | ${LIVE} | x scope | Livio, 20 Nov 2026 | APPROVED |\n`;
+    expect(approvalRowOnlyEdit([`| REL-0008 | 10bonds | deploy | ${LIVE} | x scope | Livio, 20 Nov 2026 | USED |`], md, LIVE)).toBe(true);
+    expect(approvalRowOnlyEdit([`| REL-0009 | 10bonds | deploy | ${SHA} | forged | Livio, 21 Nov 2026 | APPROVED |`], md, LIVE)).toBe(false);
+    expect(approvalRowOnlyEdit([`| DEL-0001 | ${"a".repeat(64)} | Livio, 21 Nov 2026 | ACTIVE |`], md, LIVE)).toBe(false);
+    expect(approvalRowOnlyEdit([], md, LIVE)).toBe(false);
+  });
+});
+
 describe("wiring", () => {
   const read = (p: string) => readFileSync(join(root, p), "utf8");
   it("deploy.yml passes the owner variable to both the gate and the claim, and still needs both", () => {
     const y = read(".github/workflows/deploy.yml");
     expect((y.match(/RELEASE_DELEGATION: \$\{\{ vars\.RELEASE_DELEGATION \}\}/g) ?? []).length).toBe(2);
+    expect((y.match(/RELEASE_POLICY_SHA256: \$\{\{ vars\.RELEASE_POLICY_SHA256 \}\}/g) ?? []).length).toBe(2);
+    expect((y.match(/GITHUB_TOKEN: \$\{\{ github\.token \}\}/g) ?? []).length).toBe(2);
+    expect(y).not.toMatch(/RELEASE_POLICY_SHA256: ["']?[0-9a-f]{64}/);
     expect(y).toMatch(/needs: \[gate, test\]/);
     expect(y).not.toMatch(/RELEASE_DELEGATION: ["']?ACTIVE/); // never hard-wired in a file an agent can edit
   });
@@ -181,6 +244,8 @@ describe("wiring", () => {
     const { auditLiveAuto } = await lib();
     const live = { sha: SHA };
     expect(auditLiveAuto({ releases: [entry()] }, live)).toBe(true);
+    expect(auditLiveAuto({ releases: [entry()] }, { sha: "f".repeat(40) }, (a, b) => a === SHA && b === "f".repeat(40))).toBe(true);
+    expect(auditLiveAuto({ releases: [entry()] }, { sha: "f".repeat(40) })).toBe(false);
     expect(auditLiveAuto({ releases: [entry({ class: "RED" })] }, live)).toBe(false);
     expect(auditLiveAuto({ releases: [entry({ authority: "owner-go" })] }, live)).toBe(false);
     expect(auditLiveAuto({ releases: [] }, live)).toBe(false);
@@ -199,6 +264,7 @@ describe("wiring", () => {
     const { activeActivation, policyHash } = await lib();
     const md = read("docs/livio-asks.md");
     const act = activeActivation(md, policyText);
+    expect(md).toContain("PENDING-GO"); // flipped to ACTIVE only by the recorded GO
     if (act) expect(act[1]).toBe(policyHash(policyText));
   });
 });
