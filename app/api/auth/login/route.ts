@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { accountsConfigured, findUserByLogin, touchLogin } from "@/lib/accounts";
 import { readCredentials, withSession } from "@/lib/authResponse";
 import { verifyPassword } from "@/lib/password";
-import { loginTicket, MFA_COOKIE, mfaCookieOk } from "@/lib/twoFactor";
+import { loginTicket, needsCodeAtLogin } from "@/lib/twoFactor";
 import { allow, blocked, clearHits, clientIp, record } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +27,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: WRONG }, { status: 401 });
     }
     clearHits(failKey);
-    // The admin account with two-factor on: a code is asked next, unless this browser passed it recently.
-    if (user.isAdmin && user.twoFactorOn && !mfaCookieOk(user.id, req.headers.get("cookie")?.match(new RegExp(`(?:^|; )${MFA_COOKIE}=([^;]+)`))?.[1]))
+    // The admin account with two-factor on: every new sign-in asks for a code, so the 30-day session and the 30-day two-factor
+    // mark start together and the code is never asked again in the middle of a valid session (T-10B auth, 21 Nov 2026).
+    if (needsCodeAtLogin(user))
       return NextResponse.json({ twoFactor: true, ticket: loginTicket(user.id) });
     await touchLogin(user.id);
     return withSession(user.id, { ok: true, plan: user.plan });

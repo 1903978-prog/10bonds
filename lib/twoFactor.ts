@@ -13,6 +13,12 @@ const TICKET_MS = 5 * 60_000;
 
 export const mfaCookieValue = (userId: number) => signToken("mfa", String(userId), MFA_DAYS * 86400_000);
 export const mfaCookieOk = (userId: number, value: string | undefined) => readToken("mfa", value) === String(userId);
+/**
+ * True when a password sign-in must be followed by the authenticator code. Asked at every new sign-in of the admin with two-factor on,
+ * never skipped by an older two-factor mark: a mark left from an earlier session would run out before the new 30-day session does and
+ * the code would be asked again mid-session.
+ */
+export const needsCodeAtLogin = (user: Pick<User, "isAdmin" | "twoFactorOn">) => user.isAdmin === true && user.twoFactorOn === true;
 
 /** After the password: a short-lived ticket that only the code step accepts. */
 export const loginTicket = (userId: number) => signToken("2fa-login", String(userId), TICKET_MS);

@@ -14,6 +14,20 @@ export function sessionStillValid(u: Pick<User, "sessionsValidAfter">, token: st
 }
 
 /**
+ * Reads the account once more after a short pause when the database read fails (a sleeping database waking up, a dropped pooled
+ * connection). Without it one failed read made a valid 30-day session look signed out and sent the person to the sign-in page.
+ */
+export async function findUserWithRetry(id: number, find: (id: number) => Promise<User | null> = findUserById, pauseMs = 400): Promise<User | null> {
+  try {
+    return await find(id);
+  } catch (first) {
+    console.error("[session] account read failed, retrying once:", (first as Error).message);
+    await new Promise((r) => setTimeout(r, pauseMs));
+    return find(id);
+  }
+}
+
+/**
  * The signed-in user. The admin account has its admin powers only in a browser that passed the
  * two-factor step; elsewhere it is an ordinary account and `adminState` says what is missing.
  */
@@ -23,7 +37,7 @@ export async function currentUser(): Promise<User | null> {
   const id = readSession(jar.get(SESSION_COOKIE)?.value);
   if (id === null) return null;
   try {
-    const u = await findUserById(id);
+    const u = await findUserWithRetry(id);
     if (!u) return null;
     if (!sessionStillValid(u, jar.get(SESSION_COOKIE)?.value)) return null;
     // The read-only test admin has admin powers for reading only: any request that is not GET or HEAD sees an ordinary account.
