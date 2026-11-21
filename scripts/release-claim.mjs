@@ -8,16 +8,25 @@ import postgres from "postgres";
 import { appendFileSync } from "node:fs";
 import { approvedSha, checkRelease, gitSameCode, readMainDoc } from "./release-approvals.mjs";
 import { accountsUrl } from "./accounts-url.mjs";
+import { AUTO_ID } from "./delegation.mjs";
+import { runDelegation } from "./delegation-run.mjs";
 
 const fail = (m) => { console.error("BLOCKED: " + m); process.exit(1); };
 const id = process.env.APPROVAL_ID ?? "", reason = (process.env.EMERGENCY_REASON ?? "").trim(), wf = process.env.WORKFLOW ?? "";
 if ((process.env.GITHUB_RUN_ATTEMPT ?? "1") !== "1") fail("a re-run cannot reuse an approval (run attempt > 1)");
 if (wf !== "deploy" && wf !== "rollback") fail(`unknown workflow "${wf}"`);
-if (id && !/^REL-\d{4}$/.test(id)) fail("approval id must look like REL-0001");
+const auto = id.startsWith("AUTO-");
+if (id && !auto && !/^REL-\d{4}$/.test(id)) fail("approval id must look like REL-0001");
+if (auto && (wf !== "deploy" || !AUTO_ID.test(id))) fail("automatic release applies to deploy only, with id AUTO-<12 hex>");
 if (!id && wf !== "rollback") fail("no approval id");
-let doc;
-try { doc = readMainDoc(); } catch (e) { fail(e.message); }
-const errors = checkRelease(doc, { workflow: wf, approval: id, sha: process.env.GITHUB_SHA ?? "", emergencyReason: reason, same: gitSameCode });
+let doc = "", errors;
+if (auto) {
+  // Same checks as the gate, again here, so this step fails closed even if the gate job was skipped (pause switch included).
+  try { const r = await runDelegation({ sha: process.env.GITHUB_SHA ?? "", env: process.env }); errors = r.id === id ? r.errors : [`id ${id} does not match the commit (${r.id})`]; } catch (e) { fail(e.message); }
+} else {
+  try { doc = readMainDoc(); } catch (e) { fail(e.message); }
+  errors = checkRelease(doc, { workflow: wf, approval: id, sha: process.env.GITHUB_SHA ?? "", emergencyReason: reason, same: gitSameCode });
+}
 if (errors.length) fail("release not approved.\n- " + errors.join("\n- "));
 if (!process.env.ACCOUNTS_DATABASE_URL) fail("ACCOUNTS_DATABASE_URL is not set: the approval cannot be claimed, so nothing is released");
 const key = id ? `release_claim:${id}` : `release_emergency:${process.env.GITHUB_RUN_ID}`;
@@ -31,7 +40,7 @@ try {
   const claimed = await sql`insert into app.settings (key, value) values (${key}, ${value}) on conflict (key) do nothing returning key`;
   if (!claimed.length) fail(`approval ${id || key} was already used (single use)`);
   // The deploy records the APPROVED commit (RELEASE_SHA, image label), which the release audit and rollbacks compare against.
-  if (wf === "deploy" && process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `approved_sha=${approvedSha(doc, id)}\n`);
+  if (wf === "deploy" && process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `approved_sha=${auto ? process.env.GITHUB_SHA : approvedSha(doc, id)}\n`);
   console.log(id ? `OK: ${id} claimed for run ${process.env.GITHUB_RUN_ID}.` : `EMERGENCY rollback recorded as ${key}.`);
 } catch (e) { fail("could not claim the approval: " + e.message); }
 finally { await sql.end(); }

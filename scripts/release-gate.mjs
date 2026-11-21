@@ -11,6 +11,8 @@ import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { checkRelease, gitSameCode, readMainDoc } from "./release-approvals.mjs";
+import { AUTO_ID } from "./delegation.mjs";
+import { runDelegation } from "./delegation-run.mjs";
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
 if (!isMain && !process.env.VITEST) { console.error("BLOCKED: gate was not run as a command"); process.exit(1); }
@@ -20,6 +22,16 @@ if (isMain) {
   try {
     if (process.env.GITHUB_ACTIONS && process.env.GITHUB_REF !== "refs/heads/main") throw new Error("releases run only from main");
     if ((process.env.GITHUB_RUN_ATTEMPT ?? "1") !== "1") throw new Error("a re-run cannot reuse an approval (run attempt > 1)");
+    // Standing delegation (GREEN/AMBER only): approval id AUTO-<first 12 of the sha>, no per-release GO. Fails closed; RED never passes here.
+    const wfArg = get("--workflow"), apprArg = get("--approval") || "", shaArg = get("--sha") || process.env.GITHUB_SHA || "";
+    if (apprArg.startsWith("AUTO-")) {
+      if (wfArg !== "deploy" || !AUTO_ID.test(apprArg)) throw new Error("automatic release applies to deploy only, with id AUTO-<12 hex>");
+      const r = await runDelegation({ sha: shaArg, env: process.env });
+      if (apprArg !== r.id) throw new Error(`id ${apprArg} does not match the commit (${r.id})`);
+      if (r.errors.length) { console.error("BLOCKED: automatic release not allowed.\n- " + r.errors.join("\n- ")); process.exit(1); }
+      console.log(`OK: ${r.id} (${r.klass}) allowed under the standing delegation for ${shaArg.slice(0, 12)}.`);
+      process.exit(0);
+    }
     // The approval is read from origin/main, never from the files being deployed, so a branch cannot approve itself.
     const doc = readMainDoc();
     const workflow = get("--workflow"), approval = get("--approval") || "", sha = get("--sha") || process.env.GITHUB_SHA || "";

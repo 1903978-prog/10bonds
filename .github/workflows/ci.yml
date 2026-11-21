@@ -8,7 +8,7 @@ on:
     types: [opened, reopened, synchronize, ready_for_review]
     # Docs-only PRs skip CI, except a release-approval row (docs/livio-asks.md): main requires "checks",
     # so without this an approval PR could never merge. Later patterns win (GitHub "paths" negation rules).
-    paths: ["**", "!**.md", "!docs/**", "docs/livio-asks.md"]
+    paths: ["**", "!**.md", "!docs/**", "docs/livio-asks.md", "docs/release-register.json", "docs/delegation/**"]
   workflow_call:
   workflow_dispatch:
 permissions:

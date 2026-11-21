@@ -30,6 +30,14 @@ Times Bangkok. Add a row for every new ask and its outcome.
 | 2026-10-29 | Headline wording (Mathematics-based vs AI-based) | Pasted audits disagreed | Livio 13:38: "AI-based Bond portfolios", final; live 14:42 |
 | 2026-10-29 | Time-protection rules failed again | Rules lived in an optional skill | Moved into CLAUDE.md top block plus Stop hook (this change) |
 
+## Standing delegation
+
+Standing delegation for routine releases (Livio's mandate of 21 Nov 2026). Rules: `docs/delegation/policy.json` (GREEN / AMBER / RED), checks: `scripts/delegation.mjs`, evidence: `docs/release-register.json`. A release may run under id `AUTO-<first 12 of the commit>` instead of a per-release GO only if (1) a row below is ACTIVE, names Livio and a date, and holds the SHA-256 of the policy file exactly as it is on main (editing the policy ends the delegation until Livio records a new row), (2) the owner-set repository variable `RELEASE_DELEGATION` is exactly `ACTIVE` (Livio's pause switch; set it to anything else, or delete it, and every automatic release stops), (3) the change is GREEN or AMBER and passes the machine checks (CI on the exact commit, independent review PASS by someone other than the author, no destructive SQL, AMBER also needs impact, reversible migration, a backup under 24 h and the live commit as rollback target). RED (credentials, payments, legal wording, auth, admin, workflows, release gate, this policy, CLAUDE.md, anything unclassified) always needs Livio's own exact-SHA GO. Not enforced by technology until confirmed: UNVERIFIED / NOT APPLIED for repository variable permissions, branch protection and environment rules. Changing this section or the policy is RED.
+
+| ID | Policy sha256 | Activated by / date | Status |
+| --- | --- | --- | --- |
+| DEL-0001 | b5b3b5cf1c63c295a84f306be016d28876411162b9e2ed0d27b728a1f2121338 | (waiting for Livio's one-click GO on this exact policy) | PENDING-GO |
+
 ## Release approvals
 
 A 10bonds release (deploy.yml) or rollback (rollback.yml) runs only if a row below is APPROVED by Livio for that workflow and, for a deploy, for the EXACT 40-character commit. Enforced by `scripts/release-gate.mjs` (reads this file from main, fails closed) and `scripts/release-claim.mjs` (single use, claimed in the database before anything reaches Fly). Since 10B-0007; added after 10e5eb2f was deployed on 12 Nov 2026 04:47 UTC without a GO. An emergency rollback (previous image, nothing rebuilt) may run without a row only with a written reason (40+ characters); it is labelled EMERGENCY and recorded. No row is ever added after the fact.

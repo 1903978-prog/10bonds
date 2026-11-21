@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "repo": "1903978-prog/10bonds",
+  "title": "Standing delegation for routine releases (GREEN / AMBER / RED)",
+  "owner": "Livio",
+  "notes": [
+    "Changing this file changes its SHA-256, which ends the delegation until Livio records a new activation row in docs/livio-asks.md (changing authority is RED).",
+    "Order of classification: a RED pattern wins over everything; then AMBER; then GREEN; a path that matches nothing is RED (fail closed)."
+  ],
+  "red": [
+    ".github/**",
+    "docs/delegation/**",
+    "docs/livio-asks.md",
+    "CLAUDE.md",
+    "scripts/release-*",
+    "scripts/accounts-url.mjs",
+    "scripts/fly-*",
+    "scripts/prod-change-gate.mjs",
+    "scripts/delegation*",
+    "scripts/uptime-probe.sh",
+    "scripts/backup-*",
+    "fly.toml",
+    "Dockerfile",
+    "package.json",
+    "package-lock.json",
+    "middleware.ts",
+    "next.config.mjs",
+    "instrumentation*.ts",
+    "graceful-exit.cjs",
+    "app/api/stripe/**",
+    "app/api/billing/**",
+    "app/api/auth/**",
+    "app/api/account/**",
+    "app/api/admin/**",
+    "app/api/credit-worker/**",
+    "app/api/codes/**",
+    "app/api/pro/**",
+    "app/api/newsletter/**",
+    "lib/stripe*",
+    "lib/auth*",
+    "lib/session*",
+    "lib/password*",
+    "lib/secretBox*",
+    "lib/accounts*",
+    "lib/adminOnly*",
+    "lib/creditWorkerAuth*",
+    "lib/consentText*",
+    "lib/legal*",
+    "lib/legalRisk/**",
+    "lib/email*",
+    "lib/outreach*",
+    "lib/weeklyEmail*",
+    "lib/welcomeEmail*",
+    "lib/passwordReset*",
+    "docs/legal/**"
+  ],
+  "amber": [
+    "db/**",
+    "app/api/**"
+  ],
+  "green": [
+    "app/**",
+    "components/**",
+    "lib/**",
+    "public/**",
+    "classification/**",
+    "docs/**",
+    "scripts/*-live-check.mjs",
+    "scripts/*-check.mjs"
+  ],
+  "amberRequires": {
+    "recoveryBackupMaxAgeHours": 24,
+    "rollbackTargetMustBeBaseline": true,
+    "impactRequired": true,
+    "migrationReversibleRequired": true,
+    "forbiddenSqlInAddedLines": "\\b(drop\\s+(table|schema|column|database)|truncate|delete\\s+from)\\b"
+  },
+  "releaseEvidence": {
+    "registerFile": "docs/release-register.json",
+    "registerOnlyFiles": ["docs/release-register.json"],
+    "reviewVerdictRequired": "PASS",
+    "reviewerMustDifferFromAuthor": true,
+    "ciSource": "the 'test' job of deploy.yml runs ci.yml on the exact commit and the deploy job needs it"
+  },
+  "pauseSwitch": {
+    "githubRepositoryVariable": "RELEASE_DELEGATION",
+    "activeValue": "ACTIVE",
+    "rule": "Anything other than exactly ACTIVE (unset, empty, PAUSED, active) pauses automatic release."
+  }
+}
