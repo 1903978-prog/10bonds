@@ -10,6 +10,7 @@
     "The gate and claim code that judge an AUTO release run from the LIVE commit (git archive in deploy.yml), never from the candidate; the workflow file itself and the production environment rules remain UNVERIFIED as a control. Removed lines are scanned for enforcement code (auth, plan, quota, 401/403)."
   ],
   "red": [
+    "lib/bondFilter.ts",
     ".github/**",
     "docs/delegation/**",
     "docs/livio-asks.md",
@@ -125,7 +126,6 @@
     "components/PriceDrops*.tsx",
     "lib/formatDate.ts",
     "lib/fmtMin.ts",
-    "lib/bondFilter.ts",
     "lib/curveFilter.ts",
     "app/bonds/**/page.tsx",
     "app/bond-card/**/page.tsx",
