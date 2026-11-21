@@ -36,7 +36,7 @@ Standing delegation for routine releases (Livio's mandate of 21 Nov 2026). Rules
 
 | ID | Policy sha256 | Activated by / date | Status |
 | --- | --- | --- | --- |
-| DEL-0001 | f9d54bb7fa9c246312af93fb1a7c210035632ce93f2c32a5cb0a06d3887d7f88 | (waiting for Livio's one-click GO on this exact policy) | PENDING-GO |
+| DEL-0001 | f9d54bb7fa9c246312af93fb1a7c210035632ce93f2c32a5cb0a06d3887d7f88 | Livio, 21 Nov 2026 (one-click GO, card press cmsg_01K34RJUbirwQDuhsprEPmoK2jTHREtrGM1gAKV3169BNY) | ACTIVE |
 
 ## Release approvals
 
