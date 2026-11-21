@@ -6,18 +6,16 @@ const api = async (path, env) => {
   if (!r.ok) throw new Error(`GitHub API ${path.split("?")[0]} answered HTTP ${r.status}`);
   return r.json();
 };
-/** True when a completed check run named "checks" (ci.yml) succeeded on the commit, or on one of its parents (a merge commit's reviewed PR head). */
+/** True when a completed check run named "checks" (ci.yml) succeeded on the exact commit (or, for a merge commit, on the PR head = its last parent) and no run there failed. */
 export async function ciSucceeded(sha, env = process.env) {
   const parents = ((await api(`/commits/${sha}`, env)).parents ?? []).map((p) => p.sha);
-  for (const s of [sha, ...parents]) {
-    const runs = (await api(`/commits/${s}/check-runs?per_page=100`, env)).check_runs ?? [];
-    const checks = runs.filter((r) => r.name === "checks" && r.status === "completed");
-    if (checks.length && checks.every((r) => r.conclusion === "success") && !runs.some((r) => r.status === "completed" && ["failure", "cancelled", "timed_out"].includes(r.conclusion))) return true;
-  }
-  return false;
+  const target = parents.length > 1 ? parents[parents.length - 1] : sha;
+  const runs = (await api(`/commits/${target}/check-runs?per_page=100`, env)).check_runs ?? [];
+  const checks = runs.filter((r) => r.name === "checks" && r.status === "completed");
+  return checks.length > 0 && checks.every((r) => r.conclusion === "success") && !runs.some((r) => r.status === "completed" && ["failure", "cancelled", "timed_out"].includes(r.conclusion));
 }
-/** ISO time of the latest successful run of the nightly backup workflow, or "". */
+/** ISO time of the latest successful SCHEDULED run on main of the nightly backup workflow, or "". */
 export async function latestBackup(env = process.env) {
-  const r = await api("/actions/workflows/backup.yml/runs?status=success&per_page=1", env);
+  const r = await api("/actions/workflows/backup.yml/runs?status=success&branch=main&event=schedule&per_page=1", env);
   return r.workflow_runs?.[0]?.updated_at ?? "";
 }

@@ -64,7 +64,8 @@ export function activeActivation(md, policyText) {
 /** Added lines (diff "+" lines) that contain a destructive SQL statement. */
 export function forbiddenSql(addedLines, policy) {
   const re = new RegExp(policy.amberRequires.forbiddenSqlInAddedLines, "i");
-  return (addedLines ?? []).filter((l) => re.test(l));
+  const lines = addedLines ?? [], hits = lines.filter((l) => re.test(l));
+  return hits.length || !re.test(lines.join(" ")) ? hits : ["(statement split over several lines)"];
 }
 
 /** Added lines (outside docs and tests) that send e-mail, touch payments or read secrets: new code like that is outside standing authority. */

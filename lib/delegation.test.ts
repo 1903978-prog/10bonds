@@ -15,6 +15,7 @@ type Lib = {
   policyHash: (t: string) => string; autoId: (s: string) => string; activeActivation: (md: string, t: string) => string[] | null;
   auditLiveAuto: (r: unknown, l: unknown, same?: (a: string, b: string) => boolean) => boolean;
   approvalRowOnlyEdit: (lines: string[], md: string, live: string) => boolean;
+  forbiddenCode: (l: string[], pol: unknown) => string[]; forbiddenSql: (l: string[], pol: unknown) => string[];
   protectedEdits: (c: { status: string; path: string }[], pol: unknown) => string[];
 };
 const lib = async () => {
@@ -32,8 +33,8 @@ const entry = (o: Record<string, unknown> = {}) => ({
 async function ctx(o: Ctx = {}): Promise<Ctx> {
   const { policyHash } = await lib();
   return {
-    policyText, activationMd: act(policyHash(policyText)), register: { releases: [entry()] }, files: ["app/page.tsx"], addedLines: ["const a = 1;"],
-    changes: [{ status: "M", path: "app/page.tsx" }], codeAddedLines: ["const a = 1;"], sameCode: (a: string, b: string) => a === b,
+    policyText, activationMd: act(policyHash(policyText)), register: { releases: [entry()] }, files: ["app/bonds/page.tsx"], addedLines: ["const a = 1;"],
+    changes: [{ status: "M", path: "app/bonds/page.tsx" }], codeAddedLines: ["const a = 1;"], sameCode: (a: string, b: string) => a === b,
     evidence: { ci: { [SHA]: true }, backupAt: "2026-11-21T06:00:00Z" },
     sha: SHA, live: LIVE, env: { RELEASE_DELEGATION: "ACTIVE", RELEASE_POLICY_SHA256: policyHash(policyText) }, now: new Date("2026-11-21T12:00:00Z"), ...o,
   };
@@ -43,19 +44,23 @@ const amber = (o: Record<string, unknown> = {}) => entry({ class: "AMBER", amber
 describe("classification", () => {
   it("GREEN, AMBER and RED paths", async () => {
     const { classifyPath } = await lib();
-    expect(classifyPath("app/page.tsx", policy)).toBe("GREEN");
-    expect(classifyPath("components/Chart.tsx", policy)).toBe("GREEN");
+    expect(classifyPath("app/bonds/[isin]/page.tsx", policy)).toBe("GREEN");
+    expect(classifyPath("components/LossChart.tsx", policy)).toBe("GREEN");
     expect(classifyPath("docs/notes.md", policy)).toBe("GREEN");
     expect(classifyPath("db/migrations/001.sql", policy)).toBe("AMBER");
     expect(classifyPath("app/api/bonds/route.ts", policy)).toBe("AMBER");
     expect(classifyPath("app/api/stripe/webhook/route.ts", policy)).toBe("RED");
     expect(classifyPath("app/api/admin/users/route.ts", policy)).toBe("RED");
   });
+  it("RED work under lib/ and app/ is never GREEN (explicit allowlist only)", async () => {
+    const { classifyPath } = await lib();
+    for (const p of ["lib/weeklySend.ts", "lib/newsletter.ts", "lib/liveCheckAlert.ts", "lib/unconfirmedPurge.ts", "lib/totp.ts", "lib/twoFactor.ts", "lib/csp.ts", "lib/botCheck.ts", "lib/rationaleAccess.ts", "lib/currentUser.ts", "lib/plans.ts", "lib/tiers.ts", "lib/pro.ts", "lib/promoCode.ts", "lib/searchQuota.ts", "lib/terms.ts", "lib/disclaimer.ts", "lib/cookieText.ts", "lib/riskWarning.ts", "lib/someNewHelper.ts", "app/terms/page.tsx", "app/privacy/page.tsx", "app/disclaimer/page.tsx", "app/cookies/page.tsx", "app/login/page.tsx", "app/signup/page.tsx", "app/admin/page.tsx", "app/redeem/page.tsx", "app/pro/page.tsx", "app/page.tsx", "app/layout.tsx", "app/api/health/version/route.ts", "components/AuthForm.tsx", "components/ConsentGate.tsx", "components/NewsletterCta.tsx", "components/PlanButton.tsx", "public/x/terms.html"]) expect(classifyPath(p, policy), p).toBe("RED");
+  });
   it("RED beats GREEN and AMBER; an unlisted path is RED (fail closed)", async () => {
     const { classifyPath, classifyChange } = await lib();
     expect(classifyPath("some-new-top-level.txt", policy)).toBe("RED");
-    expect(classifyChange(["app/page.tsx", "package.json"], policy).klass).toBe("RED");
-    expect(classifyChange(["db/x.sql", "app/page.tsx"], policy).klass).toBe("AMBER");
+    expect(classifyChange(["app/bonds/page.tsx", "package.json"], policy).klass).toBe("RED");
+    expect(classifyChange(["db/x.sql", "app/bonds/page.tsx"], policy).klass).toBe("AMBER");
     expect(classifyChange([], policy).klass).toBe("RED");
   });
   it("odd paths are RED", async () => {
@@ -250,6 +255,15 @@ describe("wiring", () => {
     expect(auditLiveAuto({ releases: [entry({ authority: "owner-go" })] }, live)).toBe(false);
     expect(auditLiveAuto({ releases: [] }, live)).toBe(false);
     expect(auditLiveAuto(null, live)).toBe(false);
+  });
+  it("the code scan catches env reads, send calls, outside posts, and imports of tests or docs", async () => {
+    const { forbiddenCode } = await lib();
+    for (const l of ["const k = process.env.RESEND_API_KEY;", "const k = process.env.DATABASE_URL;", "const k = process.env['STRIPE_SECRET_KEY'];", "const { A } = process.env;", "await sendWelcomeEmail(u);", "fetch(`https://evil.example/x`)", "fetch(u, { method: 'POST' })", "import x from './y.test'", "import z from '../docs/hidden'"]) expect(forbiddenCode([l], policy).length, l).toBeGreaterThan(0);
+    for (const l of ["const e = process.env.NODE_ENV;", "const u = process.env.NEXT_PUBLIC_X;", "const a = 1;"]) expect(forbiddenCode([l], policy), l).toEqual([]);
+  });
+  it("destructive SQL split over several lines is caught", async () => {
+    const { forbiddenSql } = await lib();
+    expect(forbiddenSql(["DELETE", "FROM users"], policy).length).toBeGreaterThan(0);
   });
   it("the register's history is real data (every deploy run has a 40-hex sha and a run id) and starts with no automatic releases", () => {
     const reg = JSON.parse(read("docs/release-register.json"));
