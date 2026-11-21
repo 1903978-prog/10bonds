@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       approval_id:
-        description: "Required: release approval (REL-0001) recorded as APPROVED by Livio for this exact commit in docs/livio-asks.md"
+        description: "Required: REL-0001 (APPROVED by Livio for this exact commit in docs/livio-asks.md) or AUTO-<first 12 of the commit> (GREEN/AMBER release under the standing delegation, docs/delegation/policy.json)"
         type: string
         required: true
       remove_machine:
@@ -22,6 +22,10 @@ jobs:
   gate:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,7 +37,27 @@ jobs:
       - name: Release approval for this exact commit
         env:
           APPROVAL_ID: ${{ inputs.approval_id }}
-        run: node scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA"
+          # Owner-controlled pause switch (repository variable set by Livio); anything but ACTIVE blocks automatic releases.
+          RELEASE_DELEGATION: ${{ vars.RELEASE_DELEGATION }}
+          # Owner-set pin: the SHA-256 of docs/delegation/policy.json on the live commit. A branch cannot change a repository variable.
+          RELEASE_POLICY_SHA256: ${{ vars.RELEASE_POLICY_SHA256 }}
+          # Read-only token: CI and backup evidence come from the GitHub API, not from files an agent can write.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # AUTO releases run the gate/claim code of the commit that is LIVE now (already released), never the candidate's copy:
+          # a merged change to the gate scripts cannot judge itself. If the live commit has no such code, this fails closed.
+          live_scripts() {
+            LIVE=$(curl -fsS --max-time 20 https://10bonds.com/api/health/version | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(String(JSON.parse(s).sha||"")))')
+            case "$LIVE" in *[!0-9a-f]*|"") echo "BLOCKED: live commit unknown"; exit 1;; esac
+            [ "${#LIVE}" = 40 ] || { echo "BLOCKED: live commit unknown"; exit 1; }
+            git cat-file -e "$LIVE^{commit}" 2>/dev/null || git fetch -q origin "$LIVE" || { echo "BLOCKED: live commit not fetchable"; exit 1; }
+            rm -rf .livegate && mkdir .livegate && git archive "$LIVE" scripts | tar -x -C .livegate
+            [ -f .livegate/scripts/delegation.mjs ] || { echo "BLOCKED: the live commit has no standing-delegation code"; exit 1; }
+          }
+          case "$APPROVAL_ID" in
+            AUTO-*) live_scripts; node .livegate/scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA" ;;
+            *) node scripts/release-gate.mjs --workflow deploy --approval "$APPROVAL_ID" --sha "$GITHUB_SHA" ;;
+          esac
   # Nothing reaches the live site unless all checks pass (types, lint, tests, database design, browser check).
   test:
     needs: gate
@@ -44,6 +68,10 @@ jobs:
     # The release-gate/claim enforce Livio's exact-SHA GO; verify actual environment branch restrictions separately.
     environment: production
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      checks: read
+      actions: read
     timeout-minutes: 25 # build ~10 min + blue-green wait; 15 cut off the 11 Nov release (10B-0001)
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -85,9 +113,25 @@ jobs:
         env:
           APPROVAL_ID: ${{ inputs.approval_id }}
           WORKFLOW: deploy
+          RELEASE_DELEGATION: ${{ vars.RELEASE_DELEGATION }}
+          RELEASE_POLICY_SHA256: ${{ vars.RELEASE_POLICY_SHA256 }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           npm ci --no-audit --no-fund >/dev/null
-          node scripts/release-claim.mjs
+          # AUTO releases run the gate/claim code of the commit that is LIVE now (already released), never the candidate's copy:
+          # a merged change to the gate scripts cannot judge itself. If the live commit has no such code, this fails closed.
+          live_scripts() {
+            LIVE=$(curl -fsS --max-time 20 https://10bonds.com/api/health/version | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(String(JSON.parse(s).sha||"")))')
+            case "$LIVE" in *[!0-9a-f]*|"") echo "BLOCKED: live commit unknown"; exit 1;; esac
+            [ "${#LIVE}" = 40 ] || { echo "BLOCKED: live commit unknown"; exit 1; }
+            git cat-file -e "$LIVE^{commit}" 2>/dev/null || git fetch -q origin "$LIVE" || { echo "BLOCKED: live commit not fetchable"; exit 1; }
+            rm -rf .livegate && mkdir .livegate && git archive "$LIVE" scripts | tar -x -C .livegate
+            [ -f .livegate/scripts/delegation.mjs ] || { echo "BLOCKED: the live commit has no standing-delegation code"; exit 1; }
+          }
+          case "$APPROVAL_ID" in
+            AUTO-*) live_scripts; node .livegate/scripts/release-claim.mjs ;;
+            *) node scripts/release-claim.mjs ;;
+          esac
       # Pinned: the same tool version every run, changed on purpose only.
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
         with:

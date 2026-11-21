@@ -23,6 +23,14 @@ export function readMainDoc() {
   } catch { throw new Error("cannot read docs/livio-asks.md from origin/main"); }
 }
 
+/** Any file as it is on origin/main (same rule: never the copy being deployed). Throws if unreadable. */
+export function readMainFile(path) {
+  try {
+    execFileSync("git", ["fetch", "-q", "origin", "main"]);
+    return execFileSync("git", ["show", `FETCH_HEAD:${path}`], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+  } catch { throw new Error(`cannot read ${path} from origin/main`); }
+}
+
 /** Files that may differ between the approved commit and the commit deployed: only the approvals table itself. Recording the
  *  approval on main is a commit, so main's head can never be the approved SHA (found at the first release, 14 Nov 2026). */
 export const APPROVAL_ONLY_FILES = ["docs/livio-asks.md"];

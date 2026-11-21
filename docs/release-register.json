@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "repo": "1903978-prog/10bonds",
+  "about": "One shared evidence register for 10bonds releases. 'history' = real deploy runs read from GitHub on 21 Nov 2026 (deploy.yml, workflow_dispatch, run attempt 1). 'releases' = entries Claude prepares for the standing delegation (docs/delegation/policy.json); a release deploys under AUTO-<first 12 of sha> only if its entry is READY, merged to main, and every check in scripts/delegation.mjs passes. Real data only: nothing here is invented, and an unknown is written as null.",
+  "limits": [
+    "review.reviewer is an attestation recorded by the agent that ran the independent review; GitHub cannot prove who reviewed.",
+    "Claude and Livio share the GitHub account 1903978-prog, so a repository file cannot separate them; the owner-set repository variables RELEASE_DELEGATION (pause switch) and RELEASE_POLICY_SHA256 (activation pin) and is UNVERIFIED / NOT APPLIED until Livio confirms that agents cannot write it.",
+    "CI success and the nightly backup time are read from the GitHub API at release time; fields an agent writes in this file are not trusted for them.",
+    "Branch/environment protections are UNVERIFIED / NOT APPLIED until confirmed in repository settings."
+  ],
+  "history": [
+    { "run": 43564639007, "number": 514, "sha": "ddd078bd4735e756077183138e127bfcef27bbcd", "approval": "REL-0001", "authority": "owner-go", "conclusion": "failure", "at": "14 Nov 2026" },
+    { "run": 43567285536, "number": 515, "sha": "c819bd07db8e51b94528dc8c312d95bde8e7e2d9", "approval": "REL-0002", "authority": "owner-go", "conclusion": "success", "at": "14 Nov 2026" },
+    { "run": 43899759675, "number": 516, "sha": "402b79b1d28b3e94e122b53ca2b4809d93573519", "approval": "REL-0004", "authority": "owner-go", "conclusion": "success", "at": "16 Nov 2026" },
+    { "run": 44007975668, "number": 517, "sha": "e20f76b36158aaa7cdeeed09962d992b91f5e214", "approval": "REL-0006", "authority": "owner-go", "conclusion": "success", "at": "17 Nov 2026" },
+    { "run": 44767328858, "number": 518, "sha": "aca3bd154fd4ef9c29bf95eaa48b428239e203af", "approval": "REL-0007", "authority": "owner-go", "conclusion": "failure", "at": "20 Nov 2026", "note": "gate blocked: CLAUDE.md also differed from the approved commit" },
+    { "run": 44773529646, "number": 519, "sha": "8946360423c93cecb3d05ba321681a4cb389b688", "approval": "REL-0008", "authority": "owner-go", "conclusion": "success", "at": "20 Nov 2026", "note": "approved commit aca3bd154fd4ef9c29bf95eaa48b428239e203af; /api/health/version showed that sha and REL-0008 on 21 Nov 2026" },
+    { "run": 43157125540, "number": 513, "sha": "10e5eb2f8b53f1a252d6b7f47c0643f13fa9c81b", "approval": null, "authority": "none", "conclusion": "success", "at": "12 Nov 2026", "note": "deployed before the gate existed (the incident that created 10B-0007)" }
+  ],
+  "releases": []
+}

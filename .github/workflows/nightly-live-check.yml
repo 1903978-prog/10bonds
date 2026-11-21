@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   actions: read
+  checks: read
 concurrency:
   group: nightly-live-check
   cancel-in-progress: false
@@ -24,6 +25,7 @@ jobs:
       ACCOUNTS_DATABASE_URL: ${{ secrets.ACCOUNTS_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --silent
@@ -34,6 +36,10 @@ jobs:
       # 10B-0007: the live commit must carry a recorded release approval (fails for a release made outside deploy.yml).
       - name: Live release is approved
         if: success() || failure()
+        env:
+          RELEASE_DELEGATION: ${{ vars.RELEASE_DELEGATION }}
+          RELEASE_POLICY_SHA256: ${{ vars.RELEASE_POLICY_SHA256 }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
           node scripts/release-audit.mjs 2>&1 | tee -a live.log
